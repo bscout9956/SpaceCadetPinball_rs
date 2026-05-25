@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-struct Vector2 {
+pub struct Vector2 {
     x: f32,
     y: f32,
 }
@@ -15,7 +15,7 @@ impl PartialEq for Vector2 {
     }
 }
 
-struct Vector3 {
+pub struct Vector3 {
     x: f32,
     y: f32,
     z: f32,
@@ -23,33 +23,33 @@ struct Vector3 {
 
 impl Vector3 {
     // TODO: We may want to eventually turn this into a Vec3 that is composed of a Vec2 and a Z axis
-    fn new(x: f32, y: f32, z: f32) -> Self {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
 
-    fn new_xy(x: f32, y: f32) -> Self {
+    pub fn new_xy(x: f32, y: f32) -> Self {
         Self { x, y, z: 0.0 }
     }
 }
 
-struct Vector2i {
+pub struct Vector2i {
     x: i32,
     y: i32,
 }
 
-struct RectangleType {
+pub struct RectangleType {
     x_position: i32,
     y_position: i32,
     width: i32,
     height: i32,
 }
 
-struct CircleType {
+pub struct CircleType {
     center: Vector2,
     radius_sq: f32,
 }
 
-struct RayType {
+pub struct RayType {
     origin: Vector2,
     direction: Vector2,
     max_distance: f32,
@@ -57,7 +57,7 @@ struct RayType {
     collision_mask: i32,
 }
 
-struct LineType {
+pub struct LineType {
     perpendicular: Vector2,
     direction: Vector2,
     origin: Vector2,
@@ -67,12 +67,12 @@ struct LineType {
     ray_intersect: Vector2,
 }
 
-struct WallPointType {
+pub struct WallPointType {
     pt_0: Vector2,
     pt_1: Vector2,
 }
 
-struct RampPlaneType {
+pub struct RampPlaneType {
     ball_collision_offset: Vector3,
     v1: Vector2,
     v2: Vector2,
@@ -82,14 +82,14 @@ struct RampPlaneType {
     field_force: Vector2,
 }
 
-struct RectF {
+pub struct RectF {
     x_max: f32,
     y_max: f32,
     x_min: f32,
     y_min: f32,
 }
 
-enum FlipperIntersect {
+pub enum FlipperIntersect {
     None = -1,
     LineA = 0,
     LineB = 1,
