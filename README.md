@@ -1,6 +1,8 @@
 <!-- markdownlint-disable-file MD033 -->
 
-# SpaceCadetPinball
+# SpaceCadetPinball_rs
+
+A port of the original fork into rust. Description is WIP.
 
 ## Summary
 
