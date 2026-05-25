@@ -42,6 +42,10 @@ trait TCollisionComponentBehavior {
     ) -> bool;
 }
 
+impl TCollisionComponent {
+    // TODO: Finish me
+}
+
 impl TCollisionComponentBehavior for TCollisionComponent {
     fn collision(
         &mut self,
