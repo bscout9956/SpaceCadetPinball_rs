@@ -3,12 +3,9 @@ use std::{
     rc::{Rc, Weak},
 };
 
+use crate::maths::*;
 use crate::t_edge_segment::TEdgeSegment;
 
-// TODO: Temporary
-struct RectF;
-// TODO: Temporary
-struct Vector2;
 // TODO: Temporary
 struct TBall;
 

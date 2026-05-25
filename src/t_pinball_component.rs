@@ -159,9 +159,6 @@ struct RenderSprite;
 struct TPinballTable;
 // TODO: Temporary
 struct SpriteData;
-// TODO: Temporary
-struct Vector2i;
-struct Vector2;
 
 struct TPinballComponent {
     pub unused_base_flag: Rc<Cell<bool>>,
@@ -200,8 +197,9 @@ impl TPinballComponentBehavior for TPinballComponent {
         todo!()
     }
 
-    fn get_coordinates() -> Vector2 {
-        todo!()
+    fn get_coordinates(&self) -> Vector2 {
+        // TODO: Implement
+        Vector2
     }
 
     fn get_scoring(index: u32) -> i32 {
