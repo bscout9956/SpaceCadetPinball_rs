@@ -1,7 +1,8 @@
 use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
 use std::rc::{Rc, Weak};
-
+use crate::maths::{RayType, RectF};
+use crate::t_ball::TBall;
 use crate::t_collision_component::TCollisionComponent;
 
 pub enum WallType {
@@ -13,15 +14,6 @@ pub enum WallValue {
     //TODO: Define what will be possible here
     Empty,
 }
-
-// TODO: Temporary
-pub struct TBall {}
-
-// TODO: Temporary
-pub struct RectF {}
-
-// TODO: Temporary
-pub struct RayType {}
 
 pub struct TEdgeSegment {
     pub collision_component: Weak<RefCell<TCollisionComponent>>,

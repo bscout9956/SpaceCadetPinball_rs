@@ -4,10 +4,8 @@ use std::{
 };
 
 use crate::maths::*;
+use crate::t_ball::TBall;
 use crate::t_edge_segment::TEdgeSegment;
-
-// TODO: Temporary
-struct TBall;
 
 #[allow(non_snake_case)]
 pub struct TCollisionComponent {
