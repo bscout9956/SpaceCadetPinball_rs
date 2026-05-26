@@ -6,7 +6,7 @@ pub struct Vector2 {
 
 impl PartialEq for Vector2 {
     fn eq(&self, other: &Self) -> bool {
-        return self.x == other.x && self.y == other.y;
+        self.x == other.x && self.y == other.y
     }
 
     fn ne(&self, other: &Self) -> bool {
