@@ -3184,10 +3184,10 @@ const char* ImParseFormatFindStart(const char* fmt)
 
 const char* ImParseFormatFindEnd(const char* fmt)
 {
-    // Printf/scanf types modifiers: I/L/h/j/l/t/w/z. Other uppercase letters qualify as types aka end of the format.
+    // Printf/scanf types modifiers: I/l/h/j/l/t/w/z. Other uppercase letters qualify as types aka end of the format.
     if (fmt[0] != '%')
         return fmt;
-    const unsigned int ignored_uppercase_mask = (1 << ('I'-'A')) | (1 << ('L'-'A'));
+    const unsigned int ignored_uppercase_mask = (1 << ('I'-'A')) | (1 << ('l'-'A'));
     const unsigned int ignored_lowercase_mask = (1 << ('h'-'a')) | (1 << ('j'-'a')) | (1 << ('l'-'a')) | (1 << ('t'-'a')) | (1 << ('w'-'a')) | (1 << ('z'-'a'));
     for (char c; (c = *fmt) != 0; fmt++)
     {

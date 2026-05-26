@@ -89,6 +89,340 @@ pub struct RectF {
     pub y_min: f32,
 }
 
+impl RectF {
+    fn merge(&mut self, aabb: &RectF) {
+        self.x_max = f32::max(self.x_max, aabb.x_max);
+        self.y_max = f32::max(self.y_max, aabb.y_max);
+        self.x_min = f32::min(self.x_min, aabb.x_min);
+        self.y_min = f32::min(self.y_min, aabb.y_min);
+    }
+}
+
+// Performs AABB merge, creating rect that is just large enough to contain both source rects.
+pub fn enclosing_box(rect1: &RectangleType, rect2: &RectangleType, dest_rect: &mut RectangleType) {
+    let mut x_pos = rect1.x_position;
+    let mut width = rect1.width;
+
+    if (rect2.x_position < rect1.x_position) {
+        x_pos = rect2.x_position;
+        width += rect1.x_position - rect2.x_position;
+    }
+
+    let mut y_pos = rect1.y_position;
+    let mut height = rect1.height;
+
+    if (rect2.y_position < rect1.y_position) {
+        y_pos = rect2.y_position;
+        height += rect1.y_position - rect2.y_position;
+    }
+
+    let mut x_end_2 = rect2.x_position + rect2.width;
+    if x_end_2 > x_pos + width {
+        width = x_end_2 - x_pos;
+    }
+
+    let mut y_end_2 = rect2.y_position + rect2.height;
+    if y_end_2 > y_pos + height {
+        height = y_end_2 - y_pos;
+    }
+
+    dest_rect.x_position = x_pos;
+    dest_rect.y_position = y_pos;
+    dest_rect.width = width;
+    dest_rect.height = height;
+}
+
+pub fn rectangle_clip(
+    rect1: &RectangleType,
+    rect2: &RectangleType,
+    dest: Option<&mut RectangleType>,
+) -> bool {
+    let x_end_2 = rect2.x_position + rect2.width;
+    if rect2.x_position >= rect1.x_position + rect1.width || rect1.x_position >= x_end_2 {
+        return false;
+    }
+
+    let y_end_2 = rect2.y_position + rect2.height;
+    if rect2.y_position >= rect1.y_position + rect1.height || rect1.y_position >= y_end_2 {
+        return false;
+    }
+
+    let mut x_pos = rect1.x_position;
+    let mut width = rect1.width;
+    if (rect1.x_position < rect2.x_position) {
+        x_pos = rect2.x_position;
+        width += rect1.x_position - rect2.x_position;
+    }
+
+    let mut y_pos = rect1.y_position;
+    let mut height = rect1.height;
+    if rect1.y_position < rect2.y_position {
+        y_pos = rect2.y_position;
+        height += rect1.y_position - rect2.y_position;
+    }
+
+    if x_pos + width > x_end_2 {
+        width = x_end_2 - x_pos;
+    }
+    if y_pos + height > y_end_2 {
+        height = y_end_2 - y_pos;
+    }
+
+    if width == 0 || height == 0 {
+        return false;
+    }
+
+    if let Some(rect) = dest {
+        rect.x_position = x_pos;
+        rect.y_position = y_pos;
+        rect.width = width;
+        rect.height = height;
+    }
+    true
+}
+
+// Returns the distance from ray origin to the first ray-circle intersection point.
+pub fn ray_intersect_circle(ray: &RayType, circle: &CircleType) -> f32 {
+    // O - ray origin
+    // D - ray direction
+    // C - circle center
+    // R - circle radius
+    // l, C - O, vector between O and C
+    let l = vector_sub_vec2(&circle.center, &ray.origin);
+
+    // Tca, l dot D, projection of l on D
+    let tca = dot_product(&l, &ray.direction);
+    if tca < 0.0 {
+        return 1000000000.0;
+    }
+
+    // l dot l, distance from ray origin to circle center
+    let l_mag_sq = dot_product(&l, &l);
+
+    // Thc^2 = rad^2 - d^2; d = sqrt(l dot l - Tca * Tca)
+    let thc_sq = circle.radius_sq - l_mag_sq + tca * tca;
+
+    // T0 = Tca - Thc, distance from origin to first intersection
+    // If ray origin is inside the circle, then T0 is negative
+    if l_mag_sq < circle.radius_sq {
+        return tca - f32::sqrt(thc_sq);
+    }
+
+    // No intersection if ThcSq is negative, that is if d > rad
+    if thc_sq < 0.0 {
+        return 1000000000.0;
+    }
+
+    let t0: f32 = tca - f32::sqrt(thc_sq);
+    if t0 < 0.0 || t0 > ray.max_distance {
+        return 1000000000.0;
+    }
+
+    t0
+}
+
+pub fn normalize_2d(vec2: &mut Vector2) -> f32 {
+    let mag: f32 = f32::sqrt(vec2.x * vec2.x + vec2.y * vec2.y);
+    if mag != 0.0 {
+        vec2.x /= mag;
+        vec2.y /= mag;
+    }
+    mag
+}
+
+pub fn line_init(line: &mut LineType, x0: f32, y0: f32, x1: f32, y1: f32) {
+    line.origin = Vector2 { x: x0, y: y0 };
+    line.end = Vector2 { x: x1, y: y1 };
+    line.direction.x = x1 - x0;
+    line.direction.y = y1 - y0;
+    normalize_2d(&mut line.direction);
+
+    // Clockwise perpendicular to the line direction vector
+    line.perpendicular = Vector2 {
+        x: line.direction.y,
+        y: -line.direction.x,
+    };
+
+    let mut line_start = x0;
+    let mut line_end = x1;
+
+    if f32::abs(line.direction.x) < 0.000000001 {
+        line.direction.x = 0.0;
+        line_start = y0;
+        line_end = y1;
+    }
+
+    line.min_coord = f32::min(line_start, line_end);
+    line.max_coord = f32::max(line_start, line_end);
+}
+
+// Returns the distance from ray origin to the ray-line segment intersection point.
+// Stores ray-line intersection point in line.RayIntersect
+pub fn ray_intersect_line(ray: &RayType, line: &mut LineType) -> f32 {
+    // V1 vector between ray origin and line origin
+    // V2 ray direction
+    // V3 line perpendicular clockwise
+    let mut v1 = vector_sub_vec2(&ray.origin, &line.origin);
+    let mut v2 = line.direction;
+    let v3 = Vector2 {
+        x: -ray.direction.y,
+        y: ray.direction.x,
+    };
+
+    // Project line on ray perpendicular, no intersection if ray is pointing away from the line
+    let v2_dot_v3 = dot_product(&v2, &v3);
+    if (v2_dot_v3 < 0.0) {
+        // Distance to the intersect point: (V2 X V1) / (V2 dot V3)
+        let distance = cross(&v2, &v1) / v2_dot_v3;
+        if (distance >= -ray.min_distance && distance <= ray.max_distance) {
+            line.ray_intersect.x = distance * ray.direction.x + ray.origin.x;
+            line.ray_intersect.y = distance * ray.direction.y + ray.origin.y;
+
+            // Check if intersection point is inside line segment
+            let test_point = if line.direction.x != 0.0 {
+                line.ray_intersect.x
+            } else {
+                line.ray_intersect.y
+            };
+            if (test_point >= line.min_coord && test_point <= line.max_coord) {
+                return distance;
+            }
+        }
+    }
+
+    1000000000.0
+}
+
+pub fn cross_mut(vec1: &Vector3, vec2: &Vector3, dst_vect: &mut Vector3) {
+    dst_vect.x = vec2.z * vec1.y - vec2.y * vec1.z;
+    dst_vect.y = vec2.x * vec1.z - vec1.x * vec2.z;
+    dst_vect.z = vec1.x * vec2.y - vec2.x * vec1.y;
+}
+
+pub fn cross(vec1: &Vector2, vec2: &Vector2) -> f32 {
+    vec1.x * vec2.y - vec1.y * vec2.x
+}
+
+pub fn magnitude(vec: &Vector3) -> f32 {
+    let mut result;
+    let mag_sq = vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
+    if mag_sq == 0.0 {
+        result = 0.0;
+    } else {
+        result = mag_sq.sqrt();
+    }
+    result
+}
+
+pub fn magnitude_sq(vec: &Vector2) -> f32 {
+    vec.x * vec.x + vec.y * vec.y
+}
+
+pub fn magnitude_sq_i(vec: &Vector2i) -> i32 {
+    vec.x * vec.x + vec.y * vec.y
+}
+
+pub fn vector_add(vec1_dst: &mut Vector2, vec2: &Vector2) {
+    vec1_dst.x += vec2.x;
+    vec1_dst.y += vec2.y;
+}
+
+pub fn vector_sub_vec2(vec1: &Vector2, vec2: &Vector2) -> Vector2 {
+    Vector2 {
+        x: vec1.x - vec2.x,
+        y: vec1.y - vec2.y,
+    }
+}
+
+pub fn vector_sub_vec3(vec1: &Vector3, vec2: &Vector3) -> Vector3 {
+    Vector3 {
+        x: vec1.x - vec2.x,
+        y: vec1.y - vec2.y,
+        z: vec1.z - vec2.z,
+    }
+}
+
+pub fn vector_mul(vec1: &Vector2, val: f32) -> Vector2 {
+    Vector2 {
+        x: vec1.x * val,
+        y: vec1.y * val,
+    }
+}
+
+pub fn basic_collision() -> f32 {
+    todo!(); // needs TBall
+}
+
+pub fn distance_squared(vec1: &Vector2, vec2: &Vector2) -> f32 {
+    let dx = vec1.x - vec2.x;
+    let dy = vec1.y - vec2.y;
+    dy * dy + dx * dx
+}
+
+pub fn dot_product(vec1: &Vector2, vec2: &Vector2) -> f32 {
+    vec1.x * vec2.x + vec1.y * vec2.y
+}
+
+pub fn distance(vec1: &Vector2, vec2: &Vector2) -> f32 {
+    f32::sqrt(distance_squared(&vec1, &vec2))
+}
+
+pub fn sin_cos(angle: f32) -> (f32, f32) {
+    (angle.sin(), angle.cos())
+}
+
+pub fn rotate_pt(point: &mut Vector2, sin: f32, cos: f32, origin: &Vector2) {
+    let x_offset = point.x - origin.x;
+    let y_offset = point.y - origin.y;
+    point.x = x_offset * cos - y_offset * sin + origin.x;
+    point.y = x_offset * sin + y_offset * cos + origin.y;
+}
+
+// Return the distance from ray1 origin to the intersection point with the closest flipper feature.
+// Sets ray2 origin to intersection point, direction to collision direction
+pub fn distance_to_flipper() {
+    todo!(); // Requires TFlipperEdge
+}
+
+pub fn rotate_vector(vec: &mut Vector2, angle: f32) {
+    let (s, c) = (angle.sin(), angle.cos());
+    vec.x = c * vec.x - s * vec.y;
+    vec.y = s * vec.x + c * vec.y;
+    /* Error in the original, should be:
+     * auto newX = c * vec.X - s * vec.Y;
+     * vec.Y = s * vec.X + c * vec.Y;
+     * vec.X = newX;
+     */
+    // Original code rotates the point on a figure eight curve.
+    // Luckily, it is never used with angle always set to 0.
+}
+
+pub fn find_closest_edge(
+    planes: &[RampPlaneType],
+    plane_count: i32,
+    wall: WallPointType,
+    line_end: &mut Vector2,
+    line_start: &mut Vector2,
+) {
+    let mut distance: f32 = 1000000000.0;
+    for plane in planes.iter().take(plane_count as usize) {
+        let point_order: [&Vector2; 4] = [&plane.v1, &plane.v2, &plane.v3, &plane.v1];
+
+        for pt_index in 0..3 {
+            let point1 = point_order[pt_index];
+            let point2 = point_order[pt_index + 1];
+
+            let new_distance =
+                self::distance(&wall.pt_0, point1) + self::distance(&wall.pt_1, point2);
+            if new_distance < distance {
+                distance = new_distance;
+                *line_end = *point1;
+                *line_start = *point2;
+            }
+        }
+    }
+}
+
 pub enum FlipperIntersect {
     None = -1,
     LineA = 0,

@@ -95,18 +95,18 @@ float maths::ray_intersect_circle(const ray_type& ray, const circle_type& circle
 	// D - ray direction
 	// C - circle center
 	// R - circle radius
-	// L, C - O, vector between O and C
-	auto L = vector_sub(circle.Center, ray.Origin);
+	// l, C - O, vector between O and C
+	auto l = vector_sub(circle.Center, ray.Origin);
 
-	// Tca, L dot D, projection of L on D
-	float Tca = DotProduct(L, ray.Direction);
+	// Tca, l dot D, projection of l on D
+	float Tca = DotProduct(l, ray.Direction);
 	if (Tca < 0.0f) // No intersection if Tca is negative
 		return 1000000000.0f;
 
-	// L dot L, distance from ray origin to circle center
-	float LMagSq = DotProduct(L, L);
+	// l dot l, distance from ray origin to circle center
+	float LMagSq = DotProduct(l, l);
 
-	// Thc^2 = rad^2 - d^2; d = sqrt(L dot L - Tca * Tca)
+	// Thc^2 = rad^2 - d^2; d = sqrt(l dot l - Tca * Tca)
 	float ThcSq = circle.RadiusSq - LMagSq + Tca * Tca;
 
 	// T0 = Tca - Thc, distance from origin to first intersection
