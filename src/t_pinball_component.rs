@@ -1,5 +1,6 @@
 use std::{
-    cell::{Cell, RefCell},
+    cell::{Cell, Ref, RefCell},
+    ops::Deref,
     rc::{Rc, Weak},
 };
 
@@ -147,7 +148,7 @@ struct TPinballComponent {
     pub component_control: Option<Weak<RefCell<Control>>>,
     pub group_index: i32,
     pub render_sprite: RenderSprite, //TODO: Decide what this will be
-    pub pinball_table: Weak<RefCell<TPinballTable>>,
+    pub pinball_table: Option<Weak<RefCell<TPinballTable>>>,
     pub list_bitmap: Vec<SpriteData>, // TODO: Decide the internal struct
 
     visual_pos_norm_x: f32,
@@ -157,14 +158,70 @@ struct TPinballComponent {
 trait TPinballComponentBehavior {
     fn sprite_set(index: i32);
     fn sprite_set_ball(index: i32, pos: Vector2i, depth: f32);
-    fn get_coordinates() -> Vector2;
-    fn get_scoring(index: u32) -> i32;
+    fn get_coordinates(&self) -> Vector2;
+    fn get_scoring(&self, index: u32) -> i32;
     fn port_draw();
     fn message(&mut self, code: MessageCode, value: f32) -> MessageCode;
 }
 
+// TODO: Temporary
+struct VisualStruct;
+
 impl TPinballComponent {
-    // TODO: Finish me
+    fn new(
+        table: Option<Rc<RefCell<TPinballTable>>>,
+        group_index: i32,
+        load_visuals: bool,
+    ) -> Self {
+        let visual: VisualStruct;
+
+        let mut instance = Self {
+            unused_base_flag: Rc::new(Cell::new(false)),
+            active_flag: Rc::new(Cell::new(false)),
+            message_field: MessageCode(0),
+            group_name: String::new(),
+            component_control: None,
+            group_index,
+            render_sprite: RenderSprite,
+            pinball_table: None,
+            list_bitmap: Vec::new(),
+            visual_pos_norm_x: -1.0,
+            visual_pos_norm_y: -1.0,
+        };
+
+        if let Some(table_result) = table {
+            let table_instance = Rc::downgrade(&table_result);
+            instance.pinball_table = Some(table_instance)
+            // TODO: table.component_list.push_back();
+        }
+
+        if group_index >= 0 {
+            // TODO: Create module
+            //instance.group_name = loader::query_name(group_index);
+        }
+
+        if load_visuals && group_index >= 0 {
+            // TODO: Create module
+            let visual_count = loader::query_visual_states(group_index);
+            // TODO: For loop L#33...
+        }
+
+        instance
+    }
+}
+
+impl Drop for TPinballComponent {
+    fn drop(&mut self) {
+        if self.pinball_table.is_some() {
+            // TODO: Add field, use let Some, upgrade weakptr, borrow mut?
+            let components = self.pinball_table.unwrap().component_list;
+            //TODO: Implement component list first then let position = // std::find begin end for this
+            // Continue from L94
+        }
+
+        // TODO: We don't need this
+        drop(self.list_bitmap); // TODO: Does list_bitmap implement drop?
+    }
 }
 
 impl TPinballComponentBehavior for TPinballComponent {
@@ -177,16 +234,30 @@ impl TPinballComponentBehavior for TPinballComponent {
     }
 
     fn get_coordinates(&self) -> Vector2 {
-        // TODO: Implement
-        Vector2
+        Vector2 {
+            x: self.visual_pos_norm_x,
+            y: self.visual_pos_norm_y,
+        }
     }
 
-    fn get_scoring(index: u32) -> i32 {
-        todo!()
+    fn get_scoring(&self, index: u32) -> i32 {
+        if let Some(weak_control) = &self.component_control {
+            if let Some(strong_control_rc) = weak_control.upgrade() {
+                let control = strong_control_rc.borrow();
+
+                // TODO: Implement control struct
+                if index >= control.score_count {
+                    0
+                } else {
+                    control.scores[index as usize]
+                }
+            }
+        }
+        0
     }
 
     fn port_draw() {
-        todo!()
+        // Doesn't have an impl
     }
 
     fn message(&mut self, code: MessageCode, value: f32) -> MessageCode {
