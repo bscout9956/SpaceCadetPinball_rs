@@ -7,6 +7,7 @@ mod t_pinball_component;
 mod t_ball;
 mod t_pinball_table;
 mod score;
+mod loader;
 
 fn main() {
     println!("Hello, world!");
