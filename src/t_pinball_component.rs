@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::maths::*;
+use crate::t_pinball_table::TPinballTable;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
@@ -136,15 +137,13 @@ struct Control;
 // TODO: Temporary
 struct RenderSprite;
 // TODO: Temporary
-struct TPinballTable;
-// TODO: Temporary
 struct SpriteData;
 
-struct TPinballComponent {
+pub struct TPinballComponent {
     pub unused_base_flag: Rc<Cell<bool>>,
     pub active_flag: Rc<Cell<bool>>,
     pub message_field: MessageCode,
-    pub group_name: String, // TODO: eh?
+    pub group_name: Option<Rc<Cell<String>>>,
     pub component_control: Option<Weak<RefCell<Control>>>,
     pub group_index: i32,
     pub render_sprite: RenderSprite, //TODO: Decide what this will be
@@ -155,12 +154,12 @@ struct TPinballComponent {
     visual_pos_norm_y: f32,
 }
 
-trait TPinballComponentBehavior {
+pub trait TPinballComponentBehavior {
     fn sprite_set(index: i32);
     fn sprite_set_ball(index: i32, pos: Vector2i, depth: f32);
     fn get_coordinates(&self) -> Vector2;
     fn get_scoring(&self, index: u32) -> i32;
-    fn port_draw();
+    fn port_draw(&self);
     fn message(&mut self, code: MessageCode, value: f32) -> MessageCode;
 }
 
@@ -168,7 +167,7 @@ trait TPinballComponentBehavior {
 struct VisualStruct;
 
 impl TPinballComponent {
-    fn new(
+    pub fn new(
         table: Option<Rc<RefCell<TPinballTable>>>,
         group_index: i32,
         load_visuals: bool,
