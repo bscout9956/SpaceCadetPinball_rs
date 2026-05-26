@@ -5,6 +5,8 @@ mod t_edge_segment;
 mod t_flipper_edge;
 mod t_pinball_component;
 mod t_ball;
+mod t_pinball_table;
+mod score;
 
 fn main() {
     println!("Hello, world!");
