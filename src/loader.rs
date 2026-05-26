@@ -1,6 +1,10 @@
+use crate::gdrv::GdrvBitmap8;
+use crate::group_data::{DatFile, FieldTypes};
 use crate::maths::*;
+use crate::zdrv::ZMapHeaderType;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use std::ffi::c_void;
+use std::ptr::null;
 
 pub struct ErrorMessage {
     code: i32,
@@ -145,8 +149,8 @@ pub struct VisualKickerStruct {
 }
 
 pub struct SpriteData {
-    bmp: gdrv_bitmap8,
-    zmap_header_type: ZMap,
+    bmp: Option<GdrvBitmap8>,
+    zmap: Option<ZMapHeaderType>,
 }
 
 pub struct VisualStruct {
@@ -185,7 +189,7 @@ fn compile_time_checks() {
 }
 
 pub struct Loader {
-    sound_count: i32, // TODO: Init to 1
+    sound_count: i32,
     loader_sound_count: i32,
     loader_table: DatFile,
     sound_record_table: DatFile,
@@ -197,7 +201,7 @@ impl Loader {
     // TODO Implement me
     pub fn new() -> Self {
         Self {
-            sound_count: 0,
+            sound_count: 1,
             loader_sound_count: 0,
             loader_table: (),
             sound_record_table: (),
@@ -244,5 +248,32 @@ impl Loader {
         visual.sound_index_3 = 0;
         visual.sound_index_3 = 0;
     }
-}
 
+    pub fn load_from(&mut self, dat_file: &DatFile) {
+        let loader_table = dat_file;
+        let sound_record_table = loader_table;
+
+        for group_index in 0..dat_file.groups.len() as i32 {
+            let bytes = dat_file.field(group_index, FieldTypes::ShortValue);
+            if let Some(byte_arr) = bytes {
+                if byte_arr.len() > 2 {
+                    // TODO: Is it LE???
+                    let value = i16::from_le_bytes([byte_arr[0], byte_arr[1]]);
+                    if value == 202 {
+                        // TODO: ???????????
+                        if self.sound_count < 65 {
+                            self.sound_list[self.sound_count] = SoundListStruct {
+                                wave_ptr: std::ptr::null::<c_void>(), // TODO: Change me
+                                group_index,
+                                loaded: false,
+                                duration: 0.0,
+                            };
+                            self.sound_count += 1;
+                        }
+                    }
+                }
+            }
+        }
+        self.loader_sound_count = self.sound_count;
+    }
+}
