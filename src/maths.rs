@@ -364,7 +364,7 @@ pub fn vector_mul(vec1: &Vector2, val: f32) -> Vector2 {
     }
 }
 
-pub fn basic_collision(mut ball: TBall, next_position: Vector2, direction: Vector2, elasticity: f32,
+pub fn basic_collision(ball: &mut TBall, next_position: &Vector2, direction: &Vector2, elasticity: f32,
                        smoothness: f32, threshold: f32, boost: f32) -> f32 {
     ball.position.x = next_position.x + direction.x * 0.0005;
     ball.position.y = next_position.y + direction.y * 0.0005;
@@ -396,7 +396,7 @@ pub fn basic_collision(mut ball: TBall, next_position: Vector2, direction: Vecto
         ball.direction.x = ball.speed * ball.direction.x + direction.x * boost;
         ball.direction.y = ball.speed * ball.direction.y + direction.y * boost;
     }
-    
+
     rebound_speed
 }
 
