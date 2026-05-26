@@ -1,5 +1,6 @@
 use crate::maths::*;
-use crate::t_edge_segment::{TBall, TEdgeSegmentBehavior};
+use crate::t_ball::TBall;
+use crate::t_edge_segment::TEdgeSegmentBehavior;
 use crate::t_pinball_component::MessageCode;
 
 pub struct TFlipperEdge {
@@ -58,11 +59,11 @@ impl TEdgeSegmentBehavior for TFlipperEdge {
         todo!()
     }
 
-    fn place_in_grid(&self, aabb: crate::t_edge_segment::RectF) {
+    fn place_in_grid(&self, aabb: RectF) {
         todo!()
     }
 
-    fn find_collision_distance(&self, ray: &crate::t_edge_segment::RayType) -> f32 {
+    fn find_collision_distance(&self, ray: &RayType) -> f32 {
         todo!()
     }
 }

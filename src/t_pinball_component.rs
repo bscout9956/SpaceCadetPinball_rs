@@ -4,8 +4,8 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use crate::maths::*;
-use crate::t_pinball_table::TPinballTable;
+use crate::{loader, maths::*};
+use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
@@ -136,8 +136,6 @@ impl MessageCode {
 struct Control;
 // TODO: Temporary
 struct RenderSprite;
-// TODO: Temporary
-struct SpriteData;
 
 pub struct TPinballComponent {
     pub unused_base_flag: Rc<Cell<bool>>,
@@ -178,7 +176,7 @@ impl TPinballComponent {
             unused_base_flag: Rc::new(Cell::new(false)),
             active_flag: Rc::new(Cell::new(false)),
             message_field: MessageCode(0),
-            group_name: String::new(),
+            group_name: Some(Rc::new(Cell::new(String::new()))),
             component_control: None,
             group_index,
             render_sprite: RenderSprite,
@@ -255,7 +253,7 @@ impl TPinballComponentBehavior for TPinballComponent {
         0
     }
 
-    fn port_draw() {
+    fn port_draw(&self) {
         // Doesn't have an impl
     }
 

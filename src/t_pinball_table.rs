@@ -1,9 +1,9 @@
-use std::cell::{Cell, RefCell};
-use std::rc::{Rc, Weak};
 use crate::maths::Vector2;
 use crate::score::ScoreStruct;
 use crate::t_ball::TBall;
 use crate::t_pinball_component::TPinballComponent;
+use std::cell::{Cell, RefCell};
+use std::rc::{Rc, Weak};
 
 pub struct ScoreStructSuper {
     pub score_struct: ScoreStruct,
@@ -123,6 +123,7 @@ impl TPinballTable {
             gravity_angle_x: 0.0,
             gravity_angle_y: 0.0,
             collision_comp_offset: 0.0,
+            // TODO What do?
             plunger_position: Vector2 {},
             score_multiplier: 0,
             score_added: 0,
@@ -149,7 +150,7 @@ impl TPinballTable {
         };
 
         // TODO: Implement AddBall
-        let ball = AddBall(Vector2 {x: 0.0, y: 0.0});
+        let ball = AddBall(Vector2 { x: 0.0, y: 0.0 });
         ball.disable();
 
         // TODO: Implement TTableLayer
@@ -161,6 +162,5 @@ impl TPinballTable {
         // TODO: Continue implementing
 
         Instance
-
     }
 }

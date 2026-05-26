@@ -1,14 +1,14 @@
-use std::{
-    cell::RefCell,
-    rc::{Rc, Weak},
-};
-use std::cell::{Cell, Ref};
-use crate::maths;
 use crate::maths::*;
 use crate::t_ball::TBall;
 use crate::t_edge_segment::{TEdgeSegment, TEdgeSegmentBehavior};
 use crate::t_pinball_component::{MessageCode, TPinballComponent, TPinballComponentBehavior};
 use crate::t_pinball_table::TPinballTable;
+use std::cell::{Cell, Ref};
+use std::{
+    cell::RefCell,
+    rc::{Rc, Weak},
+};
+use crate::loader;
 
 #[allow(non_snake_case)]
 pub struct TCollisionComponent {
@@ -45,8 +45,7 @@ impl TCollisionComponent {
     pub fn new(table: TPinballTable, group_index: i32, create_wall: bool) -> Self {
         // TODO: Should we pass the table or create a new one?
         let pinball_table = Rc::new(RefCell::new(TPinballTable::new()));
-        let pinball_component = TPinballComponent::new(
-            Some(pinball_table), group_index, true);
+        let pinball_component = TPinballComponent::new(Some(pinball_table), group_index, true);
 
         let visual: VisualStruct;
 
@@ -62,7 +61,7 @@ impl TCollisionComponent {
                 x_max: -10000.0,
                 y_max: -10000.0,
                 x_min: 10000.0,
-                y_min: 10000.0
+                y_min: 10000.0,
             },
             t_pinball_component: pinball_component,
         };
@@ -71,18 +70,24 @@ impl TCollisionComponent {
         if !Instance.t_pinball_component.group_name.is_some() {
             Instance.t_pinball_component.unused_base_flag = Rc::new(Cell::new(true));
         }
-        if group_index <= 0{
+        if group_index <= 0 {
             // TODO: Implement loader
-            loader::default::vsi(&visual);
-        }
-        else {
+            loader::default_vsi(visual);
+        } else {
             // TODO: Implement loader
             loader::query_visual(group_index, 0, &visual);
             if (create_wall) {
                 let offset: f32 = table.collision_comp_offset;
                 // TODO: Implement loader
                 let float_arr = loader::query_float_attribute(group_index, 0, 600);
-                TEdgeSegment::install_wall(&float_arr, &Rc::new(RefCell::new(Instance)), Instance.t_pinball_component.active_flag, visual.collision_group, offset, 0);
+                TEdgeSegment::install_wall(
+                    &float_arr,
+                    &Rc::new(RefCell::new(Instance)),
+                    Instance.t_pinball_component.active_flag,
+                    visual.collision_group,
+                    offset,
+                    0,
+                );
             }
         }
 
@@ -112,7 +117,15 @@ impl TCollisionComponentBehavior for TCollisionComponent {
                 let table = upgraded_table.borrow();
 
                 if table.tilt_lock_flag {
-                    maths::basic_collision(ball, next_position, direction, self.elasticity, self.smoothness, 1000000000.0, 0.0);
+                    maths::basic_collision(
+                        ball,
+                        next_position,
+                        direction,
+                        self.elasticity,
+                        self.smoothness,
+                        1000000000.0,
+                        0.0,
+                    );
                     return;
                 }
             }
@@ -125,7 +138,7 @@ impl TCollisionComponentBehavior for TCollisionComponent {
             self.elasticity,
             self.smoothness,
             self.threshold,
-            self.boost
+            self.boost,
         );
         if proj_speed > self.threshold {
             loader::play_sound(self.hard_hit_sound_id, ball, "TCollisionComponent1");
@@ -144,23 +157,38 @@ impl TCollisionComponentBehavior for TCollisionComponent {
         next_position: &Vector2,
         direction: &mut Vector2,
     ) -> bool {
-        if let Some (pinball_table) = self.t_pinball_component.pinball_table {
-            if let Some (upgraded_table) = pinball_table.upgrade() {
+        if let Some(pinball_table) = self.t_pinball_component.pinball_table {
+            if let Some(upgraded_table) = pinball_table.upgrade() {
                 let table = upgraded_table.borrow();
                 if table.tilt_lock_flag {
-                    maths::basic_collision(ball, next_position, direction, self.elasticity, self.smoothness, 1000000000.0, 0.0);
+                    maths::basic_collision(
+                        ball,
+                        next_position,
+                        direction,
+                        self.elasticity,
+                        self.smoothness,
+                        1000000000.0,
+                        0.0,
+                    );
                     return false;
                 }
             }
         }
         let mut collision = false;
-        let proj_speed = maths::basic_collision(ball, next_position, direction, self.elasticity, self.smoothness, self.threshold, self.boost);
+        let proj_speed = maths::basic_collision(
+            ball,
+            next_position,
+            direction,
+            self.elasticity,
+            self.smoothness,
+            self.threshold,
+            self.boost,
+        );
         if proj_speed > self.threshold {
             // TODO: implement me
             loader::play_sound(self.hard_hit_sound_id, ball, "TCollisionComponent1");
             collision = true;
-        }
-        else if proj_speed > 0.2 {
+        } else if proj_speed > 0.2 {
             loader::play_sound(self.soft_hit_sound_id, ball, "TCollisionComponent2");
         }
         collision

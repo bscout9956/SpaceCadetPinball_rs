@@ -1,6 +1,6 @@
-use std::ffi::c_void;
+use crate::maths::*;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
-use crate::maths::Vector3;
+use std::ffi::c_void;
 
 pub struct ErrorMessage {
     code: i32,
@@ -10,34 +10,118 @@ pub struct ErrorMessage {
 impl ErrorMessage {
     pub fn get_loader_errors() -> [Self; 28] {
         let error_list = [
-            ErrorMessage {code: 0, message: "Bad Handle"},
-            ErrorMessage {code: 1, message: "No Type Field"},
-            ErrorMessage {code: 2, message: "No Attributes Field"},
-            ErrorMessage {code: 3, message: "Wrong Type: MATERIAL Expected"},
-            ErrorMessage {code: 4, message: "Wrong Type: KICKER Expected"},
-            ErrorMessage {code: 5, message: "Wrong Type: AN_OBJECT Expected"},
-            ErrorMessage {code: 6, message: "Wrong Type: A_STATE Expected"},
-            ErrorMessage {code: 7, message: "STATES (re)defined in a state"},
-            ErrorMessage {code: 9, message: "Unrecognized Attribute"},
-            ErrorMessage {code: 0x0A, message: "Unrecognized float Attribute"},
-            ErrorMessage {code: 0x0B, message: "No float Attributes Field"},
-            ErrorMessage {code: 0x0D, message: "float Attribute not found"},
-            ErrorMessage {code: 0x0C, message: "state_index out of range"},
-            ErrorMessage {code: 0x0F, message: "loader_material() reports failure"},
-            ErrorMessage {code: 0x0E, message: "loader_kicker() reports failure"},
-            ErrorMessage {code: 0x10, message: "loader_state_id() reports failure"},
-            ErrorMessage {code: 0x8, message: "# walls doesn't match data size"},
-            ErrorMessage {code: 0x11, message: "loader_query_visual_states()"},
-            ErrorMessage {code: 0x12, message: "loader_query_visual()"},
-            ErrorMessage {code: 0x15, message: "loader_material()"},
-            ErrorMessage {code: 0x14, message: "loader_kicker()"},
-            ErrorMessage {code: 0x16, message: "loader_query_attribute()"},
-            ErrorMessage {code: 0x17, message: "loader_query_iattribute()"},
-            ErrorMessage {code: 0x13, message: "loader_query_name()"},
-            ErrorMessage {code: 0x18, message: "loader_state_id()"},
-            ErrorMessage {code: 0x19, message: "loader_get_sound_id()"},
-            ErrorMessage {code: 0x1A, message: "sound reference is not A_SOUND record"},
-            ErrorMessage {code: -1, message: "Unknown"},
+            ErrorMessage {
+                code: 0,
+                message: "Bad Handle",
+            },
+            ErrorMessage {
+                code: 1,
+                message: "No Type Field",
+            },
+            ErrorMessage {
+                code: 2,
+                message: "No Attributes Field",
+            },
+            ErrorMessage {
+                code: 3,
+                message: "Wrong Type: MATERIAL Expected",
+            },
+            ErrorMessage {
+                code: 4,
+                message: "Wrong Type: KICKER Expected",
+            },
+            ErrorMessage {
+                code: 5,
+                message: "Wrong Type: AN_OBJECT Expected",
+            },
+            ErrorMessage {
+                code: 6,
+                message: "Wrong Type: A_STATE Expected",
+            },
+            ErrorMessage {
+                code: 7,
+                message: "STATES (re)defined in a state",
+            },
+            ErrorMessage {
+                code: 9,
+                message: "Unrecognized Attribute",
+            },
+            ErrorMessage {
+                code: 0x0A,
+                message: "Unrecognized float Attribute",
+            },
+            ErrorMessage {
+                code: 0x0B,
+                message: "No float Attributes Field",
+            },
+            ErrorMessage {
+                code: 0x0D,
+                message: "float Attribute not found",
+            },
+            ErrorMessage {
+                code: 0x0C,
+                message: "state_index out of range",
+            },
+            ErrorMessage {
+                code: 0x0F,
+                message: "loader_material() reports failure",
+            },
+            ErrorMessage {
+                code: 0x0E,
+                message: "loader_kicker() reports failure",
+            },
+            ErrorMessage {
+                code: 0x10,
+                message: "loader_state_id() reports failure",
+            },
+            ErrorMessage {
+                code: 0x8,
+                message: "# walls doesn't match data size",
+            },
+            ErrorMessage {
+                code: 0x11,
+                message: "loader_query_visual_states()",
+            },
+            ErrorMessage {
+                code: 0x12,
+                message: "loader_query_visual()",
+            },
+            ErrorMessage {
+                code: 0x15,
+                message: "loader_material()",
+            },
+            ErrorMessage {
+                code: 0x14,
+                message: "loader_kicker()",
+            },
+            ErrorMessage {
+                code: 0x16,
+                message: "loader_query_attribute()",
+            },
+            ErrorMessage {
+                code: 0x17,
+                message: "loader_query_iattribute()",
+            },
+            ErrorMessage {
+                code: 0x13,
+                message: "loader_query_name()",
+            },
+            ErrorMessage {
+                code: 0x18,
+                message: "loader_state_id()",
+            },
+            ErrorMessage {
+                code: 0x19,
+                message: "loader_get_sound_id()",
+            },
+            ErrorMessage {
+                code: 0x1A,
+                message: "sound reference is not A_SOUND record",
+            },
+            ErrorMessage {
+                code: -1,
+                message: "Unknown",
+            },
         ];
 
         error_list
@@ -61,9 +145,7 @@ pub struct VisualKickerStruct {
 }
 
 // TODO: Implement me
-struct ZMap {
-
-}
+struct ZMap {}
 
 struct gdrv_bitmap8; // TODO: Implement me
 
@@ -80,17 +162,17 @@ pub struct VisualStruct {
     soft_hit_sound_id: i32,
     kicker: VisualKickerStruct,
     collision_group: i32,
-    sound_index_4:i32,
-    sound_index_3:i32,
-    bitmap: SpriteData
+    sound_index_4: i32,
+    sound_index_3: i32,
+    bitmap: SpriteData,
 }
 
 #[repr(C, packed)]
 pub struct WaveHeader {
-    riff: [u8;4],
+    riff: [u8; 4],
     overall_size: u32,
-    wave: [u8;4],
-    fmt_chunk_marker: [u8;4],
+    wave: [u8; 4],
+    fmt_chunk_marker: [u8; 4],
     length_of_fmt: u32,
     format_type: u16,
     channels: u16,
@@ -98,13 +180,13 @@ pub struct WaveHeader {
     byte_rate: u32,
     block_align: u16,
     bits_per_sample: u16,
-    data_chunk_header: [u8;4],
+    data_chunk_header: [u8; 4],
     data_size: u32,
 }
 
 // Don't call.
 fn compile_time_checks() {
-    const {assert!(std::mem::size_of::<WaveHeader>() == 44)};
+    const { assert!(std::mem::size_of::<WaveHeader>() == 44) };
 }
 
 pub struct Loader {
@@ -161,8 +243,9 @@ impl Loader {
         visual.float_arr_count = 0;
         visual.soft_hit_sound_id = 0;
         // TODO: Implement me?
-        visual.bitmap = SpriteData::new();
+        //visual.bitmap = SpriteData::new();
         visual.sound_index_3 = 0;
         visual.sound_index_3 = 0;
     }
 }
+
