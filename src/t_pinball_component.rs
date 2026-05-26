@@ -3,152 +3,131 @@ use std::{
     rc::{Rc, Weak},
 };
 
-// TODO: The enums below may be incorrect, I'm not sure how to deal with conflicting
-// enums yet, so I just split them into a bunch of other enums lol
-pub enum MessageFlipper {
-    TFlipperNull = 0,
-    TFlipperExtend = 1,
-    TFlipperRetract = 2,
-}
+use crate::maths::*;
 
-pub enum MessageLight {
-    TLightTurnOff = 0,
-    TLightTurnOn = 1,
-    TLightGetLightOnFlag = 2,
-    TLightGetFlasherOnFlag = 3,
-    TLightFlasherStart = 4,
-    TLightApplyMultDelay = 5,
-    TLightApplyDelay = 6,
-    TLightFlasherStartTimed = 7,
-    TLightTurnOffTimed = 8,
-    TLightTurnOnTimed = 9,
-    TLightSetOnStateBmpIndex = 11,
-    TLightIncOnStateBmpIndex = 12,
-    TLightDecOnStateBmpIndex = 13,
-    TLightResetTimed = 14,
-    TLightFlasherStartTimedThenStayOn = 15,
-    TLightFlasherStartTimedThenStayOff = 16,
-    TLightToggleValue = 17,
-    TLightResetAndToggleValue = 18,
-    TLightResetAndTurnOn = 19,
-    TLightResetAndTurnOff = 20,
-    TLightToggle = 21,
-    TLightResetAndToggle = 22,
-    TLightSetMessageField = 23,
-    TLightFtTmpOverrideOn = -24,
-    TLightFtTmpOverrideOff = -25,
-    TLightFtResetOverride = -26,
-}
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+pub struct MessageCode(pub i32);
 
-pub enum MessageLightGroup {
-    TLightGroupNull = 0,
-    TLightGroupStepBackward = 24,
-    TLightGroupStepForward = 25,
-    TLightGroupAnimationBackward = 26,
-    TLightGroupAnimationForward = 27,
-    TLightGroupLightShowAnimation = 28,
-    TLightGroupGameOverAnimation = 29,
-    TLightGroupRandomAnimationSaturation = 30,
-    TLightGroupRandomAnimationDesaturation = 31,
-    TLightGroupOffsetAnimationForward = 32,
-    TLightGroupOffsetAnimationBackward = 33,
-    TLightGroupReset = 34,
-    TLightGroupTurnOnAtIndex = 35,
-    TLightGroupTurnOffAtIndex = 36,
-    TLightGroupGetOnCount = 37,
-    TLightGroupGetLightCount = 38,
-    TLightGroupGetMessage2 = 39,
-    TLightGroupGetAnimationFlag = 40,
-    TLightGroupResetAndTurnOn = 41,
-    TLightGroupResetAndTurnOff = 42,
-    TLightGroupRestartNotifyTimer = 43,
-    TLightGroupFlashWhenOn = 44,
-    TLightGroupToggleSplitIndex = 45,
-    TLightGroupStartFlasher = 46,
-    TLightGroupCountdownEnded = 47,
-}
+#[allow(dead_code)]
+impl MessageCode {
+    // Private codes <1000, different meaning for each component
+    pub const T_FLIPPER_NULL: MessageCode = MessageCode(0);
+    pub const T_FLIPPER_EXTEND: MessageCode = MessageCode(1);
+    pub const T_FLIPPER_RETRACT: MessageCode = MessageCode(2);
 
-pub enum MessageBumper {
-    TBumperSetBmpIndex = 11,
-    TBumperIncBmpIndex = 12,
-    TBumperDecBmpIndex = 13,
-}
+    pub const T_LIGHT_TURN_OFF: MessageCode = MessageCode(0);
+    pub const T_LIGHT_TURN_ON: MessageCode = MessageCode(1);
+    pub const T_LIGHT_GET_LIGHT_ON_FLAG: MessageCode = MessageCode(2);
+    pub const T_LIGHT_GET_FLASHER_ON_FLAG: MessageCode = MessageCode(3);
+    pub const T_LIGHT_FLASHER_START: MessageCode = MessageCode(4);
+    pub const T_LIGHT_APPLY_MULT_DELAY: MessageCode = MessageCode(5);
+    pub const T_LIGHT_APPLY_DELAY: MessageCode = MessageCode(6);
+    pub const T_LIGHT_FLASHER_START_TIMED: MessageCode = MessageCode(7);
+    pub const T_LIGHT_TURN_OFF_TIMED: MessageCode = MessageCode(8);
+    pub const T_LIGHT_TURN_ON_TIMED: MessageCode = MessageCode(9);
+    pub const T_LIGHT_SET_ON_STATE_BMP_INDEX: MessageCode = MessageCode(11);
+    pub const T_LIGHT_INC_ON_STATE_BMP_INDEX: MessageCode = MessageCode(12);
+    pub const T_LIGHT_DEC_ON_STATE_BMP_INDEX: MessageCode = MessageCode(13);
+    pub const T_LIGHT_RESET_TIMED: MessageCode = MessageCode(14);
+    pub const T_LIGHT_FLASHER_START_TIMED_THEN_STAY_ON: MessageCode = MessageCode(15);
+    pub const T_LIGHT_FLASHER_START_TIMED_THEN_STAY_OFF: MessageCode = MessageCode(16);
+    pub const T_LIGHT_TOGGLE_VALUE: MessageCode = MessageCode(17);
+    pub const T_LIGHT_RESET_AND_TOGGLE_VALUE: MessageCode = MessageCode(18);
+    pub const T_LIGHT_RESET_AND_TURN_ON: MessageCode = MessageCode(19);
+    pub const T_LIGHT_RESET_AND_TURN_OFF: MessageCode = MessageCode(20);
+    pub const T_LIGHT_TOGGLE: MessageCode = MessageCode(21);
+    pub const T_LIGHT_RESET_AND_TOGGLE: MessageCode = MessageCode(22);
+    pub const T_LIGHT_SET_MESSAGE_FIELD: MessageCode = MessageCode(23);
+    pub const T_LIGHT_FT_TMP_OVERRIDE_ON: MessageCode = MessageCode(-24);
+    pub const T_LIGHT_FT_TMP_OVERRIDE_OFF: MessageCode = MessageCode(-25);
+    pub const T_LIGHT_FT_RESET_OVERRIDE: MessageCode = MessageCode(-26);
 
-pub enum MessageCodePublic {
-    LeftFlipperInputPressed = 1000,
-    LeftFlipperInputReleased = 1001,
-    RightFlipperInputPressed = 1002,
-    RightFlipperInputReleased = 1003,
-    PlungerInputPressed = 1004,
-    PlungerInputReleased = 1005,
-    Pause = 1008,
-    Resume = 1009,
-    LooseFocus = 1010,
-    SetTiltLock = 1011,
-    ClearTiltLock = 1012,
-    StartGamePlayer1 = 1013,
-    NewGame = 1014,
-    PlungerFeedBall = 1015,
-    PlungerStartFeedTimer = 1016,
-    PlungerLaunchBall = 1017,
-    PlungerRelaunchBall = 1018,
-    PlayerChanged = 1020,
-    SwitchToNextPlayer = 1021,
-    GameOver = 1022,
-    Reset = 1024,
-}
+    pub const T_LIGHT_GROUP_NULL: MessageCode = MessageCode(0);
+    pub const T_LIGHT_GROUP_STEP_BACKWARD: MessageCode = MessageCode(24);
+    pub const T_LIGHT_GROUP_STEP_FORWARD: MessageCode = MessageCode(25);
+    pub const T_LIGHT_GROUP_ANIMATION_BACKWARD: MessageCode = MessageCode(26);
+    pub const T_LIGHT_GROUP_ANIMATION_FORWARD: MessageCode = MessageCode(27);
+    pub const T_LIGHT_GROUP_LIGHT_SHOW_ANIMATION: MessageCode = MessageCode(28);
+    pub const T_LIGHT_GROUP_GAME_OVER_ANIMATION: MessageCode = MessageCode(29);
+    pub const T_LIGHT_GROUP_RANDOM_ANIMATION_SATURATION: MessageCode = MessageCode(30);
+    pub const T_LIGHT_GROUP_RANDOM_ANIMATION_DESATURATION: MessageCode = MessageCode(31);
+    pub const T_LIGHT_GROUP_OFFSET_ANIMATION_FORWARD: MessageCode = MessageCode(32);
+    pub const T_LIGHT_GROUP_OFFSET_ANIMATION_BACKWARD: MessageCode = MessageCode(33);
+    pub const T_LIGHT_GROUP_RESET: MessageCode = MessageCode(34);
+    pub const T_LIGHT_GROUP_TURN_ON_AT_INDEX: MessageCode = MessageCode(35);
+    pub const T_LIGHT_GROUP_TURN_OFF_AT_INDEX: MessageCode = MessageCode(36);
+    pub const T_LIGHT_GROUP_GET_ON_COUNT: MessageCode = MessageCode(37);
+    pub const T_LIGHT_GROUP_GET_LIGHT_COUNT: MessageCode = MessageCode(38);
+    pub const T_LIGHT_GROUP_GET_MESSAGE2: MessageCode = MessageCode(39);
+    pub const T_LIGHT_GROUP_GET_ANIMATION_FLAG: MessageCode = MessageCode(40);
+    pub const T_LIGHT_GROUP_RESET_AND_TURN_ON: MessageCode = MessageCode(41);
+    pub const T_LIGHT_GROUP_RESET_AND_TURN_OFF: MessageCode = MessageCode(42);
+    pub const T_LIGHT_GROUP_RESTART_NOTIFY_TIMER: MessageCode = MessageCode(43);
+    pub const T_LIGHT_GROUP_FLASH_WHEN_ON: MessageCode = MessageCode(44);
+    pub const T_LIGHT_GROUP_TOGGLE_SPLIT_INDEX: MessageCode = MessageCode(45);
+    pub const T_LIGHT_GROUP_START_FLASHER: MessageCode = MessageCode(46);
+    pub const T_LIGHT_GROUP_COUNTDOWN_ENDED: MessageCode = MessageCode(47);
 
-pub enum MessageControl {
-    ControlBallCaptured = 57,
-    ControlBallReleased = 58,
-    ControlTimerExpired = 60,
-    ControlNotifyTimerExpired = 61,
-    ControlSpinnerLoopReset = 62,
-    ControlCollision = 63,
-    ControlEnableMultiplier = 64,
-    ControlDisableMultiplier = 65,
-    ControlMissionComplete = 66,
-    ControlMissionStarted = 67,
-}
+    pub const T_BUMPER_SET_BMP_INDEX: MessageCode = MessageCode(11);
+    pub const T_BUMPER_INC_BMP_INDEX: MessageCode = MessageCode(12);
+    pub const T_BUMPER_DEC_BMP_INDEX: MessageCode = MessageCode(13);
 
-pub enum MessageBlocker {
-    TBlockerDisable = 51,
-    TBlockerEnable = 52,
-    TBlockerRestartTimeout = 59,
-}
+    pub const T_COMPONENT_GROUP_RESET_NOTIFY_TIMER: MessageCode = MessageCode(48);
 
-pub enum MessageTimer {
-    TComponentGroupResetNotifyTimer = 48,
+    pub const T_POPUP_TARGET_DISABLE: MessageCode = MessageCode(49);
+    pub const T_POPUP_TARGET_ENABLE: MessageCode = MessageCode(50);
 
-    TPopupTargetDisable = 49,
-    TPopupTargetEnable = 50,
+    pub const T_BLOCKER_DISABLE: MessageCode = MessageCode(51);
+    pub const T_BLOCKER_ENABLE: MessageCode = MessageCode(52);
+    pub const T_BLOCKER_RESTART_TIMEOUT: MessageCode = MessageCode(59);
 
-    TGateDisable = 53,
-    TGateEnable = 54,
+    pub const T_GATE_DISABLE: MessageCode = MessageCode(53);
+    pub const T_GATE_ENABLE: MessageCode = MessageCode(54);
 
-    TKickoutRestartTimer = 55,
+    pub const T_KICKOUT_RESTART_TIMER: MessageCode = MessageCode(55);
 
-    TSinkUnknown7 = 7,
-    TSinkResetTimer = 56,
-    TTimerResetTimer = 59,
-}
+    pub const T_SINK_UNKNOWN7: MessageCode = MessageCode(7);
+    pub const T_SINK_RESET_TIMER: MessageCode = MessageCode(56);
 
-pub enum MessageTarget {
-    TSoloTargetDisable = 49,
-    TSoloTargetEnable = 50,
-}
+    pub const T_SOLO_TARGET_DISABLE: MessageCode = MessageCode(49);
+    pub const T_SOLO_TARGET_ENABLE: MessageCode = MessageCode(50);
 
-#[repr(i32)]
-pub enum MessageCode {
-    MessageFlipper(MessageFlipper),
-    MessageLight(MessageLight),
-    MessageLightGroup(MessageLightGroup),
-    MessageBumper(MessageBumper),
-    MessageBlocker(MessageBlocker),
-    MessageTarget(MessageTarget),
-    MessageTimer(MessageTimer),
-    MessageControl(MessageControl),
-    MessageCodePublic(MessageCodePublic),
+    pub const T_TIMER_RESET_TIMER: MessageCode = MessageCode(59);
+
+    pub const CONTROL_BALL_CAPTURED: MessageCode = MessageCode(57);
+    pub const CONTROL_BALL_RELEASED: MessageCode = MessageCode(58);
+    pub const CONTROL_TIMER_EXPIRED: MessageCode = MessageCode(60);
+    pub const CONTROL_NOTIFY_TIMER_EXPIRED: MessageCode = MessageCode(61);
+    pub const CONTROL_SPINNER_LOOP_RESET: MessageCode = MessageCode(62);
+    pub const CONTROL_COLLISION: MessageCode = MessageCode(63);
+    pub const CONTROL_ENABLE_MULTIPLIER: MessageCode = MessageCode(64);
+    pub const CONTROL_DISABLE_MULTIPLIER: MessageCode = MessageCode(65);
+    pub const CONTROL_MISSION_COMPLETE: MessageCode = MessageCode(66);
+    pub const CONTROL_MISSION_STARTED: MessageCode = MessageCode(67);
+
+    // Public codes 1000+, apply to all components
+    pub const LEFT_FLIPPER_INPUT_PRESSED: MessageCode = MessageCode(1000);
+    pub const LEFT_FLIPPER_INPUT_RELEASED: MessageCode = MessageCode(1001);
+    pub const RIGHT_FLIPPER_INPUT_PRESSED: MessageCode = MessageCode(1002);
+    pub const RIGHT_FLIPPER_INPUT_RELEASED: MessageCode = MessageCode(1003);
+    pub const PLUNGER_INPUT_PRESSED: MessageCode = MessageCode(1004);
+    pub const PLUNGER_INPUT_RELEASED: MessageCode = MessageCode(1005);
+    pub const PAUSE: MessageCode = MessageCode(1008);
+    pub const RESUME: MessageCode = MessageCode(1009);
+    pub const LOOSE_FOCUS: MessageCode = MessageCode(1010);
+    pub const SET_TILT_LOCK: MessageCode = MessageCode(1011);
+    pub const CLEAR_TILT_LOCK: MessageCode = MessageCode(1012);
+    pub const START_GAME_PLAYER1: MessageCode = MessageCode(1013);
+    pub const NEW_GAME: MessageCode = MessageCode(1014);
+    pub const PLUNGER_FEED_BALL: MessageCode = MessageCode(1015);
+    pub const PLUNGER_START_FEED_TIMER: MessageCode = MessageCode(1016);
+    pub const PLUNGER_LAUNCH_BALL: MessageCode = MessageCode(1017);
+    pub const PLUNGER_RELAUNCH_BALL: MessageCode = MessageCode(1018);
+    pub const PLAYER_CHANGED: MessageCode = MessageCode(1020);
+    pub const SWITCH_TO_NEXT_PLAYER: MessageCode = MessageCode(1021);
+    pub const GAME_OVER: MessageCode = MessageCode(1022);
+    pub const RESET: MessageCode = MessageCode(1024);
 }
 
 // TODO: Temporary
@@ -163,9 +142,9 @@ struct SpriteData;
 struct TPinballComponent {
     pub unused_base_flag: Rc<Cell<bool>>,
     pub active_flag: Rc<Cell<bool>>,
-    pub message_field: i32,
-    pub group_name: String,         // TODO: eh?
-    pub component_control: Control, //TODO: Decide what this will be
+    pub message_field: MessageCode,
+    pub group_name: String, // TODO: eh?
+    pub component_control: Option<Weak<RefCell<Control>>>,
     pub group_index: i32,
     pub render_sprite: RenderSprite, //TODO: Decide what this will be
     pub pinball_table: Weak<RefCell<TPinballTable>>,
@@ -181,7 +160,7 @@ trait TPinballComponentBehavior {
     fn get_coordinates() -> Vector2;
     fn get_scoring(index: u32) -> i32;
     fn port_draw();
-    fn message(code: MessageCode, value: f32) -> i32;
+    fn message(&mut self, code: MessageCode, value: f32) -> MessageCode;
 }
 
 impl TPinballComponent {
@@ -210,7 +189,12 @@ impl TPinballComponentBehavior for TPinballComponent {
         todo!()
     }
 
-    fn message(code: MessageCode, value: f32) -> i32 {
-        todo!()
+    fn message(&mut self, code: MessageCode, value: f32) -> MessageCode {
+        self.message_field = code;
+        if code == MessageCode::RESET {
+            self.message_field = MessageCode(0);
+        }
+
+        MessageCode(0)
     }
 }
