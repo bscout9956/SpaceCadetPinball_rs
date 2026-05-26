@@ -144,11 +144,6 @@ pub struct VisualKickerStruct {
     pub hard_hit_sound_id: i32,
 }
 
-// TODO: Implement me
-struct ZMap {}
-
-struct gdrv_bitmap8; // TODO: Implement me
-
 pub struct SpriteData {
     bmp: gdrv_bitmap8,
     zmap_header_type: ZMap,
@@ -242,8 +237,10 @@ impl Loader {
         visual.elasticity = 0.60000002;
         visual.float_arr_count = 0;
         visual.soft_hit_sound_id = 0;
-        // TODO: Implement me?
-        //visual.bitmap = SpriteData::new();
+        visual.bitmap = SpriteData {
+            bmp: None,
+            zmap: None,
+        };
         visual.sound_index_3 = 0;
         visual.sound_index_3 = 0;
     }
