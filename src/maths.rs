@@ -1,7 +1,19 @@
-#[derive(Copy, Clone)]
+use crate::t_ball::TBall;
+use crate::t_flipper_edge::TFlipperEdge;
+
+#[derive(Copy, Clone, Debug)]
 pub struct Vector2 {
     pub x: f32,
     pub y: f32,
+}
+
+impl Vector2 {
+    fn from_vec3(vec3: Vector3) -> Self {
+        Self {
+            x: vec3.x,
+            y: vec3.y,
+        }
+    }
 }
 
 impl PartialEq for Vector2 {
@@ -14,7 +26,7 @@ impl PartialEq for Vector2 {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vector3 {
     pub x: f32,
     pub y: f32,
@@ -22,13 +34,16 @@ pub struct Vector3 {
 }
 
 impl Vector3 {
-    // TODO: We may want to eventually turn this into a Vec3 that is composed of a Vec2 and a Z axis
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
 
     pub fn new_xy(x: f32, y: f32) -> Self {
         Self { x, y, z: 0.0 }
+    }
+
+    pub fn from_vec2(vec2: Vector2, z: f32) -> Self {
+        Self { x: vec2.x, y: vec2.y, z }
     }
 }
 
@@ -349,8 +364,40 @@ pub fn vector_mul(vec1: &Vector2, val: f32) -> Vector2 {
     }
 }
 
-pub fn basic_collision() -> f32 {
-    todo!(); // needs TBall
+pub fn basic_collision(mut ball: TBall, next_position: Vector2, direction: Vector2, elasticity: f32,
+                       smoothness: f32, threshold: f32, boost: f32) -> f32 {
+    ball.position.x = next_position.x + direction.x * 0.0005;
+    ball.position.y = next_position.y + direction.y * 0.0005;
+
+    // Project ball direction on collision rebound direction
+    // Unsure what to do with Z component, the original defines Vec2:Vec3
+    // Rust doesn't support inheritance
+    let mut rebound_proj =  -dot_product(&direction, &Vector2::from_vec3(ball.direction));
+    if rebound_proj < 0.0 {
+        // Negative projection means no rebound, both direction vectors point the same way.
+        rebound_proj = -rebound_proj;
+    }
+    else {
+        let dx1: f32 = rebound_proj * direction.x;
+        let dy1: f32 = rebound_proj * direction.y;
+        ball.direction.x = (dx1 + ball.direction.x) * smoothness + dx1 * elasticity;
+        ball.direction.y = (dy1 + ball.direction.y) * smoothness + dy1 * elasticity;
+        // We're copying the ball to a mutable Vector2, so we mutate it and reassign back to the
+        // original ball
+        let ball_copy = &mut Vector2::from_vec3(ball.direction);
+        normalize_2d(ball_copy);
+        ball.direction = Vector3 {x: ball_copy.x, y: ball_copy.y, z: ball.direction.z};
+    }
+    let rebound_speed = rebound_proj * ball.speed;
+    ball.speed -= (1.0 - elasticity) * rebound_speed;
+
+    if rebound_speed > threshold {
+        // Change ball direction if rebound speed is above threshold
+        ball.direction.x = ball.speed * ball.direction.x + direction.x * boost;
+        ball.direction.y = ball.speed * ball.direction.y + direction.y * boost;
+    }
+    
+    rebound_speed
 }
 
 pub fn distance_squared(vec1: &Vector2, vec2: &Vector2) -> f32 {
@@ -380,8 +427,53 @@ pub fn rotate_pt(point: &mut Vector2, sin: f32, cos: f32, origin: &Vector2) {
 
 // Return the distance from ray1 origin to the intersection point with the closest flipper feature.
 // Sets ray2 origin to intersection point, direction to collision direction
-pub fn distance_to_flipper() {
-    todo!(); // Requires TFlipperEdge
+pub fn distance_to_flipper(flipper: &mut TFlipperEdge, ray1: &RayType, ray2: &mut RayType) -> f32 {
+    let mut distance:f32 = 1000000000.0;
+    let mut distance_type = FlipperIntersect::None;
+    let mut new_distance = ray_intersect_line(ray1, &mut flipper.line_a);
+    if new_distance < distance {
+        distance = new_distance;
+        distance_type = FlipperIntersect::LineA;
+    }
+    new_distance = ray_intersect_circle(ray1, &flipper.circle_base);
+    if new_distance < distance {
+        distance = new_distance;
+        distance_type = FlipperIntersect::CircleBase;
+    }
+    new_distance = ray_intersect_circle(ray1, &flipper.circle_t1);
+    if new_distance < distance {
+        distance = new_distance;
+        distance_type = FlipperIntersect::CircleT1;
+    }
+    new_distance = ray_intersect_line(ray1, &mut flipper.line_b);
+    if new_distance < distance {
+        distance = new_distance;
+        distance_type = FlipperIntersect::LineB;
+    }
+
+    match distance_type {
+        FlipperIntersect::LineA => {
+            ray2.direction = flipper.line_a.perpendicular;
+            ray2.origin = flipper.line_b.ray_intersect;
+        },
+        FlipperIntersect::LineB => {
+            ray2.direction = flipper.line_b.perpendicular;
+            ray2.origin = flipper.line_b.ray_intersect;
+        },
+        FlipperIntersect::CircleBase | FlipperIntersect::CircleT1 => {
+            ray2.origin.x = distance * ray1.direction.x + ray1.origin.x;
+            ray2.origin.y = distance * ray1.direction.y + ray1.origin.y;
+            if distance_type == FlipperIntersect::CircleBase {
+                ray2.direction = vector_sub_vec2(&ray2.origin, &flipper.circle_base.center);
+            } else {
+                ray2.direction = vector_sub_vec2(&ray2.origin, &flipper.circle_t1.center);
+            }
+            normalize_2d(&mut ray2.direction);
+        }
+        FlipperIntersect::None | _ => {}
+    }
+
+    distance
 }
 
 pub fn rotate_vector(vec: &mut Vector2, angle: f32) {
@@ -423,6 +515,7 @@ pub fn find_closest_edge(
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FlipperIntersect {
     None = -1,
     LineA = 0,

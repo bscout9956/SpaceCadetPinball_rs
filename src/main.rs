@@ -4,6 +4,7 @@ mod t_collision_component;
 mod t_edge_segment;
 mod t_flipper_edge;
 mod t_pinball_component;
+mod t_ball;
 
 fn main() {
     println!("Hello, world!");
