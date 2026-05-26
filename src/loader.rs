@@ -52,12 +52,12 @@ pub struct SoundListStruct {
 }
 
 pub struct VisualKickerStruct {
-    threshold: f32,
-    boost: f32,
-    throw_ball_mult: f32,
-    throw_ball_direction: Vector3,
-    throw_ball_angle_mult: f32,
-    hard_hit_sound_id: i32,
+    pub threshold: f32,
+    pub boost: f32,
+    pub throw_ball_mult: f32,
+    pub throw_ball_direction: Vector3,
+    pub throw_ball_angle_mult: f32,
+    pub hard_hit_sound_id: i32,
 }
 
 // TODO: Implement me
@@ -118,7 +118,7 @@ pub struct Loader {
 
 impl Loader {
     // TODO Implement me
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             sound_count: 0,
             loader_sound_count: 0,
@@ -129,7 +129,7 @@ impl Loader {
         }
     }
 
-    fn error(&self, error_code: i32, caption_code: i32) -> i32 {
+    pub fn error(&self, error_code: i32, caption_code: i32) -> i32 {
         let mut error_text: &str = "";
         let mut error_caption: &str;
 
@@ -152,7 +152,7 @@ impl Loader {
         -1
     }
 
-    fn default_vsi(mut visual: VisualStruct) {
+    pub fn default_vsi(mut visual: VisualStruct) {
         visual.collision_group = 0;
         visual.kicker.threshold = 8.99999999;
         visual.kicker.hard_hit_sound_id = 0;
