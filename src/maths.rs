@@ -1,7 +1,7 @@
 use crate::t_ball::TBall;
 use crate::t_flipper_edge::TFlipperEdge;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialOrd)]
 pub struct Vector2 {
     pub x: f32,
     pub y: f32,
@@ -43,7 +43,11 @@ impl Vector3 {
     }
 
     pub fn from_vec2(vec2: Vector2, z: f32) -> Self {
-        Self { x: vec2.x, y: vec2.y, z }
+        Self {
+            x: vec2.x,
+            y: vec2.y,
+            z,
+        }
     }
 }
 
@@ -364,20 +368,26 @@ pub fn vector_mul(vec1: &Vector2, val: f32) -> Vector2 {
     }
 }
 
-pub fn basic_collision(ball: &mut TBall, next_position: &Vector2, direction: &Vector2, elasticity: f32,
-                       smoothness: f32, threshold: f32, boost: f32) -> f32 {
+pub fn basic_collision(
+    ball: &mut TBall,
+    next_position: &Vector2,
+    direction: &Vector2,
+    elasticity: f32,
+    smoothness: f32,
+    threshold: f32,
+    boost: f32,
+) -> f32 {
     ball.position.x = next_position.x + direction.x * 0.0005;
     ball.position.y = next_position.y + direction.y * 0.0005;
 
     // Project ball direction on collision rebound direction
     // Unsure what to do with Z component, the original defines Vec2:Vec3
     // Rust doesn't support inheritance
-    let mut rebound_proj =  -dot_product(&direction, &Vector2::from_vec3(ball.direction));
+    let mut rebound_proj = -dot_product(&direction, &Vector2::from_vec3(ball.direction));
     if rebound_proj < 0.0 {
         // Negative projection means no rebound, both direction vectors point the same way.
         rebound_proj = -rebound_proj;
-    }
-    else {
+    } else {
         let dx1: f32 = rebound_proj * direction.x;
         let dy1: f32 = rebound_proj * direction.y;
         ball.direction.x = (dx1 + ball.direction.x) * smoothness + dx1 * elasticity;
@@ -386,7 +396,11 @@ pub fn basic_collision(ball: &mut TBall, next_position: &Vector2, direction: &Ve
         // original ball
         let ball_copy = &mut Vector2::from_vec3(ball.direction);
         normalize_2d(ball_copy);
-        ball.direction = Vector3 {x: ball_copy.x, y: ball_copy.y, z: ball.direction.z};
+        ball.direction = Vector3 {
+            x: ball_copy.x,
+            y: ball_copy.y,
+            z: ball.direction.z,
+        };
     }
     let rebound_speed = rebound_proj * ball.speed;
     ball.speed -= (1.0 - elasticity) * rebound_speed;
@@ -428,7 +442,7 @@ pub fn rotate_pt(point: &mut Vector2, sin: f32, cos: f32, origin: &Vector2) {
 // Return the distance from ray1 origin to the intersection point with the closest flipper feature.
 // Sets ray2 origin to intersection point, direction to collision direction
 pub fn distance_to_flipper(flipper: &mut TFlipperEdge, ray1: &RayType, ray2: &mut RayType) -> f32 {
-    let mut distance:f32 = 1000000000.0;
+    let mut distance: f32 = 1000000000.0;
     let mut distance_type = FlipperIntersect::None;
     let mut new_distance = ray_intersect_line(ray1, &mut flipper.line_a);
     if new_distance < distance {
@@ -455,11 +469,11 @@ pub fn distance_to_flipper(flipper: &mut TFlipperEdge, ray1: &RayType, ray2: &mu
         FlipperIntersect::LineA => {
             ray2.direction = flipper.line_a.perpendicular;
             ray2.origin = flipper.line_b.ray_intersect;
-        },
+        }
         FlipperIntersect::LineB => {
             ray2.direction = flipper.line_b.perpendicular;
             ray2.origin = flipper.line_b.ray_intersect;
-        },
+        }
         FlipperIntersect::CircleBase | FlipperIntersect::CircleT1 => {
             ray2.origin.x = distance * ray1.direction.x + ray1.origin.x;
             ray2.origin.y = distance * ray1.direction.y + ray1.origin.y;
