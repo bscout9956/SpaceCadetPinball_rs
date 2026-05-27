@@ -262,7 +262,7 @@ impl Loader {
                     if value == 202 {
                         // TODO: ???????????
                         if self.sound_count < 65 {
-                            self.sound_list[self.sound_count] = SoundListStruct {
+                            self.sound_list[self.sound_count as usize] = SoundListStruct {
                                 wave_ptr: std::ptr::null::<c_void>(), // TODO: Change me
                                 group_index,
                                 loaded: false,
