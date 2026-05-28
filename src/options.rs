@@ -9,6 +9,14 @@ use std::sync::{LazyLock, Mutex, OnceLock};
 static SETTINGS: LazyLock<Mutex<HashMap<String, String>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
+static ALL_OPTIONS: LazyLock<Mutex<Vec<OptionBase>>> = LazyLock::new(|| Mutex::new(Vec::new()));
+static SHOW_DIALOG: AtomicBool = AtomicBool::new(false);
+
+static CONTROL_WAITING_FOR_INPUT: LazyLock<Mutex<GameInput>> =
+    LazyLock::new(|| Mutex::new(GameInput::new()));
+
+pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
+
 #[derive(Debug, PartialEq)]
 pub enum Menu {
     NewGame = 101,
@@ -153,18 +161,6 @@ impl GameBindings {
     }
 }
 
-pub struct Options {
-    pub options: OnceLock<Mutex<OptionsStruct>>,
-    pub all_options: OnceLock<Mutex<Vec<OptionBase>>>,
-
-    // TODO: Do I want &str or String?
-    pub settings: OnceLock<Mutex<HashMap<String, String>>>,
-    show_dialog: AtomicBool,
-    control_waiting_for_input: OnceLock<Mutex<GameInput>>,
-}
-
-pub const MIX_MAX_VOLUME: i32 = 1; // TODO: IDK?
-
 pub fn get_int(name: &str, default_value: i32) -> i32 {
     let settings = get_setting(name, &default_value.to_string());
     settings.parse::<i32>().unwrap_or(default_value)
@@ -212,27 +208,25 @@ fn set_setting(key: &str, value: &String) {
     // TODO: Add imgui check
 }
 
-impl Options {
-    // Original does ~120 updates per second.
-    pub const MAX_UPS: i32 = 360;
-    pub const MAX_FPS: i32 = Self::MAX_UPS;
-    pub const MIN_UPS: i32 = 60;
-    pub const DEF_UPS: i32 = 120;
-    pub const DEF_FPS: i32 = 60;
-    pub const MIN_FPS: i32 = Self::MIN_UPS;
-    // Original uses 8 sound channels
-    pub const MAX_SOUND_CHANNELS: i32 = 32;
-    pub const MIN_SOUND_CHANNELS: i32 = 1;
-    pub const DEF_SOUND_CHANNELS: i32 = 8;
+// Original does ~120 updates per second.
+pub const MAX_UPS: i32 = 360;
+pub const MAX_FPS: i32 = MAX_UPS;
+pub const MIN_UPS: i32 = 60;
+pub const DEF_UPS: i32 = 120;
+pub const DEF_FPS: i32 = 60;
+pub const MIN_FPS: i32 = MIN_UPS;
+// Original uses 8 sound channels
+pub const MAX_SOUND_CHANNELS: i32 = 32;
+pub const MIN_SOUND_CHANNELS: i32 = 1;
+pub const DEF_SOUND_CHANNELS: i32 = 8;
 
-    pub const MAX_VOLUME: i32 = MIX_MAX_VOLUME;
-    pub const MIN_VOLUME: i32 = 0;
+pub const MAX_VOLUME: i32 = MIX_MAX_VOLUME;
+pub const MIN_VOLUME: i32 = 0;
 
-    pub const DEF_VOLUME: i32 = Self::MAX_VOLUME;
-}
+pub const DEF_VOLUME: i32 = MAX_VOLUME;
 
 pub struct OptionBase {
-    name: *mut c_char,
+    name: &'static str,
 }
 
 pub trait OptionBaseBehavior {
