@@ -2,8 +2,7 @@ use std::cmp::PartialEq;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::c_char;
-use std::ops::{Deref, DerefMut, Not};
-use std::str::FromStr;
+use std::ops::{Deref, DerefMut};
 use std::sync::atomic::AtomicBool;
 use std::sync::{LazyLock, Mutex, OnceLock};
 
@@ -47,6 +46,29 @@ pub enum InputTypes {
     Keyboard,
     Mouse,
     GameController,
+}
+
+impl From<i32> for InputTypes {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => InputTypes::None,
+            1 => InputTypes::Keyboard,
+            2 => InputTypes::Mouse,
+            3 => InputTypes::GameController,
+            _ => InputTypes::None,
+        }
+    }
+}
+
+impl Into<i32> for InputTypes {
+    fn into(self) -> i32 {
+        match self {
+            InputTypes::None => 0,
+            InputTypes::Keyboard => 1,
+            InputTypes::Mouse => 2,
+            InputTypes::GameController => 3,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -98,26 +120,35 @@ impl GameBindings {
     pub const MAX: GameBindings = GameBindings::Exit;
     pub const COUNT: usize = (Self::MAX as usize) + 1;
 
+    fn get_value(&mut self) -> usize {
+        let cur_val = *self as usize;
+        cur_val
+    }
+
+    fn get_enum(value: usize) -> GameBindings {
+        match value {
+            1 => GameBindings::LeftFlipper,
+            2 => GameBindings::RightFlipper,
+            3 => GameBindings::Plunger,
+            4 => GameBindings::LeftTableBump,
+            5 => GameBindings::RightTableBump,
+            6 => GameBindings::BottomTableBump,
+            7 => GameBindings::NewGame,
+            8 => GameBindings::TogglePause,
+            9 => GameBindings::ToggleFullScreen,
+            10 => GameBindings::ToggleSounds,
+            11 => GameBindings::ToggleMusic,
+            12 => GameBindings::ShowControlDialog,
+            13 => GameBindings::ToggleMenuDisplay,
+            14 => GameBindings::Exit,
+            _ => GameBindings::NewGame,
+        }
+    }
+
     pub fn increment(&mut self) {
         let cur_val = *self as usize;
         if cur_val < Self::MAX as usize {
-            *self = match cur_val + 1 {
-                1 => GameBindings::LeftFlipper,
-                2 => GameBindings::RightFlipper,
-                3 => GameBindings::Plunger,
-                4 => GameBindings::LeftTableBump,
-                5 => GameBindings::RightTableBump,
-                6 => GameBindings::BottomTableBump,
-                7 => GameBindings::NewGame,
-                8 => GameBindings::TogglePause,
-                9 => GameBindings::ToggleFullScreen,
-                10 => GameBindings::ToggleSounds,
-                11 => GameBindings::ToggleMusic,
-                12 => GameBindings::ShowControlDialog,
-                13 => GameBindings::ToggleMenuDisplay,
-                14 => GameBindings::Exit,
-                _ => GameBindings::NewGame, // TODO: Correct???
-            }
+            *self = Self::get_enum(cur_val + 1);
         }
     }
 }
@@ -153,10 +184,28 @@ pub fn get_setting(key: &str, default_value: &str) -> String {
 }
 
 pub fn set_int(name: &str, data: i32) {
-    set_settings(name, &data.to_string());
+    set_setting(name, &data.to_string());
 }
 
-fn set_settings(key: &str, value: &String) {
+pub fn set_float(name: &str, data: f32) {
+    set_setting(name, &data.to_string());
+}
+
+pub fn get_float(name: &str, default_value: f32) -> f32 {
+    let value = get_setting(name, &default_value.to_string());
+    value.parse::<f32>().unwrap_or(default_value)
+}
+
+pub fn set_bool(name: &str, value: bool) {
+    set_setting(name, &value.to_string());
+}
+
+pub fn get_bool(name: &str, default_value: bool) -> bool {
+    let value = get_setting(name, &default_value.to_string());
+    value.parse::<bool>().unwrap_or(default_value)
+}
+
+fn set_setting(key: &str, value: &String) {
     let mut hash_map = SETTINGS.lock().unwrap();
 
     hash_map.insert(key.to_string(), value.to_string());
@@ -192,50 +241,50 @@ pub trait OptionBaseBehavior {
     fn reset(&mut self);
 }
 
-pub struct OptionBaseT<T> {
-    name: &'static str,
-    default_value: T,
-    value: T,
-}
+// pub struct OptionBaseT<T> {
+//     name: &'static str,
+//     default_value: T,
+//     value: T,
+// }
 
-impl<T: Clone> OptionBaseBehavior for OptionBaseT<T> {
-    fn load() {
-        todo!()
-    }
-
-    fn save() {
-        todo!()
-    }
-
-    fn reset(&mut self) {
-        self.value = self.default_value.clone();
-    }
-}
-
-impl<T> Deref for OptionBaseT<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl<T> DerefMut for OptionBaseT<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
-    }
-}
-
-impl<T: Clone> OptionBaseT<T> {
-    pub fn new(name: &'static str, default_value: T) -> Self {
-        let value = default_value.clone();
-        Self {
-            name,
-            default_value,
-            value,
-        }
-    }
-}
+// impl<T: Clone> OptionBaseBehavior for OptionBaseT<T> {
+//     fn load(&mut self) {
+//         todo!()
+//     }
+//
+//     fn save(&mut self) {
+//         todo!()
+//     }
+//
+//     fn reset(&mut self) {
+//         self.value = self.default_value.clone();
+//     }
+// }
+//
+// impl<T> Deref for OptionBaseT<T> {
+//     type Target = T;
+//
+//     fn deref(&self) -> &Self::Target {
+//         &self.value
+//     }
+// }
+//
+// impl<T> DerefMut for OptionBaseT<T> {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         &mut self.value
+//     }
+// }
+//
+// impl<T: Clone> OptionBaseT<T> {
+//     pub fn new(name: &'static str, default_value: T) -> Self {
+//         let value = default_value.clone();
+//         Self {
+//             name,
+//             default_value,
+//             value,
+//         }
+//     }
+// }
 
 struct IntOption {
     name: &'static str,
@@ -279,25 +328,26 @@ impl ControlOption {
 
 impl OptionBaseBehavior for ControlOption {
     fn load(&mut self) {
-        for (idx, input) in &self.inputs.iter().enumerate() {
-            let name = String::from(self.name) + " " + idx.to_string();
-            // TODO: Fix conversion
-            input.input_type =
-                get_int(&(name + " type"), self.defaults[idx].input_type as i32) as InputTypes;
-            input.value = get_int(&(name + " input"), self.defaults[idx].value);
+        for (idx, input) in self.inputs.iter_mut().enumerate() {
+            let name = format!("{} {}", self.name, idx);
+            input.input_type = InputTypes::from(get_int(
+                &format!("{} type", name),
+                self.defaults[idx].input_type as i32,
+            ));
+            input.value = get_int(&format!("{} input", name), self.defaults[idx].value);
         }
     }
 
     fn save(&mut self) {
-        for (idx, input) in self.inputs.iter().enumerate() {
+        for (idx, input) in self.inputs.iter_mut().enumerate() {
             let name = String::from(self.name) + " " + &idx.to_string();
-            set_int(&(name + " type"), input.input_type as i32);
-            set_int(&(name + " input"), input.value);
+            set_int(&format!("{} type", name), input.input_type as i32);
+            set_int(&format!("{} input", name), input.value);
         }
     }
 
     fn reset(&mut self) {
-        todo!();
+        self.inputs.copy_from_slice(&self.defaults);
     }
 }
 
@@ -306,7 +356,7 @@ impl OptionBaseBehavior for IntOption {
         self.value = get_int(self.name, self.default_value);
     }
 
-    fn save(&self) {
+    fn save(&mut self) {
         set_int(self.name, self.value)
     }
 
@@ -316,6 +366,141 @@ impl OptionBaseBehavior for IntOption {
     }
 }
 
-struct OptionsStruct {
+impl Deref for IntOption {
+    type Target = i32;
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl DerefMut for IntOption {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
+pub struct StringOption {
+    name: &'static str,
+    default_value: String,
+    value: String,
+}
+
+impl OptionBaseBehavior for StringOption {
+    fn load(&mut self) {
+        self.value = get_setting(self.name, &self.default_value);
+    }
+
+    fn save(&mut self) {
+        set_setting(&self.name, &self.default_value);
+    }
+
+    fn reset(&mut self) {
+        self.value = self.default_value.clone();
+        self.save();
+    }
+}
+
+impl Deref for StringOption {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl DerefMut for StringOption {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
+pub struct FloatOption {
+    name: &'static str,
+    default_value: f32,
+    value: f32,
+}
+
+impl OptionBaseBehavior for FloatOption {
+    fn load(&mut self) {
+        self.value = get_float(self.name, self.default_value);
+    }
+
+    fn save(&mut self) {
+        set_float(self.name, self.value);
+    }
+
+    fn reset(&mut self) {
+        self.value = self.default_value;
+        self.save();
+    }
+}
+
+impl Deref for FloatOption {
+    type Target = f32;
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl DerefMut for FloatOption {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
+pub struct BoolOption {
+    name: &'static str,
+    default_value: bool,
+    value: bool,
+}
+
+impl OptionBaseBehavior for BoolOption {
+    fn load(&mut self) {
+        self.value = get_bool(self.name, self.default_value);
+    }
+
+    fn save(&mut self) {
+        set_bool(self.name, self.value);
+    }
+
+    fn reset(&mut self) {
+        self.value = self.default_value;
+        self.save();
+    }
+}
+
+pub struct OptionsStruct {
     pub key: [ControlOption; GameBindings::COUNT],
+    pub sounds: BoolOption,
+    pub music: BoolOption,
+    pub full_screen: BoolOption,
+    pub players: IntOption,
+    pub resolution: IntOption,
+    pub ui_scale: FloatOption,
+    pub uniform_scaling: BoolOption,
+    pub linear_filtering: BoolOption,
+    pub frames_per_second: IntOption,
+    pub updates_per_second: IntOption,
+    pub show_menu: BoolOption,
+    pub uncapped_updates_per_second: BoolOption,
+    pub sound_channels: IntOption,
+    pub hybrid_sleep: BoolOption,
+    pub prefer_3dpb_game_data: BoolOption,
+    pub integer_scaling: BoolOption,
+    pub sound_volume: IntOption,
+    pub music_volume: IntOption,
+    pub sound_stereo: BoolOption,
+    pub debug_overlay: BoolOption,
+    pub debug_overlay_grid: BoolOption,
+    pub debug_overlay_all_edges: BoolOption,
+    pub debug_overlay_ball_position: BoolOption,
+    pub debug_overlay_ball_edges: BoolOption,
+    pub debug_overlay_collision_mask: BoolOption,
+    pub debug_overlay_sprites: BoolOption,
+    pub debug_overlay_sounds: BoolOption,
+    pub debug_overlay_ball_depth_grid: BoolOption,
+    pub debug_overlay_aabb: BoolOption,
+    pub font_file_name: StringOption,
+    pub language: StringOption,
+    pub hide_cursor: BoolOption,
 }
