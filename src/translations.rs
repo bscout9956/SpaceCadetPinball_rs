@@ -1,258 +1,253 @@
+use std::cmp::PartialEq;
+
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct Msg(pub i32);
-
-impl Msg {
-    pub const MIN: Msg = Msg(0);
-    pub const STRING101: Msg = Msg(0);
-    pub const STRING102: Msg = Msg(1);
-    pub const STRING103: Msg = Msg(2);
-    pub const STRING104: Msg = Msg(3);
-    pub const STRING105: Msg = Msg(4);
-    pub const STRING106: Msg = Msg(5);
-    pub const STRING107: Msg = Msg(6);
-    pub const STRING108: Msg = Msg(7);
-    pub const STRING109: Msg = Msg(8);
-    pub const STRING110: Msg = Msg(9);
-    pub const STRING111: Msg = Msg(10);
-    pub const STRING112: Msg = Msg(11);
-    pub const STRING113: Msg = Msg(12);
-    pub const STRING114: Msg = Msg(13);
-    pub const STRING115: Msg = Msg(14);
-    pub const STRING116: Msg = Msg(15);
-    pub const STRING117: Msg = Msg(16);
-    pub const STRING118: Msg = Msg(17);
-    pub const STRING119: Msg = Msg(18);
-    pub const STRING120: Msg = Msg(19);
-    pub const STRING121: Msg = Msg(20);
-    pub const STRING122: Msg = Msg(21);
-    pub const STRING123: Msg = Msg(22);
-    pub const STRING124: Msg = Msg(23);
-    pub const STRING125: Msg = Msg(24);
-    pub const STRING126: Msg = Msg(25);
-    pub const STRING127: Msg = Msg(26);
-    pub const STRING128: Msg = Msg(27);
-    pub const STRING129: Msg = Msg(28);
-    pub const STRING130: Msg = Msg(29);
-    pub const STRING131: Msg = Msg(30);
-    pub const STRING132: Msg = Msg(31);
-    pub const STRING133: Msg = Msg(32);
-    pub const STRING134: Msg = Msg(33);
-    pub const STRING135: Msg = Msg(34);
-    pub const STRING136: Msg = Msg(35);
-    pub const STRING139: Msg = Msg(36);
-    pub const STRING141: Msg = Msg(37);
-    pub const STRING142: Msg = Msg(38);
-    pub const STRING144: Msg = Msg(39);
-    pub const STRING145: Msg = Msg(40);
-    pub const STRING146: Msg = Msg(41);
-    pub const STRING147: Msg = Msg(42);
-    pub const STRING148: Msg = Msg(43);
-    pub const STRING149: Msg = Msg(44);
-    pub const STRING150: Msg = Msg(45);
-    pub const STRING151: Msg = Msg(46);
-    pub const STRING152: Msg = Msg(47);
-    pub const STRING153: Msg = Msg(48);
-    pub const STRING154: Msg = Msg(49);
-    pub const STRING155: Msg = Msg(50);
-    pub const STRING156: Msg = Msg(51);
-    pub const STRING157: Msg = Msg(52);
-    pub const STRING158: Msg = Msg(53);
-    pub const STRING159: Msg = Msg(54);
-    pub const STRING160: Msg = Msg(55);
-    pub const STRING161: Msg = Msg(56);
-    pub const STRING162: Msg = Msg(57);
-    pub const STRING163: Msg = Msg(58);
-    pub const STRING164: Msg = Msg(59);
-    pub const STRING165: Msg = Msg(60);
-    pub const STRING166: Msg = Msg(61);
-    pub const STRING167: Msg = Msg(62);
-    pub const STRING168: Msg = Msg(63);
-    pub const STRING169: Msg = Msg(64);
-    pub const STRING170: Msg = Msg(65);
-    pub const STRING171: Msg = Msg(66);
-    pub const STRING172: Msg = Msg(67);
-    pub const STRING173: Msg = Msg(68);
-    pub const STRING174: Msg = Msg(69);
-    pub const STRING175: Msg = Msg(70);
-    pub const STRING176: Msg = Msg(71);
-    pub const STRING177: Msg = Msg(72);
-    pub const STRING178: Msg = Msg(73);
-    pub const STRING179: Msg = Msg(74);
-    pub const STRING180: Msg = Msg(75);
-    pub const STRING181: Msg = Msg(76);
-    pub const STRING182: Msg = Msg(77);
-    pub const STRING183: Msg = Msg(78);
-    pub const STRING184: Msg = Msg(79);
-    pub const STRING185: Msg = Msg(80);
-    pub const STRING186: Msg = Msg(81);
-    pub const STRING187: Msg = Msg(82);
-    pub const STRING188: Msg = Msg(83);
-    pub const STRING189: Msg = Msg(84);
-    pub const STRING190: Msg = Msg(85);
-    pub const STRING191: Msg = Msg(86);
-    pub const STRING192: Msg = Msg(87);
-    pub const STRING193: Msg = Msg(88);
-    pub const STRING194: Msg = Msg(89);
-    pub const STRING195: Msg = Msg(90);
-    pub const STRING196: Msg = Msg(91);
-    pub const STRING197: Msg = Msg(92);
-    pub const STRING198: Msg = Msg(93);
-    pub const STRING199: Msg = Msg(94);
-    pub const STRING200: Msg = Msg(95);
-    pub const STRING201: Msg = Msg(96);
-    pub const STRING204: Msg = Msg(97);
-    pub const STRING205: Msg = Msg(98);
-    pub const STRING206: Msg = Msg(99);
-    pub const STRING207: Msg = Msg(100);
-    pub const STRING208: Msg = Msg(101);
-    pub const STRING209: Msg = Msg(102);
-    pub const STRING210: Msg = Msg(103);
-    pub const STRING211: Msg = Msg(104);
-    pub const STRING212: Msg = Msg(105);
-    pub const STRING213: Msg = Msg(106);
-    pub const STRING214: Msg = Msg(107);
-    pub const STRING215: Msg = Msg(108);
-    pub const STRING216: Msg = Msg(109);
-    pub const STRING217: Msg = Msg(110);
-    pub const STRING218: Msg = Msg(111);
-    pub const STRING219: Msg = Msg(112);
-    pub const STRING220: Msg = Msg(113);
-    pub const STRING221: Msg = Msg(114);
-    pub const STRING222: Msg = Msg(115);
-    pub const STRING223: Msg = Msg(116);
-    pub const STRING224: Msg = Msg(117);
-    pub const STRING225: Msg = Msg(118);
-    pub const STRING226: Msg = Msg(119);
-    pub const STRING227: Msg = Msg(120);
-    pub const STRING228: Msg = Msg(121);
-    pub const STRING229: Msg = Msg(122);
-    pub const STRING230: Msg = Msg(123);
-    pub const STRING231: Msg = Msg(124);
-    pub const STRING232: Msg = Msg(125);
-    pub const STRING233: Msg = Msg(126);
-    pub const STRING234: Msg = Msg(127);
-    pub const STRING235: Msg = Msg(128);
-    pub const STRING236: Msg = Msg(129);
-    pub const STRING237: Msg = Msg(130);
-    pub const STRING238: Msg = Msg(131);
-    pub const STRING239: Msg = Msg(132);
-    pub const STRING240: Msg = Msg(133);
-    pub const STRING241: Msg = Msg(134);
-    pub const STRING242: Msg = Msg(135);
-    pub const STRING243: Msg = Msg(136);
-    pub const STRING244: Msg = Msg(137);
-    pub const STRING245: Msg = Msg(138);
-    pub const STRING246: Msg = Msg(139);
-    pub const STRING247: Msg = Msg(140);
-    pub const STRING248: Msg = Msg(141);
-    pub const STRING249: Msg = Msg(142);
-    pub const STRING250: Msg = Msg(143);
-    pub const STRING251: Msg = Msg(144);
-    pub const STRING252: Msg = Msg(145);
-    pub const STRING253: Msg = Msg(146);
-    pub const STRING254: Msg = Msg(147);
-    pub const STRING255: Msg = Msg(148);
-    pub const STRING256: Msg = Msg(149);
-    pub const TEXT_BOX_USE_BITMAP_FONT: Msg = Msg(150);
-    pub const STRING270: Msg = Msg(151);
-    pub const STRING271: Msg = Msg(152);
-    pub const STRING272: Msg = Msg(153);
-    pub const STRING273: Msg = Msg(154);
-    pub const STRING274: Msg = Msg(155);
-    pub const STRING275: Msg = Msg(156);
-    pub const STRING276: Msg = Msg(157);
-    pub const STRING277: Msg = Msg(158);
-    pub const STRING279: Msg = Msg(159);
-    pub const STRING280: Msg = Msg(160);
-    pub const STRING281: Msg = Msg(161);
-    pub const STRING282: Msg = Msg(162);
-    pub const STRING283: Msg = Msg(163);
-    pub const STRING284: Msg = Msg(164);
-    pub const STRING285: Msg = Msg(165);
-    pub const STRING286: Msg = Msg(166);
-    pub const STRING287: Msg = Msg(167);
-    pub const STRING288: Msg = Msg(168);
-    pub const CONTROL_JACKPOT_DOUBLED: Msg = Msg(169);
-    pub const TEXT_BOX_COLOR: Msg = Msg(170);
-
-    pub const HIGHSCORES_CAPTION: Msg = Msg(171);
-    pub const GENERIC_OK: Msg = Msg(172);
-    pub const GENERIC_CANCEL: Msg = Msg(173);
-    pub const HIGHSCORES_CLEAR: Msg = Msg(174);
-    pub const HIGHSCORES_NAME: Msg = Msg(175);
-    pub const HIGHSCORES_SCORE: Msg = Msg(176);
-    pub const HIGHSCORES_RANK: Msg = Msg(177);
-    pub const KEYMAPPER_CAPTION: Msg = Msg(178);
-    pub const KEYMAPPER_FLIPPER_L: Msg = Msg(179);
-    pub const KEYMAPPER_FLIPPER_R: Msg = Msg(180);
-    pub const KEYMAPPER_PLUNGER: Msg = Msg(181);
-    pub const KEYMAPPER_BUMP_LEFT: Msg = Msg(182);
-    pub const KEYMAPPER_BUMP_RIGHT: Msg = Msg(183);
-    pub const KEYMAPPER_BUMP_BOTTOM: Msg = Msg(184);
-    pub const KEYMAPPER_DEFAULT: Msg = Msg(185);
-    pub const KEYMAPPER_HELP1: Msg = Msg(186);
-    pub const KEYMAPPER_HELP2: Msg = Msg(187);
-    pub const KEYMAPPER_GROUPBOX1: Msg = Msg(188);
-    pub const KEYMAPPER_GROUPBOX2: Msg = Msg(189);
-    pub const MENU1_NEW_GAME: Msg = Msg(190);
-    pub const MENU1_ABOUT_PINBALL: Msg = Msg(191);
-    pub const MENU1_HIGH_SCORES: Msg = Msg(192);
-    pub const MENU1_EXIT: Msg = Msg(193);
-    pub const MENU1_SOUNDS: Msg = Msg(194);
-    pub const MENU1_MUSIC: Msg = Msg(195);
-    pub const MENU1_HELP_TOPICS: Msg = Msg(196);
-    pub const MENU1_LAUNCH_BALL: Msg = Msg(197);
-    pub const MENU1_PAUSE_RESUME_GAME: Msg = Msg(198);
-    pub const MENU1_FULL_SCREEN: Msg = Msg(199);
-    pub const MENU1_DEMO: Msg = Msg(200);
-    pub const MENU1_SELECT_TABLE: Msg = Msg(201);
-    pub const MENU1_PLAYER_CONTROLS: Msg = Msg(202);
-    pub const MENU1_1PLAYER: Msg = Msg(203);
-    pub const MENU1_2PLAYERS: Msg = Msg(204);
-    pub const MENU1_3PLAYERS: Msg = Msg(205);
-    pub const MENU1_4PLAYERS: Msg = Msg(206);
-    pub const MENU1_WINDOW_UNIFORM_SCALE: Msg = Msg(207);
-    pub const MENU1_GAME: Msg = Msg(208);
-    pub const MENU1_OPTIONS: Msg = Msg(209);
-    pub const MENU1_SELECT_PLAYERS: Msg = Msg(210);
-    pub const MENU1_TABLE_RESOLUTION: Msg = Msg(211);
-    pub const MENU1_HELP: Msg = Msg(212);
-    pub const MENU1_TOGGLE_SHOW_MENU: Msg = Msg(213);
-
-    pub const MENU1_USE_MAX_RESOLUTION_640X480: Msg = Msg(214);
-    pub const MENU1_USE_MAX_RESOLUTION_800X600: Msg = Msg(215);
-    pub const MENU1_USE_MAX_RESOLUTION_1024X768: Msg = Msg(216);
-
-    pub const MAX: Msg = Msg(217);
+pub enum Msg {
+    MIN,
+    STRING101,
+    STRING102,
+    STRING103,
+    STRING104,
+    STRING105,
+    STRING106,
+    STRING107,
+    STRING108,
+    STRING109,
+    STRING110,
+    STRING111,
+    STRING112,
+    STRING113,
+    STRING114,
+    STRING115,
+    STRING116,
+    STRING117,
+    STRING118,
+    STRING119,
+    STRING120,
+    STRING121,
+    STRING122,
+    STRING123,
+    STRING124,
+    STRING125,
+    STRING126,
+    STRING127,
+    STRING128,
+    STRING129,
+    STRING130,
+    STRING131,
+    STRING132,
+    STRING133,
+    STRING134,
+    STRING135,
+    STRING136,
+    STRING139,
+    STRING141,
+    STRING142,
+    STRING144,
+    STRING145,
+    STRING146,
+    STRING147,
+    STRING148,
+    STRING149,
+    STRING150,
+    STRING151,
+    STRING152,
+    STRING153,
+    STRING154,
+    STRING155,
+    STRING156,
+    STRING157,
+    STRING158,
+    STRING159,
+    STRING160,
+    STRING161,
+    STRING162,
+    STRING163,
+    STRING164,
+    STRING165,
+    STRING166,
+    STRING167,
+    STRING168,
+    STRING169,
+    STRING170,
+    STRING171,
+    STRING172,
+    STRING173,
+    STRING174,
+    STRING175,
+    STRING176,
+    STRING177,
+    STRING178,
+    STRING179,
+    STRING180,
+    STRING181,
+    STRING182,
+    STRING183,
+    STRING184,
+    STRING185,
+    STRING186,
+    STRING187,
+    STRING188,
+    STRING189,
+    STRING190,
+    STRING191,
+    STRING192,
+    STRING193,
+    STRING194,
+    STRING195,
+    STRING196,
+    STRING197,
+    STRING198,
+    STRING199,
+    STRING200,
+    STRING201,
+    STRING204,
+    STRING205,
+    STRING206,
+    STRING207,
+    STRING208,
+    STRING209,
+    STRING210,
+    STRING211,
+    STRING212,
+    STRING213,
+    STRING214,
+    STRING215,
+    STRING216,
+    STRING217,
+    STRING218,
+    STRING219,
+    STRING220,
+    STRING221,
+    STRING222,
+    STRING223,
+    STRING224,
+    STRING225,
+    STRING226,
+    STRING227,
+    STRING228,
+    STRING229,
+    STRING230,
+    STRING231,
+    STRING232,
+    STRING233,
+    STRING234,
+    STRING235,
+    STRING236,
+    STRING237,
+    STRING238,
+    STRING239,
+    STRING240,
+    STRING241,
+    STRING242,
+    STRING243,
+    STRING244,
+    STRING245,
+    STRING246,
+    STRING247,
+    STRING248,
+    STRING249,
+    STRING250,
+    STRING251,
+    STRING252,
+    STRING253,
+    STRING254,
+    STRING255,
+    STRING256,
+    TextBoxUseBitmapFont,
+    STRING270,
+    STRING271,
+    STRING272,
+    STRING273,
+    STRING274,
+    STRING275,
+    STRING276,
+    STRING277,
+    STRING279,
+    STRING280,
+    STRING281,
+    STRING282,
+    STRING283,
+    STRING284,
+    STRING285,
+    STRING286,
+    STRING287,
+    STRING288,
+    ControlJackpotDoubled,
+    TextBoxColor,
+    HighscoresCaption,
+    GenericOk,
+    GenericCancel,
+    HighscoresClear,
+    HighscoresName,
+    HighscoresScore,
+    HighscoresRank,
+    KeymapperCaption,
+    KeymapperFlipperL,
+    KeymapperFlipperR,
+    KeymapperPlunger,
+    KeymapperBumpLeft,
+    KeymapperBumpRight,
+    KeymapperBumpBottom,
+    KeymapperDefault,
+    KeymapperHelp1,
+    KeymapperHelp2,
+    KeymapperGroupbox1,
+    KeymapperGroupbox2,
+    Menu1NewGame,
+    Menu1AboutPinball,
+    Menu1HighScores,
+    Menu1Exit,
+    Menu1Sounds,
+    Menu1Music,
+    Menu1HelpTopics,
+    Menu1LaunchBall,
+    Menu1PauseResumeGame,
+    Menu1FullScreen,
+    Menu1Demo,
+    Menu1SelectTable,
+    Menu1PlayerControls,
+    MENU1_1PLAYER,
+    MENU1_2PLAYERS,
+    MENU1_3PLAYERS,
+    MENU1_4PLAYERS,
+    Menu1WindowUniformScale,
+    Menu1Game,
+    Menu1Options,
+    Menu1SelectPlayers,
+    Menu1TableResolution,
+    Menu1Help,
+    Menu1ToggleShowMenu,
+    Menu1UseMaxResolution640x480,
+    Menu1UseMaxResolution800x600,
+    Menu1UseMaxResolution1024x768,
+    MAX,
 }
 
-struct Lang(pub i32);
-
-impl Lang {
-    pub const MIN: Lang = Lang(0);
-    pub const ARABIC: Lang = Lang(0);
-    pub const CZECH: Lang = Lang(1);
-    pub const DANISH: Lang = Lang(2);
-    pub const GERMAN: Lang = Lang(3);
-    pub const GREEK: Lang = Lang(4);
-    pub const ENGLISH: Lang = Lang(5);
-    pub const SPANISH: Lang = Lang(6);
-    pub const FINNISH: Lang = Lang(7);
-    pub const FRENCH: Lang = Lang(8);
-    pub const HEBREW: Lang = Lang(9);
-    pub const HUNGARIAN: Lang = Lang(10);
-    pub const ITALIAN: Lang = Lang(11);
-    pub const JAPANESE: Lang = Lang(12);
-    pub const KOREAN: Lang = Lang(13);
-    pub const NORWEGIAN: Lang = Lang(14);
-    pub const DUTCH: Lang = Lang(15);
-    pub const POLISH: Lang = Lang(16);
-    pub const BRAZILIAN_PORTUGUESE: Lang = Lang(17);
-    pub const PORTUGUESE: Lang = Lang(18);
-    pub const RUSSIAN: Lang = Lang(19);
-    pub const SWEDISH: Lang = Lang(20);
-    pub const TURKISH: Lang = Lang(21);
-    pub const SIMPLIFIED_CHINESE: Lang = Lang(22);
-    pub const TRADITIONAL_CHINESE: Lang = Lang(23);
-    pub const MAX: Lang = Lang(24);
+enum Lang {
+    MIN,
+    ARABIC,
+    CZECH,
+    DANISH,
+    GERMAN,
+    GREEK,
+    ENGLISH,
+    SPANISH,
+    FINNISH,
+    FRENCH,
+    HEBREW,
+    HUNGARIAN,
+    ITALIAN,
+    JAPANESE,
+    KOREAN,
+    NORWEGIAN,
+    DUTCH,
+    POLISH,
+    BrazilianPortuguese,
+    PORTUGUESE,
+    RUSSIAN,
+    SWEDISH,
+    TURKISH,
+    SimplifiedChinese,
+    TraditionalChinese,
+    MAX,
 }
