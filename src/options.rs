@@ -190,35 +190,13 @@ pub enum Menu {
     Prefer3DPBGameData = 700,
 }
 
+#[repr(i32)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum InputTypes {
     None = 0,
     Keyboard,
     Mouse,
     GameController,
-}
-
-impl From<i32> for InputTypes {
-    fn from(value: i32) -> Self {
-        match value {
-            0 => InputTypes::None,
-            1 => InputTypes::Keyboard,
-            2 => InputTypes::Mouse,
-            3 => InputTypes::GameController,
-            _ => InputTypes::None,
-        }
-    }
-}
-
-impl Into<i32> for InputTypes {
-    fn into(self) -> i32 {
-        match self {
-            InputTypes::None => 0,
-            InputTypes::Keyboard => 1,
-            InputTypes::Mouse => 2,
-            InputTypes::GameController => 3,
-        }
-    }
 }
 
 #[derive(Clone, Copy)]
@@ -246,6 +224,7 @@ impl GameInput {
     }
 }
 
+// TODO: Make it back into an enum?
 #[repr(usize)]
 #[derive(Clone, Copy, PartialEq, PartialOrd)]
 pub enum GameBindings {
@@ -265,6 +244,7 @@ pub enum GameBindings {
     Exit,
 }
 
+// TODO: Make it back into an enum?
 impl GameBindings {
     pub const MIN: GameBindings = GameBindings::LeftFlipper;
     pub const MAX: GameBindings = GameBindings::Exit;
@@ -466,10 +446,7 @@ impl OptionBaseBehavior for ControlOption {
     fn load(&mut self) {
         for (idx, input) in self.inputs.iter_mut().enumerate() {
             let name = format!("{} {}", self.name, idx);
-            input.input_type = InputTypes::from(get_int(
-                &format!("{} type", name),
-                self.defaults[idx].input_type as i32,
-            ));
+            input.input_type = self.defaults[idx].input_type;
             input.value = get_int(&format!("{} input", name), self.defaults[idx].value);
         }
     }
@@ -609,7 +586,6 @@ pub struct BoolOption {
     default_value: bool,
     value: bool,
 }
-
 
 impl OptionBaseBehavior for BoolOption {
     fn load(&mut self) {
