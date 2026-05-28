@@ -1,5 +1,7 @@
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
+use crate::translations;
 use crate::translations::Msg;
+use imgui::sys::{ImGuiSettingsHandler, igImHashStr, igLoadIniSettingsFromDisk};
 use sdl2::sys::SDL_GameControllerButton::*;
 use sdl2::sys::SDL_KeyCode::*;
 use sdl2::sys::*;
@@ -7,6 +9,7 @@ use std::cmp::PartialEq;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::c_char;
+use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::AtomicBool;
 use std::sync::{LazyLock, Mutex, OnceLock};
@@ -660,4 +663,46 @@ pub struct OptionsStruct {
     pub font_file_name: StringOption,
     pub language: StringOption,
     pub hide_cursor: BoolOption,
+}
+
+// WARNING: This is reaching for bindings to stuff that isn't normally exposed by imgui-rs
+// I am not going to bother (for now) to spend the time to implement this properly
+// So this should be a 1:1 (esque) translation of the original code
+// The code below IS UNSAFE!
+pub fn init_primary() {
+    let im_context = unsafe { imgui::sys::igGetCurrentContext() };
+
+    let mut ini_handler: ImGuiSettingsHandler;
+    ini_handler = ImGuiSettingsHandler::default();
+    ini_handler.TypeName = c"Pinball".as_ptr();
+
+    // TODO: Count null terminated \0 or not?
+    ini_handler.TypeHash = unsafe {
+        igImHashStr(
+            ini_handler.TypeName,
+            c"Pinball".count_bytes(),
+            0xDEADBEEFu32,
+        )
+    };
+
+    ini_handler.ReadOpenFn = MyUserData_ReadOpen;
+    ini_handler.ReadLineFn = MyUserData_ReadLine;
+    ini_handler.WriteAllFn = MyUserData_WriteAll;
+
+    // TODO: What's push_back again? Enqueue? Enplace?
+    im_context.SettingsHandlers.push_back(ini_handler);
+    unsafe {
+        if !(*im_context).SettingsLoaded {
+            igLoadIniSettingsFromDisk((*im_context).IO.IniFilename);
+            (*im_context).SettingsLoaded = true;
+        }
+    }
+    
+    // TODO "Unwrap" ALL_OPTIONS
+    for opt in ALL_OPTIONS {
+        opt.Load();
+    }
+    
+    // TODO: Implement me
+    PostProcessOptions();
 }
