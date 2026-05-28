@@ -1,3 +1,8 @@
+use crate::options::InputTypes::{GameController, Keyboard, Mouse};
+use crate::translations::Msg;
+use sdl2::sys::SDL_GameControllerButton::*;
+use sdl2::sys::SDL_KeyCode::*;
+use sdl2::sys::*;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
