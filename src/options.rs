@@ -84,7 +84,7 @@ impl PartialEq for GameInput {
 }
 
 impl GameInput {
-    pub fn new(input_type: InputTypes) -> Self {
+    pub fn new() -> Self {
         Self {
             input_type: InputTypes::None,
             value: -1,
@@ -385,6 +385,16 @@ pub struct StringOption {
     value: String,
 }
 
+impl StringOption {
+    pub fn new(name: &'static str, default_value: &str) -> Self {
+        Self {
+            name,
+            default_value: String::from(default_value),
+            value: String::from(default_value),
+        }
+    }
+}
+
 impl OptionBaseBehavior for StringOption {
     fn load(&mut self) {
         self.value = get_setting(self.name, &self.default_value);
@@ -418,6 +428,16 @@ pub struct FloatOption {
     name: &'static str,
     default_value: f32,
     value: f32,
+}
+
+impl FloatOption {
+    pub fn new(name: &'static str, default_value: f32) -> Self {
+        Self {
+            name,
+            default_value,
+            value: default_value,
+        }
+    }
 }
 
 impl OptionBaseBehavior for FloatOption {
@@ -454,6 +474,7 @@ pub struct BoolOption {
     value: bool,
 }
 
+
 impl OptionBaseBehavior for BoolOption {
     fn load(&mut self) {
         self.value = get_bool(self.name, self.default_value);
@@ -466,6 +487,30 @@ impl OptionBaseBehavior for BoolOption {
     fn reset(&mut self) {
         self.value = self.default_value;
         self.save();
+    }
+}
+
+impl BoolOption {
+    pub fn new(name: &'static str, default_value: bool) -> Self {
+        Self {
+            name,
+            default_value,
+            value: default_value,
+        }
+    }
+}
+
+impl Deref for BoolOption {
+    type Target = bool;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl DerefMut for BoolOption {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
     }
 }
 
