@@ -12,6 +12,7 @@ mod t_edge_segment;
 mod t_flipper_edge;
 mod t_pinball_component;
 mod t_pinball_table;
+mod translations;
 mod zdrv;
 
 fn main() {
