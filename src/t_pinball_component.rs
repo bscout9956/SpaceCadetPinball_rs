@@ -199,7 +199,7 @@ impl TPinballComponent {
 
         if load_visuals && group_index >= 0 {
             // TODO: Create module
-            let visual_count = loader::query_visual_states(group_index);
+            //let visual_count = loader::query_visual_states(group_index);
             // TODO: For loop L#33...
         }
 
@@ -211,13 +211,13 @@ impl Drop for TPinballComponent {
     fn drop(&mut self) {
         if self.pinball_table.is_some() {
             // TODO: Add field, use let Some, upgrade weakptr, borrow mut?
-            let components = self.pinball_table.unwrap().component_list;
+            //let components = self.pinball_table.unwrap().component_list;
             //TODO: Implement component list first then let position = // std::find begin end for this
             // Continue from L94
         }
 
         // TODO: We don't need this
-        drop(self.list_bitmap); // TODO: Does list_bitmap implement drop?
+        //drop(self.list_bitmap); // TODO: Does list_bitmap implement drop?
     }
 }
 
@@ -243,11 +243,11 @@ impl TPinballComponentBehavior for TPinballComponent {
                 let control = strong_control_rc.borrow();
 
                 // TODO: Implement control struct
-                if index >= control.score_count {
-                    0
-                } else {
-                    control.scores[index as usize]
-                }
+                // if index >= control.score_count {
+                //     0
+                // } else {
+                //     control.scores[index as usize]
+                // }
             }
         }
         0

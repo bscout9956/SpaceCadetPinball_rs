@@ -150,7 +150,8 @@ static OPTIONS: LazyLock<Mutex<OptionsStruct>> = LazyLock::new(|| {
         debug_overlay_aabb: BoolOption::new("Debug Overlay AABB", true),
         font_file_name: StringOption::new("FontFileName", ""),
         // TODO: Implement translations
-        language: StringOption::new("Language", translations::GetCurrentLanguage().ShortName),
+        // language: StringOption::new("Language", translations::GetCurrentLanguage().ShortName),
+        language: StringOption::new("Language", ""),
         hide_cursor: BoolOption::new("Hide Cursor", false),
     })
 });
@@ -685,24 +686,24 @@ pub fn init_primary() {
         )
     };
 
-    ini_handler.ReadOpenFn = MyUserData_ReadOpen;
-    ini_handler.ReadLineFn = MyUserData_ReadLine;
-    ini_handler.WriteAllFn = MyUserData_WriteAll;
+    // ini_handler.ReadOpenFn = MyUserData_ReadOpen;
+    // ini_handler.ReadLineFn = MyUserData_ReadLine;
+    // ini_handler.WriteAllFn = MyUserData_WriteAll;
 
-    // TODO: What's push_back again? Enqueue? Enplace?
-    im_context.SettingsHandlers.push_back(ini_handler);
-    unsafe {
-        if !(*im_context).SettingsLoaded {
-            igLoadIniSettingsFromDisk((*im_context).IO.IniFilename);
-            (*im_context).SettingsLoaded = true;
-        }
-    }
-    
-    // TODO "Unwrap" ALL_OPTIONS
-    for opt in ALL_OPTIONS {
-        opt.Load();
-    }
-    
-    // TODO: Implement me
-    PostProcessOptions();
+    // // TODO: What's push_back again? Enqueue? Enplace?
+    // im_context.SettingsHandlers.push_back(ini_handler);
+    // unsafe {
+    //     if !(*im_context).SettingsLoaded {
+    //         igLoadIniSettingsFromDisk((*im_context).IO.IniFilename);
+    //         (*im_context).SettingsLoaded = true;
+    //     }
+    // }
+
+    // // TODO "Unwrap" ALL_OPTIONS
+    // for opt in ALL_OPTIONS {
+    //     opt.Load();
+    // }
+
+    // // TODO: Implement me
+    // PostProcessOptions();
 }

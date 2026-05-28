@@ -1,4 +1,5 @@
-use crate::maths::*;
+use crate::loader::{self, VisualStruct};
+use crate::maths::{self, *};
 use crate::t_ball::TBall;
 use crate::t_edge_segment::{TEdgeSegment, TEdgeSegmentBehavior};
 use crate::t_pinball_component::{MessageCode, TPinballComponent, TPinballComponentBehavior};
@@ -8,7 +9,6 @@ use std::{
     cell::RefCell,
     rc::{Rc, Weak},
 };
-use crate::loader;
 
 #[allow(non_snake_case)]
 pub struct TCollisionComponent {
@@ -47,7 +47,18 @@ impl TCollisionComponent {
         let pinball_table = Rc::new(RefCell::new(TPinballTable::new()));
         let pinball_component = TPinballComponent::new(Some(pinball_table), group_index, true);
 
-        let visual: VisualStruct;
+        let visual: VisualStruct = VisualStruct {
+            smoothness: todo!(),
+            elasticity: todo!(),
+            float_arr_count: todo!(),
+            float_arr: todo!(),
+            soft_hit_sound_id: todo!(),
+            kicker: todo!(),
+            collision_group: todo!(),
+            sound_index_4: todo!(),
+            sound_index_3: todo!(),
+            bitmap: todo!(),
+        };
 
         let mut Instance = Self {
             edge_list: vec![],
@@ -70,26 +81,26 @@ impl TCollisionComponent {
         if !Instance.t_pinball_component.group_name.is_some() {
             Instance.t_pinball_component.unused_base_flag = Rc::new(Cell::new(true));
         }
-        if group_index <= 0 {
-            // TODO: Implement loader
-            loader::default_vsi(visual);
-        } else {
-            // TODO: Implement loader
-            loader::query_visual(group_index, 0, &visual);
-            if (create_wall) {
-                let offset: f32 = table.collision_comp_offset;
-                // TODO: Implement loader
-                let float_arr = loader::query_float_attribute(group_index, 0, 600);
-                TEdgeSegment::install_wall(
-                    &float_arr,
-                    &Rc::new(RefCell::new(Instance)),
-                    Instance.t_pinball_component.active_flag,
-                    visual.collision_group,
-                    offset,
-                    0,
-                );
-            }
-        }
+        // if group_index <= 0 {
+        //     // TODO: Implement loader
+        //     loader::default_vsi(visual);
+        // } else {
+        //     // TODO: Implement loader
+        //     loader::query_visual(group_index, 0, &visual);
+        //     if (create_wall) {
+        //         let offset: f32 = table.collision_comp_offset;
+        //         // TODO: Implement loader
+        //         let float_arr = loader::query_float_attribute(group_index, 0, 600);
+        //         TEdgeSegment::install_wall(
+        //             &float_arr,
+        //             &Rc::new(RefCell::new(Instance)),
+        //             Instance.t_pinball_component.active_flag,
+        //             visual.collision_group,
+        //             offset,
+        //             0,
+        //         );
+        //     }
+        // }
 
         Instance.threshold = visual.kicker.threshold;
         Instance.elasticity = visual.elasticity;
@@ -112,7 +123,8 @@ impl TCollisionComponentBehavior for TCollisionComponent {
         distance: f32,
         edge: &TEdgeSegment,
     ) {
-        if let Some(pinball_table) = self.t_pinball_component.pinball_table {
+        //TODO: Undo borrow?
+        if let Some(pinball_table) = &self.t_pinball_component.pinball_table {
             if let Some(upgraded_table) = pinball_table.upgrade() {
                 let table = upgraded_table.borrow();
 
@@ -140,11 +152,12 @@ impl TCollisionComponentBehavior for TCollisionComponent {
             self.threshold,
             self.boost,
         );
-        if proj_speed > self.threshold {
-            loader::play_sound(self.hard_hit_sound_id, ball, "TCollisionComponent1");
-        } else if proj_speed > 0.2 {
-            loader::play_sound(self.soft_hit_sound_id, ball, "TCollisionComponent2");
-        }
+        // TODO: Implement loader::play_sound
+        // if proj_speed > self.threshold {
+        //     loader::play_sound(self.hard_hit_sound_id, ball, "TCollisionComponent1");
+        // } else if proj_speed > 0.2 {
+        //     loader::play_sound(self.soft_hit_sound_id, ball, "TCollisionComponent2");
+        // }
     }
 
     fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
@@ -157,7 +170,8 @@ impl TCollisionComponentBehavior for TCollisionComponent {
         next_position: &Vector2,
         direction: &mut Vector2,
     ) -> bool {
-        if let Some(pinball_table) = self.t_pinball_component.pinball_table {
+        // TODO: Undo borrow
+        if let Some(pinball_table) = &self.t_pinball_component.pinball_table {
             if let Some(upgraded_table) = pinball_table.upgrade() {
                 let table = upgraded_table.borrow();
                 if table.tilt_lock_flag {
@@ -186,10 +200,12 @@ impl TCollisionComponentBehavior for TCollisionComponent {
         );
         if proj_speed > self.threshold {
             // TODO: implement me
-            loader::play_sound(self.hard_hit_sound_id, ball, "TCollisionComponent1");
+            // loader::play_sound(self.hard_hit_sound_id, ball, "TCollisionComponent1");
             collision = true;
         } else if proj_speed > 0.2 {
-            loader::play_sound(self.soft_hit_sound_id, ball, "TCollisionComponent2");
+            // TODO: implement me
+
+            // loader::play_sound(self.soft_hit_sound_id, ball, "TCollisionComponent2");
         }
         collision
     }

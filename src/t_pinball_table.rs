@@ -105,7 +105,52 @@ impl TPinballTable {
             light_show_timer: 0,
             end_game_timeout_timer: 0,
             tilt_timeout_timer: 0,
-            player_scores: [],
+            player_scores: [
+                ScoreStruct {
+                    score: todo!(),
+                    dirty_flag: todo!(),
+                    background_bmp: todo!(),
+                    offset_x: todo!(),
+                    offset_y: todo!(),
+                    width: todo!(),
+                    height: todo!(),
+                    char_bmp: todo!(),
+                    msg_font: todo!(),
+                },
+                ScoreStruct {
+                    score: todo!(),
+                    dirty_flag: todo!(),
+                    background_bmp: todo!(),
+                    offset_x: todo!(),
+                    offset_y: todo!(),
+                    width: todo!(),
+                    height: todo!(),
+                    char_bmp: todo!(),
+                    msg_font: todo!(),
+                },
+                ScoreStruct {
+                    score: todo!(),
+                    dirty_flag: todo!(),
+                    background_bmp: todo!(),
+                    offset_x: todo!(),
+                    offset_y: todo!(),
+                    width: todo!(),
+                    height: todo!(),
+                    char_bmp: todo!(),
+                    msg_font: todo!(),
+                },
+                ScoreStruct {
+                    score: todo!(),
+                    dirty_flag: todo!(),
+                    background_bmp: todo!(),
+                    offset_x: todo!(),
+                    offset_y: todo!(),
+                    width: todo!(),
+                    height: todo!(),
+                    char_bmp: todo!(),
+                    msg_font: todo!(),
+                },
+            ],
             player_count: 0,
             current_player: 0,
             plunger: TPlunger,
@@ -123,8 +168,8 @@ impl TPinballTable {
             gravity_angle_x: 0.0,
             gravity_angle_y: 0.0,
             collision_comp_offset: 0.0,
-            // TODO What do?
-            plunger_position: Vector2 {},
+            // TODO What do? Verify me
+            plunger_position: Vector2 { x: 0.0, y: 0.0 },
             score_multiplier: 0,
             score_added: 0,
             reflex_shot_score: 0,
@@ -144,21 +189,21 @@ impl TPinballTable {
             replay_timer: 0,
             unknown_p81: 0,
             unknown_p82: 0,
-            tilt_lock_flag: 0,
-            score_multipliers: &[],
+            tilt_lock_flag: false,
+            score_multipliers: &[1, 1, 1, 1, 1], // TODO: change me
             t_pinball_component: Default::default(),
         };
 
         // TODO: Implement AddBall
-        let ball = AddBall(Vector2 { x: 0.0, y: 0.0 });
-        ball.disable();
+        //let ball = AddBall(Vector2 { x: 0.0, y: 0.0 });
+        //ball.disable();
 
         // TODO: Implement TTableLayer
-        TTableLayer::new(this);
+        //TTableLayer::new(this);
 
-        let score1 = score::create("score1", render::background_bitmap);
-        Instance.cur_score_struct = Some(score1);
-        Instance.player_scores[0] = score1;
+        //let score1 = score::create("score1", render::background_bitmap);
+        //Instance.cur_score_struct = Some(score1);
+        //Instance.player_scores[0] = score1;
         // TODO: Continue implementing
 
         Instance

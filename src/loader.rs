@@ -154,16 +154,16 @@ pub struct SpriteData {
 }
 
 pub struct VisualStruct {
-    smoothness: f32,
-    elasticity: f32,
-    float_arr_count: i32,
-    float_arr: &'static [f32], //TODO: should it be static, wtf do I do here?
-    soft_hit_sound_id: i32,
-    kicker: VisualKickerStruct,
-    collision_group: i32,
-    sound_index_4: i32,
-    sound_index_3: i32,
-    bitmap: SpriteData,
+    pub smoothness: f32,
+    pub elasticity: f32,
+    pub float_arr_count: i32,
+    pub float_arr: &'static [f32], //TODO: should it be static, wtf do I do here?
+    pub soft_hit_sound_id: i32,
+    pub kicker: VisualKickerStruct,
+    pub collision_group: i32,
+    pub sound_index_4: i32,
+    pub sound_index_3: i32,
+    pub bitmap: SpriteData,
 }
 
 #[repr(C, packed)]
@@ -188,24 +188,29 @@ fn compile_time_checks() {
     const { assert!(std::mem::size_of::<WaveHeader>() == 44) };
 }
 
-pub struct Loader {
+// TODO: Lifetime check
+pub struct Loader<'a> {
     sound_count: i32,
     loader_sound_count: i32,
-    loader_table: DatFile,
-    sound_record_table: DatFile,
+    loader_table: DatFile<'a>,
+    sound_record_table: DatFile<'a>,
     sound_list: [SoundListStruct; 65],
     loader_errors: [ErrorMessage; 28],
 }
-
-impl Loader {
+// TODO: Lifetime check
+impl<'a> Loader<'a> {
     // TODO Implement me
     pub fn new() -> Self {
         Self {
             sound_count: 1,
             loader_sound_count: 0,
-            loader_table: (),
-            sound_record_table: (),
-            sound_list: [],
+            loader_table: DatFile {
+                app_name: todo!(),
+                description: todo!(),
+                groups: todo!(),
+            },
+            sound_record_table: todo!(),
+            sound_list: todo!(),
             loader_errors: ErrorMessage::get_loader_errors(),
         }
     }
@@ -229,7 +234,7 @@ impl Loader {
             error_text = self.loader_errors[index].message;
         }
         // TODO: Implement me
-        pb::ShowMessageBox(SDL_MESSAGEBOX_ERROR, error_caption, error_text);
+        //pb::ShowMessageBox(SDL_MESSAGEBOX_ERROR, error_caption, error_text);
         -1
     }
 
@@ -263,7 +268,7 @@ impl Loader {
                         // TODO: ???????????
                         if self.sound_count < 65 {
                             self.sound_list[self.sound_count as usize] = SoundListStruct {
-                                wave_ptr: std::ptr::null::<c_void>(), // TODO: Change me
+                                wave_ptr: todo!(), // TODO: Change me
                                 group_index,
                                 loaded: false,
                                 duration: 0.0,

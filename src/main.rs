@@ -1,4 +1,7 @@
-#![allow(unused)] // TODO: Remove me when done
+#![allow(unused)]
+#![allow(arithmetic_overflow)]
+
+use sdl2::sys::SDL_SetMainReady; // TODO: Remove me when done
 mod gdrv;
 mod group_data;
 mod loader;
@@ -16,5 +19,7 @@ mod translations;
 mod zdrv;
 
 fn main() {
-    println!("Hello, world!");
+    unsafe {
+        SDL_SetMainReady();
+    }
 }
