@@ -150,7 +150,7 @@ static ALL_OPTIONS: LazyLock<Mutex<Vec<OptionBase>>> = LazyLock::new(|| Mutex::n
 static SHOW_DIALOG: AtomicBool = AtomicBool::new(false);
 
 static CONTROL_WAITING_FOR_INPUT: LazyLock<Mutex<GameInput>> =
-    LazyLock::new(|| Mutex::new(GameInput::new()));
+    LazyLock::new(|| Mutex::new(GameInput::new_empty()));
 
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
 
@@ -229,14 +229,14 @@ impl PartialEq for GameInput {
 }
 
 impl GameInput {
-    pub fn new() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             input_type: InputTypes::None,
             value: -1,
         }
     }
 
-    pub fn new_type_value(input_type: InputTypes, value: i32) -> Self {
+    pub fn new(input_type: InputTypes, value: i32) -> Self {
         Self { input_type, value }
     }
 }
@@ -435,7 +435,7 @@ impl IntOption {
 
 struct ControlOption {
     name: &'static str,
-    description: &'static str, // TODO In the original it's a enum class with type int????
+    description: Msg,
     defaults: [GameInput; 3],
     inputs: [GameInput; 3],
 }
@@ -443,7 +443,7 @@ struct ControlOption {
 impl ControlOption {
     pub fn new(
         name: &'static str,
-        description: &'static str,
+        description: Msg,
         default_keyboard: GameInput,
         default_mouse: GameInput,
         default_controller: GameInput,
