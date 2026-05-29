@@ -163,8 +163,7 @@ static OPTIONS: LazyLock<Mutex<OptionsStruct>> = LazyLock::new(|| {
 });
 static SHOW_DIALOG: AtomicBool = AtomicBool::new(false);
 
-static CONTROL_WAITING_FOR_INPUT: LazyLock<Mutex<GameInput>> =
-    LazyLock::new(|| Mutex::new(GameInput::new_empty()));
+pub static CONTROL_WAITING_FOR_INPUT: Mutex<Option<GameInput>> = Mutex::new(Option::None);
 
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
 
@@ -629,94 +628,144 @@ pub unsafe fn init_primary() {
     }
 }
 
-impl Deref for BoolOption {
-    type Target = bool;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
+pub fn init_secondary() {
+    let max_res = fullscrn::GetMaxResolution();
+    let Ok(options) = OPTIONS.lock();
+    if (options.resolution.value >= 0 && options.resolution.value > max_res) {
+        options.resolution = max_res;
+    }
+    if (options.resolution.value == -1) {
+        fullscrn::SetResolution(max_res);
+    } else {
+        fullscrn::SetResolution(options.resolution.value);
     }
 }
 
-impl DerefMut for BoolOption {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
+pub fn uninit() {
+    let Ok(mut options) = OPTIONS.lock();
+    options.language.value = translations::GetCurrentLanguage().ShortName;
+    options.save_all();
+}
+
+pub fn get_input(row_name: &str, mut values: [GameInput; 3]) {
+    for (index, input) in values.iter_mut().enumerate() {
+        let name = format!("{} {}", row_name, index);
+        let type_val = get_int(&format!("{} type", name), -1);
+        let input_type: InputTypes = InputTypes::from_i32(type_val).unwrap();
+        let value = get_int(&format!("{} input", name), -1);
+
+        if (input_type <= GameController && value != -1) {
+            *input = GameInput { input_type, value };
+        }
     }
 }
 
-pub struct OptionsStruct {
-    pub key: [ControlOption; GameBindings::COUNT],
-    pub sounds: BoolOption,
-    pub music: BoolOption,
-    pub full_screen: BoolOption,
-    pub players: IntOption,
-    pub resolution: IntOption,
-    pub ui_scale: FloatOption,
-    pub uniform_scaling: BoolOption,
-    pub linear_filtering: BoolOption,
-    pub frames_per_second: IntOption,
-    pub updates_per_second: IntOption,
-    pub show_menu: BoolOption,
-    pub uncapped_updates_per_second: BoolOption,
-    pub sound_channels: IntOption,
-    pub hybrid_sleep: BoolOption,
-    pub prefer_3dpb_game_data: BoolOption,
-    pub integer_scaling: BoolOption,
-    pub sound_volume: IntOption,
-    pub music_volume: IntOption,
-    pub sound_stereo: BoolOption,
-    pub debug_overlay: BoolOption,
-    pub debug_overlay_grid: BoolOption,
-    pub debug_overlay_all_edges: BoolOption,
-    pub debug_overlay_ball_position: BoolOption,
-    pub debug_overlay_ball_edges: BoolOption,
-    pub debug_overlay_collision_mask: BoolOption,
-    pub debug_overlay_sprites: BoolOption,
-    pub debug_overlay_sounds: BoolOption,
-    pub debug_overlay_ball_depth_grid: BoolOption,
-    pub debug_overlay_aabb: BoolOption,
-    pub font_file_name: StringOption,
-    pub language: StringOption,
-    pub hide_cursor: BoolOption,
+pub fn set_input(row_name: &str, mut values: [GameInput; 3]) {
+    for (index, input) in values.iter_mut().enumerate() {
+        let name = format!("{} {}", row_name, index);
+        set_int(&format!("{} type", input.input_type as i32), -1);
+        set_int(&format!("{} input", input.value), -1);
+    }
 }
 
-// WARNING: This is reaching for bindings to stuff that isn't normally exposed by imgui-rs
-// I am not going to bother (for now) to spend the time to implement this properly
-// So this should be a 1:1 (esque) translation of the original code
-// The code below IS UNSAFE!
-pub fn init_primary() {
-    let im_context = unsafe { imgui::sys::igGetCurrentContext() };
-
-    let mut ini_handler: ImGuiSettingsHandler;
-    ini_handler = ImGuiSettingsHandler::default();
-    ini_handler.TypeName = c"Pinball".as_ptr();
-
-    // TODO: Count null terminated \0 or not?
-    ini_handler.TypeHash = unsafe {
-        igImHashStr(
-            ini_handler.TypeName,
-            c"Pinball".count_bytes(),
-            0xDEADBEEFu32,
-        )
+// TODO: Implement all the unimplemented stuff
+pub fn toggle(u_id_check_item: Menu) {
+    // TODO: The fuck is it complaining about
+    let Ok(mut options) = OPTIONS.lock() else {
+        todo!()
     };
 
-    // ini_handler.ReadOpenFn = MyUserData_ReadOpen;
-    // ini_handler.ReadLineFn = MyUserData_ReadLine;
-    // ini_handler.WriteAllFn = MyUserData_WriteAll;
+    match u_id_check_item {
+        Menu::NewGame => {}
+        Menu::AboutPinball => {}
+        Menu::HighScores => {}
+        Menu::Exit => {}
+        Menu::Sounds => {
+            *options.sounds = !(*options.sounds);
+            return;
+        }
+        Menu::Music => {
+            *options.music = !(*options.music);
+            if !(*options.music) {
+                midi::music_stop();
+            } else {
+                midi::music_play();
+            }
+            return;
+        }
+        Menu::SoundStereo => {
+            *options.sound_stereo = !(*options.sound_stereo);
+            return;
+        }
+        Menu::HelpTopics => {}
+        Menu::LaunchBall => {}
+        Menu::PauseResumeGame => {}
+        Menu::FullScreen => {
+            *options.full_screen = !(*options.full_screen);
+            fullscrn::set_screen_mode(options.full_screen);
+        }
+        Menu::Demo => {}
+        Menu::SelectTable => {}
+        Menu::PlayerControls => {}
+        Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {}
+        Menu::ShowMenu => {
+            *options.show_menu = !(*options.show_menu);
+            fullsrcn::window_size_changed();
+        }
+        Menu::MaximumResolution | Menu::R640x480 | Menu::R800x600 | Menu::R1024x768 => {
+            let mut restart = false;
+            let new_resolution = u_id_check_item as i32 - Menu::R640x480 as i32;
+            if u_id_check_item == Menu::MaximumResolution {
+                restart = fullscrn::GetResolution() != fullscrn::GetMaxResolution();
+                *options.resolution = -1;
+            } else if new_resolution <= fullscrn::GetMaxResolution() {
+                let mut current_resolution: i32;
+                if (*options.resolution == -1) {
+                    current_resolution = fullscrn::GetMaxResolution();
+                } else {
+                    current_resolution = fullscrn::GetResolution();
+                }
 
-    // // TODO: What's push_back again? Enqueue? Enplace?
-    // im_context.SettingsHandlers.push_back(ini_handler);
-    // unsafe {
-    //     if !(*im_context).SettingsLoaded {
-    //         igLoadIniSettingsFromDisk((*im_context).IO.IniFilename);
-    //         (*im_context).SettingsLoaded = true;
-    //     }
-    // }
+                let restart = (new_resolution != current_resolution);
+            }
 
-    // // TODO "Unwrap" ALL_OPTIONS
-    // for opt in ALL_OPTIONS {
-    //     opt.Load();
-    // }
+            if restart {
+                main::Restart();
+            }
+        }
+        Menu::WindowUniformScale => {
+            *options.uniform_scaling = !(*options.uniform_scaling);
+            fullscrn::window_size_changed();
+        }
+        Menu::WindowLinearFilter => {
+            *options.linear_filtering = !(*options.linear_filtering);
+            render::recreate_screen_texture();
+        }
+        Menu::WindowIntegerScale => {
+            *options.integer_scaling = !(*options.integer_scaling);
+            fullscrn::window_size_changed();
+        }
+        Menu::Prefer3DPBGameData => {
+            *options.prefer_3dpb_game_data = !(*options.prefer_3dpb_game_data);
+            fullscrn::window_size_changed();
+        }
+    }
+}
 
-    // // TODO: Implement me
-    // PostProcessOptions();
+pub fn input_down(input: GameInput) {
+    let mut wait_flag = CONTROL_WAITING_FOR_INPUT.lock().unwrap();
+    *wait_flag = Some(input);
+}
+
+pub fn show_control_dialog() {
+    let dialog_check = SHOW_DIALOG.load(SeqCst);
+    if !dialog_check {
+        let mut wait_flag = CONTROL_WAITING_FOR_INPUT.lock().unwrap();
+        *wait_flag = Option::None;
+        SHOW_DIALOG.store(true, SeqCst);
+        let mut options = OPTIONS.lock().unwrap();
+        for option in &mut options.control_options {
+            option.save();
+        }
+    }
 }
