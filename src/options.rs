@@ -501,6 +501,17 @@ impl ControlOption {
             inputs: [default_keyboard, default_mouse, default_controller],
         }
     }
+
+    fn get_shortcut_description(&self) -> String {
+        let mut result: String = String::new();
+        for input in self.inputs {
+            if input.input_type != InputTypes::None {
+                // TODO: Implement me
+                return input.get_short_input_description();
+            }
+        }
+        result
+    }
 }
 
 impl OptionBase for ControlOption {
@@ -829,5 +840,55 @@ pub fn MapGameInput(key: GameInput) -> Vec<GameBindings> {
 pub fn reset_all_options() {
     let mut options = OPTIONS.lock().unwrap();
     options.reset_all();
-    todo!(); //    PostProcessOptions();
+    post_process_options();
+}
+
+pub unsafe fn my_user_data_read_line(
+    ctx: ImGuiContext,
+    handler: ImGuiSettingsHandler,
+    entry: c_void,
+    line: &str,
+) {
+    // TODO Boring shit
+}
+
+pub unsafe fn my_user_data_read_open(
+    ctx: *mut ImGuiContext,
+    handler: *mut ImGuiSettingsHandler,
+    name: *const c_char,
+) -> Option<HashMap<String, String>> {
+    if name.eq(&c"Settings".as_ptr()) {
+        let settings = SETTINGS.lock().unwrap();
+        let clone_hash = settings.clone();
+        return Some(clone_hash);
+    }
+    Option::None
+}
+
+pub unsafe fn my_user_data_write_all(
+    ctx: ImGuiContext,
+    handler: ImGuiSettingsHandler,
+    buf: ImGuiTextBuffer,
+) {
+    // TODO: Boring shit
+}
+
+// TODO Implement all the trash
+pub fn post_process_options() {
+    let mut options = OPTIONS.lock().unwrap();
+    // TODO: Pull this
+    main::ImIO.FontGlobalScale = options.ui_scale;
+    options.frames_per_second = Clamp(options.frames_per_second.value, MIN_FPS, MAX_FPS);
+    options.updates_per_second = Clamp(options.updates_per_second.value, MIN_UPS, MAX_UPS);
+    // TODO vec max
+    options.updates_per_second = options.uncapped_updates_per_second.value.max();
+    options.sound_channels = Clamp(
+        options.sound_channels.value,
+        MIN_SOUND_CHANNELS,
+        MAX_SOUND_CHANNELS,
+    );
+    options.sound_volume = Clamp(options.sound_volume.value, MIN_VOLUME, MAX_VOLUME);
+    options.music_volume = Clamp(options.music_volume, MIN_VOLUME, MAX_VOLUME);
+    translations::set_current_language(options.language.value);
+    main::UpdateFrameRate();
 }
