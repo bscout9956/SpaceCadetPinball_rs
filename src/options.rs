@@ -209,22 +209,26 @@ pub struct GameInput {
     pub value: i32,
 }
 
-impl PartialEq for GameInput {
-    fn eq(&self, other: &Self) -> bool {
-        self.input_type == other.input_type && self.value == other.value
-    }
-}
-
-impl GameInput {
-    pub fn new_empty() -> Self {
+impl Default for GameInput {
+    fn default() -> Self {
         Self {
             input_type: InputTypes::None,
             value: -1,
         }
     }
+}
 
+impl GameInput {
     pub fn new(input_type: InputTypes, value: i32) -> Self {
         Self { input_type, value }
+    }
+
+    pub fn get_full_input_description(&self) -> String {
+        todo!()
+    }
+
+    pub fn get_short_input_description(&self) -> String {
+        todo!()
     }
 }
 
