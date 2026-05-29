@@ -1,9 +1,9 @@
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
-use crate::translations;
 use crate::translations::Msg;
+use crate::{fullscrn, midi, restart_func, translations};
 use dear_imgui_rs::sys::{
-    ImGuiSettingsHandler, igAddSettingsHandler, igGetCurrentContext, igImHashStr,
-    igLoadIniSettingsFromDisk,
+    ImGuiContext, ImGuiSettingsHandler, ImGuiTextBuffer, igAddSettingsHandler, igGetCurrentContext,
+    igImHashStr, igLoadIniSettingsFromDisk,
 };
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -13,9 +13,10 @@ use sdl2::sys::*;
 use std::cmp::{Ordering, PartialEq, PartialOrd};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::ffi::{c_char, c_int};
+use std::ffi::{CString, c_char, c_int, c_void};
 use std::mem;
 use std::ops::{Deref, DerefMut};
+use std::ptr::null;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{LazyLock, Mutex, OnceLock};
