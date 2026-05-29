@@ -636,9 +636,9 @@ pub unsafe fn init_primary() {
         ini_handler.TypeName = c"Pinball".as_ptr();
         ini_handler.TypeHash = igImHashStr(ini_handler.TypeName, 0, 0);
 
-        ini_handler.ReadOpenFn = MyUserData_ReadOpen;
-        ini_handler.ReadLineFn = MyUserData_ReadLine;
-        ini_handler.WriteAllFn = MyUserData_WriteAll;
+        ini_handler.ReadOpenFn = Some(my_user_data_read_open);
+        ini_handler.ReadLineFn = Some(my_user_data_read_line);
+        ini_handler.WriteAllFn = Some(my_user_data_write_all);
 
         igAddSettingsHandler(&mut ini_handler);
 
@@ -650,7 +650,7 @@ pub unsafe fn init_primary() {
         if let Ok(mut options) = OPTIONS.lock() {
             options.load_all();
         }
-        PostProcessOptions();
+        post_process_options();
     }
 }
 
@@ -669,7 +669,7 @@ pub fn init_secondary() {
 
 pub fn uninit() {
     let Ok(mut options) = OPTIONS.lock();
-    options.language.value = translations::GetCurrentLanguage().ShortName;
+    options.language.value = translations::get_current_language().ShortName;
     options.save_all();
 }
 
@@ -742,21 +742,21 @@ pub fn toggle(u_id_check_item: Menu) {
             let mut restart = false;
             let new_resolution = u_id_check_item as i32 - Menu::R640x480 as i32;
             if u_id_check_item == Menu::MaximumResolution {
-                restart = fullscrn::GetResolution() != fullscrn::GetMaxResolution();
+                restart = fullscrn::get_resolution() != fullscrn::GetMaxResolution();
                 *options.resolution = -1;
             } else if new_resolution <= fullscrn::GetMaxResolution() {
                 let mut current_resolution: i32;
                 if (*options.resolution == -1) {
                     current_resolution = fullscrn::GetMaxResolution();
                 } else {
-                    current_resolution = fullscrn::GetResolution();
+                    current_resolution = fullscrn::get_resolution();
                 }
 
                 let restart = (new_resolution != current_resolution);
             }
 
             if restart {
-                main::Restart();
+                restart_func();
             }
         }
         Menu::WindowUniformScale => {
