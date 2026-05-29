@@ -313,24 +313,6 @@ pub fn set_int(name: &str, data: i32) {
     set_setting(name, &data.to_string());
 }
 
-pub fn set_float(name: &str, data: f32) {
-    set_setting(name, &data.to_string());
-}
-
-pub fn get_float(name: &str, default_value: f32) -> f32 {
-    let value = get_setting(name, &default_value.to_string());
-    value.parse::<f32>().unwrap_or(default_value)
-}
-
-pub fn set_bool(name: &str, value: bool) {
-    set_setting(name, &value.to_string());
-}
-
-pub fn get_bool(name: &str, default_value: bool) -> bool {
-    let value = get_setting(name, &default_value.to_string());
-    value.parse::<bool>().unwrap_or(default_value)
-}
-
 fn set_setting(key: &str, value: &String) {
     let mut hash_map = SETTINGS.lock().unwrap();
 
@@ -355,74 +337,115 @@ pub const MIN_VOLUME: i32 = 0;
 
 pub const DEF_VOLUME: i32 = MAX_VOLUME;
 
-pub struct OptionBase {
-    name: &'static str,
-}
-
-pub trait OptionBaseBehavior {
+pub trait OptionBase {
     fn load(&mut self);
     fn save(&mut self);
     fn reset(&mut self);
 }
 
-// pub struct OptionBaseT<T> {
-//     name: &'static str,
-//     default_value: T,
-//     value: T,
-// }
-
-// impl<T: Clone> OptionBaseBehavior for OptionBaseT<T> {
-//     fn load(&mut self) {
-//         todo!()
-//     }
-//
-//     fn save(&mut self) {
-//         todo!()
-//     }
-//
-//     fn reset(&mut self) {
-//         self.value = self.default_value.clone();
-//     }
-// }
-//
-// impl<T> Deref for OptionBaseT<T> {
-//     type Target = T;
-//
-//     fn deref(&self) -> &Self::Target {
-//         &self.value
-//     }
-// }
-//
-// impl<T> DerefMut for OptionBaseT<T> {
-//     fn deref_mut(&mut self) -> &mut Self::Target {
-//         &mut self.value
-//     }
-// }
-//
-// impl<T: Clone> OptionBaseT<T> {
-//     pub fn new(name: &'static str, default_value: T) -> Self {
-//         let value = default_value.clone();
-//         Self {
-//             name,
-//             default_value,
-//             value,
-//         }
-//     }
-// }
-
-struct IntOption {
-    name: &'static str,
-    default_value: i32,
-    value: i32,
+pub trait SettingValue: Clone {
+    fn fetch(name: &str, default: Self) -> Self;
+    fn store(name: &str, value: &Self);
 }
 
-impl IntOption {
-    pub fn new(name: &'static str, default_value: i32) -> Self {
+impl SettingValue for i32 {
+    fn fetch(name: &str, default: i32) -> Self {
+        let map = SETTINGS.lock().unwrap();
+        match map.get(name) {
+            Some(value) => value.parse::<i32>().unwrap_or(default),
+            Option::None => default,
+        }
+    }
+    fn store(name: &str, value: &i32) {
+        let mut map = SETTINGS.lock().unwrap();
+        map.insert(name.to_string(), value.to_string());
+    }
+}
+
+impl SettingValue for bool {
+    fn fetch(name: &str, default: Self) -> Self {
+        let map = SETTINGS.lock().unwrap();
+        match map.get(name) {
+            Some(value) => value.parse::<bool>().unwrap_or(default),
+            Option::None => default,
+        }
+    }
+    fn store(name: &str, value: &bool) {
+        let mut map = SETTINGS.lock().unwrap();
+        map.insert(name.to_string(), value.to_string());
+    }
+}
+
+impl SettingValue for String {
+    fn fetch(name: &str, default: Self) -> Self {
+        let map = SETTINGS.lock().unwrap();
+        match map.get(name) {
+            Some(value) => value.to_string(),
+            Option::None => default,
+        }
+    }
+
+    fn store(name: &str, value: &String) {
+        let mut map = SETTINGS.lock().unwrap();
+        map.insert(name.to_string(), value.to_string());
+    }
+}
+
+impl SettingValue for f32 {
+    fn fetch(name: &str, default: Self) -> Self {
+        let map = SETTINGS.lock().unwrap();
+        match map.get(name) {
+            Some(value) => value.parse::<f32>().unwrap_or(default),
+            Option::None => default,
+        }
+    }
+
+    fn store(name: &str, value: &f32) {
+        let mut map = SETTINGS.lock().unwrap();
+        map.insert(name.to_string(), value.to_string());
+    }
+}
+
+pub struct Setting<T: SettingValue> {
+    pub name: &'static str,
+    pub default: T,
+    pub value: T,
+}
+
+impl<T: SettingValue> Setting<T> {
+    pub fn new(name: &'static str, default: T) -> Self {
         Self {
             name,
-            default_value,
-            value: default_value,
+            value: default.clone(),
+            default,
         }
+    }
+}
+
+impl<T: SettingValue> OptionBase for Setting<T> {
+    fn load(&mut self) {
+        self.value = T::fetch(self.name, self.default.clone());
+    }
+
+    fn save(&mut self) {
+        T::store(self.name, &self.value);
+    }
+
+    fn reset(&mut self) {
+        self.value = self.default.clone();
+    }
+}
+
+impl<T: SettingValue> Deref for Setting<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T: SettingValue> DerefMut for Setting<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
     }
 }
 
@@ -450,7 +473,7 @@ impl ControlOption {
     }
 }
 
-impl OptionBaseBehavior for ControlOption {
+impl OptionBase for ControlOption {
     fn load(&mut self) {
         for (idx, input) in self.inputs.iter_mut().enumerate() {
             let name = format!("{} {}", self.name, idx);
@@ -472,151 +495,132 @@ impl OptionBaseBehavior for ControlOption {
     }
 }
 
-impl OptionBaseBehavior for IntOption {
-    fn load(&mut self) {
-        self.value = get_int(self.name, self.default_value);
-    }
-
-    fn save(&mut self) {
-        set_int(self.name, self.value)
-    }
-
-    fn reset(&mut self) {
-        self.value = self.default_value;
-        self.save();
-    }
+pub struct OptionsStruct {
+    pub control_options: [ControlOption; GameBindings::COUNT],
+    pub sounds: Setting<bool>,
+    pub music: Setting<bool>,
+    pub full_screen: Setting<bool>,
+    pub players: Setting<i32>,
+    pub resolution: Setting<i32>,
+    pub ui_scale: Setting<f32>,
+    pub uniform_scaling: Setting<bool>,
+    pub linear_filtering: Setting<bool>,
+    pub frames_per_second: Setting<i32>,
+    pub updates_per_second: Setting<i32>,
+    pub show_menu: Setting<bool>,
+    pub uncapped_updates_per_second: Setting<bool>,
+    pub sound_channels: Setting<i32>,
+    pub hybrid_sleep: Setting<bool>,
+    pub prefer_3dpb_game_data: Setting<bool>,
+    pub integer_scaling: Setting<bool>,
+    pub sound_volume: Setting<i32>,
+    pub music_volume: Setting<i32>,
+    pub sound_stereo: Setting<bool>,
+    pub debug_overlay: Setting<bool>,
+    pub debug_overlay_grid: Setting<bool>,
+    pub debug_overlay_all_edges: Setting<bool>,
+    pub debug_overlay_ball_position: Setting<bool>,
+    pub debug_overlay_ball_edges: Setting<bool>,
+    pub debug_overlay_collision_mask: Setting<bool>,
+    pub debug_overlay_sprites: Setting<bool>,
+    pub debug_overlay_sounds: Setting<bool>,
+    pub debug_overlay_ball_depth_grid: Setting<bool>,
+    pub debug_overlay_aabb: Setting<bool>,
+    pub font_file_name: Setting<String>,
+    pub language: Setting<String>,
+    pub hide_cursor: Setting<bool>,
 }
 
-impl Deref for IntOption {
-    type Target = i32;
-    fn deref(&self) -> &Self::Target {
-        &self.value
+impl OptionsStruct {
+    pub fn all_options_mut(&mut self) -> Vec<&mut dyn OptionBase> {
+        let mut options: Vec<&mut dyn OptionBase> = Vec::with_capacity(50);
+
+        for ctrl_option in self.control_options.iter_mut() {
+            options.push(ctrl_option);
+        }
+
+        options.push(&mut self.sounds);
+        options.push(&mut self.music);
+        options.push(&mut self.full_screen);
+        options.push(&mut self.players);
+        options.push(&mut self.resolution);
+        options.push(&mut self.ui_scale);
+        options.push(&mut self.uniform_scaling);
+        options.push(&mut self.linear_filtering);
+        options.push(&mut self.frames_per_second);
+        options.push(&mut self.updates_per_second);
+        options.push(&mut self.show_menu);
+        options.push(&mut self.uncapped_updates_per_second);
+        options.push(&mut self.sound_channels);
+        options.push(&mut self.hybrid_sleep);
+        options.push(&mut self.prefer_3dpb_game_data);
+        options.push(&mut self.integer_scaling);
+        options.push(&mut self.sound_volume);
+        options.push(&mut self.music_volume);
+        options.push(&mut self.sound_stereo);
+        options.push(&mut self.debug_overlay);
+        options.push(&mut self.debug_overlay_grid);
+        options.push(&mut self.debug_overlay_all_edges);
+        options.push(&mut self.debug_overlay_ball_position);
+        options.push(&mut self.debug_overlay_ball_edges);
+        options.push(&mut self.debug_overlay_collision_mask);
+        options.push(&mut self.debug_overlay_sprites);
+        options.push(&mut self.debug_overlay_sounds);
+        options.push(&mut self.debug_overlay_ball_depth_grid);
+        options.push(&mut self.debug_overlay_aabb);
+        options.push(&mut self.font_file_name);
+        options.push(&mut self.language);
+        options.push(&mut self.hide_cursor);
+
+        options
     }
-}
 
-impl DerefMut for IntOption {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
+    pub fn load_all(&mut self) {
+        for opt in self.all_options_mut() {
+            opt.load();
+        }
     }
-}
 
-pub struct StringOption {
-    name: &'static str,
-    default_value: String,
-    value: String,
-}
+    pub fn save_all(&mut self) {
+        for opt in self.all_options_mut() {
+            opt.save();
+        }
+    }
 
-impl StringOption {
-    pub fn new(name: &'static str, default_value: &str) -> Self {
-        Self {
-            name,
-            default_value: String::from(default_value),
-            value: String::from(default_value),
+    pub fn reset_all(&mut self) {
+        for opt in self.all_options_mut() {
+            opt.reset();
         }
     }
 }
 
-impl OptionBaseBehavior for StringOption {
-    fn load(&mut self) {
-        self.value = get_setting(self.name, &self.default_value);
-    }
+// WARNING: This is reaching for bindings to stuff that isn't normally exposed by imgui-rs
+// I am not going to bother (for now) to spend the time to implement this properly
+// So this should be a 1:1 (esque) translation of the original code
+// The code below IS UNSAFE!
+pub unsafe fn init_primary() {
+    unsafe {
+        let im_context = igGetCurrentContext();
+        let mut ini_handler: ImGuiSettingsHandler = mem::zeroed();
 
-    fn save(&mut self) {
-        set_setting(&self.name, &self.default_value);
-    }
+        ini_handler.TypeName = c"Pinball".as_ptr();
+        ini_handler.TypeHash = igImHashStr(ini_handler.TypeName, 0, 0);
 
-    fn reset(&mut self) {
-        self.value = self.default_value.clone();
-        self.save();
-    }
-}
+        ini_handler.ReadOpenFn = MyUserData_ReadOpen;
+        ini_handler.ReadLineFn = MyUserData_ReadLine;
+        ini_handler.WriteAllFn = MyUserData_WriteAll;
 
-impl Deref for StringOption {
-    type Target = String;
+        igAddSettingsHandler(&mut ini_handler);
 
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl DerefMut for StringOption {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
-    }
-}
-
-pub struct FloatOption {
-    name: &'static str,
-    default_value: f32,
-    value: f32,
-}
-
-impl FloatOption {
-    pub fn new(name: &'static str, default_value: f32) -> Self {
-        Self {
-            name,
-            default_value,
-            value: default_value,
+        if (*im_context).SettingsLoaded {
+            igLoadIniSettingsFromDisk((*im_context).IO.IniFilename);
+            (*im_context).SettingsLoaded = true;
         }
-    }
-}
 
-impl OptionBaseBehavior for FloatOption {
-    fn load(&mut self) {
-        self.value = get_float(self.name, self.default_value);
-    }
-
-    fn save(&mut self) {
-        set_float(self.name, self.value);
-    }
-
-    fn reset(&mut self) {
-        self.value = self.default_value;
-        self.save();
-    }
-}
-
-impl Deref for FloatOption {
-    type Target = f32;
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl DerefMut for FloatOption {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
-    }
-}
-
-pub struct BoolOption {
-    name: &'static str,
-    default_value: bool,
-    value: bool,
-}
-
-impl OptionBaseBehavior for BoolOption {
-    fn load(&mut self) {
-        self.value = get_bool(self.name, self.default_value);
-    }
-
-    fn save(&mut self) {
-        set_bool(self.name, self.value);
-    }
-
-    fn reset(&mut self) {
-        self.value = self.default_value;
-        self.save();
-    }
-}
-
-impl BoolOption {
-    pub fn new(name: &'static str, default_value: bool) -> Self {
-        Self {
-            name,
-            default_value,
-            value: default_value,
+        if let Ok(mut options) = OPTIONS.lock() {
+            options.load_all();
         }
+        PostProcessOptions();
     }
 }
 
