@@ -1,17 +1,23 @@
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
 use crate::translations;
 use crate::translations::Msg;
-use imgui::sys::{ImGuiSettingsHandler, igImHashStr, igLoadIniSettingsFromDisk};
+use dear_imgui_rs::sys::{
+    ImGuiSettingsHandler, igAddSettingsHandler, igGetCurrentContext, igImHashStr,
+    igLoadIniSettingsFromDisk,
+};
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 use sdl2::sys::SDL_GameControllerButton::*;
 use sdl2::sys::SDL_KeyCode::*;
 use sdl2::sys::*;
-use std::cmp::PartialEq;
+use std::cmp::{Ordering, PartialEq, PartialOrd};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::ffi::c_char;
+use std::ffi::{c_char, c_int};
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{LazyLock, Mutex, OnceLock};
 
 static SETTINGS: LazyLock<Mutex<HashMap<String, String>>> =
