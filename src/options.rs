@@ -163,7 +163,7 @@ static CONTROL_WAITING_FOR_INPUT: LazyLock<Mutex<GameInput>> =
 
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Menu {
     NewGame = 101,
     AboutPinball = 102,
@@ -195,7 +195,7 @@ pub enum Menu {
 }
 
 #[repr(i32)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy, FromPrimitive)]
 pub enum InputTypes {
     None = 0,
     Keyboard,
@@ -203,7 +203,7 @@ pub enum InputTypes {
     GameController,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Ord, PartialOrd, PartialEq, Eq)]
 pub struct GameInput {
     pub input_type: InputTypes,
     pub value: i32,
