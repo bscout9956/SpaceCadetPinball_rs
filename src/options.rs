@@ -121,7 +121,7 @@ static OPTIONS: LazyLock<Mutex<OptionsStruct>> = LazyLock::new(|| {
                 "Exit",
                 Msg::Menu1Exit,
                 GameInput::new(Keyboard, SDLK_ESCAPE as i32),
-                GameInput::new_empty(),
+                GameInput::default(),
                 GameInput::new(GameController, SDL_CONTROLLER_BUTTON_BACK as i32),
             ),
         ],
@@ -236,11 +236,10 @@ impl GameInput {
     }
 }
 
-// TODO: Make it back into an enum?
-#[repr(usize)]
-#[derive(Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, FromPrimitive)]
 pub enum GameBindings {
-    LeftFlipper = 0,
+    Min = 0,
+    LeftFlipper,
     RightFlipper,
     Plunger,
     LeftTableBump,
@@ -254,45 +253,7 @@ pub enum GameBindings {
     ShowControlDialog,
     ToggleMenuDisplay,
     Exit,
-}
-
-// TODO: Make it back into an enum?
-impl GameBindings {
-    pub const MIN: GameBindings = GameBindings::LeftFlipper;
-    pub const MAX: GameBindings = GameBindings::Exit;
-    pub const COUNT: usize = (Self::MAX as usize) + 1;
-
-    fn get_value(&mut self) -> usize {
-        let cur_val = *self as usize;
-        cur_val
-    }
-
-    fn get_enum(value: usize) -> GameBindings {
-        match value {
-            1 => GameBindings::LeftFlipper,
-            2 => GameBindings::RightFlipper,
-            3 => GameBindings::Plunger,
-            4 => GameBindings::LeftTableBump,
-            5 => GameBindings::RightTableBump,
-            6 => GameBindings::BottomTableBump,
-            7 => GameBindings::NewGame,
-            8 => GameBindings::TogglePause,
-            9 => GameBindings::ToggleFullScreen,
-            10 => GameBindings::ToggleSounds,
-            11 => GameBindings::ToggleMusic,
-            12 => GameBindings::ShowControlDialog,
-            13 => GameBindings::ToggleMenuDisplay,
-            14 => GameBindings::Exit,
-            _ => GameBindings::NewGame,
-        }
-    }
-
-    pub fn increment(&mut self) {
-        let cur_val = *self as usize;
-        if cur_val < Self::MAX as usize {
-            *self = Self::get_enum(cur_val + 1);
-        }
-    }
+    Max,
 }
 
 pub fn get_int(name: &str, default_value: i32) -> i32 {
