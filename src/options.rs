@@ -227,14 +227,78 @@ impl GameInput {
     pub fn new(input_type: InputTypes, value: i32) -> Self {
         Self { input_type, value }
     }
-
-    pub fn get_full_input_description(&self) -> String {
-        todo!()
-    }
-
-    pub fn get_short_input_description(&self) -> String {
-        todo!()
-    }
+    // TODO: THIS WHOLE MESS
+    // pub unsafe fn get_full_input_description(&self) -> String {
+    //     let mut prefix = String::new();
+    //     match self.input_type {
+    //         InputTypes::None => {
+    //             return String::from("Unused");
+    //         }
+    //         Keyboard => {
+    //             prefix = "Keyboard\n".to_string();
+    //         }
+    //         Mouse => {
+    //             prefix = "Mouse\n".to_string();
+    //         }
+    //         GameController => {
+    //             prefix = "GameController\n".to_string();
+    //         }
+    //     }
+    //     prefix + self.get_short_input_description().as_str()
+    // }
+    //
+    // pub unsafe fn get_short_input_description(&self) -> *const c_char {
+    //     let MOUSE_BUTTONS: [*const c_char; 6] = [
+    //         null(),
+    //         c"Left".as_ptr(),
+    //         c"Middle".as_ptr(),
+    //         c"Right".as_ptr(),
+    //         c"X1".as_ptr(),
+    //         c"X2".as_ptr(),
+    //     ];
+    //
+    //     let CONTROLLER_BUTTONS: [*const c_char; 21] = [
+    //         c"A".as_ptr(),
+    //         c"B".as_ptr(),
+    //         c"X".as_ptr(),
+    //         c"Y".as_ptr(),
+    //         c"Back".as_ptr(),
+    //         c"Guide".as_ptr(),
+    //         c"Start".as_ptr(),
+    //         c"LeftStick".as_ptr(),
+    //         c"RightStick".as_ptr(),
+    //         c"LeftShoulder".as_ptr(),
+    //         c"RightShoulder".as_ptr(),
+    //         c"DpUp".as_ptr(),
+    //         c"DpDown".as_ptr(),
+    //         c"DpLeft".as_ptr(),
+    //         c"DpRight".as_ptr(),
+    //         c"Misc1".as_ptr(),
+    //         c"Paddle1".as_ptr(),
+    //         c"Paddle2".as_ptr(),
+    //         c"Paddle3".as_ptr(),
+    //         c"Paddle4".as_ptr(),
+    //         c"Touchpad".as_ptr(),
+    //     ];
+    //
+    //     match self.input_type {
+    //         InputTypes::None => std::ptr::null(),
+    //         Keyboard => {
+    //             SDL_GetKeyName(self.value)
+    //         }
+    //         Mouse => {
+    //             if self.value >= SDL_BUTTON_LEFT as i32 && self.value <= SDL_BUTTON_X2 as i32 {
+    //                 MOUSE_BUTTONS[self.value as usize]
+    //             } else {
+    //                 CString::from(format!("MButton {}", self.value).as_str()).as_ptr()
+    //             }
+    //         }
+    //         GameController => {
+    //             if self.value >= SDL_CONTROLLER_BUTTON_A && self.value <
+    //         }
+    //     }
+    //
+    // }
 }
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, FromPrimitive)]
