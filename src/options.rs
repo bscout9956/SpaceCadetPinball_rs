@@ -730,3 +730,39 @@ pub fn show_control_dialog() {
         }
     }
 }
+
+pub fn render_control_dialog() {
+    let dialog_check = SHOW_DIALOG.load(SeqCst);
+    if !dialog_check {
+        return;
+    }
+
+    // TODO: ImGui stuff
+
+    let dialog_check = SHOW_DIALOG.load(SeqCst);
+    if !dialog_check {
+        return;
+    }
+}
+
+pub fn MapGameInput(key: GameInput) -> Vec<GameBindings> {
+    let mut result: Vec<GameBindings> = Vec::new();
+    let mut options = OPTIONS.lock().unwrap();
+
+    for input_id in GameBindings::Min as i32..GameBindings::Max as i32 {
+        for inputValue in options.control_options[input_id as usize].inputs {
+            if key == inputValue {
+                result.push(GameBindings::from_i32(input_id).unwrap());
+                break;
+            }
+        }
+    }
+
+    result
+}
+
+pub fn reset_all_options() {
+    let mut options = OPTIONS.lock().unwrap();
+    options.reset_all();
+    todo!(); //    PostProcessOptions();
+}
