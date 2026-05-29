@@ -26,6 +26,13 @@ mod t_pinball_component;
 mod t_pinball_table;
 mod translations;
 mod zdrv;
+mod fullscrn;
+
+mod midi;
+
+pub fn restart_func() {
+    todo!();
+}
 
 fn main() {
     unsafe {
