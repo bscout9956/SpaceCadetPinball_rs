@@ -873,7 +873,15 @@ pub unsafe extern "C" fn MyUserData_WriteAll(
     handler: *mut ImGuiSettingsHandler,
     buf: *mut ImGuiTextBuffer,
 ) {
-    // TODO: Boring shit
+    unsafe {
+        ImGuiTextBuffer_appendf(buf, c"%s%s\n".as_ptr(), (*handler).TypeName, "Settings");
+        let settings = SETTINGS.lock().unwrap();
+        for setting in settings.iter() {
+            ImGuiTextBuffer_appendf(buf, c"%s=%s\n".as_ptr(), setting.0, setting.1);
+        }
+        // TODO: str end?
+        ImGuiTextBuffer_append(buf, c"\n".as_ptr(), std::ptr::null());
+    }
 }
 
 // TODO Implement all the trash
