@@ -251,3 +251,11 @@ enum Lang {
     TraditionalChinese,
     MAX,
 }
+
+pub(crate) fn get_current_language() -> _ {
+    todo!()
+}
+
+pub(crate) fn set_current_language(p0: String) {
+    todo!()
+}
