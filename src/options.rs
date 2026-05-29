@@ -647,9 +647,9 @@ pub unsafe fn init_primary() {
         ini_handler.TypeName = c"Pinball".as_ptr();
         ini_handler.TypeHash = igImHashStr(ini_handler.TypeName, 0, 0);
 
-        ini_handler.ReadOpenFn = Some(my_user_data_read_open);
-        ini_handler.ReadLineFn = Some(my_user_data_read_line);
-        ini_handler.WriteAllFn = Some(my_user_data_write_all);
+        ini_handler.ReadOpenFn = Some(MyUserData_ReadOpen);
+        ini_handler.ReadLineFn = Some(MyUserData_ReadLine);
+        ini_handler.WriteAllFn = Some(MyUserData_WriteAll);
 
         igAddSettingsHandler(&mut ini_handler);
 
@@ -843,32 +843,35 @@ pub fn reset_all_options() {
     post_process_options();
 }
 
-pub unsafe fn my_user_data_read_line(
-    ctx: ImGuiContext,
-    handler: ImGuiSettingsHandler,
-    entry: c_void,
-    line: &str,
+#[allow(non_snake_case)]
+pub unsafe extern "C" fn MyUserData_ReadLine(
+    ctx: *mut ImGuiContext,
+    handler: *mut ImGuiSettingsHandler,
+    entry: *mut c_void,
+    line: *const c_char,
 ) {
     // TODO Boring shit
 }
 
-pub unsafe fn my_user_data_read_open(
+#[allow(non_snake_case)]
+pub unsafe extern "C" fn MyUserData_ReadOpen(
     ctx: *mut ImGuiContext,
     handler: *mut ImGuiSettingsHandler,
     name: *const c_char,
-) -> Option<HashMap<String, String>> {
+) -> *mut c_void {
     if name.eq(&c"Settings".as_ptr()) {
         let settings = SETTINGS.lock().unwrap();
-        let clone_hash = settings.clone();
-        return Some(clone_hash);
+        let mut clone_hash = settings.clone();
+        return &raw mut clone_hash as *mut c_void;
     }
-    Option::None
+    std::ptr::null_mut()
 }
 
-pub unsafe fn my_user_data_write_all(
-    ctx: ImGuiContext,
-    handler: ImGuiSettingsHandler,
-    buf: ImGuiTextBuffer,
+#[allow(non_snake_case)]
+pub unsafe extern "C" fn MyUserData_WriteAll(
+    ctx: *mut ImGuiContext,
+    handler: *mut ImGuiSettingsHandler,
+    buf: *mut ImGuiTextBuffer,
 ) {
     // TODO: Boring shit
 }
