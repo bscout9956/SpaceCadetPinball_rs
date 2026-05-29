@@ -461,7 +461,7 @@ impl OptionBase for ControlOption {
 }
 
 pub struct OptionsStruct {
-    pub control_options: [ControlOption; GameBindings::COUNT],
+    pub control_options: [ControlOption; GameBindings::Max as usize - 1],
     pub sounds: Setting<bool>,
     pub music: Setting<bool>,
     pub full_screen: Setting<bool>,
