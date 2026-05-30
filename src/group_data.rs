@@ -69,7 +69,7 @@ pub struct GroupData<'a> {
     group_id: i32,
     group_name: String,
     entries: Vec<EntryData<'a>>,
-    bitmaps: [GdrvBitmap8; 3],
+    bitmaps: [GdrvBitmap8<'a>; 3],
     z_maps: [ZMapHeaderType; 3],
     needs_sort: bool,
 }
@@ -77,6 +77,13 @@ pub struct GroupData<'a> {
 impl<'a> GroupData<'a> {
     pub fn get_entries(&self) -> &[EntryData<'a>] {
         &self.entries
+    }
+    pub fn get_zmap(&self, resolution: i32) -> ZMapHeaderType {
+        self.z_maps[resolution as usize]
+    }
+
+    pub fn get_bitmap(&self, resolution: i32) -> GdrvBitmap8 {
+        self.bitmaps[resolution as usize]
     }
 }
 
