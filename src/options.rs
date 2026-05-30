@@ -451,7 +451,7 @@ impl SettingValue for f32 {
     }
 }
 
-#[derive(Ord, Eq, PartialEq, PartialOrd, Copy)]
+#[derive(Ord, Eq, PartialEq, PartialOrd, Copy, Clone)]
 pub struct Setting<T: SettingValue> {
     pub name: &'static str,
     pub default: T,
@@ -686,15 +686,15 @@ pub unsafe fn init_primary() {
 }
 
 pub fn init_secondary() {
-    let max_res = fullscrn::GetMaxResolution();
+    let max_res = fullscrn::get_max_resolution();
     let Ok(options) = OPTIONS.lock();
     if (options.resolution.value >= 0 && options.resolution.value > max_res) {
         *options.resolution = max_res;
     }
     if (options.resolution.value == -1) {
-        fullscrn::SetResolution(max_res);
+        fullscrn::set_resolution(max_res);
     } else {
-        fullscrn::SetResolution(options.resolution.value);
+        fullscrn::set_resolution(options.resolution.value);
     }
 }
 
@@ -773,12 +773,12 @@ pub fn toggle(u_id_check_item: Menu) {
             let mut restart = false;
             let new_resolution = u_id_check_item as i32 - Menu::R640x480 as i32;
             if u_id_check_item == Menu::MaximumResolution {
-                restart = fullscrn::get_resolution() != fullscrn::GetMaxResolution();
+                restart = fullscrn::get_resolution() != fullscrn::get_max_resolution();
                 *options.resolution = -1;
-            } else if new_resolution <= fullscrn::GetMaxResolution() {
+            } else if new_resolution <= fullscrn::get_max_resolution() {
                 let mut current_resolution: i32;
                 if (*options.resolution == -1) {
-                    current_resolution = fullscrn::GetMaxResolution();
+                    current_resolution = fullscrn::get_max_resolution();
                 } else {
                     current_resolution = fullscrn::get_resolution();
                 }
