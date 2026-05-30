@@ -1,5 +1,6 @@
 use sdl2::sys::SDL_Texture;
 
+#[derive(Copy, Clone)]
 pub struct ZMapHeaderType {
     pub width: i32,
     pub height: i32,
