@@ -180,12 +180,14 @@ impl<'a> DatFile<'a> {
         self.field_size_nth(group_index, target_entry_type, 0)
     }
 
-    pub fn get_bitmap(&self, p0: i32) -> _ {
-        todo!()
+    pub fn get_bitmap(&self, group_index: i32) -> GdrvBitmap8 {
+        let group = self.groups.get(group_index as usize).unwrap();
+        group.get_bitmap(fullscrn::get_resolution())
     }
 
-    pub fn get_zmap(&self, p0: i32) -> _ {
-        todo!()
+    pub fn get_zmap(&self, group_index: i32) -> ZMapHeaderType {
+        let group = self.groups.get(group_index as usize).unwrap();
+        group.get_zmap(fullscrn::get_resolution())
     }
 
     pub fn record_labeled(&self, target_group_name: *const c_char) -> i32 {
