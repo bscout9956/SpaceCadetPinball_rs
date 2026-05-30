@@ -31,7 +31,7 @@ pub struct TBall {
 
 impl TBall {
     pub fn new(table: TPinballTable, group_index: i32) -> Self {
-        let active_flag = Rc::new(Cell::new(true)); // TODO: default??
+        let active_flag = Rc::new(Cell::new(true)); // VERIFY: default??
 
         let collision_comp = Rc::new(RefCell::new(TCollisionComponent::new(
             table,
