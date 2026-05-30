@@ -437,6 +437,7 @@ impl SettingValue for f32 {
     }
 }
 
+#[derive(Ord)]
 pub struct Setting<T: SettingValue> {
     pub name: &'static str,
     pub default: T,
@@ -822,7 +823,7 @@ pub fn render_control_dialog() {
     }
 }
 
-pub fn MapGameInput(key: GameInput) -> Vec<GameBindings> {
+pub fn map_game_input(key: GameInput) -> Vec<GameBindings> {
     let mut result: Vec<GameBindings> = Vec::new();
     let mut options = OPTIONS.lock().unwrap();
 
