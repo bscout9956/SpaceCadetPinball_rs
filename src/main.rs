@@ -2,7 +2,12 @@
 #![allow(arithmetic_overflow)]
 extern crate core;
 
-use sdl2::sys::{SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency, SDL_GetTicks};
+use crate::options::{GameBindings, OptionsStruct};
+use dear_imgui_rs::sys::ImGuiIO;
+use lazy_static::lazy_static;
+use sdl2::sys::{
+    SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency, SDL_GetTicks, SDL_Renderer,
+};
 use sdl2::{
     sys::{
         SDL_CreateWindow, SDL_INIT_AUDIO, SDL_INIT_EVENTS, SDL_INIT_GAMECONTROLLER,
@@ -11,10 +16,15 @@ use sdl2::{
     },
     video::WindowPos,
 };
+use std::cell::RefCell;
 use std::process::exit;
-use std::sync::atomic::AtomicBool;
+use std::ptr::NonNull;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
+use std::sync::{LazyLock, Mutex};
 use std::time::Duration as StdDuration;
 use std::time::Instant;
+
 mod fullscrn;
 mod gdrv;
 mod group_data;
@@ -102,6 +112,109 @@ impl WelfordState {
         return f64::sqrt(self.m2 / (self.count - 1) as f64);
     }
 }
+
+pub const VERSION: &str = "1.0 DEV";
+pub static SINGLE_STEP: AtomicBool = AtomicBool::new(false); // VERIFY default value
+pub static LAUNCH_BALL_ENABLED: AtomicBool = AtomicBool::new(true);
+pub static HIGH_SCORES_ENABLED: AtomicBool = AtomicBool::new(true);
+pub static DEMO_ACTIVE: AtomicBool = AtomicBool::new(false);
+pub static MAIN_MENU_HEIGHT: AtomicI32 = AtomicI32::new(0);
+
+static RETURN_VALUE: AtomicI32 = AtomicI32::new(0);
+// VERIFY: Switch to bool?
+static MOUSE_DOWN: AtomicI32 = AtomicI32::new(0);
+static LAST_MOUSE_X: AtomicI32 = AtomicI32::new(0);
+static LAST_MOUSE_Y: AtomicI32 = AtomicI32::new(0);
+static NO_TIME_LOSS: AtomicBool = AtomicBool::new(false);
+static ACTIVATED: AtomicBool = AtomicBool::new(false);
+static B_QUIT: AtomicBool = AtomicBool::new(false);
+static HAS_FOCUS: AtomicBool = AtomicBool::new(true);
+static DISP_GR_HISTORY: AtomicBool = AtomicBool::new(false);
+static DISP_FRAME_RATE: AtomicBool = AtomicBool::new(false);
+// TODO: CHECK DEFAULTS
+lazy_static! {
+    static ref GFR_DISPLAY: Mutex<Vec<f32>> = Mutex::new(Vec::new());
+    static ref FPS_DETAILS: Mutex<String> = Mutex::new(String::new());
+    static ref PREV_SDL_ERROR: Mutex<String> = Mutex::new(String::new());
+}
+static RESTART: AtomicBool = AtomicBool::new(false);
+static SHOW_ABOUT_DIALOG: AtomicBool = AtomicBool::new(false);
+static SHOW_IMGUI_DEMO: AtomicBool = AtomicBool::new(false);
+static SHOW_SPRITE_VIEWER: AtomicBool = AtomicBool::new(false);
+static SHOW_EXIT_POPUP: AtomicBool = AtomicBool::new(false);
+
+pub type DurationMs = f64;
+
+lazy_static! {
+    static ref UPDATE_TO_FRAME_RATIO: Mutex<f64> = Mutex::new(0.0);
+    static ref TARGET_FRAMETIME: Mutex<DurationMs> = Mutex::new(DurationMs::default());
+    static ref SPIN_THRESHOLD: Mutex<DurationMs> = Mutex::new(DurationMs::default());
+    static ref SLEEP_STATE: Mutex<WelfordState> = Mutex::new(WelfordState::new());
+}
+
+static OPTIONS: &LazyLock<Mutex<OptionsStruct>> = &options::OPTIONS;
+static PREV_SDL_ERROR_COUNT: AtomicU32 = AtomicU32::new(0);
+static GFR_OFFSET: AtomicU32 = AtomicU32::new(0);
+static CURSOR_IDLE_COUNTER: AtomicI32 = AtomicI32::new(0);
+
+// TODO: If I realize that I'll need to use this on threads, use OnceLock/LazyLock w/ Mutex<Option>
+thread_local! {
+    static MAIN_WINDOW: RefCell<Option<NonNull<SDL_Window>>> = RefCell::new(None);
+}
+
+pub fn set_main_window(window: *mut SDL_Window) {
+    MAIN_WINDOW.with(|cell| {
+        let ptr = NonNull::new(window).expect("window is null");
+        *cell.borrow_mut() = Some(ptr);
+    })
+}
+
+pub fn get_main_window() -> Option<NonNull<SDL_Window>> {
+    MAIN_WINDOW.with(|cell| *cell.borrow())
+}
+
+// TODO: If I realize that I'll need to use this on threads, use OnceLock or Mutex<Option>
+thread_local! {
+    static RENDERER: RefCell<Option<NonNull<SDL_Renderer>>> = RefCell::new(None);
+}
+
+pub fn set_renderer(renderer: *mut SDL_Renderer) {
+    RENDERER.with(|cell| {
+        let ptr = NonNull::new(renderer).expect("renderer is null");
+        *cell.borrow_mut() = Some(ptr);
+    })
+}
+
+pub fn get_renderer() -> Option<NonNull<SDL_Renderer>> {
+    RENDERER.with(|cell| *cell.borrow())
+}
+
+// TODO: Likewise
+thread_local! {
+    static IMGUI_IO: RefCell<Option<NonNull<ImGuiIO>>> = RefCell::new(None);
+}
+
+pub fn set_imgui_io(io: *mut ImGuiIO) {
+    IMGUI_IO.with(|cell| {
+        let ptr = NonNull::new(io).expect("imgui io is null");
+        *cell.borrow_mut() = Some(ptr);
+    })
+}
+
+pub fn get_imgui_io() -> Option<NonNull<ImGuiIO>> {
+    IMGUI_IO.with(|cell| *cell.borrow())
+}
+
+fn render_ui() {}
+
+fn render_frame_time_dialog() {}
+
+fn hybrid_sleep(seconds: DurationMs) {}
+
+fn main_loop() {}
+
+// bool defaults to false
+fn imgui_menu_item_w_shortcut(binding: GameBindings, selected: Option<bool>) {}
 
 fn main() {
     unsafe {
