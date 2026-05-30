@@ -11,8 +11,8 @@ use std::{
 };
 
 #[allow(non_snake_case)]
-pub struct TCollisionComponent {
-    edge_list: Vec<Rc<RefCell<TEdgeSegment>>>,
+pub struct TCollisionComponent<'a> {
+    edge_list: Vec<Rc<RefCell<TEdgeSegment<'a>>>>,
     elasticity: f32,
     smoothness: f32,
     boost: f32,
@@ -20,7 +20,7 @@ pub struct TCollisionComponent {
     soft_hit_sound_id: i32,
     hard_hit_sound_id: i32,
     AABB: RectF,
-    t_pinball_component: TPinballComponent,
+    t_pinball_component: TPinballComponent<'a>,
 }
 
 pub trait TCollisionComponentBehavior {
@@ -41,7 +41,7 @@ pub trait TCollisionComponentBehavior {
     ) -> bool;
 }
 
-impl TCollisionComponent {
+impl TCollisionComponent<'_> {
     pub fn new(table: TPinballTable, group_index: i32, create_wall: bool) -> Self {
         // TODO: Should we pass the table or create a new one?
         let pinball_table = Rc::new(RefCell::new(TPinballTable::new()));
@@ -114,7 +114,7 @@ impl TCollisionComponent {
     }
 }
 
-impl TCollisionComponentBehavior for TCollisionComponent {
+impl TCollisionComponentBehavior for TCollisionComponent<'_> {
     fn collision(
         &mut self,
         ball: &mut TBall,
@@ -211,7 +211,7 @@ impl TCollisionComponentBehavior for TCollisionComponent {
     }
 }
 
-impl TPinballComponentBehavior for TCollisionComponent {
+impl TPinballComponentBehavior for TCollisionComponent<'_> {
     // TODO: Some remain unimplemented I suppose?? Maybe I should look into trait defaults
     fn sprite_set(index: i32) {
         todo!()

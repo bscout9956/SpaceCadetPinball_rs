@@ -15,8 +15,8 @@ pub enum WallValue {
     Empty,
 }
 
-pub struct TEdgeSegment {
-    pub collision_component: Weak<RefCell<TCollisionComponent>>,
+pub struct TEdgeSegment<'a> {
+    pub collision_component: Weak<RefCell<TCollisionComponent<'a>>>,
     pub active_flag: Rc<Cell<bool>>,
     pub processed_flag: bool,
     pub wall_value: WallValue,
@@ -30,7 +30,7 @@ pub trait TEdgeSegmentBehavior {
     fn find_collision_distance(&self, ray: &RayType) -> f32;
 }
 
-impl TEdgeSegmentBehavior for TEdgeSegment {
+impl TEdgeSegmentBehavior for TEdgeSegment<'_> {
     fn edge_collision(&self, ball: &mut TBall, distance: f32) {
         todo!()
     }
@@ -47,9 +47,9 @@ impl TEdgeSegmentBehavior for TEdgeSegment {
     }
 }
 
-impl TEdgeSegment {
+impl<'a> TEdgeSegment<'a> {
     pub fn new(
-        coll_comp: &Rc<RefCell<TCollisionComponent>>,
+        coll_comp: &Rc<RefCell<TCollisionComponent<'a>>>,
         active_flag: Rc<Cell<bool>>,
         collision_group: u32,
     ) -> Self {
