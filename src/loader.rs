@@ -441,15 +441,193 @@ impl<'a> Loader<'a> {
         &self,
         group_index: i32,
         first_value: i32,
-        array_size: *const i32,
+        array_size: *mut i32,
     ) -> *const i16 {
         if group_index < 0 {
             self.error(0, 20);
-            std::ptr::null::<i16>()
+            return null::<i16>();
         }
-        
+
+        for skip_index in 0.. {
+            match self
+                .loader_table
+                .field_nth(group_index, FieldTypes::ShortArray, skip_index)
+            {
+                Some(short_array_data) => {
+                    if short_array_data.len() < 2 {
+                        continue;
+                    }
+
+                    let short_value =
+                        i16::from_le_bytes([short_array_data[0], short_array_data[1]]);
+
+                    if short_value == first_value as i16 {
+                        unsafe {
+                            *array_size = self
+                                .loader_table
+                                .field_size(group_index, FieldTypes::ShortArray)
+                                / 2
+                                - 1;
+                            return (short_array_data.as_ptr() as *const i16).add(1);
+                        }
+                    }
+                }
+                None => {
+                    break;
+                }
+            }
+        }
+
+        self.error(2, 23);
+        unsafe {
+            *array_size = 0;
+        }
+        null()
+    }
+
+    pub fn query_float_attribute_ptr(
+        &self,
+        group_index: i32,
+        group_index_offset: i32,
+        first_value: i32,
+    ) -> *const f32 {
+        if group_index < 0 {
+            self.error(0, 22);
+            return null::<f32>();
+        }
+
+        let state_id = self.state_id(group_index, group_index_offset);
+        if state_id < 0 {
+            self.error(16, 22);
+            return null::<f32>();
+        }
+
         for skip_index in 0..i32::MAX {
-            let short_array = self.loader_table.field_nth(group_index, FieldTypes::ShortArray);
+            match self
+                .loader_table
+                .field_nth(group_index, FieldTypes::FloatArray, skip_index)
+            {
+                Some(float_array_data) => {
+                    if float_array_data.len() < 8 {
+                        continue;
+                    }
+
+                    let float_val = f32::from_le_bytes([
+                        float_array_data[0],
+                        float_array_data[1],
+                        float_array_data[2],
+                        float_array_data[3],
+                    ]);
+                    if (float_val.floor() as i16) == (first_value as i16) {
+                        let float_ptr = float_array_data.as_ptr() as *const f32;
+                        unsafe { return float_ptr.add(1) }
+                    }
+                }
+                None => {
+                    break;
+                }
+            }
         }
+
+        self.error(13, 22);
+        null::<f32>()
+    }
+
+    fn query_float_attribute(
+        &self,
+        group_index: i32,
+        group_index_offset: i32,
+        first_value: i32,
+        def_val: f32,
+    ) -> f32 {
+        if group_index < 0 {
+            self.error(0, 22);
+            return f32::nan();
+        }
+
+        let state_id = self.state_id(group_index, group_index_offset);
+        if state_id < 0 {
+            self.error(16, 22);
+            return f32::nan();
+        }
+
+        for skip_index in 0.. {
+            match self
+                .loader_table
+                .field_nth(group_index, FieldTypes::FloatArray, skip_index)
+            {
+                Some(float_array_data) => {
+                    if float_array_data.len() < 8 {
+                        continue;
+                    }
+
+                    let float_value = f32::from_le_bytes([
+                        float_array_data[0],
+                        float_array_data[1],
+                        float_array_data[2],
+                        float_array_data[3],
+                    ]);
+
+                    if (float_value.floor() as i16) == (first_value as i16) {
+                        return f32::from_le_bytes([
+                            float_array_data[4],
+                            float_array_data[5],
+                            float_array_data[6],
+                            float_array_data[7],
+                        ]);
+                    }
+                }
+                None => {
+                    break;
+                }
+            }
+        }
+
+        if !def_val.is_nan() {
+            return def_val;
+        }
+        self.error(13, 22);
+        f32::nan()
+    }
+
+    pub fn material(&self, group_index: i32, visual: *const VisualStruct) {
+        if group_index < 0 {
+            self.error(0, 21);
+        }
+        let short_array = self.loader_table.field(group_index, FieldTypes::ShortArray);
+    }
+
+    fn state_id(&self, mut group_index: i32, group_index_offset: i32) -> i32 {
+        let visual_state = self.query_visual_states(group_index);
+
+        if visual_state <= 0 {
+            return self.error(12, 24);
+        }
+        let mut short_array = self.loader_table.field(group_index, FieldTypes::ShortArray);
+        if let Some(short_array_data) = short_array {
+            if short_array_data[0] != 200 {
+                return self.error(5, 24);
+            }
+            if group_index_offset > visual_state as i32 {
+                return self.error(12, 24);
+            }
+            if group_index_offset != 0 {
+                return group_index;
+            }
+
+            group_index += group_index_offset;
+        } else {
+            return self.error(1, 24);
+        }
+        short_array = self.loader_table.field(group_index, FieldTypes::ShortValue);
+        if let Some(short_array_data) = short_array {
+            if short_array_data[0] != 201 {
+                return self.error(6, 24);
+            }
+        } else {
+            return self.error(1, 24);
+        }
+
+        group_index
     }
 }
