@@ -1,10 +1,10 @@
 use crate::options::Setting;
 
-pub(crate) fn SetResolution(p0: _) {
+pub(crate) fn set_resolution(p0: _) {
     todo!()
 }
 
-pub(crate) fn GetMaxResolution() -> _ {
+pub(crate) fn get_max_resolution() -> _ {
     todo!()
 }
 
