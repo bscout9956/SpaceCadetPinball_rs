@@ -25,7 +25,7 @@ use std::sync::{LazyLock, Mutex, OnceLock};
 static SETTINGS: LazyLock<Mutex<HashMap<String, String>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-static OPTIONS: LazyLock<Mutex<OptionsStruct>> = LazyLock::new(|| {
+pub static OPTIONS: LazyLock<Mutex<OptionsStruct>> = LazyLock::new(|| {
     Mutex::new(OptionsStruct {
         control_options: [
             ControlOption::new(
