@@ -191,7 +191,7 @@ pub struct WaveHeader {
 
 // Don't call.
 fn compile_time_checks() {
-    const { assert!(std::mem::size_of::<WaveHeader>() == 44) };
+    const { assert!(size_of::<WaveHeader>() == 44) };
 }
 
 // TODO: Lifetime check
@@ -269,7 +269,7 @@ impl<'a> Loader<'a> {
                 if (*value_data)[0] == 202 {
                     if self.sound_count < 65 {
                         self.sound_list[self.sound_count as usize] = SoundListStruct {
-                            wave_ptr: std::ptr::null(),
+                            wave_ptr: null(),
                             group_index,
                             loaded: false,
                             duration: 0.0,
@@ -359,12 +359,7 @@ impl<'a> Loader<'a> {
 
                                 if !file.is_null() {
                                     unsafe {
-                                        fread(
-                                            wave_header,
-                                            1,
-                                            std::mem::size_of::<WaveHeader>(),
-                                            file,
-                                        );
+                                        fread(wave_header, 1, size_of::<WaveHeader>(), file);
                                         fclose(file);
                                         let wave_ptr = &raw mut wave_header as *mut WaveHeader;
                                         let sample_count = ((*wave_ptr).data_size
