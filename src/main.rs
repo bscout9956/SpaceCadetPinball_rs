@@ -11,6 +11,7 @@ use sdl2::{
     },
     video::WindowPos,
 }; // TODO: Remove me when done
+mod fullscrn;
 mod gdrv;
 mod group_data;
 mod loader;
@@ -26,9 +27,10 @@ mod t_pinball_component;
 mod t_pinball_table;
 mod translations;
 mod zdrv;
-mod fullscrn;
 
 mod midi;
+mod render;
+mod utils;
 
 pub fn restart_func() {
     todo!();
