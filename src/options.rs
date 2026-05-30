@@ -1,6 +1,7 @@
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
 use crate::translations::Msg;
-use crate::{fullscrn, midi, restart_func, translations};
+use crate::utils::clamp;
+use crate::{fullscrn, midi, render, restart_func, translations};
 use dear_imgui_rs::sys::{
     ImGuiContext, ImGuiSettingsHandler, ImGuiTextBuffer, ImGuiTextBuffer_append,
     ImGuiTextBuffer_appendf, igAddSettingsHandler, igGetCurrentContext, igImHashStr,
@@ -15,9 +16,8 @@ use std::cmp::{Ordering, PartialEq, PartialOrd, max};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::{CStr, CString, c_char, c_int, c_void};
-use std::mem;
 use std::ops::{Deref, DerefMut};
-use std::ptr::null;
+use std::str::FromStr;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{LazyLock, Mutex, OnceLock};
