@@ -1,5 +1,6 @@
 #![allow(unused)]
 #![allow(arithmetic_overflow)]
+extern crate core;
 
 use std::process::exit;
 
@@ -29,6 +30,7 @@ mod translations;
 mod zdrv;
 
 mod midi;
+mod pb;
 mod render;
 mod utils;
 
