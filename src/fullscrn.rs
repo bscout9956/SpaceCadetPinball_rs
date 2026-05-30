@@ -8,7 +8,7 @@ pub(crate) fn GetMaxResolution() -> _ {
     todo!()
 }
 
-pub(crate) fn set_screen_mode(p0: Setting<bool>) {
+pub(crate) fn set_screen_mode(p0: bool) {
     todo!()
 }
 
