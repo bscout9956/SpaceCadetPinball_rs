@@ -4,7 +4,7 @@ use crate::maths::*;
 use crate::t_pinball_component::TPinballComponent;
 use crate::utils::PATH_SEPARATOR;
 use crate::zdrv::ZMapHeaderType;
-use crate::{pb, sound};
+use crate::{loader, pb, sound};
 use num_traits::Float;
 use sdl2::libc::{fclose, fopen, fread};
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
@@ -156,6 +156,7 @@ impl Default for SoundListStruct {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct VisualKickerStruct {
     pub threshold: f32,
     pub boost: f32,
@@ -165,11 +166,13 @@ pub struct VisualKickerStruct {
     pub hard_hit_sound_id: i32,
 }
 
-pub struct SpriteData {
-    bmp: Option<GdrvBitmap8>,
+#[derive(Copy, Clone)]
+pub struct SpriteData<'a> {
+    bmp: Option<GdrvBitmap8<'a>>,
     zmap: Option<ZMapHeaderType>,
 }
 
+#[derive(Copy, Clone)]
 pub struct VisualStruct<'a> {
     pub smoothness: f32,
     pub elasticity: f32,
@@ -180,7 +183,7 @@ pub struct VisualStruct<'a> {
     pub collision_group: i32,
     pub sound_index_4: i32,
     pub sound_index_3: i32,
-    pub bitmap: SpriteData,
+    pub bitmap: SpriteData<'a>,
 }
 
 #[repr(C, packed)]
@@ -271,7 +274,7 @@ impl<'a> Loader<'a> {
         -1
     }
 
-    pub fn default_vsi(mut visual: VisualStruct) {
+    pub fn default_vsi(visual: &mut VisualStruct<'a>) {
         visual.collision_group = 0;
         visual.kicker.threshold = 8.99999999;
         visual.kicker.hard_hit_sound_id = 0;
@@ -785,9 +788,9 @@ impl<'a> Loader<'a> {
         &mut self,
         group_index: i32,
         group_index_offset: i32,
-        visual: &mut VisualStruct,
+        visual: &mut VisualStruct<'a>,
     ) -> i32 {
-        Self::default_vsi(*visual);
+        Self::default_vsi(visual);
         if group_index < 0 {
             return self.error(0, 18);
         }
@@ -798,164 +801,164 @@ impl<'a> Loader<'a> {
 
         let bmp = self.loader_table.get_bitmap(state_id);
         let zmap = self.loader_table.get_zmap(state_id);
-        visual.bitmap = SpriteData { bmp, zmap };
+        visual.bitmap = SpriteData {
+            bmp: Some(bmp),
+            zmap: Some(zmap),
+        };
 
-        match self.loader_table.field(group_index, FieldTypes::ShortArray) {
-            Some(short_array_data) => {
-                let short_arr_size = self
-                    .loader_table
-                    .field_size(group_index, FieldTypes::ShortArray)
-                    as usize;
+        let short_array_data = match self.loader_table.field(group_index, FieldTypes::ShortArray) {
+            Some(data) => data.to_vec(),
+            None => Vec::new(),
+        };
+        if !short_array_data.is_empty() {
+            let short_arr_size = short_array_data.len();
+            let mut i: usize = 0;
 
-                let mut i: usize = 0;
-                while i < short_arr_size {
-                    if i + 1 >= short_arr_size {
-                        break;
+            while i < short_arr_size {
+                if i + 1 >= short_arr_size {
+                    break;
+                }
+                let id = i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
+                i += 2;
+
+                match id {
+                    100 => {
+                        if group_index_offset == 0 {
+                            return self.error(7, 18);
+                        }
                     }
-                    let id = i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                    i += 2;
+                    300 => {
+                        if i + 1 >= short_arr_size {
+                            return self.error(15, 18);
+                        }
+                        let material_value =
+                            i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
+                        i += 2;
+                        if self.material(material_value as i32, visual as *mut _) != 0 {
+                            return self.error(15, 18);
+                        }
+                    }
+                    304 => {
+                        if i + 1 >= short_arr_size {
+                            break;
+                        }
+                        let sound_id =
+                            i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
+                        i += 2;
+                        visual.soft_hit_sound_id = self.get_sound_id(sound_id as i32);
+                    }
+                    400 => {
+                        if i + 1 >= short_arr_size {
+                            break;
+                        }
+                        let kicker_val =
+                            i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
+                        i += 2;
+                        // VERIFY: Is the 0 check correct? Should it be not 0?
+                        if self.kicker(kicker_val as i32, &mut visual.kicker) != 0 {
+                            return self.error(14, 18);
+                        }
+                    }
+                    406 => {
+                        if i + 1 >= short_arr_size {
+                            break;
+                        }
 
-                    match id {
-                        100 => {
-                            if group_index_offset == 0 {
-                                return self.error(7, 18);
-                            }
+                        let sound_id =
+                            i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
+                        i += 2;
+                        visual.kicker.hard_hit_sound_id = self.get_sound_id(sound_id as i32);
+                    }
+                    602 => {
+                        if i + 1 >= short_arr_size {
+                            break;
                         }
-                        300 => {
-                            if i + 1 >= short_arr_size {
-                                return self.error(15, 18);
-                            }
-                            let material_value =
-                                i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                            i += 2;
-                            if self.material(material_value as i32, visual) != 0 {
-                                return self.error(15, 18);
-                            }
+                        let shift =
+                            i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
+                        i += 2;
+                        visual.collision_group |= 1 << shift;
+                    }
+                    1100 => {
+                        if i + 1 >= short_arr_size {
+                            break;
                         }
-                        304 => {
-                            if i + 1 >= short_arr_size {
-                                break;
-                            }
-                            let sound_id =
-                                i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                            i += 2;
-                            visual.soft_hit_sound_id = self.get_sound_id(sound_id as i32);
+                        let sound_id =
+                            i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
+                        i += 2;
+                        visual.sound_index_4 = self.get_sound_id(sound_id as i32);
+                    }
+                    1101 => {
+                        if i + 1 >= short_arr_size {
+                            break;
                         }
-                        400 => {
-                            if i + 1 >= short_arr_size {
-                                break;
-                            }
-                            let kicker_val =
-                                i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                            i += 2;
-                            // VERIFY: Is the 0 check correct? Should it be not 0?
-                            if self.kicker(kicker_val as i32, &mut (*visual).kicker) == 0 {
-                                return self.error(14, 18);
-                            }
-                        }
-                        406 => {
-                            if i + 1 >= short_arr_size {
-                                break;
-                            }
-
-                            let sound_id =
-                                i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                            i += 2;
-                            (*visual).kicker.hard_hit_sound_id = self.get_sound_id(sound_id as i32);
-                        }
-                        602 => {
-                            if i + 1 >= short_arr_size {
-                                break;
-                            }
-                            let shift =
-                                i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                            i += 2;
-                            (*visual).collision_group |= 1 << shift;
-                        }
-                        1100 => {
-                            if i + 1 >= short_arr_size {
-                                break;
-                            }
-                            let sound_id =
-                                i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                            i += 2;
-                            (*visual).sound_index_4 = self.get_sound_id(sound_id as i32);
-                        }
-                        1101 => {
-                            if i + 1 >= short_arr_size {
-                                break;
-                            }
-                            let sound_id =
-                                i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                            i += 2;
-                            (*visual).sound_index_3 = self.get_sound_id(sound_id as i32);
-                        }
-                        1500 => {
-                            // Skipping 7 shorts or 14 bytes
-                            i += 14;
-                        }
-                        _ => {
-                            return self.error(9, 18);
-                        }
+                        let sound_id =
+                            i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
+                        i += 2;
+                        visual.sound_index_3 = self.get_sound_id(sound_id as i32);
+                    }
+                    1500 => {
+                        // Skipping 7 shorts or 14 bytes
+                        i += 14;
+                    }
+                    _ => {
+                        return self.error(9, 18);
                     }
                 }
             }
-            None => {}
         }
         // VERIFY: Is the 0 check correct? Should it be not 0?
         if visual.collision_group != 0 {
             visual.collision_group = 1;
         }
-        match self.loader_table.field(group_index, FieldTypes::FloatArray) {
-            Some(float_array_data) => {
-                let float_val = f32::from_le_bytes([
-                    float_array_data[0],
-                    float_array_data[1],
-                    float_array_data[2],
-                    float_array_data[3],
-                ]);
 
-                if float_val != 600.0 {
-                    return 0;
-                }
+        let float_array_data = match self.loader_table.field(group_index, FieldTypes::FloatArray) {
+            Some(float_array_data) => float_array_data.to_vec(),
+            None => Vec::new(),
+        };
+        if !float_array_data.is_empty() {
+            let float_val = f32::from_le_bytes([
+                float_array_data[0],
+                float_array_data[1],
+                float_array_data[2],
+                float_array_data[3],
+            ]);
 
-                visual.float_arr_count = self
-                    .loader_table
-                    .field_size(group_index, FieldTypes::FloatArray)
-                    / 4
-                    / 2
-                    - 2;
-
-                let float_int = (f32::from_le_bytes([
-                    float_array_data[4],
-                    float_array_data[5],
-                    float_array_data[6],
-                    float_array_data[7],
-                ])
-                .floor()
-                    - 1.0) as i32;
-                match float_int {
-                    0 => visual.float_arr_count = 1,
-                    1 => visual.float_arr_count = 2,
-                    _ => {
-                        if float_int != visual.float_arr_count {
-                            return self.error(8, 18);
-                        }
-                    }
-                }
-
-                let mut arr = Vec::with_capacity(visual.float_arr_count as usize);
-                for i in 0..visual.float_arr_count as usize {
-                    let base = 8 + (i * 4);
-                    let val =
-                        f32::from_le_bytes(float_array_data[base..base + 4].try_into().unwrap());
-                    arr.push(val);
-                }
-                visual.float_arr = &arr;
-            }
-            None => {
+            if float_val != 600.0 {
                 return 0;
             }
+
+            visual.float_arr_count = self
+                .loader_table
+                .field_size(group_index, FieldTypes::FloatArray)
+                / 4
+                / 2
+                - 2;
+
+            let float_int = (f32::from_le_bytes([
+                float_array_data[4],
+                float_array_data[5],
+                float_array_data[6],
+                float_array_data[7],
+            ])
+            .floor()
+                - 1.0) as i32;
+            match float_int {
+                0 => visual.float_arr_count = 1,
+                1 => visual.float_arr_count = 2,
+                _ => {
+                    if float_int != visual.float_arr_count {
+                        return self.error(8, 18);
+                    }
+                }
+            }
+
+            let mut arr = Vec::with_capacity(visual.float_arr_count as usize);
+            for i in 0..visual.float_arr_count as usize {
+                let base = 8 + (i * 4);
+                let val = f32::from_le_bytes(float_array_data[base..base + 4].try_into().unwrap());
+                arr.push(val);
+            }
+            visual.float_arr = arr.leak();
         }
 
         0

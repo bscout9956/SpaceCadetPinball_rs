@@ -1,3 +1,4 @@
+use crate::fullscrn;
 use crate::gdrv::GdrvBitmap8;
 use crate::zdrv::ZMapHeaderType;
 use sdl2::libc::strlen;
@@ -82,7 +83,7 @@ impl<'a> GroupData<'a> {
         self.z_maps[resolution as usize]
     }
 
-    pub fn get_bitmap(&self, resolution: i32) -> GdrvBitmap8 {
+    pub fn get_bitmap(&self, resolution: i32) -> GdrvBitmap8<'a> {
         self.bitmaps[resolution as usize]
     }
 }
@@ -180,7 +181,7 @@ impl<'a> DatFile<'a> {
         self.field_size_nth(group_index, target_entry_type, 0)
     }
 
-    pub fn get_bitmap(&self, group_index: i32) -> GdrvBitmap8 {
+    pub fn get_bitmap(&self, group_index: i32) -> GdrvBitmap8<'a> {
         let group = self.groups.get(group_index as usize).unwrap();
         group.get_bitmap(fullscrn::get_resolution())
     }
