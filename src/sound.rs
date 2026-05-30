@@ -10,6 +10,7 @@ use std::cmp::Ordering;
 use std::ffi::{CStr, CString};
 use std::path::Path;
 use std::str::FromStr;
+use std::sync::atomic::AtomicUsize;
 
 pub struct ChannelInfo {
     pub timestamp: i32,
@@ -159,5 +160,9 @@ pub(crate) fn freesound(p0: *const Mix_Chunk) {
 }
 
 pub(crate) fn load_wave_file(p0: String) -> *const Mix_Chunk {
+    todo!()
+}
+
+pub(crate) fn play_sound(p0: *const Mix_Chunk, p1: usize, p2: TPinballComponent, p3: &[u8]) {
     todo!()
 }
