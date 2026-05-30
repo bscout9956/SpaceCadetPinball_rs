@@ -701,7 +701,9 @@ pub fn init_secondary() {
 }
 
 pub fn uninit() {
-    let Ok(mut options) = OPTIONS.lock() else { panic!("Unable to lock and unwrap OPTIONS") };
+    let Ok(mut options) = OPTIONS.lock() else {
+        panic!("Unable to lock and unwrap OPTIONS")
+    };
     options.language.value = translations::get_current_language().short_name.to_string();
     options.save_all();
 }

@@ -1,7 +1,7 @@
-use std::cell::RefCell;
-use std::sync::atomic::{AtomicBool, AtomicUsize};
-use std::sync::Weak;
 use sdl2::sys::SDL_MessageBoxFlags;
+use std::cell::RefCell;
+use std::sync::Weak;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 
 pub(crate) static QUICK_FLAG: AtomicBool = AtomicBool::new(false);
 pub static FULL_TILT_MODE: AtomicBool = AtomicBool::new(false);
