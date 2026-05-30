@@ -173,6 +173,14 @@ impl<'a> DatFile<'a> {
         self.field_size_nth(group_index, target_entry_type, 0)
     }
 
+    pub fn get_bitmap(&self, p0: i32) -> _ {
+        todo!()
+    }
+
+    pub fn get_zmap(&self, p0: i32) -> _ {
+        todo!()
+    }
+
     pub fn record_labeled(&self, target_group_name: *const c_char) -> i32 {
         let target_cstr = unsafe { CStr::from_ptr(target_group_name) };
         let target_data = target_cstr.to_bytes();
