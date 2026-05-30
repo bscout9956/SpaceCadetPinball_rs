@@ -225,7 +225,7 @@ const _: () = assert!(size_of::<WaveHeader>() == 44, "Wrong size for WaveHeader"
 pub struct Loader<'a> {
     sound_count: i32,
     loader_sound_count: i32,
-    loader_table: Option<DatFile<'a>>,
+    loader_table: DatFile<'a>,
     sound_record_table: Option<DatFile<'a>>,
     sound_list: [SoundListStruct; 65],
     loader_errors: [ErrorMessage; 28],
@@ -236,7 +236,11 @@ impl<'a> Loader<'a> {
         Self {
             sound_count: 1,
             loader_sound_count: 0,
-            loader_table: None,
+            loader_table: DatFile {
+                app_name: "".to_string(),
+                description: "".to_string(),
+                groups: vec![],
+            },
             sound_record_table: None,
             sound_list: [SoundListStruct {
                 wave_ptr: null(),
@@ -309,8 +313,6 @@ impl<'a> Loader<'a> {
     pub fn unload(&mut self) {
         for index in 1..self.loader_sound_count {
             sound::freesound(self.sound_list[index as usize].wave_ptr);
-            // VERIFY: This used to be an empty init, so uh
-            // , I guess we can just set everything to null and shit?
             self.sound_list[index as usize] = SoundListStruct::default();
         }
     }
@@ -533,7 +535,6 @@ impl<'a> Loader<'a> {
         self.error(13, 22);
         null::<f32>()
     }
-    // TODO: Add asserts here instead??
     fn query_float_attribute(
         &self,
         group_index: i32,
@@ -946,7 +947,8 @@ impl<'a> Loader<'a> {
                 let mut arr = Vec::with_capacity(visual.float_arr_count as usize);
                 for i in 0..visual.float_arr_count as usize {
                     let base = 8 + (i * 4);
-                    let val = f32::from_le_bytes(float_array_data[base..base + 4]);
+                    let val =
+                        f32::from_le_bytes(float_array_data[base..base + 4].try_into().unwrap());
                     arr.push(val);
                 }
                 visual.float_arr = &arr;
