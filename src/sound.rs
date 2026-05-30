@@ -153,3 +153,11 @@ impl Sound {
         }
     }
 }
+
+pub(crate) fn freesound(p0: *const Mix_Chunk) {
+    todo!()
+}
+
+pub(crate) fn load_wave_file(p0: String) -> *const Mix_Chunk {
+    todo!()
+}
