@@ -1,6 +1,8 @@
 use crate::gdrv::GdrvBitmap8;
 use crate::zdrv::ZMapHeaderType;
+use sdl2::libc::strlen;
 use std::cmp::{Ordering, PartialOrd};
+use std::ffi::{CStr, c_char};
 
 #[derive(PartialEq, PartialOrd, Copy, Clone)]
 #[repr(i16)]
@@ -169,5 +171,29 @@ impl<'a> DatFile<'a> {
 
     pub fn field_size(&self, group_index: i32, target_entry_type: FieldTypes) -> i32 {
         self.field_size_nth(group_index, target_entry_type, 0)
+    }
+
+    pub fn record_labeled(&self, target_group_name: *const c_char) -> i32 {
+        let target_cstr = unsafe { CStr::from_ptr(target_group_name) };
+        let target_data = target_cstr.to_bytes();
+
+        for group_index in (0..self.groups.len()).rev() {
+            match self.field(group_index as i32, FieldTypes::GroupName) {
+                Some(group_name_data) => {
+                    let group_name = if group_name_data.last() == Some(&0) {
+                        &group_name_data[..group_name_data.len() - 1]
+                    } else {
+                        group_name_data
+                    };
+
+                    if target_data == group_name {
+                        return group_index as i32;
+                    }
+                }
+                None => continue,
+            }
+        }
+
+        -1
     }
 }
