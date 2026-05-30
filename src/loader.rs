@@ -400,17 +400,23 @@ impl<'a> Loader<'a> {
         if group_index < 0 {
             return self.error(0, 17) as i16;
         }
-        let short_array = self.loader_table.field(group_index, FieldTypes::ShortArray);
 
-        if let Some(short_array_data) = short_array {
-            if short_array_data[0] == 100 {
-                result = short_array_data[1] as i16;
-            } else {
-                result = 1;
+        match self.loader_table.field(group_index, FieldTypes::ShortArray) {
+            Some(short_array_data) => {
+                if short_array_data.len() >= 4 {
+                    let short_value =
+                        i16::from_le_bytes([short_array_data[0], short_array_data[1]]);
+                    if short_value == 100 {
+                        return i16::from_le_bytes([short_array_data[2], short_array_data[3]]);
+                    } else {
+                        1
+                    }
+                } else {
+                    1
+                }
             }
+            None => return 1,
         }
-
-        result
     }
 
     pub fn query_name(&self, group_index: i32) -> *const c_char {
