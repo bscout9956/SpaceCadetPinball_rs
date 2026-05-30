@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::Weak;
+use sdl2::sys::SDL_MessageBoxFlags;
 
 pub(crate) static QUICK_FLAG: AtomicBool = AtomicBool::new(false);
 pub static FULL_TILT_MODE: AtomicBool = AtomicBool::new(false);
@@ -19,6 +20,6 @@ pub(crate) fn make_path_name(p0: &str) -> String {
     todo!()
 }
 
-pub(crate) fn ShowMessageBox(p0: _, p1: &str, p2: &str) {
+pub(crate) fn ShowMessageBox(p0: SDL_MessageBoxFlags, p1: &str, p2: &str) {
     todo!()
 }
