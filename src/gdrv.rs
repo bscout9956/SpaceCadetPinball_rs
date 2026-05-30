@@ -1,4 +1,6 @@
 use sdl2::sys::SDL_Texture;
+
+#[derive(Debug, Copy, Clone)]
 #[repr(u8)]
 pub enum BitmapTypes {
     None = 0,
@@ -7,6 +9,7 @@ pub enum BitmapTypes {
     Spliced = 3,
 }
 
+#[derive(Copy, Clone, Debug)]
 pub struct ColorRgba {
     pub color: u32,
 }
@@ -81,9 +84,10 @@ impl ColorRgba {
     }
 }
 
-pub struct GdrvBitmap8 {
-    pub bmp_buf_ptr_1: Vec<ColorRgba>,
-    pub indexed_bmp_ptr: Vec<u8>,
+#[derive(Copy, Clone)]
+pub struct GdrvBitmap8<'a> {
+    pub bmp_buf_ptr_1: &'a [ColorRgba],
+    pub indexed_bmp_ptr: &'a [u8],
     pub width: i32,
     pub height: i32,
     pub stride: i32,
