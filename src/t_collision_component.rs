@@ -129,7 +129,7 @@ impl TCollisionComponentBehavior for TCollisionComponent {
                 let table = upgraded_table.borrow();
 
                 if table.tilt_lock_flag {
-                    maths::basic_collision(
+                    basic_collision(
                         ball,
                         next_position,
                         direction,
@@ -143,7 +143,7 @@ impl TCollisionComponentBehavior for TCollisionComponent {
             }
         }
 
-        let proj_speed = maths::basic_collision(
+        let proj_speed = basic_collision(
             ball,
             next_position,
             direction,
@@ -161,7 +161,7 @@ impl TCollisionComponentBehavior for TCollisionComponent {
     }
 
     fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
-        return 0; // wow
+        0 // wow
     }
 
     fn default_collision(
@@ -175,7 +175,7 @@ impl TCollisionComponentBehavior for TCollisionComponent {
             if let Some(upgraded_table) = pinball_table.upgrade() {
                 let table = upgraded_table.borrow();
                 if table.tilt_lock_flag {
-                    maths::basic_collision(
+                    basic_collision(
                         ball,
                         next_position,
                         direction,
@@ -189,7 +189,7 @@ impl TCollisionComponentBehavior for TCollisionComponent {
             }
         }
         let mut collision = false;
-        let proj_speed = maths::basic_collision(
+        let proj_speed = basic_collision(
             ball,
             next_position,
             direction,
