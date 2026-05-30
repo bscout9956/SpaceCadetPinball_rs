@@ -2,9 +2,15 @@ use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, FieldTypes};
 use crate::maths::*;
 use crate::zdrv::ZMapHeaderType;
+use crate::{pb, sound};
+use dear_imgui_rs::SafeStringConversion;
+use sdl2::libc::{fclose, fopen, fread};
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
-use std::ffi::c_void;
-use std::ptr::null;
+use sdl2::sys::mixer::Mix_Chunk;
+use std::ffi::{CStr, CString, c_char, c_void};
+use std::ptr::{null, null_mut};
+use std::str::FromStr;
+use std::sync::atomic::Ordering::Relaxed;
 
 pub struct ErrorMessage {
     code: i32,
@@ -133,7 +139,7 @@ impl ErrorMessage {
 }
 
 pub struct SoundListStruct {
-    wave_ptr: c_void, // TODO: Fixme, I'm a Mix_Chunk
+    wave_ptr: *const Mix_Chunk, // TODO: Fixme, I'm a Mix_Chunk
     group_index: i32,
     loaded: bool,
     duration: f32,
@@ -233,8 +239,7 @@ impl<'a> Loader<'a> {
         if error_text.is_empty() {
             error_text = self.loader_errors[index].message;
         }
-        // TODO: Implement me
-        //pb::ShowMessageBox(SDL_MESSAGEBOX_ERROR, error_caption, error_text);
+        pb::ShowMessageBox(SDL_MESSAGEBOX_ERROR, error_caption, error_text);
         -1
     }
 
@@ -259,26 +264,186 @@ impl<'a> Loader<'a> {
         let sound_record_table = loader_table;
 
         for group_index in 0..dat_file.groups.len() as i32 {
-            let bytes = dat_file.field(group_index, FieldTypes::ShortValue);
-            if let Some(byte_arr) = bytes {
-                if byte_arr.len() > 2 {
-                    // TODO: Is it LE???
-                    let value = i16::from_le_bytes([byte_arr[0], byte_arr[1]]);
-                    if value == 202 {
-                        // TODO: ???????????
-                        if self.sound_count < 65 {
-                            self.sound_list[self.sound_count as usize] = SoundListStruct {
-                                wave_ptr: todo!(), // TODO: Change me
-                                group_index,
-                                loaded: false,
-                                duration: 0.0,
-                            };
-                            self.sound_count += 1;
-                        }
+            let value = dat_file.field(group_index, FieldTypes::ShortValue);
+            if let Some(value_data) = value {
+                if (*value_data)[0] == 202 {
+                    if self.sound_count < 65 {
+                        self.sound_list[self.sound_count as usize] = SoundListStruct {
+                            wave_ptr: std::ptr::null(),
+                            group_index,
+                            loaded: false,
+                            duration: 0.0,
+                        };
+                        self.sound_count += 1;
                     }
                 }
             }
         }
         self.loader_sound_count = self.sound_count;
+    }
+
+    pub fn unload(&mut self) {
+        for index in 1..self.loader_sound_count {
+            sound::freesound(self.sound_list[index as usize].wave_ptr);
+            // VERIFY: This used to be an empty init, so uh
+            // , I guess we can just set everything to null and shit?
+            self.sound_list[index as usize] = SoundListStruct {
+                wave_ptr: null(),
+                group_index: 0,
+                loaded: false,
+                duration: 0.0,
+            }
+        }
+    }
+
+    pub fn get_sound_id(&mut self, group_index: i32) -> i32 {
+        let mut sound_index: i16 = 1;
+        if self.sound_count <= 1 {
+            self.error(25, 26);
+            return -1;
+        }
+
+        while (self.sound_list[sound_index as usize].group_index != group_index) {
+            sound_index += 1;
+            if sound_index as i32 >= self.sound_count {
+                self.error(25, 26);
+                return -1;
+            }
+        }
+
+        if (!self.sound_list[sound_index as usize].loaded
+            && !self.sound_list[sound_index as usize].wave_ptr.is_null())
+        {
+            let wave_header: *mut c_void;
+
+            let sound_group_id = self.sound_list[sound_index as usize].group_index;
+            self.sound_list[sound_index as usize].duration = 0.0;
+
+            let quick_flag_val = pb::QUICK_FLAG.load(Relaxed);
+            if sound_group_id != 0 && !quick_flag_val {
+                let value = self
+                    .loader_table
+                    .field(sound_group_id, FieldTypes::ShortValue);
+
+                if let Some(value_data) = value {
+                    if (*value_data)[0] == 202 {
+                        // File name is in lower case, while game data is usually in upper case.
+                        let file_name_ptr =
+                            self.loader_table.field(sound_group_id, FieldTypes::String);
+                        if let Some(file_name_data) = file_name_ptr {
+                            let mut file_name = String::from_utf8_lossy(file_name_data)
+                                .trim_end_matches('\0')
+                                .to_string();
+
+                            if pb::FULL_TILT_MODE.load(Relaxed) {
+                                // TODO: PathSeparator
+                                file_name.insert_str(0, &format!("{}sound", PathSeparator));
+                            }
+
+                            let mut file_path = String::new();
+                            let mut duration: f32 = -1.0;
+                            for idx in 0..3 {
+                                if idx == 1 {
+                                    file_name.to_uppercase();
+                                }
+
+                                file_path = pb::make_path_name(&file_name);
+                                let file = unsafe {
+                                    fopen(
+                                        CString::from_str(&file_path)
+                                            .unwrap_or_default()
+                                            .into_raw(),
+                                        c"rb".as_ptr(),
+                                    )
+                                };
+
+                                if !file.is_null() {
+                                    unsafe {
+                                        fread(
+                                            wave_header,
+                                            1,
+                                            std::mem::size_of::<WaveHeader>(),
+                                            file,
+                                        );
+                                        fclose(file);
+                                        let wave_ptr = &raw mut wave_header as *mut WaveHeader;
+                                        let sample_count = ((*wave_ptr).data_size
+                                            / (*wave_ptr).channels as u32
+                                            * (*wave_ptr).bits_per_sample as u32)
+                                            as f64
+                                            / 8.0;
+                                        duration =
+                                            sample_count as f32 / (*wave_ptr).sample_rate as f32;
+                                    }
+                                }
+                            }
+                            self.sound_list[sound_index as usize].duration = duration;
+                            self.sound_list[sound_index as usize].wave_ptr =
+                                sound::load_wave_file(file_path);
+                        }
+                    }
+                }
+            }
+        }
+
+        self.sound_list[sound_index as usize].loaded = true;
+        sound_index as i32
+    }
+
+    pub fn query_handle(&self, lp_string: LPCSTR) {
+        self.loader_table.record_labeled(lp_string)
+    }
+
+    pub fn query_visual_states(&self, group_index: i32) -> i16 {
+        let mut result: i16 = 0;
+
+        if group_index < 0 {
+            return self.error(0, 17) as i16;
+        }
+        let short_array = self.loader_table.field(group_index, FieldTypes::ShortArray);
+
+        if let Some(short_array_data) = short_array {
+            if short_array_data[0] == 100 {
+                result = short_array_data[1] as i16;
+            } else {
+                result = 1;
+            }
+        }
+
+        result
+    }
+
+    pub fn query_name(&self, group_index: i32) -> *const c_char {
+        if group_index < 0 {
+            self.error(0, 19);
+            return null();
+        }
+
+        let result_opt = self.loader_table.field(group_index, FieldTypes::GroupName);
+        if let Some(result_data) = result_opt {
+            String::from_utf8_lossy(result_data)
+                .into_owned()
+                .trim_end_matches('\0')
+                .to_string()
+                .as_ptr() as *const c_char
+        } else {
+            null()
+        }
+    }
+
+    pub fn query_iattribute(
+        &self,
+        group_index: i32,
+        first_value: i32,
+        array_size: *const i32,
+    ) -> *const i16 {
+        if group_index < 0 {
+            self.error(0, 20);
+            std::ptr::null::<i16>()
+        }
+        
+        for skip_index in 0..i32::MAX {
+            let short_array = self.loader_table.field_nth(group_index, FieldTypes::ShortArray);
+        }
     }
 }
