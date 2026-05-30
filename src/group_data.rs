@@ -104,4 +104,70 @@ impl<'a> DatFile<'a> {
         }
         None
     }
+
+    pub fn field_nth(
+        &self,
+        group_index: i32,
+        target_entry_type: FieldTypes,
+        skip_first_n: i32,
+    ) -> Option<&'a [u8]> {
+        assert!(
+            target_entry_type != FieldTypes::Bitmap8bit
+                && target_entry_type != FieldTypes::Bitmap16bit,
+            "partman: Use specific get for bitmaps"
+        );
+
+        let group = self.groups.get(group_index as usize)?;
+        let mut skip_count = 0;
+        for entry in group.get_entries() {
+            if entry.entry_type > target_entry_type {
+                break;
+            }
+            if entry.entry_type == target_entry_type {
+                if skip_count == skip_first_n {
+                    skip_count += 1;
+                    return entry.buffer;
+                } else {
+                    skip_count += 1;
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn field_size_nth(
+        &self,
+        group_index: i32,
+        target_entry_type: FieldTypes,
+        skip_first_n: i32,
+    ) -> i32 {
+        assert!(
+            target_entry_type != FieldTypes::Bitmap8bit
+                && target_entry_type != FieldTypes::Bitmap16bit,
+            "partman: Use specific get for bitmaps"
+        );
+
+        let group = self.groups.get(group_index as usize).unwrap();
+        let mut skip_count = 0;
+        for entry in group.get_entries() {
+            if entry.entry_type > target_entry_type {
+                return 0;
+            }
+            if entry.entry_type == target_entry_type {
+                if skip_count == skip_first_n {
+                    skip_count += 1;
+                    return entry.field_size;
+                } else {
+                    skip_count += 1;
+                }
+            }
+        }
+
+        0
+    }
+
+    pub fn field_size(&self, group_index: i32, target_entry_type: FieldTypes) -> i32 {
+        self.field_size_nth(group_index, target_entry_type, 0)
+    }
 }
