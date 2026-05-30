@@ -2,18 +2,19 @@ use crate::options::InputTypes::{GameController, Keyboard, Mouse};
 use crate::translations::Msg;
 use crate::{fullscrn, midi, restart_func, translations};
 use dear_imgui_rs::sys::{
-    ImGuiContext, ImGuiSettingsHandler, ImGuiTextBuffer, igAddSettingsHandler, igGetCurrentContext,
-    igImHashStr, igLoadIniSettingsFromDisk,
+    ImGuiContext, ImGuiSettingsHandler, ImGuiTextBuffer, ImGuiTextBuffer_append,
+    ImGuiTextBuffer_appendf, igAddSettingsHandler, igGetCurrentContext, igImHashStr,
+    igLoadIniSettingsFromDisk,
 };
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use sdl2::sys::SDL_GameControllerButton::*;
 use sdl2::sys::SDL_KeyCode::*;
 use sdl2::sys::*;
-use std::cmp::{Ordering, PartialEq, PartialOrd};
+use std::cmp::{Ordering, PartialEq, PartialOrd, max};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::ffi::{CString, c_char, c_int, c_void};
+use std::ffi::{CStr, CString, c_char, c_int, c_void};
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::ptr::null;
