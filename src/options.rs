@@ -228,78 +228,92 @@ impl GameInput {
     pub fn new(input_type: InputTypes, value: i32) -> Self {
         Self { input_type, value }
     }
-    // TODO: THIS WHOLE MESS
-    // pub unsafe fn get_full_input_description(&self) -> String {
-    //     let mut prefix = String::new();
-    //     match self.input_type {
-    //         InputTypes::None => {
-    //             return String::from("Unused");
-    //         }
-    //         Keyboard => {
-    //             prefix = "Keyboard\n".to_string();
-    //         }
-    //         Mouse => {
-    //             prefix = "Mouse\n".to_string();
-    //         }
-    //         GameController => {
-    //             prefix = "GameController\n".to_string();
-    //         }
-    //     }
-    //     prefix + self.get_short_input_description().as_str()
-    // }
-    //
-    // pub unsafe fn get_short_input_description(&self) -> *const c_char {
-    //     let MOUSE_BUTTONS: [*const c_char; 6] = [
-    //         null(),
-    //         c"Left".as_ptr(),
-    //         c"Middle".as_ptr(),
-    //         c"Right".as_ptr(),
-    //         c"X1".as_ptr(),
-    //         c"X2".as_ptr(),
-    //     ];
-    //
-    //     let CONTROLLER_BUTTONS: [*const c_char; 21] = [
-    //         c"A".as_ptr(),
-    //         c"B".as_ptr(),
-    //         c"X".as_ptr(),
-    //         c"Y".as_ptr(),
-    //         c"Back".as_ptr(),
-    //         c"Guide".as_ptr(),
-    //         c"Start".as_ptr(),
-    //         c"LeftStick".as_ptr(),
-    //         c"RightStick".as_ptr(),
-    //         c"LeftShoulder".as_ptr(),
-    //         c"RightShoulder".as_ptr(),
-    //         c"DpUp".as_ptr(),
-    //         c"DpDown".as_ptr(),
-    //         c"DpLeft".as_ptr(),
-    //         c"DpRight".as_ptr(),
-    //         c"Misc1".as_ptr(),
-    //         c"Paddle1".as_ptr(),
-    //         c"Paddle2".as_ptr(),
-    //         c"Paddle3".as_ptr(),
-    //         c"Paddle4".as_ptr(),
-    //         c"Touchpad".as_ptr(),
-    //     ];
-    //
-    //     match self.input_type {
-    //         InputTypes::None => std::ptr::null(),
-    //         Keyboard => {
-    //             SDL_GetKeyName(self.value)
-    //         }
-    //         Mouse => {
-    //             if self.value >= SDL_BUTTON_LEFT as i32 && self.value <= SDL_BUTTON_X2 as i32 {
-    //                 MOUSE_BUTTONS[self.value as usize]
-    //             } else {
-    //                 CString::from(format!("MButton {}", self.value).as_str()).as_ptr()
-    //             }
-    //         }
-    //         GameController => {
-    //             if self.value >= SDL_CONTROLLER_BUTTON_A && self.value <
-    //         }
-    //     }
-    //
-    // }
+    pub unsafe fn get_full_input_description(&self) -> String {
+        let mut prefix = String::new();
+        match self.input_type {
+            InputTypes::None => {
+                return String::from("Unused");
+            }
+            Keyboard => {
+                prefix = "Keyboard\n".to_string();
+            }
+            Mouse => {
+                prefix = "Mouse\n".to_string();
+            }
+            GameController => {
+                prefix = "GameController\n".to_string();
+            }
+        }
+        unsafe {
+            prefix
+                + CStr::from_ptr(self.get_short_input_description())
+                    .to_str()
+                    .unwrap()
+        }
+    }
+
+    pub unsafe fn get_short_input_description(&self) -> *const c_char {
+        let mouse_buttons: [*const c_char; 6] = [
+            std::ptr::null(),
+            c"Left".as_ptr(),
+            c"Middle".as_ptr(),
+            c"Right".as_ptr(),
+            c"X1".as_ptr(),
+            c"X2".as_ptr(),
+        ];
+
+        let controller_buttons: [*const c_char; 21] = [
+            c"A".as_ptr(),
+            c"B".as_ptr(),
+            c"X".as_ptr(),
+            c"Y".as_ptr(),
+            c"Back".as_ptr(),
+            c"Guide".as_ptr(),
+            c"Start".as_ptr(),
+            c"LeftStick".as_ptr(),
+            c"RightStick".as_ptr(),
+            c"LeftShoulder".as_ptr(),
+            c"RightShoulder".as_ptr(),
+            c"DpUp".as_ptr(),
+            c"DpDown".as_ptr(),
+            c"DpLeft".as_ptr(),
+            c"DpRight".as_ptr(),
+            c"Misc1".as_ptr(),
+            c"Paddle1".as_ptr(),
+            c"Paddle2".as_ptr(),
+            c"Paddle3".as_ptr(),
+            c"Paddle4".as_ptr(),
+            c"Touchpad".as_ptr(),
+        ];
+
+        match self.input_type {
+            InputTypes::None => std::ptr::null(),
+            Keyboard => unsafe { SDL_GetKeyName(self.value) },
+            Mouse => {
+                if self.value >= SDL_BUTTON_LEFT as i32 && self.value <= SDL_BUTTON_X2 as i32 {
+                    mouse_buttons[self.value as usize]
+                } else {
+                    // VERIFY: Maybe we could just return string, we just need to make sure nothing else calls this necessarily
+                    CString::from_str(format!("MButton {}", self.value).as_str())
+                        .unwrap_or_default()
+                        .as_ptr()
+                }
+            }
+            GameController => {
+                if self.value >= SDL_CONTROLLER_BUTTON_A as i32
+                    && self.value < std::cmp::min(SDL_CONTROLLER_BUTTON_MAX as i32, 21)
+                {
+                    controller_buttons[self.value as usize]
+                } else {
+                    // VERIFY: Maybe we could just return string?
+                    // We just need to make sure nothing else calls this necessarily
+                    CString::from_str(format!("CButton {}", self.value).as_str())
+                        .unwrap_or_default()
+                        .as_ptr()
+                }
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, FromPrimitive)]
@@ -437,7 +451,7 @@ impl SettingValue for f32 {
     }
 }
 
-#[derive(Ord)]
+#[derive(Ord, Eq, PartialEq, PartialOrd, Copy)]
 pub struct Setting<T: SettingValue> {
     pub name: &'static str,
     pub default: T,
@@ -504,12 +518,16 @@ impl ControlOption {
         }
     }
 
-    fn get_shortcut_description(&self) -> String {
+    pub unsafe fn get_shortcut_description(&self) -> String {
         let mut result: String = String::new();
         for input in self.inputs {
             if input.input_type != InputTypes::None {
-                // TODO: Implement me
-                return input.get_short_input_description();
+                return unsafe {
+                    CStr::from_ptr(input.get_short_input_description())
+                        .to_str()
+                        .unwrap_or_default()
+                        .to_string()
+                };
             }
         }
         result
@@ -644,7 +662,7 @@ impl OptionsStruct {
 pub unsafe fn init_primary() {
     unsafe {
         let im_context = igGetCurrentContext();
-        let mut ini_handler: ImGuiSettingsHandler = mem::zeroed();
+        let mut ini_handler: ImGuiSettingsHandler = std::mem::zeroed();
 
         ini_handler.TypeName = c"Pinball".as_ptr();
         ini_handler.TypeHash = igImHashStr(ini_handler.TypeName, 0, 0);
@@ -671,7 +689,7 @@ pub fn init_secondary() {
     let max_res = fullscrn::GetMaxResolution();
     let Ok(options) = OPTIONS.lock();
     if (options.resolution.value >= 0 && options.resolution.value > max_res) {
-        options.resolution = max_res;
+        *options.resolution = max_res;
     }
     if (options.resolution.value == -1) {
         fullscrn::SetResolution(max_res);
@@ -741,7 +759,7 @@ pub fn toggle(u_id_check_item: Menu) {
         Menu::PauseResumeGame => {}
         Menu::FullScreen => {
             *options.full_screen = !(*options.full_screen);
-            fullscrn::set_screen_mode(options.full_screen);
+            fullscrn::set_screen_mode(*options.full_screen);
         }
         Menu::Demo => {}
         Menu::SelectTable => {}
@@ -749,7 +767,7 @@ pub fn toggle(u_id_check_item: Menu) {
         Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {}
         Menu::ShowMenu => {
             *options.show_menu = !(*options.show_menu);
-            fullsrcn::window_size_changed();
+            fullscrn::window_size_changed();
         }
         Menu::MaximumResolution | Menu::R640x480 | Menu::R800x600 | Menu::R1024x768 => {
             let mut restart = false;
@@ -899,16 +917,19 @@ pub fn post_process_options() {
     let mut options = OPTIONS.lock().unwrap();
     // TODO: Pull this
     main::ImIO.FontGlobalScale = options.ui_scale;
-    options.frames_per_second = Clamp(options.frames_per_second.value, MIN_FPS, MAX_FPS);
-    options.updates_per_second = Clamp(options.updates_per_second.value, MIN_UPS, MAX_UPS);
-    options.updates_per_second = max(options.updates_per_second, options.frames_per_second);
-    options.sound_channels = Clamp(
-        options.sound_channels.value,
-        MIN_SOUND_CHANNELS,
-        MAX_SOUND_CHANNELS,
+    options.frames_per_second.value = clamp(&options.frames_per_second.value, &MIN_FPS, &MAX_FPS);
+    options.updates_per_second.value = clamp(&options.updates_per_second.value, &MIN_UPS, &MAX_UPS);
+    options.updates_per_second.value = max(
+        options.updates_per_second.value,
+        options.frames_per_second.value,
     );
-    options.sound_volume = Clamp(options.sound_volume.value, MIN_VOLUME, MAX_VOLUME);
-    options.music_volume = Clamp(options.music_volume, MIN_VOLUME, MAX_VOLUME);
+    options.sound_channels.value = clamp(
+        &options.sound_channels.value,
+        &MIN_SOUND_CHANNELS,
+        &MAX_SOUND_CHANNELS,
+    );
+    options.sound_volume.value = clamp(&options.sound_volume.value, &MIN_VOLUME, &MAX_VOLUME);
+    options.music_volume.value = clamp(&options.music_volume.value, &MIN_VOLUME, &MAX_VOLUME);
     translations::set_current_language(options.language.value);
     main::UpdateFrameRate();
 }
