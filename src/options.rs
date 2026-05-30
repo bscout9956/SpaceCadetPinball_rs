@@ -850,7 +850,15 @@ pub unsafe extern "C" fn MyUserData_ReadLine(
     entry: *mut c_void,
     line: *const c_char,
 ) {
-    // TODO Boring shit
+    unsafe {
+        let kv_store = &mut *(entry as *mut HashMap<String, String>);
+        let key_value = CStr::from_ptr(line).to_str().unwrap_or_default();
+        if let Some(separator_pos) = key_value.find('=') {
+            let key = &key_value[0..separator_pos];
+            let value = &key_value[separator_pos + 1..];
+            kv_store.insert(key.to_string(), value.to_string());
+        }
+    }
 }
 
 #[allow(non_snake_case)]
@@ -879,7 +887,7 @@ pub unsafe extern "C" fn MyUserData_WriteAll(
         for setting in settings.iter() {
             ImGuiTextBuffer_appendf(buf, c"%s=%s\n".as_ptr(), setting.0, setting.1);
         }
-        // TODO: str end?
+        // VERIFY: str end?
         ImGuiTextBuffer_append(buf, c"\n".as_ptr(), std::ptr::null());
     }
 }
@@ -891,8 +899,7 @@ pub fn post_process_options() {
     main::ImIO.FontGlobalScale = options.ui_scale;
     options.frames_per_second = Clamp(options.frames_per_second.value, MIN_FPS, MAX_FPS);
     options.updates_per_second = Clamp(options.updates_per_second.value, MIN_UPS, MAX_UPS);
-    // TODO vec max
-    options.updates_per_second = options.uncapped_updates_per_second.value.max();
+    options.updates_per_second = max(options.updates_per_second, options.frames_per_second);
     options.sound_channels = Clamp(
         options.sound_channels.value,
         MIN_SOUND_CHANNELS,
