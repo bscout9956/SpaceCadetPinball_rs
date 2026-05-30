@@ -687,7 +687,9 @@ pub unsafe fn init_primary() {
 
 pub fn init_secondary() {
     let max_res = fullscrn::get_max_resolution();
-    let Ok(options) = OPTIONS.lock();
+    let Ok(mut options) = OPTIONS.lock() else {
+        panic!("Unable to lock and unwrap OPTIONS")
+    };
     if (options.resolution.value >= 0 && options.resolution.value > max_res) {
         *options.resolution = max_res;
     }
@@ -699,8 +701,8 @@ pub fn init_secondary() {
 }
 
 pub fn uninit() {
-    let Ok(mut options) = OPTIONS.lock();
-    options.language.value = translations::get_current_language().ShortName;
+    let Ok(mut options) = OPTIONS.lock() else { panic!("Unable to lock and unwrap OPTIONS") };
+    options.language.value = translations::get_current_language().short_name.to_string();
     options.save_all();
 }
 
@@ -916,7 +918,7 @@ pub unsafe extern "C" fn MyUserData_WriteAll(
 pub fn post_process_options() {
     let mut options = OPTIONS.lock().unwrap();
     // TODO: Pull this
-    main::ImIO.FontGlobalScale = options.ui_scale;
+    //main::ImIO.FontGlobalScale = options.ui_scale;
     options.frames_per_second.value = clamp(&options.frames_per_second.value, &MIN_FPS, &MAX_FPS);
     options.updates_per_second.value = clamp(&options.updates_per_second.value, &MIN_UPS, &MAX_UPS);
     options.updates_per_second.value = max(
@@ -930,6 +932,7 @@ pub fn post_process_options() {
     );
     options.sound_volume.value = clamp(&options.sound_volume.value, &MIN_VOLUME, &MAX_VOLUME);
     options.music_volume.value = clamp(&options.music_volume.value, &MIN_VOLUME, &MAX_VOLUME);
-    translations::set_current_language(options.language.value);
-    main::UpdateFrameRate();
+    translations::set_current_language(&options.language.value);
+    // TODO: Implement meee
+    //main::UpdateFrameRate();
 }

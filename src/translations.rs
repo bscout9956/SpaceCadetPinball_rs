@@ -252,10 +252,14 @@ enum Lang {
     MAX,
 }
 
-pub(crate) fn get_current_language() -> _ {
+pub struct LanguageInfo {
+    pub short_name: &'static str,
+}
+
+pub(crate) fn get_current_language() -> LanguageInfo {
     todo!()
 }
 
-pub(crate) fn set_current_language(p0: String) {
+pub(crate) fn set_current_language(p0: &str) {
     todo!()
 }
