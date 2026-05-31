@@ -704,8 +704,12 @@ pub fn uninit() {
     let Ok(mut options) = OPTIONS.lock() else {
         panic!("Unable to lock and unwrap OPTIONS")
     };
-    options.language.value = translations::get_current_language().short_name.to_string();
-    options.save_all();
+    if let Some(cur_lang) = translations::get_current_language() {
+        options.language.value = cur_lang.short_name.to_string();
+        options.save_all();
+    } else {
+        println!("Unable to obtain current language info...");
+    }
 }
 
 pub fn get_input(row_name: &str, mut values: [GameInput; 3]) {
