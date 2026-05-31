@@ -402,6 +402,7 @@ fn main() {
 
             imgui_context.set_ini_filename(Some(ini_path));
 
+            // First option initialization step: just load settings from .ini. Needs ImGui context.
             options::init_primary();
             if reset_all_options {
                 reset_all_options = false;
@@ -461,6 +462,8 @@ fn main() {
             }
 
             cfg_flags |= ConfigFlags::NAV_ENABLE_KEYBOARD | ConfigFlags::NAV_ENABLE_GAMEPAD;
+
+            // Data search order: WD, executable path, user pref path, platform specific paths.
             let mut search_paths: Vec<&str> = Vec::new();
             search_paths.push("");
             search_paths.push(CStr::from_ptr(base_path).to_str().unwrap());
@@ -468,7 +471,20 @@ fn main() {
 
             #[cfg(not(target_os = "windows"))]
             search_paths.extend_from_slice(&PLATFORM_DATA_PATHS);
-            pb::select_dat_file(search_paths);
+            pb::select_dat_file(&search_paths);
+
+            // Second step: run updates that depend on .DAT file selection
+            options::init_secondary();
+
+            // TODO: Implement sound, we're skipping for now to focus on PB:INIT();
+            // match OPTIONS.lock() {
+            //     Ok(options) => {
+            //         sound::init(mix_opened, options.sound_channels, options.sounds, options.sound_volume);
+            //     },
+            //     Err(e) => {
+            //         println!("Failed to lock options: {}", e);
+            //     }
+            // }
 
             SDL_ShowWindow(window);
 
