@@ -18,7 +18,13 @@ use sdl2::sys::mixer::{
     MIX_DEFAULT_FORMAT, MIX_DEFAULT_FREQUENCY, MIX_InitFlags_MIX_INIT_MID, MIX_MAJOR_VERSION,
     MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_Init, Mix_OpenAudio,
 };
-use sdl2::sys::{SDL_ClearError, SDL_CreateRenderer, SDL_GameControllerAddMappingsFromRW, SDL_GetBasePath, SDL_GetError, SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency, SDL_GetPrefPath, SDL_GetRendererInfo, SDL_GetTicks, SDL_GetVersion, SDL_HINT_RENDER_SCALE_QUALITY, SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL, SDL_Renderer, SDL_RendererInfo, SDL_SetHint, SDL_SetRenderDrawColor, SDL_ShowWindow};
+use sdl2::sys::{
+    SDL_ClearError, SDL_CreateRenderer, SDL_GameControllerAddMappingsFromRW, SDL_GetBasePath,
+    SDL_GetError, SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency, SDL_GetPrefPath,
+    SDL_GetRendererInfo, SDL_GetTicks, SDL_GetVersion, SDL_HINT_RENDER_SCALE_QUALITY,
+    SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL, SDL_Renderer, SDL_RendererInfo,
+    SDL_SetHint, SDL_SetRenderDrawColor, SDL_ShowWindow,
+};
 use sdl2::{
     sys::{
         SDL_CreateWindow, SDL_INIT_AUDIO, SDL_INIT_EVENTS, SDL_INIT_GAMECONTROLLER,
