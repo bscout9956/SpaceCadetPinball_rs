@@ -270,7 +270,11 @@ impl<'a> Loader<'a> {
             .map(|e| e.message)
             .unwrap_or("Unknown Error");
 
-        pb::ShowMessageBox(SDL_MESSAGEBOX_ERROR, error_caption, error_text);
+        pb::ShowMessageBox(
+            SDL_MESSAGEBOX_ERROR,
+            error_caption,
+            error_text.as_ptr() as *const c_char,
+        );
         -1
     }
 
