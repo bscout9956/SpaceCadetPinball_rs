@@ -26,6 +26,6 @@ pub(crate) fn get_rc_string(p0: Msg) -> *const c_char {
     todo!()
 }
 
-pub(crate) fn ShowMessageBox(p0: SDL_MessageBoxFlags, p1: &str, p2: *const c_char) {
+pub(crate) fn show_message_box(p0: SDL_MessageBoxFlags, p1: &str, p2: *const c_char) {
     todo!()
 }
