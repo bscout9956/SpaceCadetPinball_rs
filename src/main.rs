@@ -2,11 +2,28 @@
 #![allow(arithmetic_overflow)]
 extern crate core;
 
+use crate::embedded_data::load_controller_db;
 use crate::options::{GameBindings, OptionsStruct};
-use dear_imgui_rs::sys::ImGuiIO;
+use crate::translations::Msg;
+use dear_imgui_rs::Context;
+use dear_imgui_rs::sys::{IMGUI_VERSION, ImGuiIO, igCreateContext, igGetIO_ContextPtr};
 use lazy_static::lazy_static;
+use sdl2::controller::AddMappingError;
+use sdl2::libc::strstr;
+use sdl2::mixer::get_linked_version;
+use sdl2::rwops::RWops;
+use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
+use sdl2::sys::SDL_RendererFlags::{SDL_RENDERER_ACCELERATED, SDL_RENDERER_SOFTWARE};
+use sdl2::sys::mixer::{
+    MIX_DEFAULT_FORMAT, MIX_DEFAULT_FREQUENCY, MIX_InitFlags_MIX_INIT_MID, MIX_MAJOR_VERSION,
+    MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_Init, Mix_OpenAudio,
+};
 use sdl2::sys::{
-    SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency, SDL_GetTicks, SDL_Renderer,
+    SDL_ClearError, SDL_CreateRenderer, SDL_GameControllerAddMappingsFromRW, SDL_GetBasePath,
+    SDL_GetError, SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency, SDL_GetPrefPath,
+    SDL_GetRendererInfo, SDL_GetTicks, SDL_GetVersion, SDL_HINT_RENDER_SCALE_QUALITY,
+    SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL, SDL_Renderer, SDL_RendererInfo,
+    SDL_SetHint, SDL_SetRenderDrawColor,
 };
 use sdl2::{
     sys::{
@@ -17,13 +34,17 @@ use sdl2::{
     video::WindowPos,
 };
 use std::cell::RefCell;
+use std::ffi::{CStr, CString, c_int};
+use std::path::PathBuf;
 use std::process::exit;
 use std::ptr::NonNull;
 use std::rc::Rc;
+use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration as StdDuration;
 use std::time::Instant;
+use std::{env, ptr};
 
 mod fullscrn;
 mod gdrv;
@@ -42,6 +63,7 @@ mod t_pinball_table;
 mod translations;
 mod zdrv;
 
+mod embedded_data;
 mod midi;
 mod pb;
 mod render;
@@ -217,6 +239,20 @@ fn main_loop() {}
 fn imgui_menu_item_w_shortcut(binding: GameBindings, selected: Option<bool>) {}
 
 fn main() {
+    println!("Game version: {}", VERSION);
+    let args: Vec<String> = std::env::args().collect();
+    println!("Command line: {:?}", args);
+    print!(
+        "Compiled with: SDL {}.{}.{}",
+        SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL
+    );
+    print!(
+        " SDL_mixer {}.{}.{};",
+        MIX_MAJOR_VERSION, MIX_MINOR_VERSION, MIX_PATCHLEVEL
+    );
+    println!(" ImGui {}", IMGUI_VERSION);
+
+    let sdl_context = sdl2::init().unwrap();
     unsafe {
         SDL_SetMainReady();
         if (SDL_Init(
@@ -228,13 +264,21 @@ fn main() {
                 | SDL_INIT_GAMECONTROLLER,
         ) < 0)
         {
+            // TODO: ShowMessageBox
+            // pb::ShowMessageBox(SDL_MESSAGEBOX_ERROR, "Could not initialize SDL2", SDL_GetError());
             println!("OOPS!! No init, closing");
             exit(1);
         }
     }
+
+    let quick_flag = args.iter().any(|arg| arg.contains("-quick"));
+    pb::QUICK_FLAG.store(quick_flag, Relaxed);
+
     unsafe {
         println!("Creating window");
         let window = SDL_CreateWindow(
+            // TODO: Implement
+            // pb::get_rc_string(Msg::STRING139),
             c"PinBall Space Cadet (0.0.0)".as_ptr(),
             0,
             0,
@@ -242,5 +286,128 @@ fn main() {
             556,
             SDL_WINDOW_HIDDEN as u32 | SDL_WINDOW_RESIZABLE as u32,
         );
+        let mut main_window = get_main_window();
+        set_main_window(window);
+        main_window = get_main_window();
+        if !main_window.is_some() {
+            // TODO: Implement ShowMSGBOX
+            //  pb::ShowMessageBox(SDL_MESSAGEBOX_ERROR, "Could not create window", SDL_GetError());
+            println!("Could not create window");
+            exit(1);
+        }
+
+        let sw_offset_flag = args.iter().any(|arg| arg.contains("-sw"));
+        let mut renderer = ptr::null_mut();
+        for i in sw_offset_flag as i32..2 {
+            println!("Offset {}", i);
+            let flags = if i == 0 {
+                print!("Using HW accel");
+                SDL_RENDERER_ACCELERATED
+            } else {
+                println!("Using software");
+                SDL_RENDERER_SOFTWARE
+            };
+            renderer = SDL_CreateRenderer(window, -1, flags as u32);
+            if !renderer.is_null() {
+                println!("Renderer is not null");
+                break;
+            }
+        }
+
+        if renderer.is_null() {
+            // TODO: Implement me
+            //pb::ShowMessageBox(
+            //    SDL_MESSAGEBOX_ERROR,
+            //    "Could not create renderer",
+            //    SDL_GetError(),
+            //);
+            println!("Could not create renderer, is null");
+            exit(1);
+        }
+        let mut renderer_info: SDL_RendererInfo = std::mem::zeroed();
+        let result = SDL_GetRendererInfo(renderer, &mut renderer_info);
+        if result != 0 {
+            println!("Error getting renderer information");
+        } else {
+            println!(
+                "Using SDL Renderer: {}",
+                CStr::from_ptr(renderer_info.name).to_str().unwrap()
+            );
+        }
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_SetHint(
+            SDL_HINT_RENDER_SCALE_QUALITY.as_ptr() as *const i8,
+            c"nearest".as_ptr(),
+        );
+
+        let pref_path = SDL_GetPrefPath(c"".as_ptr(), c"SpaceCadetPinball".as_ptr());
+        let base_path = SDL_GetBasePath();
+
+        let mut mix_opened = false;
+        let no_audio = env::args().any(|arg| arg.contains("-noaudio"));
+        if !no_audio {
+            println!("Audio enabled.");
+            if ((Mix_Init(MIX_InitFlags_MIX_INIT_MID as c_int)
+                & MIX_InitFlags_MIX_INIT_MID as c_int)
+                == 0)
+            {
+                println!(
+                    "Could not initialize SDL MIDI, music might not work.\nSDL Error:{}",
+                    CStr::from_ptr(SDL_GetError()).to_str().unwrap()
+                );
+                SDL_ClearError();
+            }
+            if (Mix_OpenAudio(
+                MIX_DEFAULT_FREQUENCY as c_int,
+                MIX_DEFAULT_FORMAT as u16,
+                2,
+                1024,
+            ) != 0)
+            {
+                println!(
+                    "Could not open audio device, continuing without audio.\nSDL Error:{}",
+                    CStr::from_ptr(SDL_GetError()).to_str().unwrap()
+                );
+                SDL_ClearError();
+            } else {
+                println!("Mix opened!");
+                mix_opened = true;
+            }
+        }
+
+        // Load SDL Game Controller definitions from DB
+        // This is more Rust idiomatic because all solutions I've tried were a complete nightmare...
+        // Including trying to mimick the original one
+        match load_controller_db(&sdl_context) {
+            Ok(_) => {
+                println!("Loaded controller.");
+            }
+            Err(e) => {
+                println!("Error loading controller: {}", e);
+            }
+        }
+
+        let reset_all_options = env::args().any(|arg| arg.contains("-reset"));
+
+        loop {
+            RESTART.store(false, Relaxed);
+
+            // ImGUi Init
+            let mut imgui_context = Context::create();
+            let io = imgui_context.io_mut();
+            let pref_path_string = CStr::from_ptr(pref_path).to_str().unwrap().to_owned();
+            let mut ini_path = PathBuf::from(pref_path_string);
+            ini_path.push("imgui_pb.ini");
+
+            imgui_context.set_ini_filename(Some(ini_path));
+
+            println!("Initializing primary settings");
+            options::init_primary();
+
+            let do_restart = RESTART.load(Relaxed);
+            if do_restart {
+                break;
+            }
+        }
     }
 }
