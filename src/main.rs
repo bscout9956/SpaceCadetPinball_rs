@@ -438,8 +438,38 @@ fn main() {
                 }
             }
 
+            println!("Initializing IMGUI_SDL");
             imgui_sdl::initialize(&mut imgui_context, renderer, 0, 0);
-            
+
+            println!("Locking renderer to init");
+            match RENDERER.lock() {
+                Ok(renderer_opt) => match *renderer_opt {
+                    Some(mut static_renderer) => {
+                        imgui_sdl::init_for_sdl_renderer(
+                            &mut imgui_context,
+                            window,
+                            addr_of_mut!(static_renderer),
+                        );
+                    }
+                    None => {
+                        panic!("Could not find a renderer to initialize");
+                    }
+                },
+                Err(e) => {
+                    println!("Failed to lock renderer: {}", e)
+                }
+            }
+
+            cfg_flags |= ConfigFlags::NAV_ENABLE_KEYBOARD | ConfigFlags::NAV_ENABLE_GAMEPAD;
+            let mut search_paths: Vec<&str> = Vec::new();
+            search_paths.push("");
+            search_paths.push(CStr::from_ptr(base_path).to_str().unwrap());
+            search_paths.push(CStr::from_ptr(pref_path).to_str().unwrap());
+
+            #[cfg(not(target_os = "windows"))]
+            search_paths.extend_from_slice(&PLATFORM_DATA_PATHS);
+            pb::select_dat_file(search_paths);
+
             SDL_ShowWindow(window);
 
             let do_restart = RESTART.load(Relaxed);
