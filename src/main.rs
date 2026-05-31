@@ -190,21 +190,7 @@ pub fn get_main_window() -> Option<NonNull<SDL_Window>> {
     MAIN_WINDOW.with(|cell| *cell.borrow())
 }
 
-// TODO: If I realize that I'll need to use this on threads, use OnceLock or Mutex<Option>
-thread_local! {
-    static RENDERER: RefCell<Option<NonNull<SDL_Renderer>>> = RefCell::new(None);
-}
-
-pub fn set_renderer(renderer: *mut SDL_Renderer) {
-    RENDERER.with(|cell| {
-        let ptr = NonNull::new(renderer).expect("renderer is null");
-        *cell.borrow_mut() = Some(ptr);
-    })
-}
-
-pub fn get_renderer() -> Option<NonNull<SDL_Renderer>> {
-    RENDERER.with(|cell| *cell.borrow())
-}
+static RENDERER: LazyLock<Mutex<Option<SDL_Renderer>>> = LazyLock::new(|| Mutex::new(None));
 
 // TODO: Likewise
 thread_local! {
