@@ -5,8 +5,11 @@ extern crate core;
 use crate::embedded_data::load_controller_db;
 use crate::options::{GameBindings, OptionsStruct};
 use crate::translations::Msg;
-use dear_imgui_rs::sys::ImGuiIO;
-use dear_imgui_rs::{Context, FontConfig};
+use crate::utils::PLATFORM_DATA_PATHS;
+use dear_imgui_rs::sys::{
+    ImGuiConfigFlags_NavEnableGamepad, ImGuiConfigFlags_NavEnableKeyboard, ImGuiIO,
+};
+use dear_imgui_rs::{ConfigFlags, Context, FontConfig, ImGuiResult};
 use lazy_static::lazy_static;
 use sdl2::controller::AddMappingError;
 use sdl2::libc::strstr;
@@ -37,7 +40,7 @@ use std::cell::RefCell;
 use std::ffi::{CStr, CString, c_int};
 use std::path::PathBuf;
 use std::process::exit;
-use std::ptr::NonNull;
+use std::ptr::{NonNull, addr_of_mut};
 use std::rc::Rc;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
@@ -370,7 +373,7 @@ fn main() {
 
         // Load SDL Game Controller definitions from DB
         // This is more Rust idiomatic because all solutions I've tried were a complete nightmare...
-        // Including trying to mimick the original one
+        // Including trying to mimic the original one
         match load_controller_db(&sdl_context) {
             Ok(_) => {
                 println!("Loaded controller.");
@@ -389,11 +392,13 @@ fn main() {
             // ImGUi Init
             let mut imgui_context = Context::create();
             let io = imgui_context.io_mut();
+            let mut cfg_flags = io.config_flags();
+
             let font_cfg = FontConfig::new().oversample_h(2).oversample_h(4);
 
-            let pref_path_string = CStr::from_ptr(pref_path).to_str().unwrap().to_owned();
+            let pref_path_string =
+                CStr::from_ptr(pref_path).to_string_lossy().into_owned() + "imgui_pb.ini";
             let mut ini_path = PathBuf::from(pref_path_string);
-            ini_path.push("imgui_pb.ini");
 
             imgui_context.set_ini_filename(Some(ini_path));
 
