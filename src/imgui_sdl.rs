@@ -1,13 +1,23 @@
-use dear_imgui_rs::Io;
+use dear_imgui_rs::sys::{ImGuiBackendFlags, ImGuiMouseCursor_COUNT, igGetMainViewport};
+use dear_imgui_rs::{BackendFlags, Io};
 use dear_imgui_rs::{Context, TextureId};
 use sdl2::render::RenderTarget;
-use sdl2::sys::{
-    SDL_CreateRGBSurface, SDL_CreateRGBSurfaceFrom, SDL_CreateTexture,
-    SDL_CreateTextureFromSurface, SDL_DestroyTexture, SDL_FreeSurface, SDL_Renderer, SDL_Surface,
-    SDL_Texture,
+use sdl2::sys::SDL_SystemCursor::{
+    SDL_SYSTEM_CURSOR_ARROW, SDL_SYSTEM_CURSOR_HAND, SDL_SYSTEM_CURSOR_IBEAM, SDL_SYSTEM_CURSOR_NO,
+    SDL_SYSTEM_CURSOR_SIZEALL, SDL_SYSTEM_CURSOR_SIZENESW, SDL_SYSTEM_CURSOR_SIZENS,
+    SDL_SYSTEM_CURSOR_SIZENWSE, SDL_SYSTEM_CURSOR_SIZEWE, SDL_SYSTEM_CURSOR_WAIT,
+    SDL_SYSTEM_CURSOR_WAITARROW,
 };
-use std::ffi::c_void;
+use sdl2::sys::{
+    SDL_CreateRGBSurface, SDL_CreateRGBSurfaceFrom, SDL_CreateSystemCursor, SDL_CreateTexture,
+    SDL_CreateTextureFromSurface, SDL_Cursor, SDL_DestroyTexture, SDL_FreeSurface,
+    SDL_GetCurrentVideoDriver, SDL_GetVersion, SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE,
+    SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, SDL_Renderer, SDL_SYSWM_TYPE, SDL_SetHint, SDL_Surface,
+    SDL_SysWMinfo, SDL_Texture, SDL_Window, SDL_bool, SDL_version,
+};
+use std::ffi::{CStr, CString, c_char, c_void};
 use std::ops::{Add, Mul};
+use std::ptr::{addr_of_mut, null_mut};
 use std::sync::{LazyLock, LockResult, Mutex};
 
 pub static CURRENT_DEVICE: LazyLock<Mutex<Option<Device>>> = LazyLock::new(|| Mutex::new(None));
@@ -226,4 +236,125 @@ pub fn initialize(
             *guard = Some(Device::new(renderer));
         }
     }
+}
+
+pub fn init_for_sdl_renderer(
+    context: &mut Context,
+    window: *mut SDL_Window,
+    renderer: *mut SDL_Renderer,
+) -> bool {
+    unsafe { impl_sdl2_init(context, window, renderer) }
+}
+
+struct ImplSdl2Data {
+    window: *mut SDL_Window,
+    renderer: *mut SDL_Renderer,
+    time: u64,
+    mouse_buttons_down: i32,
+    cursor: [SDL_Cursor; ImGuiMouseCursor_COUNT as usize],
+    pending_mouse_leave_frame: i32,
+    clipboard_text_data: *mut c_char,
+    mouse_can_use_global_state: bool,
+}
+
+unsafe fn impl_sdl2_init(
+    context: &mut Context,
+    window: *mut SDL_Window,
+    renderer: *mut SDL_Renderer,
+) -> bool {
+    let mut io = context.io_mut();
+    assert!(
+        io.backend_platform_user_data().is_null(),
+        "SDL_UserData is NULL"
+    ); // VERIFY: Is this what we want?
+    let mut mouse_can_use_global_state = false;
+
+    let sdl_backend = unsafe { SDL_GetCurrentVideoDriver() };
+    let sdl_backend_str = unsafe { CStr::from_ptr(sdl_backend).to_str().unwrap() };
+
+    let global_mouse_whitelist = ["windows", "cocoa", "x11", "DIVE", "VMAN"];
+    for i in 0..global_mouse_whitelist.len() {
+        if sdl_backend_str.eq(global_mouse_whitelist[i]) {
+            mouse_can_use_global_state = true;
+        }
+    }
+
+    let cursors: [SDL_Cursor; ImGuiMouseCursor_COUNT as usize] = unsafe {
+        [
+            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW),
+            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM),
+            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL),
+            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENS),
+            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE),
+            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW),
+            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE),
+            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND),
+            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_WAIT),
+            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_WAITARROW),
+            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NO),
+        ]
+    };
+
+    //new(ImNewWrapper(), ImGui::MemAlloc(sizeof(_TYPE))) _TYPE
+    let bd = Box::new(ImplSdl2Data {
+        window,
+        renderer,
+        time: 0,
+        mouse_buttons_down: 0,
+        cursor: cursors,
+        pending_mouse_leave_frame: 0,
+        clipboard_text_data: null_mut(),
+        mouse_can_use_global_state,
+    });
+
+    let bd_ptr = Box::into_raw(bd);
+
+    io.set_backend_platform_user_data(bd_ptr as *mut c_void);
+    let current_flags = io.backend_flags();
+    io.set_backend_flags(
+        BackendFlags::HAS_MOUSE_CURSORS | current_flags | BackendFlags::HAS_SET_MOUSE_POS,
+    );
+    // TODO: Better check this properly
+    //    context.set_clipboard_backend();
+
+    #[cfg(target_os = "windows")]
+    {
+        let mut info: SDL_SysWMinfo = unsafe { std::mem::zeroed() };
+        unsafe { SDL_GetVersion(&mut info.version) };
+        let info_ptr = addr_of_mut!(info);
+
+        if unsafe { SDL_GetWindowWMInfo(window, info_ptr) } == SDL_bool::SDL_TRUE {
+            let viewport = unsafe { igGetMainViewport() };
+
+            let win_info = unsafe { &*(info_ptr as *const SDL_SysWMinfo_Windows) };
+            let hwnd = win_info.window;
+
+            unsafe {
+                (*viewport).PlatformHandleRaw = hwnd;
+            }
+        }
+    }
+    unsafe {
+        SDL_SetHint(
+            SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH.as_ptr() as *const c_char,
+            c"1".as_ptr(),
+        );
+        SDL_SetHint(
+            SDL_HINT_MOUSE_AUTO_CAPTURE.as_ptr() as *const c_char,
+            c"0".as_ptr(),
+        );
+    }
+
+    true
+}
+
+// This is just so we can handle MSWin Properly.
+// I am not sure why I have to do that honestly, but it seems there's only bindings for Linux
+// Which is strange cause SDL2 should support Windows??
+#[repr(C)]
+struct SDL_SysWMinfo_Windows {
+    pub version: SDL_version,
+    pub subsystem: SDL_SYSWM_TYPE,
+    pub window: *mut c_void,
+    pub hdc: *mut c_void,
 }
