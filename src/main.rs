@@ -5,8 +5,8 @@ extern crate core;
 use crate::embedded_data::load_controller_db;
 use crate::options::{GameBindings, OptionsStruct};
 use crate::translations::Msg;
-use dear_imgui_rs::Context;
-use dear_imgui_rs::sys::{IMGUI_VERSION, ImGuiIO, igCreateContext, igGetIO_ContextPtr};
+use dear_imgui_rs::sys::ImGuiIO;
+use dear_imgui_rs::{Context, FontConfig};
 use lazy_static::lazy_static;
 use sdl2::controller::AddMappingError;
 use sdl2::libc::strstr;
@@ -18,13 +18,7 @@ use sdl2::sys::mixer::{
     MIX_DEFAULT_FORMAT, MIX_DEFAULT_FREQUENCY, MIX_InitFlags_MIX_INIT_MID, MIX_MAJOR_VERSION,
     MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_Init, Mix_OpenAudio,
 };
-use sdl2::sys::{
-    SDL_ClearError, SDL_CreateRenderer, SDL_GameControllerAddMappingsFromRW, SDL_GetBasePath,
-    SDL_GetError, SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency, SDL_GetPrefPath,
-    SDL_GetRendererInfo, SDL_GetTicks, SDL_GetVersion, SDL_HINT_RENDER_SCALE_QUALITY,
-    SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL, SDL_Renderer, SDL_RendererInfo,
-    SDL_SetHint, SDL_SetRenderDrawColor,
-};
+use sdl2::sys::{SDL_ClearError, SDL_CreateRenderer, SDL_GameControllerAddMappingsFromRW, SDL_GetBasePath, SDL_GetError, SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency, SDL_GetPrefPath, SDL_GetRendererInfo, SDL_GetTicks, SDL_GetVersion, SDL_HINT_RENDER_SCALE_QUALITY, SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL, SDL_Renderer, SDL_RendererInfo, SDL_SetHint, SDL_SetRenderDrawColor, SDL_ShowWindow};
 use sdl2::{
     sys::{
         SDL_CreateWindow, SDL_INIT_AUDIO, SDL_INIT_EVENTS, SDL_INIT_GAMECONTROLLER,
@@ -41,7 +35,7 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
-use std::sync::{LazyLock, Mutex};
+use std::sync::{LazyLock, LockResult, Mutex};
 use std::time::Duration as StdDuration;
 use std::time::Instant;
 use std::{env, ptr};
@@ -64,6 +58,7 @@ mod translations;
 mod zdrv;
 
 mod embedded_data;
+mod imgui_sdl;
 mod midi;
 mod pb;
 mod render;
@@ -250,7 +245,7 @@ fn main() {
         " SDL_mixer {}.{}.{};",
         MIX_MAJOR_VERSION, MIX_MINOR_VERSION, MIX_PATCHLEVEL
     );
-    println!(" ImGui {}", IMGUI_VERSION);
+    println!(" ImGui {}", "TODO");
 
     let sdl_context = sdl2::init().unwrap();
     unsafe {
@@ -387,22 +382,62 @@ fn main() {
             }
         }
 
-        let reset_all_options = env::args().any(|arg| arg.contains("-reset"));
+        let mut reset_all_options = env::args().any(|arg| arg.contains("-reset"));
 
+        println!("Entering loop");
         loop {
             RESTART.store(false, Relaxed);
 
             // ImGUi Init
             let mut imgui_context = Context::create();
             let io = imgui_context.io_mut();
+            let font_cfg = FontConfig::new().oversample_h(2).oversample_h(4);
+
             let pref_path_string = CStr::from_ptr(pref_path).to_str().unwrap().to_owned();
             let mut ini_path = PathBuf::from(pref_path_string);
             ini_path.push("imgui_pb.ini");
 
             imgui_context.set_ini_filename(Some(ini_path));
 
-            println!("Initializing primary settings");
             options::init_primary();
+            if reset_all_options {
+                reset_all_options = false;
+                options::reset_all_options();
+            }
+
+            match OPTIONS.lock() {
+                Ok(options) => {
+                    let font_file_name = &options.font_file_name.value;
+
+                    if !font_file_name.is_empty() {
+                        let mut fonts = imgui_context.fonts();
+                        let ranges = fonts.get_glyph_ranges_default().to_vec();
+
+                        let custom_font = fonts.add_font_from_file_ttf(
+                            font_file_name,
+                            13.0,
+                            Some(&font_cfg),
+                            Some(&ranges),
+                        );
+
+                        if custom_font.is_none() {
+                            println!("Could not load font {}", font_file_name);
+                            imgui_context.fonts().add_font_default(Some(&font_cfg));
+                        }
+                    } else {
+                        imgui_context.fonts().add_font_default(Some(&font_cfg));
+                    }
+
+                    imgui_context.fonts().build();
+                }
+                Err(err) => {
+                    println!("Failed to lock options: {}", err);
+                }
+            }
+
+            imgui_sdl::initialize(&mut imgui_context, renderer, 0, 0);
+            
+            SDL_ShowWindow(window);
 
             let do_restart = RESTART.load(Relaxed);
             if do_restart {
