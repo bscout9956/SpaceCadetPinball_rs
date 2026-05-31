@@ -1,6 +1,16 @@
+use crate::options::OptionsStruct;
+use dear_imgui_rs::internal::ImVector;
+use dear_imgui_rs::sys::{ImFontGlyphRangesBuilder, ImWchar};
+use dear_imgui_rs::{GlyphRangesBuilder, Io};
+use lazy_static::lazy_static;
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 use std::cmp::PartialEq;
+use std::ops::DerefMut;
+use std::ptr::null;
+use std::sync::{LazyLock, Mutex};
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, FromPrimitive)]
 pub enum Msg {
     MIN,
     STRING101,
@@ -223,6 +233,7 @@ pub enum Msg {
     MAX,
 }
 
+#[derive(Copy, Clone, PartialEq)]
 enum Lang {
     MIN,
     ARABIC,
@@ -252,14 +263,178 @@ enum Lang {
     MAX,
 }
 
+impl Default for Lang {
+    fn default() -> Self {
+        Lang::ENGLISH
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
 pub struct LanguageInfo {
     pub short_name: &'static str,
+    pub display_name: &'static str,
+    pub language: Lang,
 }
 
-pub(crate) fn get_current_language() -> LanguageInfo {
-    todo!()
+lazy_static! {
+    static ref LANGUAGES: [LanguageInfo; Lang::MAX as usize] = [
+        LanguageInfo {
+            short_name: "ar",
+            display_name: "Arabic",
+            language: Lang::ARABIC
+        },
+        LanguageInfo {
+            short_name: "cz",
+            display_name: "Czech",
+            language: Lang::CZECH
+        },
+        LanguageInfo {
+            short_name: "da",
+            display_name: "Danish",
+            language: Lang::DANISH
+        },
+        LanguageInfo {
+            short_name: "de",
+            display_name: "German",
+            language: Lang::GERMAN
+        },
+        LanguageInfo {
+            short_name: "el",
+            display_name: "Greek",
+            language: Lang::GREEK,
+        },
+        LanguageInfo {
+            short_name: "en",
+            display_name: "English",
+            language: Lang::ENGLISH,
+        },
+        LanguageInfo {
+            short_name: "es",
+            display_name: "Spanish",
+            language: Lang::SPANISH,
+        },
+        LanguageInfo {
+            short_name: "fi",
+            display_name: "Finnish",
+            language: Lang::FINNISH,
+        },
+        LanguageInfo {
+            short_name: "fr",
+            display_name: "French",
+            language: Lang::FRENCH,
+        },
+        LanguageInfo {
+            short_name: "he",
+            display_name: "Hebrew",
+            language: Lang::HEBREW,
+        },
+        LanguageInfo {
+            short_name: "hu",
+            display_name: "Hungarian",
+            language: Lang::HUNGARIAN,
+        },
+        LanguageInfo {
+            short_name: "it",
+            display_name: "Italian",
+            language: Lang::ITALIAN,
+        },
+        LanguageInfo {
+            short_name: "ja",
+            display_name: "Japanese",
+            language: Lang::JAPANESE,
+        },
+        LanguageInfo {
+            short_name: "ko",
+            display_name: "Korean",
+            language: Lang::KOREAN,
+        },
+        LanguageInfo {
+            short_name: "nb",
+            display_name: "Norwegian",
+            language: Lang::NORWEGIAN,
+        },
+        LanguageInfo {
+            short_name: "nl",
+            display_name: "Dutch",
+            language: Lang::DUTCH,
+        },
+        LanguageInfo {
+            short_name: "pl",
+            display_name: "Polish",
+            language: Lang::POLISH,
+        },
+        LanguageInfo {
+            short_name: "pt_BR",
+            display_name: "Brazilian Portuguese",
+            language: Lang::BrazilianPortuguese,
+        },
+        LanguageInfo {
+            short_name: "pt_PT",
+            display_name: "Portuguese",
+            language: Lang::PORTUGUESE,
+        },
+        LanguageInfo {
+            short_name: "ru",
+            display_name: "Russian",
+            language: Lang::RUSSIAN,
+        },
+        LanguageInfo {
+            short_name: "sv",
+            display_name: "Swedish",
+            language: Lang::SWEDISH,
+        },
+        LanguageInfo {
+            short_name: "tr",
+            display_name: "Turkish",
+            language: Lang::TURKISH,
+        },
+        LanguageInfo {
+            short_name: "zh_CN",
+            display_name: "Simplified Chinese",
+            language: Lang::SimplifiedChinese,
+        },
+        LanguageInfo {
+            short_name: "zh_TW",
+            display_name: "Traditional Chinese",
+            language: Lang::TraditionalChinese,
+        },
+        LanguageInfo {
+            short_name: "",
+            display_name: "",
+            language: Lang::MIN,
+        },
+    ];
 }
 
-pub(crate) fn set_current_language(p0: &str) {
-    todo!()
+static CURRENT_LANGUAGE: LazyLock<Mutex<Lang>> = LazyLock::new(|| Mutex::new(Lang::default()));
+
+pub fn get_current_language() -> Option<LanguageInfo> {
+    for lang_info in LANGUAGES.iter() {
+        if lang_info.language == *CURRENT_LANGUAGE.lock().unwrap() {
+            return Some(*lang_info);
+        }
+    }
+    None
 }
+
+pub fn set_current_language(short_name: &str) {
+    for lang_info in LANGUAGES.iter() {
+        if !lang_info.short_name.eq(short_name) {
+            let mut curr_lang = CURRENT_LANGUAGE.lock().unwrap();
+            *curr_lang = lang_info.language;
+            return;
+        }
+    }
+    assert!(false, "Language not available or unknown");
+}
+
+// pub(crate) fn get_glyph_range(io: &mut Io, options: &OptionsStruct) {
+//     let mut builder = GlyphRangesBuilder::new();
+//
+//     for i in 0..(Msg::MAX as i32) {
+//         let msg = Msg::from_i32(i);
+//         if let Some(translation) = get_translation(msg) {
+//             builder.add_text(translation);
+//         }
+//     }
+// }
