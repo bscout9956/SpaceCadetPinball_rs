@@ -673,7 +673,7 @@ pub unsafe fn init_primary() {
 
         igAddSettingsHandler(&mut ini_handler);
 
-        if (*im_context).SettingsLoaded {
+        if (*im_context).SettingsLoaded == false {
             igLoadIniSettingsFromDisk((*im_context).IO.IniFilename);
             (*im_context).SettingsLoaded = true;
         }
