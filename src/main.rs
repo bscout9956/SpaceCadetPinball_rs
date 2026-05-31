@@ -278,7 +278,7 @@ fn main() {
         }
 
         let sw_offset_flag = args.iter().any(|arg| arg.contains("-sw"));
-        let mut renderer = ptr::null_mut();
+        let mut renderer: *mut SDL_Renderer = std::mem::zeroed();
         for i in sw_offset_flag as i32..2 {
             println!("Offset {}", i);
             let flags = if i == 0 {
@@ -289,6 +289,12 @@ fn main() {
                 SDL_RENDERER_SOFTWARE
             };
             renderer = SDL_CreateRenderer(window, -1, flags as u32);
+            let mut static_render = RENDERER.lock().unwrap();
+            if !renderer.is_null() {
+                *static_render = Some(*renderer);
+                println!("Renderer successfully created and assigned.");
+            }
+
             if !renderer.is_null() {
                 println!("Renderer is not null");
                 break;
