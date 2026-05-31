@@ -1,4 +1,5 @@
 use crate::maths::Vector2;
+use crate::options::Setting;
 use crate::t_pinball_component::TPinballComponent;
 use sdl2::libc::fopen;
 use sdl2::sys::SDL_RWFromFile;
@@ -112,7 +113,7 @@ impl Sound {
         let lp_name_c_raw = CString::new(lp_name).unwrap().into_raw();
         let mode_c_raw = CString::new("r").unwrap().into_raw();
         if let Some(wav_exists) = std::fs::exists(Path::new(lp_name)).ok() {
-            if !wav_exists {
+            if wav_exists == false {
                 return std::ptr::null_mut();
             }
             unsafe { Mix_LoadWAV_RW(SDL_RWFromFile(lp_name_c_raw, mode_c_raw), 1) }
@@ -164,5 +165,9 @@ pub(crate) fn load_wave_file(p0: String) -> *const Mix_Chunk {
 }
 
 pub(crate) fn play_sound(p0: *const Mix_Chunk, p1: usize, p2: TPinballComponent, p3: &[u8]) {
+    todo!()
+}
+
+pub(crate) fn init(p0: bool, p1: Setting<i32>, p2: Setting<bool>, p3: Setting<i32>) {
     todo!()
 }
