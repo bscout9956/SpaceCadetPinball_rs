@@ -751,7 +751,7 @@ pub fn toggle(u_id_check_item: Menu) {
         }
         Menu::Music => {
             *options.music = !(*options.music);
-            if !(*options.music) {
+            if (*options.music) == false {
                 midi::music_stop();
             } else {
                 midi::music_play();
