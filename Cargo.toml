@@ -8,4 +8,5 @@ dear-imgui-rs = "0.14.0"
 num-derive = "0.4.2"
 num-traits = "0.2.19"
 sdl2 = { version = "0.38.0", features = ["mixer"] }
+lazy_static = "1.5.0"
 
