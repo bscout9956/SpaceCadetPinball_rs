@@ -9,4 +9,5 @@ num-derive = "0.4.2"
 num-traits = "0.2.19"
 sdl2 = { version = "0.38.0", features = ["mixer"] }
 lazy_static = "1.5.0"
+bytemuck = "1.25.0"
 
