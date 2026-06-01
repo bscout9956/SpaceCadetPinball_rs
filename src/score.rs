@@ -1,5 +1,6 @@
 //todo: temporary
-pub struct GdrvBitmap8;
+
+use crate::gdrv::GdrvBitmap8;
 
 pub struct ScoreStruct {
     pub score: i32,
