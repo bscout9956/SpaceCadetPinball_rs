@@ -88,7 +88,7 @@ impl TPinballTable<'_> {
         let pinball_component = TPinballComponent::new(None, -1, false);
         let active_flag = Rc::new(Cell::new(true));
 
-        let Instance = Self {
+        let instance = Self {
             active_flag: active_flag.clone(),
             flipper_l: TFlipper,
             flipper_r: TFlipper,
@@ -206,6 +206,6 @@ impl TPinballTable<'_> {
         //Instance.player_scores[0] = score1;
         // TODO: Continue implementing
 
-        Instance
+        instance
     }
 }
