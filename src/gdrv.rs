@@ -1,4 +1,8 @@
+use crate::partman::{Bmp8Flags, Dat8BitBmpHeader};
 use sdl2::sys::SDL_Texture;
+use std::cmp::PartialEq;
+use std::ffi::c_char;
+use std::ptr::{null, null_mut};
 
 #[derive(Debug, Copy, Clone)]
 #[repr(u8)]
@@ -85,9 +89,9 @@ impl ColorRgba {
 }
 
 #[derive(Copy, Clone)]
-pub struct GdrvBitmap8<'a> {
-    pub bmp_buf_ptr_1: &'a [ColorRgba],
-    pub indexed_bmp_ptr: &'a [u8],
+pub struct GdrvBitmap8 {
+    pub bmp_buf_ptr_1: *mut ColorRgba,
+    pub indexed_bmp_ptr: *const c_char,
     pub width: i32,
     pub height: i32,
     pub stride: i32,
@@ -95,7 +99,81 @@ pub struct GdrvBitmap8<'a> {
     pub bitmap_type: BitmapTypes,
     pub x_position: i32,
     pub y_position: i32,
-    pub resolution: u32, // TODO: Source said "unsigned", but "unsigned" what?
-    pub texture: SDL_Texture,
+    pub resolution: u32,
+    pub texture: Option<SDL_Texture>,
     pub current_palette: [ColorRgba; 256],
+}
+
+impl PartialEq for BitmapTypes {
+    fn eq(&self, other: &Self) -> bool {
+        todo!()
+    }
+}
+
+impl GdrvBitmap8 {
+    pub fn new(header: &Dat8BitBmpHeader) -> Self {
+        assert!(
+            header.width >= 0 && header.height >= 0,
+            "Negative bitmap8 dimensions"
+        );
+        let mut instance = Self::default();
+
+        if header.is_flag_set(Bmp8Flags::SPLICED) {
+            instance.bitmap_type = BitmapTypes::Spliced;
+        } else if header.is_flag_set(Bmp8Flags::DIB_BITMAP) {
+            instance.bitmap_type = BitmapTypes::DibBitmap;
+        } else {
+            instance.bitmap_type = BitmapTypes::RawBitmap;
+        }
+
+        instance.width = header.width as i32;
+        instance.stride = header.width as i32;
+        instance.indexed_stride = header.width as i32;
+        instance.height = header.height as i32;
+        instance.x_position = header.x_position as i32;
+        instance.y_position = header.y_position as i32;
+        instance.resolution = header.resolution as u32;
+
+        let mut size_in_bytes: i32;
+        if instance.bitmap_type == BitmapTypes::Spliced {
+            size_in_bytes = header.size;
+        } else {
+            if instance.bitmap_type == BitmapTypes::RawBitmap {
+                assert!(
+                    instance.width % 4 == 0 || header.is_flag_set(Bmp8Flags::RAW_BMP_UNALIGNED),
+                    "Wrong raw bitmap align flag"
+                );
+            }
+            if instance.width % 4 == 0 {
+                instance.indexed_stride = instance.width - instance.width % 4 + 4;
+            }
+            size_in_bytes = instance.height * instance.indexed_stride;
+            let header_size = header.size;
+            assert_eq!(size_in_bytes, header_size, "Wrong bitmap8 size");
+        }
+
+        let bmp_vec: Vec<c_char> = Vec::with_capacity(size_in_bytes as usize);
+        instance.indexed_bmp_ptr = bmp_vec.as_ptr();
+        let mut color = ColorRgba::color_rgba_u32((instance.height * instance.stride) as u32);
+        instance.bmp_buf_ptr_1 = &raw mut color;
+
+        instance
+    }
+
+    pub fn default() -> Self {
+        Self {
+            bmp_buf_ptr_1: null_mut(),
+            indexed_bmp_ptr: null(),
+            width: 0,
+            height: 0,
+            stride: 0,
+            indexed_stride: 0,
+            bitmap_type: BitmapTypes::None,
+            x_position: 0,
+            y_position: 0,
+            resolution: 0,
+            texture: None,
+            current_palette: [ColorRgba::black(); 256],
+        }
+    }
 }
