@@ -1,11 +1,12 @@
 use crate::fullscrn;
 use crate::gdrv::GdrvBitmap8;
 use crate::zdrv::ZMapHeaderType;
+use num_derive::FromPrimitive;
 use sdl2::libc::strlen;
 use std::cmp::{Ordering, PartialOrd};
 use std::ffi::{CStr, c_char};
 
-#[derive(PartialEq, PartialOrd, Copy, Clone)]
+#[derive(PartialEq, PartialOrd, Copy, Clone, FromPrimitive)]
 #[repr(i16)]
 pub enum FieldTypes {
     // One 16-bit signed integer
@@ -31,14 +32,14 @@ pub enum FieldTypes {
     Bitmap16bit = 12,
 }
 
-struct EntryData<'a> {
-    entry_type: FieldTypes,
-    field_size: i32,
-    buffer: Option<&'a [u8]>,
+pub struct EntryData<'a> {
+    pub entry_type: FieldTypes,
+    pub field_size: i32,
+    pub buffer: Option<&'a [u8]>,
 }
 
 impl<'a> EntryData<'a> {
-    fn new(entry_type: FieldTypes, buffer: Option<&'a [u8]>) -> Self {
+    pub fn new(entry_type: FieldTypes, buffer: Option<&'a [u8]>) -> Self {
         let mut field_size = 0;
         if let Some(buffer_vec) = buffer {
             field_size = buffer_vec.len();
@@ -47,6 +48,14 @@ impl<'a> EntryData<'a> {
             entry_type,
             field_size: field_size as i32,
             buffer,
+        }
+    }
+
+    pub fn default() -> Self {
+        Self {
+            entry_type: FieldTypes::Unknown8,
+            field_size: 0,
+            buffer: None,
         }
     }
 }
@@ -70,7 +79,7 @@ pub struct GroupData<'a> {
     group_id: i32,
     group_name: String,
     entries: Vec<EntryData<'a>>,
-    bitmaps: [GdrvBitmap8<'a>; 3],
+    bitmaps: [GdrvBitmap8; 3],
     z_maps: [ZMapHeaderType; 3],
     needs_sort: bool,
 }
@@ -83,8 +92,23 @@ impl<'a> GroupData<'a> {
         self.z_maps[resolution as usize]
     }
 
-    pub fn get_bitmap(&self, resolution: i32) -> GdrvBitmap8<'a> {
+    pub fn get_bitmap(&self, resolution: i32) -> GdrvBitmap8 {
         self.bitmaps[resolution as usize]
+    }
+
+    pub fn new(group_id: i32) -> Self {
+        Self {
+            group_id,
+            group_name: "".to_string(),
+            entries: vec![],
+            bitmaps: [GdrvBitmap8::default(); 3],
+            z_maps: [ZMapHeaderType::new(); 3],
+            needs_sort: true,
+        }
+    }
+
+    pub fn reserve_entries(&mut self, count: usize) {
+        self.entries.reserve(count);
     }
 }
 
@@ -94,7 +118,18 @@ pub struct DatFile<'a> {
     pub groups: Vec<GroupData<'a>>,
 }
 
+unsafe impl Send for DatFile<'_> {}
+unsafe impl Sync for DatFile<'_> {}
+
 impl<'a> DatFile<'a> {
+    pub fn new() -> Self {
+        Self {
+            app_name: "".to_string(),
+            description: "".to_string(),
+            groups: vec![],
+        }
+    }
+
     pub fn field(&self, group_index: i32, target_entry_type: FieldTypes) -> Option<&'a [u8]> {
         assert!(
             target_entry_type != FieldTypes::Bitmap8bit
@@ -181,7 +216,7 @@ impl<'a> DatFile<'a> {
         self.field_size_nth(group_index, target_entry_type, 0)
     }
 
-    pub fn get_bitmap(&self, group_index: i32) -> GdrvBitmap8<'a> {
+    pub fn get_bitmap(&self, group_index: i32) -> GdrvBitmap8 {
         let group = self.groups.get(group_index as usize).unwrap();
         group.get_bitmap(fullscrn::get_resolution())
     }
