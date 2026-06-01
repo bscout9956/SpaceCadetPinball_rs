@@ -38,10 +38,12 @@ use sdl2::{
 };
 use std::cell::RefCell;
 use std::ffi::{CStr, CString, c_int};
+use std::ops::Index;
 use std::path::PathBuf;
 use std::process::exit;
 use std::ptr::{NonNull, addr_of_mut};
 use std::rc::Rc;
+use std::str::FromStr;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
 use std::sync::{LazyLock, LockResult, Mutex};
@@ -69,6 +71,7 @@ mod zdrv;
 mod embedded_data;
 mod imgui_sdl;
 mod midi;
+mod partman;
 mod pb;
 mod render;
 mod utils;
@@ -135,7 +138,7 @@ impl WelfordState {
     }
 
     pub fn get_std_dev(&self) -> f64 {
-        return f64::sqrt(self.m2 / (self.count - 1) as f64);
+        f64::sqrt(self.m2 / (self.count - 1) as f64)
     }
 }
 
@@ -485,6 +488,29 @@ fn main() {
             //         println!("Failed to lock options: {}", e);
             //     }
             // }
+
+            if pb::init() == false {
+                let mut message = String::from(
+                    "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
+                );
+                for path in search_paths {
+                    let str_push = if path.is_empty() == false {
+                        path
+                    } else {
+                        "working directory\n"
+                    };
+                    message = message + str_push;
+                }
+                println!("Could not load game data");
+                // pb::show_message_box(
+                //     SDL_MESSAGEBOX_ERROR,
+                //     "Could not load game data",
+                //     CString::from_str(&message).unwrap().as_ptr(),
+                // );
+                exit(1);
+            }
+
+            // fullscrn::init();
 
             SDL_ShowWindow(window);
 
