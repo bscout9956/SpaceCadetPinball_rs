@@ -146,7 +146,7 @@ pub struct TPinballComponent<'a> {
     pub group_index: i32,
     pub render_sprite: RenderSprite, //TODO: Decide what this will be
     pub pinball_table: Option<Weak<RefCell<TPinballTable<'a>>>>,
-    pub list_bitmap: Vec<SpriteData<'a>>, // TODO: Decide the internal struct
+    pub list_bitmap: Vec<SpriteData>,
 
     visual_pos_norm_x: f32,
     visual_pos_norm_y: f32,
