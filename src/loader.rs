@@ -167,8 +167,8 @@ pub struct VisualKickerStruct {
 }
 
 #[derive(Copy, Clone)]
-pub struct SpriteData<'a> {
-    bmp: Option<GdrvBitmap8<'a>>,
+pub struct SpriteData {
+    bmp: Option<GdrvBitmap8>,
     zmap: Option<ZMapHeaderType>,
 }
 
@@ -183,7 +183,7 @@ pub struct VisualStruct<'a> {
     pub collision_group: i32,
     pub sound_index_4: i32,
     pub sound_index_3: i32,
-    pub bitmap: SpriteData<'a>,
+    pub bitmap: SpriteData,
 }
 
 #[repr(C, packed)]
