@@ -60,7 +60,7 @@ impl TCollisionComponent<'_> {
             bitmap: todo!(),
         };
 
-        let mut Instance = Self {
+        let mut instance = Self {
             edge_list: vec![],
             elasticity: 0.0,
             smoothness: 0.0,
@@ -77,9 +77,9 @@ impl TCollisionComponent<'_> {
             t_pinball_component: pinball_component,
         };
 
-        Instance.t_pinball_component.active_flag = Rc::new(Cell::new(true));
-        if !Instance.t_pinball_component.group_name.is_some() {
-            Instance.t_pinball_component.unused_base_flag = Rc::new(Cell::new(true));
+        instance.t_pinball_component.active_flag = Rc::new(Cell::new(true));
+        if !instance.t_pinball_component.group_name.is_some() {
+            instance.t_pinball_component.unused_base_flag = Rc::new(Cell::new(true));
         }
         // if group_index <= 0 {
         //     // TODO: Implement loader
@@ -102,15 +102,15 @@ impl TCollisionComponent<'_> {
         //     }
         // }
 
-        Instance.threshold = visual.kicker.threshold;
-        Instance.elasticity = visual.elasticity;
-        Instance.smoothness = visual.smoothness;
-        Instance.boost = visual.kicker.boost;
-        Instance.hard_hit_sound_id = visual.kicker.hard_hit_sound_id;
-        Instance.soft_hit_sound_id = visual.soft_hit_sound_id;
-        Instance.t_pinball_component.group_index = group_index;
+        instance.threshold = visual.kicker.threshold;
+        instance.elasticity = visual.elasticity;
+        instance.smoothness = visual.smoothness;
+        instance.boost = visual.kicker.boost;
+        instance.hard_hit_sound_id = visual.kicker.hard_hit_sound_id;
+        instance.soft_hit_sound_id = visual.soft_hit_sound_id;
+        instance.t_pinball_component.group_index = group_index;
 
-        Instance
+        instance
     }
 }
 
