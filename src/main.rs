@@ -10,7 +10,6 @@ use dear_imgui_rs::sys::{
     ImGuiConfigFlags_NavEnableGamepad, ImGuiConfigFlags_NavEnableKeyboard, ImGuiIO,
 };
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig, ImGuiResult};
-use lazy_static::lazy_static;
 use sdl2::controller::AddMappingError;
 use sdl2::libc::strstr;
 use sdl2::mixer::get_linked_version;
@@ -37,6 +36,7 @@ use sdl2::{
     video::WindowPos,
 };
 use std::cell::RefCell;
+use std::error::Error;
 use std::ffi::{CStr, CString, c_int};
 use std::ops::Index;
 use std::path::PathBuf;
@@ -50,7 +50,6 @@ use std::sync::{LazyLock, LockResult, Mutex};
 use std::time::Duration as StdDuration;
 use std::time::Instant;
 use std::{env, ptr};
-use std::error::Error;
 
 mod fullscrn;
 mod gdrv;
@@ -163,11 +162,10 @@ static HAS_FOCUS: AtomicBool = AtomicBool::new(true);
 static DISP_GR_HISTORY: AtomicBool = AtomicBool::new(false);
 static DISP_FRAME_RATE: AtomicBool = AtomicBool::new(false);
 // TODO: CHECK DEFAULTS
-lazy_static! {
-    static ref GFR_DISPLAY: Mutex<Vec<f32>> = Mutex::new(Vec::new());
-    static ref FPS_DETAILS: Mutex<String> = Mutex::new(String::new());
-    static ref PREV_SDL_ERROR: Mutex<String> = Mutex::new(String::new());
-}
+
+static GFR_DISPLAY: Mutex<Vec<f32>> = Mutex::new(Vec::new());
+static FPS_DETAILS: Mutex<String> = Mutex::new(String::new());
+static PREV_SDL_ERROR: Mutex<String> = Mutex::new(String::new());
 static RESTART: AtomicBool = AtomicBool::new(false);
 static SHOW_ABOUT_DIALOG: AtomicBool = AtomicBool::new(false);
 static SHOW_IMGUI_DEMO: AtomicBool = AtomicBool::new(false);
@@ -176,12 +174,13 @@ static SHOW_EXIT_POPUP: AtomicBool = AtomicBool::new(false);
 
 pub type DurationMs = f64;
 
-lazy_static! {
-    static ref UPDATE_TO_FRAME_RATIO: Mutex<f64> = Mutex::new(0.0);
-    static ref TARGET_FRAMETIME: Mutex<DurationMs> = Mutex::new(DurationMs::default());
-    static ref SPIN_THRESHOLD: Mutex<DurationMs> = Mutex::new(DurationMs::default());
-    static ref SLEEP_STATE: Mutex<WelfordState> = Mutex::new(WelfordState::new());
-}
+static UPDATE_TO_FRAME_RATIO: Mutex<f64> = Mutex::new(0.0);
+static TARGET_FRAMETIME: LazyLock<Mutex<DurationMs>> =
+    LazyLock::new(|| Mutex::new(DurationMs::default()));
+static SPIN_THRESHOLD: LazyLock<Mutex<DurationMs>> =
+    LazyLock::new(|| Mutex::new(DurationMs::default()));
+static SLEEP_STATE: LazyLock<Mutex<WelfordState>> =
+    LazyLock::new(|| Mutex::new(WelfordState::new()));
 
 static OPTIONS: &LazyLock<Mutex<OptionsStruct>> = &options::OPTIONS;
 static PREV_SDL_ERROR_COUNT: AtomicU32 = AtomicU32::new(0);
