@@ -294,6 +294,7 @@ impl GameInput {
                     mouse_buttons[self.value as usize]
                 } else {
                     // VERIFY: Maybe we could just return string, we just need to make sure nothing else calls this necessarily
+                    // TODO: Dangling pointer
                     CString::from_str(format!("MButton {}", self.value).as_str())
                         .unwrap_or_default()
                         .as_ptr()
@@ -307,6 +308,7 @@ impl GameInput {
                 } else {
                     // VERIFY: Maybe we could just return string?
                     // We just need to make sure nothing else calls this necessarily
+                    // TODO: Dangling pointer
                     CString::from_str(format!("CButton {}", self.value).as_str())
                         .unwrap_or_default()
                         .as_ptr()
@@ -854,8 +856,8 @@ pub fn map_game_input(key: GameInput) -> Vec<GameBindings> {
     let mut options = OPTIONS.lock().unwrap();
 
     for input_id in GameBindings::Min as i32..GameBindings::Max as i32 {
-        for inputValue in options.control_options[input_id as usize].inputs {
-            if key == inputValue {
+        for input_value in options.control_options[input_id as usize].inputs {
+            if key == input_value {
                 result.push(GameBindings::from_i32(input_id).unwrap());
                 break;
             }
@@ -898,6 +900,7 @@ pub unsafe extern "C" fn MyUserData_ReadOpen(
     if name.eq(&c"Settings".as_ptr()) {
         let settings = SETTINGS.lock().unwrap();
         let mut clone_hash = settings.clone();
+        // TODO: Dangling pointer
         return &raw mut clone_hash as *mut c_void;
     }
     std::ptr::null_mut()
