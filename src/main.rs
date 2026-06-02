@@ -97,8 +97,8 @@ impl Clock for SdlPerformanceClock {
     type TimePoint = TimePoint<1_000_000_000>;
     const IS_STEADY: bool = true;
     unsafe fn now() -> Self::TimePoint {
-        let freq = SDL_GetPerformanceFrequency();
-        let ctr = SDL_GetPerformanceCounter();
+        let freq = unsafe { SDL_GetPerformanceFrequency() };
+        let ctr = unsafe { SDL_GetPerformanceCounter() };
         let whole = (ctr / freq) * 1_000_000_000;
         let part = (ctr % freq) * 1_000_000_000 / freq;
         TimePoint(Duration((whole + part) as i64))
@@ -283,7 +283,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut main_window = get_main_window();
         set_main_window(window);
         main_window = get_main_window();
-        if !main_window.is_some() {
+        if main_window.is_none() {
             // TODO: Implement ShowMSGBOX
             //  pb::ShowMessageBox(SDL_MESSAGEBOX_ERROR, "Could not create window", SDL_GetError());
             println!("Could not create window");
@@ -490,17 +490,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             //     }
             // }
 
-            if pb::init()? == false {
+            if !pb::init()? {
                 let mut message = String::from(
                     "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
                 );
                 for path in search_paths {
-                    let str_push = if path.is_empty() == false {
+                    let str_push = if !path.is_empty() {
                         path
                     } else {
                         "working directory\n"
                     };
-                    message = message + str_push;
+                    message += str_push;
                 }
                 println!("Could not load game data");
                 // pb::show_message_box(
