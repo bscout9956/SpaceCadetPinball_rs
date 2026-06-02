@@ -69,6 +69,7 @@ mod translations;
 mod zdrv;
 
 mod embedded_data;
+mod errors;
 mod imgui_sdl;
 mod midi;
 mod partman;
