@@ -16,6 +16,8 @@ pub enum RecordLoadError {
     BitmapResolutionOobError,
     #[error("Unknown error...")]
     UnknownError,
+    #[error("Field type is out of bounds or is not recognized")]
+    InvalidFieldTypeError,
 }
 
 #[derive(Error, Debug)]
