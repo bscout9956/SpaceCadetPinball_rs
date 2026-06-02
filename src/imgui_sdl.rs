@@ -326,7 +326,7 @@ unsafe fn impl_sdl2_init(
         if unsafe { SDL_GetWindowWMInfo(window, info_ptr) } == SDL_bool::SDL_TRUE {
             let viewport = unsafe { igGetMainViewport() };
 
-            let win_info = unsafe { &*(info_ptr as *const SDL_SysWMinfo_Windows) };
+            let win_info = unsafe { &*(info_ptr as *const SdlSysWminfoWindows) };
             let hwnd = win_info.window;
 
             unsafe {
@@ -352,7 +352,7 @@ unsafe fn impl_sdl2_init(
 // I am not sure why I have to do that honestly, but it seems there's only bindings for Linux
 // Which is strange cause SDL2 should support Windows??
 #[repr(C)]
-struct SDL_SysWMinfo_Windows {
+struct SdlSysWminfoWindows {
     pub version: SDL_version,
     pub subsystem: SDL_SYSWM_TYPE,
     pub window: *mut c_void,
