@@ -221,7 +221,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
     println!(" ImGui {}", "TODO");
 
-    let sdl_context = sdl2::init().unwrap();
+    let sdl_context = sdl2::init()?;
     unsafe {
         SDL_SetMainReady();
         if (SDL_Init(
@@ -277,7 +277,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 SDL_RENDERER_SOFTWARE
             };
             renderer = SDL_CreateRenderer(window, -1, flags as u32);
-            let mut static_render = RENDERER.lock().unwrap();
+            let mut static_render = RENDERER.lock()?;
             if !renderer.is_null() {
                 *static_render = Some(*renderer);
                 println!("Renderer successfully created and assigned.");
@@ -306,7 +306,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         } else {
             println!(
                 "Using SDL Renderer: {}",
-                CStr::from_ptr(renderer_info.name).to_str().unwrap()
+                CStr::from_ptr(renderer_info.name).to_str()?
             );
         }
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -328,7 +328,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             {
                 println!(
                     "Could not initialize SDL MIDI, music might not work.\nSDL Error:{}",
-                    CStr::from_ptr(SDL_GetError()).to_str().unwrap()
+                    CStr::from_ptr(SDL_GetError()).to_str()?
                 );
                 SDL_ClearError();
             }
@@ -341,7 +341,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             {
                 println!(
                     "Could not open audio device, continuing without audio.\nSDL Error:{}",
-                    CStr::from_ptr(SDL_GetError()).to_str().unwrap()
+                    CStr::from_ptr(SDL_GetError()).to_str()?
                 );
                 SDL_ClearError();
             } else {
@@ -445,8 +445,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             // Data search order: WD, executable path, user pref path, platform specific paths.
             let mut search_paths: Vec<&str> = Vec::new();
             search_paths.push("");
-            search_paths.push(CStr::from_ptr(base_path).to_str().unwrap());
-            search_paths.push(CStr::from_ptr(pref_path).to_str().unwrap());
+            search_paths.push(CStr::from_ptr(base_path).to_str()?);
+            search_paths.push(CStr::from_ptr(pref_path).to_str()?);
 
             #[cfg(not(target_os = "windows"))]
             search_paths.extend_from_slice(&PLATFORM_DATA_PATHS);
