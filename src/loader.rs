@@ -164,13 +164,13 @@ pub struct VisualKickerStruct {
     pub hard_hit_sound_id: i32,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct SpriteData {
     bmp: Option<GdrvBitmap8>,
     zmap: Option<ZMapHeaderType>,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct VisualStruct<'a> {
     pub smoothness: f32,
     pub elasticity: f32,
@@ -223,16 +223,16 @@ impl Default for WaveHeader {
 
 const _: () = assert!(size_of::<WaveHeader>() == 44, "Wrong size for WaveHeader");
 
-pub struct Loader<'a> {
+pub struct Loader {
     sound_count: i32,
     loader_sound_count: i32,
-    loader_table: DatFile<'a>,
-    sound_record_table: Option<DatFile<'a>>,
+    loader_table: DatFile,
+    sound_record_table: Option<DatFile>,
     sound_list: [SoundListStruct; 65],
     loader_errors: [ErrorMessage; 28],
 }
 
-impl<'a> Loader<'a> {
+impl Loader {
     pub fn new() -> Self {
         Self {
             sound_count: 1,
@@ -276,7 +276,7 @@ impl<'a> Loader<'a> {
         -1
     }
 
-    pub fn default_vsi(visual: &mut VisualStruct<'a>) {
+    pub fn default_vsi(visual: &mut VisualStruct) {
         visual.collision_group = 0;
         visual.kicker.threshold = 8.99999999;
         visual.kicker.hard_hit_sound_id = 0;
@@ -617,7 +617,7 @@ impl<'a> Loader<'a> {
         }
 
         let float_array_data = match self.loader_table.field(group_index, FieldTypes::FloatArray) {
-            Some(data) => data,
+            Some(data) => data.to_vec(),
             None => return self.error(11, 21),
         };
 
@@ -735,7 +735,7 @@ impl<'a> Loader<'a> {
         }
 
         let float_array_data = match self.loader_table.field(group_index, FieldTypes::FloatArray) {
-            Some(data) => data,
+            Some(data) => data.to_vec(),
             None => return self.error(11, 20),
         };
 
@@ -790,7 +790,7 @@ impl<'a> Loader<'a> {
         &mut self,
         group_index: i32,
         group_index_offset: i32,
-        visual: &mut VisualStruct<'a>,
+        visual: &mut VisualStruct,
     ) -> i32 {
         Self::default_vsi(visual);
         if group_index < 0 {
@@ -805,7 +805,7 @@ impl<'a> Loader<'a> {
         let zmap = self.loader_table.get_zmap(state_id);
         visual.bitmap = SpriteData {
             bmp: Some(bmp),
-            zmap: Some(zmap),
+            zmap: Some(zmap.clone()),
         };
 
         let short_array_data = match self.loader_table.field(group_index, FieldTypes::ShortArray) {
