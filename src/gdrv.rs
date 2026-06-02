@@ -90,10 +90,10 @@ impl ColorRgba {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct GdrvBitmap8 {
-    pub bmp_buf_ptr_1: *mut ColorRgba,
-    pub indexed_bmp_ptr: *const c_char,
+    pub bmp_buffer_data: Vec<ColorRgba>,
+    pub indexed_bmp_data: Vec<u8>,
     pub width: i32,
     pub height: i32,
     pub stride: i32,
@@ -104,12 +104,6 @@ pub struct GdrvBitmap8 {
     pub resolution: u32,
     pub texture: Option<SDL_Texture>,
     pub current_palette: [ColorRgba; 256],
-}
-
-impl PartialEq for BitmapTypes {
-    fn eq(&self, other: &Self) -> bool {
-        todo!()
-    }
 }
 
 impl GdrvBitmap8 {
@@ -154,18 +148,18 @@ impl GdrvBitmap8 {
             assert_eq!(size_in_bytes, header_size, "Wrong bitmap8 size");
         }
 
-        let bmp_vec: Vec<c_char> = Vec::with_capacity(size_in_bytes as usize);
-        instance.indexed_bmp_ptr = bmp_vec.as_ptr();
+        let bmp_vec: Vec<u8> = Vec::with_capacity(size_in_bytes as usize);
+        instance.indexed_bmp_data = bmp_vec;
         let mut color = ColorRgba::color_rgba_u32((instance.height * instance.stride) as u32);
-        instance.bmp_buf_ptr_1 = &raw mut color;
+        instance.bmp_buffer_data = vec![ColorRgba::black(); (instance.height * instance.width) as usize];
 
         instance
     }
 
     pub fn default() -> Self {
         Self {
-            bmp_buf_ptr_1: null_mut(),
-            indexed_bmp_ptr: null(),
+            bmp_buffer_data: Vec::new(),
+            indexed_bmp_data: Vec::new(),
             width: 0,
             height: 0,
             stride: 0,
