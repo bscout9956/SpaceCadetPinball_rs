@@ -12,6 +12,7 @@ dependencies = [
  "num-derive",
  "num-traits",
  "sdl2",
+ "thiserror",
 ]
 
 [[package]]
