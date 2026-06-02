@@ -48,14 +48,7 @@ pub fn show_message_box(p0: SDL_MessageBoxFlags, p1: &str, p2: *const c_char) {
 }
 
 pub fn select_dat_file(data_search_paths: &[&str]) {
-    match DAT_FILE_NAME.lock() {
-        Ok(mut file_name) => {
-            file_name.clear();
-        }
-        Err(e) => {
-            println!("Error locking DAT_FILE_NAME: {}", e);
-        }
-    }
+    clear_dat_file_name();
     FULL_TILT_MODE.store(false, Relaxed);
     FULL_TILT_DEMO_MODE.store(false, Relaxed);
 
@@ -96,6 +89,17 @@ pub fn select_dat_file(data_search_paths: &[&str]) {
                 update_full_tilt_mode(dat_file_name);
                 return;
             }
+        }
+    }
+}
+
+fn clear_dat_file_name() {
+    match DAT_FILE_NAME.lock() {
+        Ok(mut file_name) => {
+            file_name.clear();
+        }
+        Err(e) => {
+            println!("Error locking DAT_FILE_NAME: {}", e);
         }
     }
 }
