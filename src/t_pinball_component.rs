@@ -238,17 +238,17 @@ impl TPinballComponentBehavior for TPinballComponent<'_> {
     }
 
     fn get_scoring(&self, index: u32) -> i32 {
-        if let Some(weak_control) = &self.component_control {
-            if let Some(strong_control_rc) = weak_control.upgrade() {
-                let control = strong_control_rc.borrow();
+        if let Some(weak_control) = &self.component_control
+            && let Some(strong_control_rc) = weak_control.upgrade()
+        {
+            let control = strong_control_rc.borrow();
 
-                // TODO: Implement control struct
-                // if index >= control.score_count {
-                //     0
-                // } else {
-                //     control.scores[index as usize]
-                // }
-            }
+            // TODO: Implement control struct
+            // if index >= control.score_count {
+            //     0
+            // } else {
+            //     control.scores[index as usize]
+            // }
         }
         0
     }
