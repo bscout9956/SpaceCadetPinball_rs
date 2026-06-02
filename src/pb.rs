@@ -77,14 +77,7 @@ pub fn select_dat_file(data_search_paths: &[&str]) {
             continue;
         }
 
-        match BASE_PATH.lock() {
-            Ok(mut base_path) => {
-                *base_path = String::from(*path);
-            }
-            Err(e) => {
-                println!("Error locking BASE_PATH: {}", e);
-            }
-        }
+        set_base_path(path);
 
         for dat_file_name in dat_file_names {
             let mut file_name = dat_file_name.to_string();
@@ -98,25 +91,43 @@ pub fn select_dat_file(data_search_paths: &[&str]) {
                     println!("Error opening dat_file {}: {}", &dat_file_path, e);
                     continue;
                 }
-                println!("Opened dat_file: {}", &dat_file_path);
-                match DAT_FILE_NAME.lock() {
-                    Ok(mut dat_file) => {
-                        *dat_file = file_name;
-                    }
-                    Err(e) => {
-                        println!("Error locking DAT_FILE_NAME: {}", e);
-                    }
-                }
-                if dat_file_name == "CADET.DAT" {
-                    FULL_TILT_MODE.store(true, Relaxed);
-                }
-                if dat_file_name == "DEMO.DAT" {
-                    FULL_TILT_MODE.store(true, Relaxed);
-                    FULL_TILT_DEMO_MODE.store(true, Relaxed);
-                }
-                println!("Loading game from: {}", &dat_file_path);
+                set_dat_file_name(&file_name);
+
+                update_full_tilt_mode(dat_file_name);
                 return;
             }
+        }
+    }
+}
+
+fn set_dat_file_name(file_name: &str) {
+    match DAT_FILE_NAME.lock() {
+        Ok(mut dat_name) => {
+            *dat_name = String::from(file_name);
+        }
+        Err(e) => {
+            println!("Error locking DAT_FILE_NAME: {}", e);
+        }
+    }
+}
+
+fn update_full_tilt_mode(dat_file_name: &str) {
+    if dat_file_name == "CADET.DAT" {
+        FULL_TILT_MODE.store(true, Relaxed);
+    }
+    if dat_file_name == "DEMO.DAT" {
+        FULL_TILT_MODE.store(true, Relaxed);
+        FULL_TILT_DEMO_MODE.store(true, Relaxed);
+    }
+}
+
+fn set_base_path(path: &str) {
+    match BASE_PATH.lock() {
+        Ok(mut base_path) => {
+            *base_path = String::from(path);
+        }
+        Err(e) => {
+            println!("Error locking BASE_PATH: {}", e);
         }
     }
 }
@@ -125,6 +136,7 @@ pub fn init() -> Result<(bool), PbInitError> {
     let projection_matrix: [f32; 12] = [0.0; 12];
 
     let mut data_file_path = String::new();
+
     match DAT_FILE_NAME.lock() {
         Ok(mut file_name) => {
             if file_name.is_empty() {
