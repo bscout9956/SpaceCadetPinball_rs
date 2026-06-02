@@ -1,3 +1,4 @@
+use crate::errors::RecordLoadError;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryData, FieldTypes, GroupData};
 use crate::pb::FULL_TILT_MODE;
@@ -13,7 +14,6 @@ use std::sync::atomic::Ordering::Relaxed;
 use std::sync::{LazyLock, Mutex};
 use thiserror::Error;
 use utils::LRead;
-use crate::errors::RecordLoadError;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
 pub struct Bmp8Flags(u8);
