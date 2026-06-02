@@ -1,12 +1,13 @@
+use bytemuck::{Pod, Zeroable};
 use sdl2::sys::SDL_Texture;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct ZMapHeaderType {
     pub width: i32,
     pub height: i32,
     pub stride: i32,
     pub resolution: u32,
-    pub z_ptr_1: u16,
+    pub z_map_data: Vec<u16>,
     pub texture: Option<SDL_Texture>,
 }
 
