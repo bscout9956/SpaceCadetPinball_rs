@@ -2,9 +2,11 @@ use crate::partman::{Bmp8Flags, Dat8BitBmpHeader};
 use sdl2::sys::SDL_Texture;
 use std::cmp::PartialEq;
 use std::ffi::c_char;
+use std::fmt;
+use std::fmt::{Debug, Formatter};
 use std::ptr::{null, null_mut};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(u8)]
 pub enum BitmapTypes {
     None = 0,
