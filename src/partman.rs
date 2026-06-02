@@ -121,6 +121,16 @@ const _: () = {
 pub static FIELD_SIZE: LazyLock<Mutex<[i16; 14]>> =
     LazyLock::new(|| Mutex::new([2, -1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0]));
 
+pub fn validate_bmp_8_header(bmp_header: &Dat8BitBmpHeader, field_size: i16) -> Result<(), RecordLoadError> {
+    if bmp_header.size as usize + size_of::<Dat8BitBmpHeader>() != field_size as usize {
+        return Err(RecordLoadError::BitmapFieldSizeError);
+    }
+    if bmp_header.resolution <= 2 {
+        return Err(RecordLoadError::BitmapResolutionOobError);
+    }
+    Ok(())
+}
+
 pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, RecordLoadError> {
     let mut header: DatFileHeader = Default::default();
     let mut bmp_header: Dat8BitBmpHeader = Default::default();
@@ -175,16 +185,9 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
 
                 if field_type == FieldTypes::Bitmap8bit {
                     reader.read_exact(bytemuck::bytes_of_mut(&mut bmp_header))?;
-
-                    if bmp_header.size as usize + size_of::<Dat8BitBmpHeader>()
-                        != field_size as usize
-                    {
-                        return Err(RecordLoadError::BitmapFieldSizeError);
-                    }
-                    if bmp_header.resolution <= 2 {
-                        return Err(RecordLoadError::BitmapResolutionOobError);
-                    }
-
+                    
+                    validate_bmp_8_header(&bmp_header, field_size)?;
+                    
                     let mut bmp = GdrvBitmap8::new(&bmp_header);
                     entry_data.buffer = vec![0; bmp_header.size as usize];
                     reader.read_exact(bytemuck::cast_slice_mut(&mut entry_data.buffer))?;
