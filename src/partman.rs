@@ -1,6 +1,6 @@
 use crate::errors::RecordLoadError;
 use crate::gdrv::GdrvBitmap8;
-use crate::group_data::{DatFile, EntryData, FieldTypes, GroupData};
+use crate::group_data::{DatFile, EntryBuffer, EntryData, FieldTypes, GroupData};
 use crate::pb::FULL_TILT_MODE;
 use crate::utils;
 use crate::zdrv::ZMapHeaderType;
@@ -120,11 +120,14 @@ const _: () = {
 
 pub const FIELD_SIZE: [i16; 14] = [2, -1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0];
 
-pub fn validate_bmp_8_header(bmp_header: &Dat8BitBmpHeader, field_size: i16) -> Result<(), RecordLoadError> {
+pub fn validate_bmp_8_header(
+    bmp_header: &Dat8BitBmpHeader,
+    field_size: u32,
+) -> Result<(), RecordLoadError> {
     if bmp_header.size as usize + size_of::<Dat8BitBmpHeader>() != field_size as usize {
         return Err(RecordLoadError::BitmapFieldSizeError);
     }
-    if bmp_header.resolution <= 2 {
+    if bmp_header.resolution > 2 {
         return Err(RecordLoadError::BitmapResolutionOobError);
     }
     Ok(())
@@ -157,7 +160,7 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
     }
 
     dat_file.groups.reserve(header.number_of_groups as usize);
-    let abort = false;
+    let mut abort = false;
     for group_index in 0..header.number_of_groups {
         if abort {
             break;
@@ -169,72 +172,83 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
 
         for entry_index in 0..entry_count {
             let mut entry_data = EntryData::default();
-            let entry_type = u8::lread(&mut reader)?;
-            if let Some(field_type) = FieldTypes::from_u8(entry_type) {
-                entry_data.entry_type = field_type;
+            let entry_type_u8 = u8::lread(&mut reader)?;
 
-                let fixed_size = FIELD_SIZE.lock().unwrap()[entry_index as usize];
-                let mut field_size = if fixed_size >= 0 {
-                    fixed_size
-                } else {
-                    u32::lread(&mut reader)?.to_i16().unwrap()
-                };
-                entry_data.field_size = field_size as i32;
+            let field_type =
+                FieldTypes::from_u8(entry_type_u8).ok_or(RecordLoadError::InvalidFieldTypeError)?;
+            entry_data.entry_type = field_type;
 
-                if field_type == FieldTypes::Bitmap8bit {
-                    reader.read_exact(bytemuck::bytes_of_mut(&mut bmp_header))?;
-                    
-                    validate_bmp_8_header(&bmp_header, field_size)?;
-                    
-                    let mut bmp = GdrvBitmap8::new(&bmp_header);
-                    entry_data.buffer = vec![0; bmp_header.size as usize];
-                    reader.read_exact(bytemuck::cast_slice_mut(&mut entry_data.buffer))?;
+            let fixed_size = FIELD_SIZE[entry_type_u8 as usize];
+            let mut field_size = if fixed_size >= 0 {
+                fixed_size as u32
+            } else {
+                u32::lread(&mut reader)?
+            };
 
-                    let mut indexed_bmp_data_buffer = vec![0u8; bmp_header.size as usize];
+            entry_data.field_size = field_size as i32;
 
-                    reader.read_exact(&mut indexed_bmp_data_buffer)?;
+            let buff_enum = if field_type == FieldTypes::Bitmap8bit {
+                reader.read_exact(bytemuck::bytes_of_mut(&mut bmp_header))?;
+                validate_bmp_8_header(&bmp_header, field_size)?;
 
-                    bmp.indexed_bmp_ptr = &raw mut indexed_bmp_data_buffer as *const c_char;
-                } else if field_type == FieldTypes::Bitmap16bit {
-                    let mut z_map_resolution = 0u8;
-                    if FULL_TILT_MODE.load(Relaxed) {
-                        /*Full tilt has extra byte(@0:resolution) in zMap*/
-                        z_map_resolution = u8::lread(&mut reader)?;
-                        field_size -= 1;
+                let mut bmp = GdrvBitmap8::new(&bmp_header);
+                let mut indexed_bmp_data_buffer = vec![0; bmp_header.size as usize];
+                reader.read_exact(&mut indexed_bmp_data_buffer)?;
 
-                        // -1 means universal resolution, maybe. FT demo .006 is the only known user.
-                        if z_map_resolution == 0xff {
-                            z_map_resolution = 0;
-                        }
-                        assert!(
-                            z_map_resolution <= 2,
-                            "partman: zMap resolution out of bounds"
-                        );
+                bmp.indexed_bmp_data = indexed_bmp_data_buffer;
+
+                EntryBuffer::Bitmap8(bmp)
+            } else if field_type == FieldTypes::Bitmap16bit {
+                let mut z_map_resolution = 0u8;
+                if full_tilt_mode {
+                    /*Full tilt has extra byte(@0:resolution) in zMap*/
+                    z_map_resolution = u8::lread(&mut reader)?;
+                    field_size -= 1;
+
+                    // -1 means universal resolution, maybe. FT demo .006 is the only known user.
+                    if z_map_resolution == 0xff {
+                        z_map_resolution = 0;
                     }
-
-                    reader.read_exact(bytemuck::bytes_of_mut(&mut zmap_header))?;
-
-                    let length = field_size as usize - size_of::<Dat16BitBmpHeader>();
-
-                    let expected_length =
-                        zmap_header.stride as usize * zmap_header.height as usize * 2;
-
-                    if expected_length == length {
-                        let mut zmap: ZMapHeaderType = ZMapHeaderType {
-                            width: zmap_header.width as i32,
-                            height: zmap_header.height as i32,
-                            stride: zmap_header.stride as i32,
-                            resolution: 0,
-                            z_map_data: vec![0u16; length],
-                            texture: None,
-                        };
-                        zmap.resolution = z_map_resolution as u32;
-                        reader.read_exact(bytemuck::cast_slice_mut(&mut zmap.z_map_data))?;
-                    } else {
-                        // 3DPB .dat has zeroed zMap headers, in groups 497 and 498, skip them.
-                    }
+                    assert!(
+                        z_map_resolution > 2,
+                        "partman: zMap resolution out of bounds"
+                    );
                 }
-            }
+
+                reader.read_exact(bytemuck::bytes_of_mut(&mut zmap_header))?;
+                let length = field_size as usize - size_of::<Dat16BitBmpHeader>();
+
+                let mut zmap = ZMapHeaderType::new(
+                    zmap_header.width.into(),
+                    zmap_header.height.into(),
+                    zmap_header.stride.into(),
+                );
+
+                if (zmap_header.stride as usize * zmap_header.height as usize * 2) == length {
+                    zmap.z_map_data = vec![0u16; length / 2];
+                    zmap.resolution = z_map_resolution as u32;
+                    reader.read_exact(bytemuck::cast_slice_mut(&mut zmap.z_map_data))?;
+                } else {
+                    // 3DPB .dat has zeroed zMap headers, in groups 497 and 498, skip them.
+                    reader.seek(SeekFrom::Current(length as i64))?;
+                    zmap = ZMapHeaderType::new(0, 0, 0);
+                }
+
+                EntryBuffer::Bitmap16(zmap)
+            } else {
+                let mut raw_buffer = vec![0; field_size as usize];
+                if raw_buffer.is_empty() && field_size > 0 {
+                    abort = true;
+                    break;
+                }
+                reader.read_exact(&mut raw_buffer)?;
+
+                EntryBuffer::Raw(raw_buffer) // Return Enum variant
+            };
+
+            let entry_data = EntryData::new(field_type, field_size as i32, buff_enum);
+
+            group_data.add_entry(entry_data);
         }
     }
 
