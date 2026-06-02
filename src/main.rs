@@ -50,6 +50,7 @@ use std::sync::{LazyLock, LockResult, Mutex};
 use std::time::Duration as StdDuration;
 use std::time::Instant;
 use std::{env, ptr};
+use std::error::Error;
 
 mod fullscrn;
 mod gdrv;
@@ -232,7 +233,7 @@ fn main_loop() {}
 // bool defaults to false
 fn imgui_menu_item_w_shortcut(binding: GameBindings, selected: Option<bool>) {}
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     println!("Game version: {}", VERSION);
     let args: Vec<String> = std::env::args().collect();
     println!("Command line: {:?}", args);
@@ -490,7 +491,7 @@ fn main() {
             //     }
             // }
 
-            if pb::init() == false {
+            if pb::init()? == false {
                 let mut message = String::from(
                     "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
                 );
@@ -516,9 +517,9 @@ fn main() {
             SDL_ShowWindow(window);
 
             let do_restart = RESTART.load(Relaxed);
-            if do_restart {
-                break;
-            }
+            // if do_restart {
+            //     Ok(break);
+            // }
         }
     }
 }

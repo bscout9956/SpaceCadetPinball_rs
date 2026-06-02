@@ -17,3 +17,9 @@ pub enum RecordLoadError {
     #[error("Unknown error...")]
     UnknownError,
 }
+
+#[derive(Error, Debug)]
+pub enum PbInitError {
+    #[error(transparent)]
+    RecordLoadError(#[from] RecordLoadError),
+}

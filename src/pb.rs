@@ -1,3 +1,4 @@
+use crate::errors::PbInitError;
 use crate::group_data::DatFile;
 use crate::options::OPTIONS;
 use crate::partman;
@@ -121,26 +122,29 @@ pub fn select_dat_file(data_search_paths: &[&str]) {
     }
 }
 
-pub fn init() -> bool {
+pub fn init() -> Result<(bool), PbInitError> {
     let projection_matrix: [f32; 12] = [0.0; 12];
 
     let mut data_file_path = String::new();
     match DAT_FILE_NAME.lock() {
         Ok(mut file_name) => {
             if file_name.is_empty() {
-                return false;
+                return Ok(false);
             }
             data_file_path = make_path_name(&(*file_name));
         }
         Err(e) => {
             println!("Error locking DAT_FILE_NAME: {}", e);
-            return false;
+            return Ok(false);
         }
     }
 
     match RECORD_TABLE.lock() {
         Ok(mut table_opt) => {
-            *table_opt = partman::load_records(data_file_path, FULL_TILT_MODE.load(Relaxed));
+            *table_opt = Some(partman::load_records(
+                data_file_path,
+                FULL_TILT_MODE.load(Relaxed),
+            )?);
         }
         Err(e) => {
             println!("Error locking RECORD_TABLE: {}", e);
@@ -149,5 +153,5 @@ pub fn init() -> bool {
 
     let use_bmp_font = false;
 
-    false
+    Ok(false)
 }
