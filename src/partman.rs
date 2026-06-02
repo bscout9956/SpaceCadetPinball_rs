@@ -4,13 +4,16 @@ use crate::pb::FULL_TILT_MODE;
 use crate::utils;
 use num_traits::{FromPrimitive, ToPrimitive};
 use sdl2::log::Category::Assert;
-use std::ffi::{CStr, c_char};
+use std::ffi::{CStr, FromBytesUntilNulError, c_char};
+use std::fmt;
 use std::fs::File;
-use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::io::{BufReader, Error, Read, Seek, SeekFrom};
 use std::ops::{BitAnd, BitOr};
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::{LazyLock, Mutex};
+use thiserror::Error;
 use utils::LRead;
+use crate::errors::RecordLoadError;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
 pub struct Bmp8Flags(u8);
@@ -120,164 +123,114 @@ const _: () = {
 pub static FIELD_SIZE: LazyLock<Mutex<[i16; 14]>> =
     LazyLock::new(|| Mutex::new([2, -1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0]));
 
-pub fn load_records(file_name: String, full_tilt_mode: bool) -> Option<DatFile<'static>> {
+pub fn load_records(
+    file_name: String,
+    full_tilt_mode: bool,
+) -> Result<DatFile<'static>, RecordLoadError> {
     let mut header: DatFileHeader = Default::default();
     let mut bmp_header: Dat8BitBmpHeader = Default::default();
     let mut zmap_header: Dat16BitBmpHeader = Default::default();
 
-    match File::open(&file_name) {
-        Ok(mut file) => {
-            let mut reader = BufReader::new(file);
-            match reader.read_exact(bytemuck::bytes_of_mut(&mut header)) {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("Error reading bytes for file: {}", e);
-                }
-            }
+    let file = File::open(&file_name)?;
+    let mut reader = BufReader::new(file);
+    reader.read_exact(bytemuck::bytes_of_mut(&mut header))?;
 
-            if header.file_signature != *b"PARTOUT(4.0)RESOURCE\0" {
-                println!("File signature does not match: {:?}", header.file_signature);
-                return None;
-            }
+    if header.file_signature != *b"PARTOUT(4.0)RESOURCE\0" {
+        return Err(RecordLoadError::IncorrectFileSignatureError);
+    }
 
-            let mut dat_file = DatFile::new();
+    let mut dat_file = DatFile::new();
 
-            match CStr::from_bytes_until_nul(&header.app_name) {
-                Ok(app_name) => {
-                    dat_file.app_name = app_name.to_string_lossy().into_owned();
-                }
-                Err(e) => {
-                    println!("Error parsing app_name: {}", e);
-                    return None;
-                }
-            }
-            match CStr::from_bytes_until_nul(&header.description) {
-                Ok(description) => {
-                    dat_file.description = description.to_string_lossy().into_owned();
-                }
-                Err(e) => {
-                    println!("Error parsing description: {}", e);
-                    return None;
-                }
-            }
+    let app_name = CStr::from_bytes_until_nul(&header.app_name)?;
+    dat_file.app_name = app_name.to_string_lossy().into_owned();
 
-            if header.unknown > 0 {
-                let unknown_size: usize = header.unknown as usize;
-                let mut unknown_buffer: Vec<c_char> = vec![0; unknown_size];
+    let description = CStr::from_bytes_until_nul(&header.description)?;
+    dat_file.description = description.to_string_lossy().into_owned();
 
-                if let Err(e) = reader.seek(SeekFrom::Current(header.unknown as i64)) {
-                    println!("Error reading past bytes for unknown data: {}", e);
-                    return None;
-                }
-            }
+    if header.unknown > 0 {
+        let unknown_size: usize = header.unknown as usize;
+        let mut unknown_buffer: Vec<c_char> = vec![0; unknown_size];
+        reader.seek(SeekFrom::Current(header.unknown as i64))?;
+    }
 
-            dat_file.groups.reserve(header.number_of_groups as usize);
-            let abort = false;
-            for group_index in 0..header.number_of_groups {
-                if abort {
-                    break;
-                }
-
-                match u8::lread(&mut reader) {
-                    Ok(entry_count) => {
-                        let mut group_data = GroupData::new(group_index as i32);
-                        group_data.reserve_entries(entry_count as usize);
-
-                        for entry_index in 0..entry_count {
-                            let mut entry_data = EntryData::default();
-                            match u8::lread(&mut reader) {
-                                Ok(entry_type) => unsafe {
-                                    let field_type = FieldTypes::from_u8(entry_type)?;
-                                    entry_data.entry_type = field_type;
-                                    let fixed_size =
-                                        FIELD_SIZE.lock().unwrap()[entry_index as usize];
-                                    let mut field_size = if fixed_size >= 0 {
-                                        fixed_size
-                                    } else {
-                                        u32::lread(&mut reader).unwrap().to_i16()?
-                                    };
-                                    entry_data.field_size = field_size as i32;
-
-                                    if field_type == FieldTypes::Bitmap8bit {
-                                        if let Err(e) = reader
-                                            .read_exact(bytemuck::bytes_of_mut(&mut bmp_header))
-                                        {
-                                            println!("Error reading bmp header: {}", e);
-                                        }
-                                        assert_eq!(
-                                            bmp_header.size as usize
-                                                + size_of::<Dat8BitBmpHeader>(),
-                                            field_size as usize,
-                                            "partman: Wrong bitmap field size"
-                                        );
-                                        assert!(
-                                            bmp_header.resolution <= 2,
-                                            "partman: bitmap resolution out of bounds"
-                                        );
-
-                                        let mut bmp = GdrvBitmap8::new(&bmp_header);
-                                        // This is ugly, very ugly
-                                        entry_data.buffer = Some(std::slice::from_raw_parts(
-                                            &bmp as *const _ as *const u8,
-                                            std::mem::size_of::<GdrvBitmap8>(),
-                                        ));
-                                        let mut indexed_bmp_data_buffer =
-                                            vec![0u8; bmp_header.size as usize];
-                                        if let Err(e) =
-                                            reader.read_exact(&mut indexed_bmp_data_buffer)
-                                        {
-                                            println!("Error reading bmp data buffer: {}", e);
-                                        }
-                                        bmp.indexed_bmp_ptr =
-                                            &raw mut indexed_bmp_data_buffer as *const c_char;
-                                    } else if field_type == FieldTypes::Bitmap16bit {
-                                        let mut z_map_resolution = 0u8;
-                                        if FULL_TILT_MODE.load(Relaxed) {
-                                            /*Full tilt has extra byte(@0:resolution) in zMap*/
-                                            z_map_resolution = u8::lread(&mut reader).unwrap();
-                                            field_size -= 1;
-
-                                            // -1 means universal resolution, maybe. FT demo .006 is the only known user.
-                                            if z_map_resolution == 0xff {
-                                                z_map_resolution = 0;
-                                            }
-                                            assert!(
-                                                z_map_resolution <= 2,
-                                                "partman: zMap resolution out of bounds"
-                                            );
-                                        }
-
-                                        if let Err(e) = reader
-                                            .read_exact(bytemuck::bytes_of_mut(&mut zmap_header))
-                                        {
-                                            println!("Failed to read zmap header: {}", e);
-                                        }
-
-                                        let length =
-                                            field_size as usize - size_of::<Dat16BitBmpHeader>();
-                                        
-                                        // TODO: Continue, line 100 of partman.cpp
-                                    }
-                                },
-                                Err(e) => {
-                                    println!("Error reading entry type: {}", e);
-                                    return None;
-                                }
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        println!("Error reading group index {}, {}", group_index, e);
-                        return None;
-                    }
-                }
-            }
+    dat_file.groups.reserve(header.number_of_groups as usize);
+    let abort = false;
+    for group_index in 0..header.number_of_groups {
+        if abort {
+            break;
         }
-        Err(e) => {
-            println!("Error opening file {}: {}", file_name, e);
-            return None;
+
+        let entry_count = u8::lread(&mut reader)?;
+        let mut group_data = GroupData::new(group_index as i32);
+        group_data.reserve_entries(entry_count as usize);
+
+        for entry_index in 0..entry_count {
+            let mut entry_data = EntryData::default();
+            let entry_type = u8::lread(&mut reader)?;
+            if let Some(field_type) = FieldTypes::from_u8(entry_type) {
+                entry_data.entry_type = field_type;
+
+                let fixed_size = FIELD_SIZE.lock().unwrap()[entry_index as usize];
+                let mut field_size = if fixed_size >= 0 {
+                    fixed_size
+                } else {
+                    u32::lread(&mut reader)?.to_i16().unwrap()
+                };
+                entry_data.field_size = field_size as i32;
+
+                if field_type == FieldTypes::Bitmap8bit {
+                    reader.read_exact(bytemuck::bytes_of_mut(&mut bmp_header))?;
+
+                    if bmp_header.size as usize + size_of::<Dat8BitBmpHeader>()
+                        != field_size as usize
+                    {
+                        return Err(RecordLoadError::BitmapFieldSizeError);
+                    }
+                    if bmp_header.resolution <= 2 {
+                        return Err(RecordLoadError::BitmapResolutionOobError);
+                    }
+
+                    let mut bmp = GdrvBitmap8::new(&bmp_header);
+
+                    // TODO: This is ugly, very ugly
+                    entry_data.buffer = unsafe {
+                        Some(std::slice::from_raw_parts(
+                            &bmp as *const _ as *const u8,
+                            size_of::<GdrvBitmap8>(),
+                        ))
+                    };
+
+                    let mut indexed_bmp_data_buffer = vec![0u8; bmp_header.size as usize];
+
+                    reader.read_exact(&mut indexed_bmp_data_buffer)?;
+
+                    bmp.indexed_bmp_ptr = &raw mut indexed_bmp_data_buffer as *const c_char;
+                } else if field_type == FieldTypes::Bitmap16bit {
+                    let mut z_map_resolution = 0u8;
+                    if FULL_TILT_MODE.load(Relaxed) {
+                        /*Full tilt has extra byte(@0:resolution) in zMap*/
+                        z_map_resolution = u8::lread(&mut reader)?;
+                        field_size -= 1;
+
+                        // -1 means universal resolution, maybe. FT demo .006 is the only known user.
+                        if z_map_resolution == 0xff {
+                            z_map_resolution = 0;
+                        }
+                        assert!(
+                            z_map_resolution <= 2,
+                            "partman: zMap resolution out of bounds"
+                        );
+                    }
+
+                    reader.read_exact(bytemuck::bytes_of_mut(&mut zmap_header))?;
+
+                    let length = field_size as usize - size_of::<Dat16BitBmpHeader>();
+
+                    // TODO: Continue, line 100 of partman.cpp
+                }
+            }
         }
     }
 
-    None
+    Ok(dat_file)
 }
