@@ -1,8 +1,8 @@
-use std::array;
 use crate::fullscrn;
 use crate::gdrv::GdrvBitmap8;
 use crate::zdrv::ZMapHeaderType;
 use num_derive::FromPrimitive;
+use std::array;
 use std::cmp::PartialOrd;
 use std::ffi::{CStr, c_char};
 
@@ -32,25 +32,24 @@ pub enum FieldTypes {
     Bitmap16bit = 12,
 }
 
+pub enum EntryBuffer {
+    Bitmap8(GdrvBitmap8),
+    Bitmap16(ZMapHeaderType),
+    Raw(Vec<u8>),
+}
+
 pub struct EntryData {
     pub entry_type: FieldTypes,
     pub field_size: i32,
-    pub buffer: Vec<u8>, //gdrvbitmap8 size?
+    pub buffer: EntryBuffer,
 }
 
 impl EntryData {
-    pub fn new(entry_type: FieldTypes, buffer: Option<&[u8]>) -> Self {
-        match buffer {
-            Some(buffer_res) => Self {
-                entry_type,
-                field_size: buffer_res.len() as i32,
-                buffer: buffer_res.to_vec(),
-            },
-            None => Self {
-                entry_type,
-                field_size: 0,
-                buffer: vec![],
-            },
+    pub fn new(entry_type: FieldTypes, field_size: i32, buffer: EntryBuffer) -> Self {
+        Self {
+            entry_type,
+            field_size,
+            buffer,
         }
     }
 
@@ -58,7 +57,7 @@ impl EntryData {
         Self {
             entry_type: FieldTypes::Unknown8,
             field_size: 0,
-            buffer: vec![],
+            buffer: EntryBuffer::Raw(vec![]),
         }
     }
 }
@@ -95,8 +94,8 @@ impl GroupData {
         &self.z_maps[resolution as usize]
     }
 
-    pub fn get_bitmap(&self, resolution: i32) -> GdrvBitmap8 {
-        self.bitmaps[resolution as usize]
+    pub fn get_bitmap(&self, resolution: i32) -> &GdrvBitmap8 {
+        &self.bitmaps[resolution as usize]
     }
 
     pub fn new(group_id: i32) -> Self {
@@ -104,7 +103,7 @@ impl GroupData {
             group_id,
             group_name: "".to_string(),
             entries: vec![],
-            bitmaps: [GdrvBitmap8::default(); 3],
+            bitmaps: array::from_fn(|_| GdrvBitmap8::default()),
             z_maps: array::from_fn(|_| ZMapHeaderType::default()),
             needs_sort: true,
         }
@@ -112,6 +111,14 @@ impl GroupData {
 
     pub fn reserve_entries(&mut self, count: usize) {
         self.entries.reserve(count);
+    }
+    pub fn add_entry(&self, entry_data: EntryData) {
+        // TODO: Stub, just for reference
+        println!(
+            "adding entry with type (num): {}",
+            entry_data.entry_type as i16
+        );
+        println!("adding entry with size: {}", entry_data.field_size);
     }
 }
 
@@ -133,7 +140,7 @@ impl DatFile {
         }
     }
 
-    pub fn field(&self, group_index: i32, target_entry_type: FieldTypes) -> Option<&[u8]> {
+    pub fn field(&self, group_index: i32, target_entry_type: FieldTypes) -> Option<&EntryBuffer> {
         assert!(
             target_entry_type != FieldTypes::Bitmap8bit
                 && target_entry_type != FieldTypes::Bitmap16bit,
@@ -158,7 +165,7 @@ impl DatFile {
         group_index: i32,
         target_entry_type: FieldTypes,
         skip_first_n: i32,
-    ) -> Option<&[u8]> {
+    ) -> Option<&EntryBuffer> {
         assert!(
             target_entry_type != FieldTypes::Bitmap8bit
                 && target_entry_type != FieldTypes::Bitmap16bit,
@@ -219,7 +226,7 @@ impl DatFile {
         self.field_size_nth(group_index, target_entry_type, 0)
     }
 
-    pub fn get_bitmap(&self, group_index: i32) -> GdrvBitmap8 {
+    pub fn get_bitmap(&self, group_index: i32) -> &GdrvBitmap8 {
         let group = self.groups.get(group_index as usize).unwrap();
         group.get_bitmap(fullscrn::get_resolution())
     }
@@ -229,13 +236,14 @@ impl DatFile {
         group.get_zmap(fullscrn::get_resolution())
     }
 
+    // Worth considering changing this name to &str
     pub fn record_labeled(&self, target_group_name: *const c_char) -> i32 {
         let target_cstr = unsafe { CStr::from_ptr(target_group_name) };
         let target_data = target_cstr.to_bytes();
 
         for group_index in (0..self.groups.len()).rev() {
             match self.field(group_index as i32, FieldTypes::GroupName) {
-                Some(group_name_data) => {
+                Some(EntryBuffer::Raw(group_name_data)) => {
                     let group_name = if group_name_data.last() == Some(&0) {
                         &group_name_data[..group_name_data.len() - 1]
                     } else {
@@ -246,7 +254,8 @@ impl DatFile {
                         return group_index as i32;
                     }
                 }
-                None => continue,
+                // None or Bitmap
+                _ => continue,
             }
         }
 
