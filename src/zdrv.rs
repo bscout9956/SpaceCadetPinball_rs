@@ -12,13 +12,24 @@ pub struct ZMapHeaderType {
 }
 
 impl ZMapHeaderType {
-    pub fn new() -> Self {
+    pub fn default() -> Self {
         Self {
             width: 0,
             height: 0,
             stride: 0,
             resolution: 0,
-            z_ptr_1: 0,
+            z_map_data: vec![],
+            texture: None,
+        }
+    }
+
+    pub fn new(width: i32, height: i32, stride: i32) -> Self {
+        Self {
+            width,
+            height,
+            stride,
+            resolution: 0,
+            z_map_data: vec![],
             texture: None,
         }
     }
