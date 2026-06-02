@@ -140,7 +140,7 @@ impl GdrvBitmap8 {
                     "Wrong raw bitmap align flag"
                 );
             }
-            if instance.width % 4 == 0 {
+            if instance.width % 4 != 0 {
                 instance.indexed_stride = instance.width - instance.width % 4 + 4;
             }
             size_in_bytes = instance.height * instance.indexed_stride;
