@@ -227,7 +227,7 @@ pub enum Msg {
 }
 
 #[derive(Copy, Clone, PartialEq)]
-enum Lang {
+pub enum Lang {
     MIN,
     ARABIC,
     CZECH,
