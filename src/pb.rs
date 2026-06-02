@@ -4,12 +4,11 @@ use crate::options::OPTIONS;
 use crate::partman;
 use crate::translations::Msg;
 use sdl2::sys::SDL_MessageBoxFlags;
-use std::cell::RefCell;
 use std::ffi::c_char;
 use std::fs::File;
-use std::sync::atomic::Ordering::{Relaxed, SeqCst};
+use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
-use std::sync::{LazyLock, LockResult, Mutex, Weak};
+use std::sync::{LazyLock, Mutex};
 
 pub static QUICK_FLAG: AtomicBool = AtomicBool::new(false);
 pub static FULL_TILT_MODE: AtomicBool = AtomicBool::new(false);

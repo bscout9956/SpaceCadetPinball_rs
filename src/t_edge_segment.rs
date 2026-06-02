@@ -2,7 +2,6 @@ use crate::maths::{RayType, RectF};
 use crate::t_ball::TBall;
 use crate::t_collision_component::TCollisionComponent;
 use std::cell::{Cell, RefCell};
-use std::ffi::c_void;
 use std::rc::{Rc, Weak};
 
 pub enum WallType {

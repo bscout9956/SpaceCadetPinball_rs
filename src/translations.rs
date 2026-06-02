@@ -1,12 +1,6 @@
-use crate::options::OptionsStruct;
-use dear_imgui_rs::internal::ImVector;
-use dear_imgui_rs::sys::{ImFontGlyphRangesBuilder, ImWchar};
-use dear_imgui_rs::{GlyphRangesBuilder, Io};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use std::cmp::PartialEq;
-use std::ops::DerefMut;
-use std::ptr::null;
 use std::sync::{LazyLock, Mutex};
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, FromPrimitive)]

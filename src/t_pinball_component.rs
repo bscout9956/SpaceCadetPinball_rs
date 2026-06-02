@@ -1,10 +1,9 @@
 use std::{
-    cell::{Cell, Ref, RefCell},
-    ops::Deref,
+    cell::{Cell, RefCell},
     rc::{Rc, Weak},
 };
 
-use crate::{loader, maths::*};
+use crate::maths::*;
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
 
 #[allow(dead_code)]

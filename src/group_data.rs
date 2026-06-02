@@ -2,8 +2,7 @@ use crate::fullscrn;
 use crate::gdrv::GdrvBitmap8;
 use crate::zdrv::ZMapHeaderType;
 use num_derive::FromPrimitive;
-use sdl2::libc::strlen;
-use std::cmp::{Ordering, PartialOrd};
+use std::cmp::PartialOrd;
 use std::ffi::{CStr, c_char};
 
 #[derive(PartialEq, PartialOrd, Copy, Clone, FromPrimitive)]

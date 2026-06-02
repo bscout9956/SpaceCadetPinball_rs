@@ -1,4 +1,3 @@
-use crate::options::Setting;
 use crate::pb;
 use std::sync::atomic;
 use std::sync::atomic::AtomicI32;

@@ -1,14 +1,11 @@
-use crate::loader::{self, VisualStruct};
-use crate::maths::{self, *};
+use crate::loader::VisualStruct;
+use crate::maths::*;
 use crate::t_ball::TBall;
 use crate::t_edge_segment::{TEdgeSegment, TEdgeSegmentBehavior};
 use crate::t_pinball_component::{MessageCode, TPinballComponent, TPinballComponentBehavior};
 use crate::t_pinball_table::TPinballTable;
-use std::cell::{Cell, Ref};
-use std::{
-    cell::RefCell,
-    rc::{Rc, Weak},
-};
+use std::cell::Cell;
+use std::{cell::RefCell, rc::Rc};
 
 #[allow(non_snake_case)]
 pub struct TCollisionComponent<'a> {

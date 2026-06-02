@@ -1,5 +1,5 @@
-use dear_imgui_rs::sys::{ImGuiBackendFlags, ImGuiMouseCursor_COUNT, igGetMainViewport};
-use dear_imgui_rs::{BackendFlags, Io};
+use dear_imgui_rs::BackendFlags;
+use dear_imgui_rs::sys::{ImGuiMouseCursor_COUNT, igGetMainViewport};
 use dear_imgui_rs::{Context, TextureId};
 use sdl2::render::RenderTarget;
 use sdl2::sys::SDL_SystemCursor::{
@@ -9,16 +9,16 @@ use sdl2::sys::SDL_SystemCursor::{
     SDL_SYSTEM_CURSOR_WAITARROW,
 };
 use sdl2::sys::{
-    SDL_CreateRGBSurface, SDL_CreateRGBSurfaceFrom, SDL_CreateSystemCursor, SDL_CreateTexture,
-    SDL_CreateTextureFromSurface, SDL_Cursor, SDL_DestroyTexture, SDL_FreeSurface,
-    SDL_GetCurrentVideoDriver, SDL_GetVersion, SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE,
-    SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, SDL_Renderer, SDL_SYSWM_TYPE, SDL_SetHint, SDL_Surface,
-    SDL_SysWMinfo, SDL_Texture, SDL_Window, SDL_bool, SDL_version,
+    SDL_CreateRGBSurfaceFrom, SDL_CreateSystemCursor, SDL_CreateTextureFromSurface, SDL_Cursor,
+    SDL_DestroyTexture, SDL_FreeSurface, SDL_GetCurrentVideoDriver, SDL_GetVersion,
+    SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE, SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH,
+    SDL_Renderer, SDL_SYSWM_TYPE, SDL_SetHint, SDL_Surface, SDL_SysWMinfo, SDL_Texture, SDL_Window,
+    SDL_bool, SDL_version,
 };
-use std::ffi::{CStr, CString, c_char, c_void};
+use std::ffi::{CStr, c_char, c_void};
 use std::ops::{Add, Mul};
 use std::ptr::{addr_of_mut, null_mut};
-use std::sync::{LazyLock, LockResult, Mutex};
+use std::sync::{LazyLock, Mutex};
 
 pub static CURRENT_DEVICE: LazyLock<Mutex<Option<Device>>> = LazyLock::new(|| Mutex::new(None));
 

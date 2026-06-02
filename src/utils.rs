@@ -1,8 +1,6 @@
 // Equivalent to pch.h
 
-use std::ffi::c_char;
 use std::io::Read;
-use std::ptr::{addr_of, null};
 
 pub fn clamp<T: std::cmp::Ord + Copy>(n: &T, lower: &T, upper: &T) -> T {
     std::cmp::max(*lower, std::cmp::min(*n, *upper))

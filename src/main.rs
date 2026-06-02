@@ -4,52 +4,27 @@ extern crate core;
 
 use crate::embedded_data::load_controller_db;
 use crate::options::{GameBindings, OptionsStruct};
-use crate::translations::Msg;
-use crate::utils::PLATFORM_DATA_PATHS;
-use dear_imgui_rs::sys::{
-    ImGuiConfigFlags_NavEnableGamepad, ImGuiConfigFlags_NavEnableKeyboard, ImGuiIO,
-};
-use dear_imgui_rs::{ConfigFlags, Context, FontConfig, ImGuiResult};
-use sdl2::controller::AddMappingError;
-use sdl2::libc::strstr;
-use sdl2::mixer::get_linked_version;
-use sdl2::rwops::RWops;
-use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
-use sdl2::sys::SDL_RendererFlags::{SDL_RENDERER_ACCELERATED, SDL_RENDERER_SOFTWARE};
+use dear_imgui_rs::sys::ImGuiIO;
+use dear_imgui_rs::{ConfigFlags, Context, FontConfig};
 use sdl2::sys::mixer::{
-    MIX_DEFAULT_FORMAT, MIX_DEFAULT_FREQUENCY, MIX_InitFlags_MIX_INIT_MID, MIX_MAJOR_VERSION,
-    MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_Init, Mix_OpenAudio,
+    MIX_InitFlags_MIX_INIT_MID, Mix_Init, Mix_OpenAudio, MIX_DEFAULT_FORMAT,
+    MIX_DEFAULT_FREQUENCY, MIX_MAJOR_VERSION, MIX_MINOR_VERSION, MIX_PATCHLEVEL,
 };
-use sdl2::sys::{
-    SDL_ClearError, SDL_CreateRenderer, SDL_GameControllerAddMappingsFromRW, SDL_GetBasePath,
-    SDL_GetError, SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency, SDL_GetPrefPath,
-    SDL_GetRendererInfo, SDL_GetTicks, SDL_GetVersion, SDL_HINT_RENDER_SCALE_QUALITY,
-    SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL, SDL_Renderer, SDL_RendererInfo,
-    SDL_SetHint, SDL_SetRenderDrawColor, SDL_ShowWindow,
-};
-use sdl2::{
-    sys::{
-        SDL_CreateWindow, SDL_INIT_AUDIO, SDL_INIT_EVENTS, SDL_INIT_GAMECONTROLLER,
-        SDL_INIT_JOYSTICK, SDL_INIT_TIMER, SDL_INIT_VIDEO, SDL_Init, SDL_SetMainReady, SDL_Window,
-        SDL_WindowFlags::{SDL_WINDOW_HIDDEN, SDL_WINDOW_RESIZABLE},
-    },
-    video::WindowPos,
-};
+use sdl2::sys::SDL_RendererFlags::{SDL_RENDERER_ACCELERATED, SDL_RENDERER_SOFTWARE};
+use sdl2::sys::SDL_WindowFlags::{SDL_WINDOW_HIDDEN, SDL_WINDOW_RESIZABLE};
+use sdl2::sys::*;
 use std::cell::RefCell;
 use std::error::Error;
-use std::ffi::{CStr, CString, c_int};
+use std::ffi::{c_int, CStr};
 use std::ops::Index;
 use std::path::PathBuf;
 use std::process::exit;
-use std::ptr::{NonNull, addr_of_mut};
-use std::rc::Rc;
+use std::ptr::{addr_of_mut, NonNull};
 use std::str::FromStr;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
-use std::sync::{LazyLock, LockResult, Mutex};
-use std::time::Duration as StdDuration;
-use std::time::Instant;
-use std::{env, ptr};
+use std::sync::{LazyLock, Mutex};
+use std::env;
 
 mod fullscrn;
 mod gdrv;
@@ -189,7 +164,7 @@ static CURSOR_IDLE_COUNTER: AtomicI32 = AtomicI32::new(0);
 
 // TODO: If I realize that I'll need to use this on threads, use OnceLock/LazyLock w/ Mutex<Option>
 thread_local! {
-    static MAIN_WINDOW: RefCell<Option<NonNull<SDL_Window>>> = RefCell::new(None);
+    static MAIN_WINDOW: RefCell<Option<NonNull<SDL_Window>>> = RefCell::new(Option::None);
 }
 
 pub fn set_main_window(window: *mut SDL_Window) {
@@ -203,11 +178,11 @@ pub fn get_main_window() -> Option<NonNull<SDL_Window>> {
     MAIN_WINDOW.with(|cell| *cell.borrow())
 }
 
-static RENDERER: LazyLock<Mutex<Option<SDL_Renderer>>> = LazyLock::new(|| Mutex::new(None));
+static RENDERER: LazyLock<Mutex<Option<SDL_Renderer>>> = LazyLock::new(|| Mutex::new(Option::None));
 
 // TODO: Likewise
 thread_local! {
-    static IMGUI_IO: RefCell<Option<NonNull<ImGuiIO>>> = RefCell::new(None);
+    static IMGUI_IO: RefCell<Option<NonNull<ImGuiIO>>> = RefCell::new(Option::None);
 }
 
 pub fn set_imgui_io(io: *mut ImGuiIO) {
@@ -456,7 +431,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             addr_of_mut!(static_renderer),
                         );
                     }
-                    None => {
+                    Option::None => {
                         panic!("Could not find a renderer to initialize");
                     }
                 },

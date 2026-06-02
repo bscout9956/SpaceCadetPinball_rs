@@ -12,15 +12,15 @@ use num_traits::FromPrimitive;
 use sdl2::sys::SDL_GameControllerButton::*;
 use sdl2::sys::SDL_KeyCode::*;
 use sdl2::sys::*;
-use std::cmp::{Ordering, PartialEq, PartialOrd, max};
+use std::cmp::{PartialEq, PartialOrd, max};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::ffi::{CStr, CString, c_char, c_int, c_void};
+use std::ffi::{CStr, CString, c_char, c_void};
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::SeqCst;
-use std::sync::{LazyLock, Mutex, OnceLock};
+use std::sync::{LazyLock, Mutex};
 
 static SETTINGS: LazyLock<Mutex<HashMap<String, String>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));

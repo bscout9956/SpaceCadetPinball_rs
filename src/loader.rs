@@ -4,16 +4,14 @@ use crate::maths::*;
 use crate::t_pinball_component::TPinballComponent;
 use crate::utils::PATH_SEPARATOR;
 use crate::zdrv::ZMapHeaderType;
-use crate::{loader, pb, sound};
+use crate::{pb, sound};
 use num_traits::Float;
-use sdl2::libc::{fclose, fopen, fread};
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::mixer::Mix_Chunk;
-use std::ffi::{CString, c_char, c_void};
+use std::ffi::c_char;
 use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
-use std::str::FromStr;
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
 
 #[derive(Copy, Clone)]
