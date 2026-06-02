@@ -3,6 +3,7 @@ use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryData, FieldTypes, GroupData};
 use crate::pb::FULL_TILT_MODE;
 use crate::utils;
+use crate::zdrv::ZMapHeaderType;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::ffi::{CStr, c_char};
 use std::fs::File;
@@ -120,10 +121,7 @@ const _: () = {
 pub static FIELD_SIZE: LazyLock<Mutex<[i16; 14]>> =
     LazyLock::new(|| Mutex::new([2, -1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0]));
 
-pub fn load_records(
-    file_name: String,
-    full_tilt_mode: bool,
-) -> Result<DatFile<'static>, RecordLoadError> {
+pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, RecordLoadError> {
     let mut header: DatFileHeader = Default::default();
     let mut bmp_header: Dat8BitBmpHeader = Default::default();
     let mut zmap_header: Dat16BitBmpHeader = Default::default();
@@ -188,14 +186,7 @@ pub fn load_records(
                     }
 
                     let mut bmp = GdrvBitmap8::new(&bmp_header);
-
-                    // TODO: This is ugly, very ugly
-                    entry_data.buffer = unsafe {
-                        Some(std::slice::from_raw_parts(
-                            &bmp as *const _ as *const u8,
-                            size_of::<GdrvBitmap8>(),
-                        ))
-                    };
+                    reader.read_exact(bytemuck::cast_slice_mut(&mut entry_data.buffer))?;
 
                     let mut indexed_bmp_data_buffer = vec![0u8; bmp_header.size as usize];
 
