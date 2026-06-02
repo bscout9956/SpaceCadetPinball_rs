@@ -118,8 +118,7 @@ const _: () = {
     }
 };
 
-pub static FIELD_SIZE: LazyLock<Mutex<[i16; 14]>> =
-    LazyLock::new(|| Mutex::new([2, -1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0]));
+pub const FIELD_SIZE: [i16; 14] = [2, -1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0];
 
 pub fn validate_bmp_8_header(bmp_header: &Dat8BitBmpHeader, field_size: i16) -> Result<(), RecordLoadError> {
     if bmp_header.size as usize + size_of::<Dat8BitBmpHeader>() != field_size as usize {
@@ -154,7 +153,6 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
 
     if header.unknown > 0 {
         let unknown_size: usize = header.unknown as usize;
-        let mut unknown_buffer: Vec<c_char> = vec![0; unknown_size];
         reader.seek(SeekFrom::Current(header.unknown as i64))?;
     }
 
