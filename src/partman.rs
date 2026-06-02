@@ -186,6 +186,7 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
                     }
 
                     let mut bmp = GdrvBitmap8::new(&bmp_header);
+                    entry_data.buffer = vec![0; bmp_header.size as usize];
                     reader.read_exact(bytemuck::cast_slice_mut(&mut entry_data.buffer))?;
 
                     let mut indexed_bmp_data_buffer = vec![0u8; bmp_header.size as usize];
@@ -214,7 +215,23 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
 
                     let length = field_size as usize - size_of::<Dat16BitBmpHeader>();
 
-                    // TODO: Continue, line 100 of partman.cpp
+                    let expected_length =
+                        zmap_header.stride as usize * zmap_header.height as usize * 2;
+
+                    if expected_length == length {
+                        let mut zmap: ZMapHeaderType = ZMapHeaderType {
+                            width: zmap_header.width as i32,
+                            height: zmap_header.height as i32,
+                            stride: zmap_header.stride as i32,
+                            resolution: 0,
+                            z_map_data: vec![0u16; length],
+                            texture: None,
+                        };
+                        zmap.resolution = z_map_resolution as u32;
+                        reader.read_exact(bytemuck::cast_slice_mut(&mut zmap.z_map_data))?;
+                    } else {
+                        // 3DPB .dat has zeroed zMap headers, in groups 497 and 498, skip them.
+                    }
                 }
             }
         }
