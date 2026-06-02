@@ -78,7 +78,7 @@ impl TCollisionComponent<'_> {
         };
 
         instance.t_pinball_component.active_flag = Rc::new(Cell::new(true));
-        if !instance.t_pinball_component.group_name.is_some() {
+        if instance.t_pinball_component.group_name.is_none() {
             instance.t_pinball_component.unused_base_flag = Rc::new(Cell::new(true));
         }
         // if group_index <= 0 {
@@ -124,22 +124,22 @@ impl TCollisionComponentBehavior for TCollisionComponent<'_> {
         edge: &TEdgeSegment,
     ) {
         //TODO: Undo borrow?
-        if let Some(pinball_table) = &self.t_pinball_component.pinball_table {
-            if let Some(upgraded_table) = pinball_table.upgrade() {
-                let table = upgraded_table.borrow();
+        if let Some(pinball_table) = &self.t_pinball_component.pinball_table
+            && let Some(upgraded_table) = pinball_table.upgrade()
+        {
+            let table = upgraded_table.borrow();
 
-                if table.tilt_lock_flag {
-                    basic_collision(
-                        ball,
-                        next_position,
-                        direction,
-                        self.elasticity,
-                        self.smoothness,
-                        1000000000.0,
-                        0.0,
-                    );
-                    return;
-                }
+            if table.tilt_lock_flag {
+                basic_collision(
+                    ball,
+                    next_position,
+                    direction,
+                    self.elasticity,
+                    self.smoothness,
+                    1000000000.0,
+                    0.0,
+                );
+                return;
             }
         }
 
@@ -171,21 +171,21 @@ impl TCollisionComponentBehavior for TCollisionComponent<'_> {
         direction: &mut Vector2,
     ) -> bool {
         // TODO: Undo borrow
-        if let Some(pinball_table) = &self.t_pinball_component.pinball_table {
-            if let Some(upgraded_table) = pinball_table.upgrade() {
-                let table = upgraded_table.borrow();
-                if table.tilt_lock_flag {
-                    basic_collision(
-                        ball,
-                        next_position,
-                        direction,
-                        self.elasticity,
-                        self.smoothness,
-                        1000000000.0,
-                        0.0,
-                    );
-                    return false;
-                }
+        if let Some(pinball_table) = &self.t_pinball_component.pinball_table
+            && let Some(upgraded_table) = pinball_table.upgrade()
+        {
+            let table = upgraded_table.borrow();
+            if table.tilt_lock_flag {
+                basic_collision(
+                    ball,
+                    next_position,
+                    direction,
+                    self.elasticity,
+                    self.smoothness,
+                    1000000000.0,
+                    0.0,
+                );
+                return false;
             }
         }
         let mut collision = false;
