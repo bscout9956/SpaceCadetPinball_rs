@@ -1,3 +1,4 @@
+use std::array;
 use crate::fullscrn;
 use crate::gdrv::GdrvBitmap8;
 use crate::zdrv::ZMapHeaderType;
@@ -31,22 +32,25 @@ pub enum FieldTypes {
     Bitmap16bit = 12,
 }
 
-pub struct EntryData<'a> {
+pub struct EntryData {
     pub entry_type: FieldTypes,
     pub field_size: i32,
-    pub buffer: Option<&'a [u8]>,
+    pub buffer: Vec<u8>, //gdrvbitmap8 size?
 }
 
-impl<'a> EntryData<'a> {
-    pub fn new(entry_type: FieldTypes, buffer: Option<&'a [u8]>) -> Self {
-        let mut field_size = 0;
-        if let Some(buffer_vec) = buffer {
-            field_size = buffer_vec.len();
-        }
-        Self {
-            entry_type,
-            field_size: field_size as i32,
-            buffer,
+impl EntryData {
+    pub fn new(entry_type: FieldTypes, buffer: Option<&[u8]>) -> Self {
+        match buffer {
+            Some(buffer_res) => Self {
+                entry_type,
+                field_size: buffer_res.len() as i32,
+                buffer: buffer_res.to_vec(),
+            },
+            None => Self {
+                entry_type,
+                field_size: 0,
+                buffer: vec![],
+            },
         }
     }
 
@@ -54,7 +58,7 @@ impl<'a> EntryData<'a> {
         Self {
             entry_type: FieldTypes::Unknown8,
             field_size: 0,
-            buffer: None,
+            buffer: vec![],
         }
     }
 }
@@ -74,21 +78,21 @@ struct MsgFont {
     data: [MsgFontChar; 1],
 }
 
-pub struct GroupData<'a> {
+pub struct GroupData {
     group_id: i32,
     group_name: String,
-    entries: Vec<EntryData<'a>>,
+    entries: Vec<EntryData>,
     bitmaps: [GdrvBitmap8; 3],
     z_maps: [ZMapHeaderType; 3],
     needs_sort: bool,
 }
 
-impl<'a> GroupData<'a> {
-    pub fn get_entries(&self) -> &[EntryData<'a>] {
+impl GroupData {
+    pub fn get_entries(&self) -> &[EntryData] {
         &self.entries
     }
-    pub fn get_zmap(&self, resolution: i32) -> ZMapHeaderType {
-        self.z_maps[resolution as usize]
+    pub fn get_zmap(&self, resolution: i32) -> &ZMapHeaderType {
+        &self.z_maps[resolution as usize]
     }
 
     pub fn get_bitmap(&self, resolution: i32) -> GdrvBitmap8 {
@@ -101,7 +105,7 @@ impl<'a> GroupData<'a> {
             group_name: "".to_string(),
             entries: vec![],
             bitmaps: [GdrvBitmap8::default(); 3],
-            z_maps: [ZMapHeaderType::new(); 3],
+            z_maps: array::from_fn(|_| ZMapHeaderType::default()),
             needs_sort: true,
         }
     }
@@ -111,16 +115,16 @@ impl<'a> GroupData<'a> {
     }
 }
 
-pub struct DatFile<'a> {
+pub struct DatFile {
     pub app_name: String,
     pub description: String,
-    pub groups: Vec<GroupData<'a>>,
+    pub groups: Vec<GroupData>,
 }
 
-unsafe impl Send for DatFile<'_> {}
-unsafe impl Sync for DatFile<'_> {}
+unsafe impl Send for DatFile {}
+unsafe impl Sync for DatFile {}
 
-impl<'a> DatFile<'a> {
+impl DatFile {
     pub fn new() -> Self {
         Self {
             app_name: "".to_string(),
@@ -129,7 +133,7 @@ impl<'a> DatFile<'a> {
         }
     }
 
-    pub fn field(&self, group_index: i32, target_entry_type: FieldTypes) -> Option<&'a [u8]> {
+    pub fn field(&self, group_index: i32, target_entry_type: FieldTypes) -> Option<&[u8]> {
         assert!(
             target_entry_type != FieldTypes::Bitmap8bit
                 && target_entry_type != FieldTypes::Bitmap16bit,
@@ -140,7 +144,7 @@ impl<'a> DatFile<'a> {
 
         for entry in group.get_entries() {
             if entry.entry_type == target_entry_type {
-                return entry.buffer;
+                return Some(&entry.buffer);
             }
             if entry.entry_type > target_entry_type {
                 break;
@@ -154,7 +158,7 @@ impl<'a> DatFile<'a> {
         group_index: i32,
         target_entry_type: FieldTypes,
         skip_first_n: i32,
-    ) -> Option<&'a [u8]> {
+    ) -> Option<&[u8]> {
         assert!(
             target_entry_type != FieldTypes::Bitmap8bit
                 && target_entry_type != FieldTypes::Bitmap16bit,
@@ -170,7 +174,7 @@ impl<'a> DatFile<'a> {
             if entry.entry_type == target_entry_type {
                 if skip_count == skip_first_n {
                     skip_count += 1;
-                    return entry.buffer;
+                    return Some(&entry.buffer);
                 } else {
                     skip_count += 1;
                 }
@@ -220,7 +224,7 @@ impl<'a> DatFile<'a> {
         group.get_bitmap(fullscrn::get_resolution())
     }
 
-    pub fn get_zmap(&self, group_index: i32) -> ZMapHeaderType {
+    pub fn get_zmap(&self, group_index: i32) -> &ZMapHeaderType {
         let group = self.groups.get(group_index as usize).unwrap();
         group.get_zmap(fullscrn::get_resolution())
     }
