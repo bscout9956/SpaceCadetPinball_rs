@@ -1,5 +1,5 @@
 use crate::gdrv::GdrvBitmap8;
-use crate::group_data::{DatFile, FieldTypes};
+use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::maths::*;
 use crate::t_pinball_component::TPinballComponent;
 use crate::utils::PATH_SEPARATOR;
@@ -297,7 +297,9 @@ impl Loader {
         let sound_record_table = loader_table;
 
         for group_index in 0..dat_file.groups.len() as i32 {
-            if let Some(value_data) = dat_file.field(group_index, FieldTypes::ShortValue) {
+            if let Some(EntryBuffer::Raw(value_data)) =
+                dat_file.field(group_index, FieldTypes::ShortValue)
+            {
                 let final_val = i16::from_le_bytes([(*value_data)[0], (*value_data)[1]]);
                 if final_val == 202 {
                     if self.sound_count < 65 {
@@ -347,7 +349,7 @@ impl Loader {
 
             let quick_flag_val = pb::QUICK_FLAG.load(Relaxed);
             if sound_group_id != 0 && !quick_flag_val {
-                if let Some(value_data) = self
+                if let Some(EntryBuffer::Raw(value_data)) = self
                     .loader_table
                     .field(sound_group_id, FieldTypes::ShortValue)
                 {
@@ -356,7 +358,7 @@ impl Loader {
                         // File name is in lower case, while game data is usually in upper case.
                         let file_name_ptr =
                             self.loader_table.field(sound_group_id, FieldTypes::String);
-                        if let Some(file_name_data) = file_name_ptr {
+                        if let Some(EntryBuffer::Raw(file_name_data)) = file_name_ptr {
                             let mut file_name = String::from_utf8_lossy(file_name_data)
                                 .trim_end_matches('\0')
                                 .to_string();
@@ -407,6 +409,8 @@ impl Loader {
         self.loader_table.record_labeled(lp_string)
     }
 
+    // TODO: Might be able to define new types in the EntryBuffer enum
+
     pub fn query_visual_states(&self, group_index: i32) -> i16 {
         let mut result: i16 = 0;
 
@@ -415,7 +419,7 @@ impl Loader {
         }
 
         match self.loader_table.field(group_index, FieldTypes::ShortArray) {
-            Some(short_array_data) => {
+            Some(EntryBuffer::Raw(short_array_data)) => {
                 if short_array_data.len() >= 4 {
                     let short_value =
                         i16::from_le_bytes([short_array_data[0], short_array_data[1]]);
@@ -428,7 +432,8 @@ impl Loader {
                     1
                 }
             }
-            None => 1,
+            // Bitmap or none
+            _ => 1,
         }
     }
 
@@ -438,7 +443,9 @@ impl Loader {
             return null();
         }
 
-        if let Some(result_data) = self.loader_table.field(group_index, FieldTypes::GroupName) {
+        if let Some(EntryBuffer::Raw(result_data)) =
+            self.loader_table.field(group_index, FieldTypes::GroupName)
+        {
             result_data.as_ptr() as *const c_char
         } else {
             null()
@@ -461,7 +468,7 @@ impl Loader {
                 .loader_table
                 .field_nth(group_index, FieldTypes::ShortArray, skip_index)
             {
-                Some(short_array_data) => {
+                Some(EntryBuffer::Raw(short_array_data)) => {
                     if short_array_data.len() < 2 {
                         continue;
                     }
@@ -480,7 +487,8 @@ impl Loader {
                         }
                     }
                 }
-                None => {
+                // Bitmap or None
+                _ => {
                     break;
                 }
             }
@@ -515,7 +523,7 @@ impl Loader {
                 .loader_table
                 .field_nth(group_index, FieldTypes::FloatArray, skip_index)
             {
-                Some(float_array_data) => {
+                Some(EntryBuffer::Raw(float_array_data)) => {
                     if float_array_data.len() < 8 {
                         continue;
                     }
@@ -531,7 +539,8 @@ impl Loader {
                         unsafe { return float_ptr.add(1) }
                     }
                 }
-                None => {
+                //Bitmap or none
+                _ => {
                     break;
                 }
             }
@@ -563,7 +572,7 @@ impl Loader {
                 .loader_table
                 .field_nth(group_index, FieldTypes::FloatArray, skip_index)
             {
-                Some(float_array_data) => {
+                Some(EntryBuffer::Raw(float_array_data)) => {
                     if float_array_data.len() < 8 {
                         continue;
                     }
@@ -584,7 +593,7 @@ impl Loader {
                         ]);
                     }
                 }
-                None => {
+                _ => {
                     break;
                 }
             }
@@ -603,11 +612,11 @@ impl Loader {
         }
 
         let short_value = match self.loader_table.field(group_index, FieldTypes::ShortValue) {
-            Some(short_array_data) => {
+            Some(EntryBuffer::Raw(short_array_data)) => {
                 assert_eq!(short_array_data.len(), 2, "Array isn't big enough");
                 i16::from_le_bytes([short_array_data[0], short_array_data[1]])
             }
-            None => {
+            _ => {
                 return self.error(1, 21);
             }
         };
@@ -617,8 +626,8 @@ impl Loader {
         }
 
         let float_array_data = match self.loader_table.field(group_index, FieldTypes::FloatArray) {
-            Some(data) => data.to_vec(),
-            None => return self.error(11, 21),
+            Some(EntryBuffer::Raw(data)) => data.to_vec(),
+            _ => return self.error(11, 21),
         };
 
         let float_array_len = self
@@ -679,7 +688,9 @@ impl Loader {
             return self.error(12, 24);
         }
         let mut short_val = match self.loader_table.field(group_index, FieldTypes::ShortValue) {
-            Some(data) if data.len() >= 2 => i16::from_le_bytes([data[0], data[1]]),
+            Some(EntryBuffer::Raw(data)) if data.len() >= 2 => {
+                i16::from_le_bytes([data[0], data[1]])
+            }
             _ => return self.error(1, 24),
         };
 
@@ -695,7 +706,9 @@ impl Loader {
         group_index += group_index_offset;
 
         short_val = match self.loader_table.field(group_index, FieldTypes::ShortValue) {
-            Some(data) if data.len() >= 2 => i16::from_le_bytes([data[0], data[1]]),
+            Some(EntryBuffer::Raw(data)) if data.len() >= 2 => {
+                i16::from_le_bytes([data[0], data[1]])
+            }
             _ => return self.error(1, 24),
         };
 
@@ -721,11 +734,11 @@ impl Loader {
         }
 
         let short_value = match self.loader_table.field(group_index, FieldTypes::ShortValue) {
-            Some(short_array_data) => {
-                assert_eq!(short_array_data.len(), 2, "Array isn't big enough");
-                i16::from_le_bytes([short_array_data[0], short_array_data[1]])
+            Some(EntryBuffer::Raw(data)) => {
+                assert_eq!(data.len(), 2, "Array isn't big enough");
+                i16::from_le_bytes([data[0], data[1]])
             }
-            None => {
+            _ => {
                 return self.error(1, 20);
             }
         };
@@ -735,8 +748,8 @@ impl Loader {
         }
 
         let float_array_data = match self.loader_table.field(group_index, FieldTypes::FloatArray) {
-            Some(data) => data.to_vec(),
-            None => return self.error(11, 20),
+            Some(EntryBuffer::Raw(data)) => data.to_vec(),
+            _ => return self.error(11, 20),
         };
 
         let float_array_len = self
@@ -801,7 +814,7 @@ impl Loader {
             return self.error(16, 18);
         }
 
-        let bmp = self.loader_table.get_bitmap(state_id);
+        let bmp = self.loader_table.get_bitmap(state_id).to_owned();
         let zmap = self.loader_table.get_zmap(state_id);
         visual.bitmap = SpriteData {
             bmp: Some(bmp),
@@ -809,8 +822,8 @@ impl Loader {
         };
 
         let short_array_data = match self.loader_table.field(group_index, FieldTypes::ShortArray) {
-            Some(data) => data.to_vec(),
-            None => Vec::new(),
+            Some(EntryBuffer::Raw(data)) => data.to_vec(),
+            _ => vec![],
         };
         if !short_array_data.is_empty() {
             let short_arr_size = short_array_data.len();
@@ -914,8 +927,8 @@ impl Loader {
         }
 
         let float_array_data = match self.loader_table.field(group_index, FieldTypes::FloatArray) {
-            Some(float_array_data) => float_array_data.to_vec(),
-            None => Vec::new(),
+            Some(EntryBuffer::Raw(float_array_data)) => float_array_data,
+            _ => &vec![],
         };
         if !float_array_data.is_empty() {
             let float_val = f32::from_le_bytes([
