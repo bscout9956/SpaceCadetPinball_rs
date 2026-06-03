@@ -1,34 +1,292 @@
-use crate::pb;
-use std::sync::atomic;
-use std::sync::atomic::AtomicI32;
-use std::sync::atomic::Ordering::SeqCst;
+use crate::options::{OPTIONS, OptionsStruct};
+use crate::{MainError, get_main_menu_height, get_main_window, get_renderer, pb, render};
+use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
+use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_Renderer, SDL_SetWindowFullscreen};
+use std::sync::atomic::Ordering::Relaxed;
+use std::sync::atomic::{AtomicBool, AtomicI32};
+use std::sync::{Mutex, MutexGuard, PoisonError, atomic};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum FullscreenError {
+    #[error("Could not find main window to turn into fullscreen")]
+    MainWindowMissingError,
+    #[error("Resolution is out of bounds")]
+    ResolutionOutOfBoundsError,
+    #[error("Renderer is missing (possibly none) `{0}`")]
+    MissingRendererError(MainError),
+    #[error("Faild to lock OPTIONS: `{0}`")]
+    OptionsLockError(#[from] PoisonError<MutexGuard<'static, OptionsStruct>>),
+    #[error("Failed to lock ResolutionArray: `{0}`")]
+    ResolutionArrayLockError(#[from] PoisonError<MutexGuard<'static, [ResolutionInfo; 3]>>),
+    #[error("Failed to lock Scale value: `{0}`")]
+    FloatLockError(#[from] PoisonError<MutexGuard<'static, f32>>),
+}
 
 static RESOLUTION: AtomicI32 = AtomicI32::new(0);
 
-pub fn set_resolution(mut value: i32) {
-    if pb::FULL_TILT_MODE.load(SeqCst) && !pb::FULL_TILT_DEMO_MODE.load(SeqCst) {
+#[derive(Clone)]
+pub struct ResolutionInfo {
+    screen_width: i16,
+    screen_height: i16,
+    table_width: i16,
+    table_height: i16,
+    resolution_menu_id: i16,
+}
+
+pub static SCREEN_MODE: AtomicBool = AtomicBool::new(false);
+pub static DISPLAY_CHANGED: AtomicBool = AtomicBool::new(false);
+pub static RESOLUTION_ARRAY: Mutex<[ResolutionInfo; 3]> = Mutex::new([
+    ResolutionInfo {
+        screen_width: 640,
+        screen_height: 480,
+        table_width: 600,
+        table_height: 416,
+        resolution_menu_id: 501,
+    },
+    ResolutionInfo {
+        screen_width: 800,
+        screen_height: 600,
+        table_width: 752,
+        table_height: 520,
+        resolution_menu_id: 502,
+    },
+    ResolutionInfo {
+        screen_width: 1024,
+        screen_height: 768,
+        table_width: 960,
+        table_height: 666,
+        resolution_menu_id: 503,
+    },
+]);
+
+pub static SCALE_X: Mutex<f32> = Mutex::new(1.0);
+pub static SCALE_Y: Mutex<f32> = Mutex::new(1.0);
+pub static OFFSET_X: Mutex<f32> = Mutex::new(0.0);
+pub static OFFSET_Y: Mutex<f32> = Mutex::new(0.0);
+
+pub fn set_resolution(mut value: i32) -> Result<(), FullscreenError> {
+    if pb::FULL_TILT_MODE.load(Relaxed) && !pb::FULL_TILT_DEMO_MODE.load(Relaxed) {
         value = 0;
     }
-    assert!(value >= 0 && value <= 2, "Resolution value out of bounds");
-    RESOLUTION.store(value, SeqCst);
+    if value < 0 || value > 2 {
+        return Err(FullscreenError::ResolutionOutOfBoundsError);
+    }
+    RESOLUTION.store(value, Relaxed);
+    Ok(())
 }
 
 pub fn get_max_resolution() -> i32 {
-    if pb::FULL_TILT_MODE.load(SeqCst) && !pb::FULL_TILT_DEMO_MODE.load(SeqCst) {
+    if pb::FULL_TILT_MODE.load(Relaxed) && !pb::FULL_TILT_DEMO_MODE.load(Relaxed) {
         2
     } else {
         0
     }
 }
 
-pub fn set_screen_mode(p0: bool) {
-    todo!()
+pub fn set_screen_mode(is_fullscreen: bool) -> bool {
+    let mut result = is_fullscreen;
+    let mut screen_mode = SCREEN_MODE.load(Relaxed);
+
+    if is_fullscreen == screen_mode {
+        return result;
+    }
+    screen_mode = is_fullscreen;
+    SCREEN_MODE.store(screen_mode, Relaxed);
+
+    if is_fullscreen {
+        unsafe {
+            match enable_fullscreen() {
+                Ok(enabled) => enabled,
+                Err(e) => {
+                    println!("Failed to enable fullscreen: {}", e);
+                    return false;
+                }
+            }
+        };
+        return true;
+    }
+
+    disable_fullscreen();
+    result
 }
 
 pub fn get_resolution() -> i32 {
     RESOLUTION.load(atomic::Ordering::Acquire)
 }
 
-pub fn window_size_changed() {
+fn reset_offset(offset: &Mutex<f32>) -> Result<(), FullscreenError> {
+    let mut offset = offset
+        .lock()
+        .map_err(|_| FullscreenError::MainWindowMissingError)?;
+    *offset = 0.0f32;
+    Ok(())
+}
+
+pub fn window_size_changed() -> Result<(), FullscreenError> {
+    let (mut width, mut height): (i32, i32) = (0, 0);
+    match get_renderer() {
+        Ok(main_renderer) => unsafe {
+            SDL_GetRendererOutputSize(main_renderer, &mut width, &mut height);
+        },
+        Err(e) => {
+            return Err(FullscreenError::MainWindowMissingError);
+        }
+    }
+    let options = OPTIONS.lock()?;
+    let menu_height = if *options.show_menu {
+        get_main_menu_height()
+    } else {
+        0
+    };
+    height -= menu_height;
+    let res = match RESOLUTION_ARRAY.lock() {
+        Ok(resolution_array) => {
+            let idx = RESOLUTION.load(Relaxed) as usize;
+            resolution_array[idx].clone()
+        }
+        Err(e) => {
+            return Err(FullscreenError::ResolutionArrayLockError(e));
+        }
+    };
+
+    update_x_scale(&mut width, &res)?;
+    update_y_scale(&mut height, &res)?;
+
+    reset_offset(&OFFSET_X)?;
+    reset_offset(&OFFSET_Y)?;
+
+    let mut offset2x = 0;
+    let mut offset2y = 0;
+
+    if *options.integer_scaling {
+        let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLockError)?;
+        let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLockError)?;
+
+        *scale_x = if *scale_x < 1.0 {
+            *scale_x
+        } else {
+            (*scale_x).floor()
+        };
+
+        *scale_y = if *scale_y < 1.0 {
+            *scale_y
+        } else {
+            (*scale_y).floor()
+        };
+    }
+
+    if *options.uniform_scaling {
+        let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLockError)?;
+        let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLockError)?;
+        *scale_x = f32::min(*scale_x, *scale_y);
+        *scale_y = *scale_x;
+    }
+
+    let scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLockError)?;
+    let scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLockError)?;
+    offset2x = (width as f32 - res.table_width as f32 * *scale_x).floor() as i32;
+    offset2y = (height as f32 - res.table_height as f32 * *scale_y).floor() as i32;
+
+    let mut offset_x = OFFSET_X.lock().map_err(FullscreenError::FloatLockError)?;
+    let mut offset_y = OFFSET_Y.lock().map_err(FullscreenError::FloatLockError)?;
+    *offset_x = offset2x as f32 / 2.0f32;
+    *offset_y = offset2y as f32 / 2.0f32;
+
+    // TODO render is barely implemented
+    // render::DestinationRect = SDL_Rect {
+    //     x: *offset_x as i32,
+    //     y: *offset_y as i32 + menu_height,
+    //     w: width - offset2x,
+    //     h: height - offset2y,
+    // };
+
+    return Ok(());
+}
+
+fn update_y_scale(height: &mut i32, res: &ResolutionInfo) -> Result<(), FullscreenError> {
+    let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLockError)?;
+    *scale_y = *height as f32 / res.screen_height as f32;
+    Ok(())
+}
+
+fn update_x_scale(width: &mut i32, res: &ResolutionInfo) -> Result<(), FullscreenError> {
+    let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLockError)?;
+    *scale_x = *width as f32 / res.screen_width as f32;
+    Ok(())
+}
+
+pub fn activate(flag: bool) {
+    let screen_mode = SCREEN_MODE.load(Relaxed);
+    if screen_mode {
+        if (!flag) {
+            set_screen_mode(false);
+        }
+    }
+}
+
+pub fn shutdown() {
+    let display_changed = DISPLAY_CHANGED.load(Relaxed);
+    if display_changed {
+        set_screen_mode(false);
+    }
+}
+
+pub fn get_screen_rect_from_pinball_rect(rect: SDL_Rect) -> SDL_Rect {
+    // SDL_Rect {
+    //     x: 0,
+    //     y: 0,
+    //     w: 0,
+    //     h: 0,
+    // }
     todo!()
+}
+
+pub fn get_screen_to_pinball_ratio() -> f32 {
+    0.0
+}
+
+unsafe fn enable_fullscreen() -> Result<bool, FullscreenError> {
+    let mut display_changed = DISPLAY_CHANGED.load(Relaxed);
+    if !display_changed {
+        if let Some(main_window) = get_main_window() {
+            let main_window_ptr = main_window.as_ptr();
+            unsafe {
+                if (SDL_SetWindowFullscreen(main_window_ptr, SDL_WINDOW_FULLSCREEN_DESKTOP as u32)
+                    == 0)
+                {
+                    display_changed = true;
+                    DISPLAY_CHANGED.store(display_changed, Relaxed);
+                    return Ok(true);
+                }
+            }
+        } else {
+            return Err(FullscreenError::MainWindowMissingError);
+        }
+    }
+    return Ok(false);
+}
+
+fn disable_fullscreen() -> Result<bool, FullscreenError> {
+    let mut display_changed = DISPLAY_CHANGED.load(Relaxed);
+    if display_changed {
+        if let Some(main_window) = get_main_window() {
+            let main_window_ptr = main_window.as_ptr();
+            unsafe {
+                if (SDL_SetWindowFullscreen(main_window_ptr, SDL_WINDOW_FULLSCREEN_DESKTOP as u32)
+                    == 0)
+                {
+                    display_changed = false;
+                }
+            }
+        } else {
+            return Err(FullscreenError::MainWindowMissingError);
+        }
+    }
+
+    return Ok(false);
+}
+
+pub fn init() {
+    window_size_changed();
 }
