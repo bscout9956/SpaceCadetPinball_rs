@@ -125,10 +125,10 @@ pub fn validate_bmp_8_header(
     field_size: u32,
 ) -> Result<(), RecordLoadError> {
     if bmp_header.size as usize + size_of::<Dat8BitBmpHeader>() != field_size as usize {
-        return Err(RecordLoadError::BitmapFieldSizeError);
+        return Err(RecordLoadError::BitmapFieldSize);
     }
     if bmp_header.resolution > 2 {
-        return Err(RecordLoadError::BitmapResolutionOobError);
+        return Err(RecordLoadError::BitmapResolutionOob);
     }
     Ok(())
 }
@@ -143,7 +143,7 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
     reader.read_exact(bytemuck::bytes_of_mut(&mut header))?;
 
     if header.file_signature != *b"PARTOUT(4.0)RESOURCE\0" {
-        return Err(RecordLoadError::IncorrectFileSignatureError);
+        return Err(RecordLoadError::IncorrectFileSignature);
     }
 
     let mut dat_file = DatFile::new();
@@ -175,7 +175,7 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
             let entry_type_u8 = u8::lread(&mut reader)?;
 
             let field_type =
-                FieldTypes::from_u8(entry_type_u8).ok_or(RecordLoadError::InvalidFieldTypeError)?;
+                FieldTypes::from_u8(entry_type_u8).ok_or(RecordLoadError::InvalidFieldType)?;
             entry_data.entry_type = field_type;
 
             let fixed_size = FIELD_SIZE[entry_type_u8 as usize];
