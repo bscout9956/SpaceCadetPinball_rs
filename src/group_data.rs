@@ -1,10 +1,13 @@
-use crate::fullscrn;
-use crate::gdrv::GdrvBitmap8;
+use crate::errors::GroupDataError;
+use crate::fullscrn::ResolutionInfo;
+use crate::gdrv::{BitmapTypes, GdrvBitmap8};
 use crate::zdrv::ZMapHeaderType;
+use crate::{fullscrn, zdrv};
 use num_derive::FromPrimitive;
 use std::array;
 use std::cmp::PartialOrd;
 use std::ffi::{CStr, c_char};
+use std::sync::LockResult;
 
 #[derive(PartialEq, PartialOrd, Copy, Clone, FromPrimitive)]
 #[repr(i16)]
@@ -32,12 +35,14 @@ pub enum FieldTypes {
     Bitmap16bit = 12,
 }
 
+#[derive(Clone)]
 pub enum EntryBuffer {
     Bitmap8(GdrvBitmap8),
     Bitmap16(ZMapHeaderType),
     Raw(Vec<u8>),
 }
 
+#[derive(Clone)]
 pub struct EntryData {
     pub entry_type: FieldTypes,
     pub field_size: i32,
@@ -112,14 +117,167 @@ impl GroupData {
     pub fn reserve_entries(&mut self, count: usize) {
         self.entries.reserve(count);
     }
-    pub fn add_entry(&self, entry_data: EntryData) {
-        // TODO: Stub, just for reference
-        println!(
-            "adding entry with type (num): {}",
-            entry_data.entry_type as i16
-        );
-        println!("adding entry with size: {}", entry_data.field_size);
+    pub fn add_entry(&mut self, entry: EntryData) {
+        match entry.entry_type {
+            FieldTypes::Bitmap8bit => {
+                if let EntryBuffer::Bitmap8(src_bmp) = &entry.buffer {
+                    if src_bmp.bitmap_type == BitmapTypes::Spliced {
+                        // Get rid of spliced bitmap early on, to simplify render pipeline
+                        let mut bmp =
+                            GdrvBitmap8::new_dims_indexed(src_bmp.width, src_bmp.height, true);
+                        let mut zmap =
+                            ZMapHeaderType::new(src_bmp.width, src_bmp.height, src_bmp.width);
+
+                        let _ = split_sliced_bitmap(src_bmp, &mut bmp, &mut zmap);
+
+                        self.needs_sort = true;
+                        self.add_entry(EntryData::new(
+                            FieldTypes::Bitmap8bit,
+                            -1,
+                            EntryBuffer::Bitmap8(bmp),
+                        ));
+                        self.add_entry(EntryData::new(
+                            FieldTypes::Bitmap16bit,
+                            -1,
+                            EntryBuffer::Bitmap16(zmap),
+                        ));
+
+                        return;
+                    } else {
+                        self.set_bitmap(src_bmp.clone());
+                    }
+                }
+            }
+            FieldTypes::GroupName => {
+                if let EntryBuffer::Raw(data) = &entry.buffer {
+                    self.group_name = String::from_utf8(data.clone()).unwrap();
+                } else {
+                    panic!("Unrecognized data type...");
+                }
+            }
+            FieldTypes::Bitmap16bit => {
+                if let EntryBuffer::Bitmap16(src_data) = &entry.buffer {
+                    self.set_zmap(src_data.clone());
+                }
+            }
+            _ => {}
+        }
+
+        self.entries.push(entry);
     }
+
+    pub fn set_bitmap(&mut self, bmp: GdrvBitmap8) {
+        let bmp_res = bmp.resolution as usize;
+        let bmp_height = bmp.height as usize;
+        let bmp_width = bmp.width as usize;
+
+        self.bitmaps[bmp_res] = bmp;
+
+        let zmap = &self.z_maps[bmp_res];
+        assert!(
+            bmp_width == zmap.width as usize && bmp_height == zmap.height as usize,
+            "GroupData: Mismatched bitmap/zmap dimensions"
+        );
+    }
+
+    pub fn set_zmap(&mut self, mut zmap: ZMapHeaderType) {
+        zmap = zdrv::flip_zmap_horizontally(&mut zmap);
+        let zmap_res = zmap.resolution as usize;
+        let zmap_width = zmap.width as usize;
+        let zmap_height = zmap.height as usize;
+
+        self.z_maps[zmap_res] = zmap;
+
+        let bmp = &self.bitmaps[zmap_res];
+        assert!(
+            bmp.width as usize == zmap_width && bmp.height as usize == zmap_height,
+            "GroupData: Mismatched bitmap/zmap dimensions"
+        );
+    }
+}
+
+pub fn split_sliced_bitmap(
+    src_bmp: &GdrvBitmap8,
+    bmp: &mut GdrvBitmap8,
+    zmap: &mut ZMapHeaderType,
+) -> Result<(), GroupDataError> {
+    assert_eq!(
+        src_bmp.bitmap_type,
+        BitmapTypes::Spliced,
+        "GroupData: wrong bitmap type"
+    );
+
+    bmp.indexed_bmp_data = vec![0xFF; (bmp.stride * bmp.height) as usize];
+    bmp.x_position = src_bmp.x_position;
+    bmp.y_position = src_bmp.y_position;
+    bmp.resolution = src_bmp.resolution;
+
+    crate::zdrv::fill(zmap, zmap.width, zmap.height, 0, 0, 0xFFFF);
+    zmap.resolution = src_bmp.resolution;
+
+    let res_array = fullscrn::RESOLUTION_ARRAY.lock()?;
+    let table_width = (*res_array)[src_bmp.resolution as usize].table_width;
+    let src = &src_bmp.indexed_bmp_data;
+    let src_char = &src;
+
+    let mut src_idx = 0;
+    let mut dst_idx = 0;
+
+    // This was translated by an LLM,
+    // go look at the original code
+    // if you think you can make sense of it...
+    // TODO: Rewrite this by hand like I did flip_zmap_horizontally?
+    loop {
+        if src_idx + 2 > src.len() {
+            break;
+        }
+        let stride = i16::from_le_bytes([src[src_idx], src[src_idx + 1]]);
+        src_idx += 2;
+
+        if stride < 0 {
+            break;
+        }
+
+        let mut stride = stride as i32;
+
+        // Stride is in terms of dst stride, hardcoded to match vScreen width in current resolution
+        if stride > bmp.width {
+            stride += bmp.width - table_width as i32;
+            assert!(stride >= 0, "Spliced bitmap: negative computed stride");
+        }
+
+        dst_idx += stride as usize;
+
+        if src_idx + 2 > src.len() {
+            break;
+        }
+
+        let mut count = u16::from_le_bytes([src[src_idx], src[src_idx + 1]]);
+        src_idx += 2;
+
+        // PS: Equivalent to the original for loop with auto count
+        while count > 0 {
+            if src_idx + 2 > src.len() {
+                break;
+            }
+            let depth = u16::from_le_bytes([src[src_idx], src[src_idx + 1]]);
+            src_idx += 2;
+
+            if src_idx >= src.len() {
+                break;
+            }
+            let color = src[src_idx];
+            src_idx += 1;
+
+            bmp.indexed_bmp_data[dst_idx] = color;
+            zmap.z_map_data[dst_idx] = depth;
+
+            dst_idx += 1;
+            count -= 1;
+        }
+    }
+
+    Ok(())
 }
 
 pub struct DatFile {
@@ -247,7 +405,7 @@ impl DatFile {
                     let group_name = if group_name_data.last() == Some(&0) {
                         &group_name_data[..group_name_data.len() - 1]
                     } else {
-                        group_name_data
+                        group_name_data.as_slice()
                     };
 
                     if target_data == group_name {
