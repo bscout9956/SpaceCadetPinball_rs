@@ -6,25 +6,26 @@ use crate::embedded_data::load_controller_db;
 use crate::options::{GameBindings, OptionsStruct};
 use dear_imgui_rs::sys::ImGuiIO;
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig};
-use sdl2::sys::mixer::{
-    MIX_InitFlags_MIX_INIT_MID, Mix_Init, Mix_OpenAudio, MIX_DEFAULT_FORMAT,
-    MIX_DEFAULT_FREQUENCY, MIX_MAJOR_VERSION, MIX_MINOR_VERSION, MIX_PATCHLEVEL,
-};
 use sdl2::sys::SDL_RendererFlags::{SDL_RENDERER_ACCELERATED, SDL_RENDERER_SOFTWARE};
 use sdl2::sys::SDL_WindowFlags::{SDL_WINDOW_HIDDEN, SDL_WINDOW_RESIZABLE};
+use sdl2::sys::mixer::{
+    MIX_DEFAULT_FORMAT, MIX_DEFAULT_FREQUENCY, MIX_InitFlags_MIX_INIT_MID, MIX_MAJOR_VERSION,
+    MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_Init, Mix_OpenAudio,
+};
 use sdl2::sys::*;
 use std::cell::RefCell;
+use std::env;
 use std::error::Error;
-use std::ffi::{c_int, CStr};
+use std::ffi::{CStr, c_int};
 use std::ops::Index;
 use std::path::PathBuf;
 use std::process::exit;
-use std::ptr::{addr_of_mut, NonNull};
+use std::ptr::{NonNull, addr_of_mut};
 use std::str::FromStr;
-use std::sync::atomic::Ordering::Relaxed;
+use std::sync::atomic::Ordering::{Relaxed, SeqCst};
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
-use std::sync::{LazyLock, Mutex};
-use std::env;
+use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
+use thiserror::Error;
 
 mod fullscrn;
 mod gdrv;
@@ -178,7 +179,29 @@ pub fn get_main_window() -> Option<NonNull<SDL_Window>> {
     MAIN_WINDOW.with(|cell| *cell.borrow())
 }
 
+pub fn get_main_menu_height() -> i32 {
+    MAIN_MENU_HEIGHT.load(SeqCst)
+}
+
 static RENDERER: LazyLock<Mutex<Option<SDL_Renderer>>> = LazyLock::new(|| Mutex::new(Option::None));
+
+#[derive(Debug, Error)]
+pub enum MainError {
+    #[error("Renderer hasn't been assigned, is none")]
+    NoneRendererError,
+
+    #[error("Unable to lock Mutex for retrieving the SDL_Renderer on main")]
+    MutexError(#[from] PoisonError<MutexGuard<'static, Option<SDL_Renderer>>>),
+}
+
+pub fn get_renderer() -> Result<*mut SDL_Renderer, MainError> {
+    let renderer = RENDERER.lock()?;
+    if let Some(mut sdl_renderer) = *renderer {
+        Ok(&raw mut sdl_renderer)
+    } else {
+        Err(MainError::NoneRendererError)
+    }
+}
 
 // TODO: Likewise
 thread_local! {
