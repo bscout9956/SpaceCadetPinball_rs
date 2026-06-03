@@ -14,8 +14,8 @@ static RESOLUTION: AtomicI32 = AtomicI32::new(0);
 pub struct ResolutionInfo {
     screen_width: i16,
     screen_height: i16,
-    table_width: i16,
-    table_height: i16,
+    pub table_width: i16,
+    pub table_height: i16,
     resolution_menu_id: i16,
 }
 
