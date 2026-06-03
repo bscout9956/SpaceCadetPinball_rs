@@ -1,6 +1,6 @@
 use std::ffi::FromBytesUntilNulError;
 use std::io::Error;
-use std::sync::{MutexGuard, PoisonError};
+use std::sync::{Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
 use crate::MainError;
@@ -29,6 +29,12 @@ pub enum RecordLoadError {
 pub enum PbInitError {
     #[error(transparent)]
     RecordLoadError(#[from] RecordLoadError),
+}
+
+#[derive(Error, Debug)]
+pub enum GroupDataError {
+    #[error("Failed to split spliced bitmap: `{0}`")]
+    Split(#[from] PoisonError<MutexGuard<'static, [ResolutionInfo; 3]>>),
 }
 
 #[derive(Error, Debug)]
