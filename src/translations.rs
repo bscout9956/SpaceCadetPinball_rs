@@ -226,7 +226,7 @@ pub enum Msg {
     MAX,
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Default)]
 pub enum Lang {
     MIN,
     ARABIC,
@@ -234,6 +234,7 @@ pub enum Lang {
     DANISH,
     GERMAN,
     GREEK,
+    #[default]
     ENGLISH,
     SPANISH,
     FINNISH,
@@ -254,12 +255,6 @@ pub enum Lang {
     SimplifiedChinese,
     TraditionalChinese,
     MAX,
-}
-
-impl Default for Lang {
-    fn default() -> Self {
-        Lang::ENGLISH
-    }
 }
 
 #[derive(Copy, Clone, PartialEq)]

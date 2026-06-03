@@ -185,6 +185,7 @@ pub struct VisualStruct<'a> {
 }
 
 #[repr(C, packed)]
+#[derive(Default)]
 pub struct WaveHeader {
     riff: [u8; 4],
     overall_size: u32,
@@ -199,26 +200,6 @@ pub struct WaveHeader {
     bits_per_sample: u16,
     data_chunk_header: [u8; 4],
     data_size: u32,
-}
-
-impl Default for WaveHeader {
-    fn default() -> Self {
-        Self {
-            riff: [0; 4],
-            overall_size: 0,
-            wave: [0; 4],
-            fmt_chunk_marker: [0; 4],
-            length_of_fmt: 0,
-            format_type: 0,
-            channels: 0,
-            sample_rate: 0,
-            byte_rate: 0,
-            block_align: 0,
-            bits_per_sample: 0,
-            data_chunk_header: [0; 4],
-            data_size: 0,
-        }
-    }
 }
 
 const _: () = assert!(size_of::<WaveHeader>() == 44, "Wrong size for WaveHeader");
@@ -280,8 +261,8 @@ impl Loader {
         visual.collision_group = 0;
         visual.kicker.threshold = 8.99999999;
         visual.kicker.hard_hit_sound_id = 0;
-        visual.smoothness = 0.94999999;
-        visual.elasticity = 0.60000002;
+        visual.smoothness = 0.95;
+        visual.elasticity = 0.6;
         visual.float_arr_count = 0;
         visual.soft_hit_sound_id = 0;
         visual.bitmap = SpriteData {
@@ -301,16 +282,14 @@ impl Loader {
                 dat_file.field(group_index, FieldTypes::ShortValue)
             {
                 let final_val = i16::from_le_bytes([(*value_data)[0], (*value_data)[1]]);
-                if final_val == 202 {
-                    if self.sound_count < 65 {
-                        self.sound_list[self.sound_count as usize] = SoundListStruct {
-                            wave_ptr: null(),
-                            group_index,
-                            loaded: false,
-                            duration: 0.0,
-                        };
-                        self.sound_count += 1;
-                    }
+                if final_val == 202 && self.sound_count < 65 {
+                    self.sound_list[self.sound_count as usize] = SoundListStruct {
+                        wave_ptr: null(),
+                        group_index,
+                        loaded: false,
+                        duration: 0.0,
+                    };
+                    self.sound_count += 1;
                 }
             }
         }
@@ -348,54 +327,51 @@ impl Loader {
             self.sound_list[sound_index as usize].duration = 0.0;
 
             let quick_flag_val = pb::QUICK_FLAG.load(Relaxed);
-            if sound_group_id != 0 && !quick_flag_val {
-                if let Some(EntryBuffer::Raw(value_data)) = self
+            if sound_group_id != 0
+                && !quick_flag_val
+                && let Some(EntryBuffer::Raw(value_data)) = self
                     .loader_table
                     .field(sound_group_id, FieldTypes::ShortValue)
-                {
-                    let val = i16::from_le_bytes([value_data[0], value_data[1]]);
-                    if val == 202 {
-                        // File name is in lower case, while game data is usually in upper case.
-                        let file_name_ptr =
-                            self.loader_table.field(sound_group_id, FieldTypes::String);
-                        if let Some(EntryBuffer::Raw(file_name_data)) = file_name_ptr {
-                            let mut file_name = String::from_utf8_lossy(file_name_data)
-                                .trim_end_matches('\0')
-                                .to_string();
+            {
+                let val = i16::from_le_bytes([value_data[0], value_data[1]]);
+                if val == 202 {
+                    // File name is in lower case, while game data is usually in upper case.
+                    let file_name_ptr = self.loader_table.field(sound_group_id, FieldTypes::String);
+                    if let Some(EntryBuffer::Raw(file_name_data)) = file_name_ptr {
+                        let mut file_name = String::from_utf8_lossy(file_name_data)
+                            .trim_end_matches('\0')
+                            .to_string();
 
-                            if pb::FULL_TILT_MODE.load(Relaxed) {
-                                file_name.insert_str(0, &format!("{}sound", PATH_SEPARATOR));
-                            }
-
-                            let mut file_path = String::new();
-                            let mut duration: f32 = -1.0;
-                            for idx in 0..2 {
-                                if idx == 1 {
-                                    file_name = file_name.to_uppercase();
-                                }
-
-                                file_path = pb::make_path_name(&file_name);
-
-                                if let Ok(mut file) = File::open(&file_path) {
-                                    let mut header_bytes = [0u8; size_of::<WaveHeader>()];
-                                    if file.read_exact(&mut header_bytes).is_ok() {
-                                        let wave_ptr = unsafe {
-                                            &*(header_bytes.as_ptr() as *const WaveHeader)
-                                        };
-                                        let sample_count = (wave_ptr.data_size
-                                            / wave_ptr.channels as u32
-                                            * wave_ptr.bits_per_sample as u32)
-                                            as f64
-                                            / 8.0;
-                                        duration =
-                                            sample_count as f32 / wave_ptr.sample_rate as f32;
-                                    }
-                                }
-                            }
-                            self.sound_list[sound_index as usize].duration = duration;
-                            self.sound_list[sound_index as usize].wave_ptr =
-                                sound::load_wave_file(file_path);
+                        if pb::FULL_TILT_MODE.load(Relaxed) {
+                            file_name.insert_str(0, &format!("{}sound", PATH_SEPARATOR));
                         }
+
+                        let mut file_path = String::new();
+                        let mut duration: f32 = -1.0;
+                        for idx in 0..2 {
+                            if idx == 1 {
+                                file_name = file_name.to_uppercase();
+                            }
+
+                            file_path = pb::make_path_name(&file_name);
+
+                            if let Ok(mut file) = File::open(&file_path) {
+                                let mut header_bytes = [0u8; size_of::<WaveHeader>()];
+                                if file.read_exact(&mut header_bytes).is_ok() {
+                                    let wave_ptr =
+                                        unsafe { &*(header_bytes.as_ptr() as *const WaveHeader) };
+                                    let sample_count = (wave_ptr.data_size
+                                        / wave_ptr.channels as u32
+                                        * wave_ptr.bits_per_sample as u32)
+                                        as f64
+                                        / 8.0;
+                                    duration = sample_count as f32 / wave_ptr.sample_rate as f32;
+                                }
+                            }
+                        }
+                        self.sound_list[sound_index as usize].duration = duration;
+                        self.sound_list[sound_index as usize].wave_ptr =
+                            sound::load_wave_file(file_path);
                     }
                 }
             }
@@ -419,15 +395,10 @@ impl Loader {
         }
 
         match self.loader_table.field(group_index, FieldTypes::ShortArray) {
-            Some(EntryBuffer::Raw(short_array_data)) => {
-                if short_array_data.len() >= 4 {
-                    let short_value =
-                        i16::from_le_bytes([short_array_data[0], short_array_data[1]]);
-                    if short_value == 100 {
-                        i16::from_le_bytes([short_array_data[2], short_array_data[3]])
-                    } else {
-                        1
-                    }
+            Some(EntryBuffer::Raw(short_array_data)) if short_array_data.len() >= 4 => {
+                let short_value = i16::from_le_bytes([short_array_data[0], short_array_data[1]]);
+                if short_value == 100 {
+                    i16::from_le_bytes([short_array_data[2], short_array_data[3]])
                 } else {
                     1
                 }

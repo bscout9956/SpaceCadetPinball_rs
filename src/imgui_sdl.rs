@@ -97,7 +97,7 @@ impl Color {
     }
 
     pub fn to_int(&self) -> u32 {
-        (((self.r * 255.0) as u32 & 0xff) << 0)
+        ((self.r * 255.0) as u32 & 0xff)
             | (((self.g * 255.0) as u32 & 0xff) << 8)
             | (((self.b * 255.0) as u32 & 0xff) << 16)
             | (((self.a * 255.0) as u32 & 0xff) << 24)
@@ -273,8 +273,8 @@ unsafe fn impl_sdl2_init(
     let sdl_backend_str = unsafe { CStr::from_ptr(sdl_backend).to_str().unwrap() };
 
     let global_mouse_whitelist = ["windows", "cocoa", "x11", "DIVE", "VMAN"];
-    for i in 0..global_mouse_whitelist.len() {
-        if sdl_backend_str.eq(global_mouse_whitelist[i]) {
+    for mouse in global_mouse_whitelist {
+        if sdl_backend_str.eq(mouse) {
             mouse_can_use_global_state = true;
         }
     }

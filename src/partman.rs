@@ -38,7 +38,7 @@ impl BitAnd for Bmp8Flags {
 }
 
 #[derive(Copy, Clone, Debug)]
-#[repr(packed)]
+#[repr(packed, C)]
 pub struct DatFileHeader {
     pub file_signature: [u8; 21],
     pub app_name: [u8; 50],
@@ -67,7 +67,7 @@ unsafe impl bytemuck::Zeroable for DatFileHeader {}
 unsafe impl bytemuck::Pod for DatFileHeader {}
 
 #[derive(Copy, Clone, Debug, Default)]
-#[repr(packed)]
+#[repr(packed, C)]
 pub struct Dat8BitBmpHeader {
     pub resolution: u8,
     pub width: i16,
@@ -88,7 +88,7 @@ impl Dat8BitBmpHeader {
 }
 
 #[derive(Copy, Clone, Debug, Default)]
-#[repr(packed)]
+#[repr(packed, C)]
 struct Dat16BitBmpHeader {
     width: i16,
     height: i16,

@@ -242,7 +242,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         " SDL_mixer {}.{}.{};",
         MIX_MAJOR_VERSION, MIX_MINOR_VERSION, MIX_PATCHLEVEL
     );
-    println!(" ImGui {}", "TODO");
+    println!(" ImGui TODO");
 
     let sdl_context = sdl2::init()?;
     unsafe {

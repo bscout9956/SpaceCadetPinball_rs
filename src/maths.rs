@@ -20,10 +20,6 @@ impl PartialEq for Vector2 {
     fn eq(&self, other: &Self) -> bool {
         self.x == other.x && self.y == other.y
     }
-
-    fn ne(&self, other: &Self) -> bool {
-        self.x != other.x || self.y != other.y
-    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]

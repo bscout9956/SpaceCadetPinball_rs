@@ -56,7 +56,7 @@ pub fn select_dat_file(data_search_paths: &[&str]) {
 
     match OPTIONS.lock() {
         Ok(mut options) => {
-            if options.prefer_3dpb_game_data.value == true {
+            if options.prefer_3dpb_game_data.value {
                 dat_file_names.swap(0, 1);
             }
         }
@@ -146,7 +146,7 @@ pub fn init() -> Result<(bool), PbInitError> {
             if file_name.is_empty() {
                 return Ok(false);
             }
-            data_file_path = make_path_name(&(*file_name));
+            data_file_path = make_path_name(&file_name);
         }
         Err(e) => {
             println!("Error locking DAT_FILE_NAME: {}", e);

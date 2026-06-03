@@ -82,14 +82,12 @@ impl Sound {
     ) {
         if self.mix_open && self.enabled_flag && !wave.is_null() {
             unsafe {
-                if Mix_Playing(-1) == self.num_channels {
-                    if let Some(min) = self.channels.iter().min_by_key(|ch| ch.timestamp) {
-                        if let Some(oldest_channel) =
-                            self.channels.iter().position(|ch| std::ptr::eq(ch, min))
-                        {
-                            Mix_HaltChannel(oldest_channel as i32);
-                        }
-                    }
+                if Mix_Playing(-1) == self.num_channels
+                    && let Some(min) = self.channels.iter().min_by_key(|ch| ch.timestamp)
+                    && let Some(oldest_channel) =
+                        self.channels.iter().position(|ch| std::ptr::eq(ch, min))
+                {
+                    Mix_HaltChannel(oldest_channel as i32);
                 }
 
                 let channel = Mix_PlayChannelTimed(-1, wave, 0, -1);
@@ -108,8 +106,8 @@ impl Sound {
 
         let lp_name_c_raw = CString::new(lp_name).unwrap().into_raw();
         let mode_c_raw = CString::new("r").unwrap().into_raw();
-        if let Some(wav_exists) = std::fs::exists(Path::new(lp_name)).ok() {
-            if wav_exists == false {
+        if let Ok(wav_exists) = std::fs::exists(Path::new(lp_name)) {
+            if !wav_exists {
                 return std::ptr::null_mut();
             }
             unsafe { Mix_LoadWAV_RW(SDL_RWFromFile(lp_name_c_raw, mode_c_raw), 1) }

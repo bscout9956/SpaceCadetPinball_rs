@@ -56,19 +56,19 @@ impl ColorRgba {
     }
 
     pub const fn get_alpha(&self) -> u8 {
-        (self.color >> ALPHA_OFFSET) as u8 & 0xFFu8
+        (self.color >> ALPHA_OFFSET) as u8
     }
 
     pub const fn get_red(&self) -> u8 {
-        (self.color >> RED_OFFSET) as u8 & 0xFFu8
+        (self.color >> RED_OFFSET) as u8
     }
 
     pub const fn get_green(&self) -> u8 {
-        (self.color >> GREEN_OFFSET) as u8 & 0xFFu8
+        (self.color >> GREEN_OFFSET) as u8
     }
 
     pub const fn get_blue(&self) -> u8 {
-        (self.color >> BLUE_OFFSET) as u8 & 0xFFu8
+        (self.color >> BLUE_OFFSET) as u8
     }
 
     pub fn set_alpha(&mut self, val: u8) {
@@ -151,7 +151,8 @@ impl GdrvBitmap8 {
         let bmp_vec: Vec<u8> = Vec::with_capacity(size_in_bytes as usize);
         instance.indexed_bmp_data = bmp_vec;
         let mut color = ColorRgba::color_rgba_u32((instance.height * instance.stride) as u32);
-        instance.bmp_buffer_data = vec![ColorRgba::black(); (instance.height * instance.width) as usize];
+        instance.bmp_buffer_data =
+            vec![ColorRgba::black(); (instance.height * instance.width) as usize];
 
         instance
     }

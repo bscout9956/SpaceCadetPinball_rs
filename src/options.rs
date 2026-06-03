@@ -846,9 +846,7 @@ pub fn render_control_dialog() {
     // TODO: ImGui stuff
 
     let dialog_check = SHOW_DIALOG.load(SeqCst);
-    if !dialog_check {
-        return;
-    }
+    if !dialog_check {}
 }
 
 pub fn map_game_input(key: GameInput) -> Vec<GameBindings> {
