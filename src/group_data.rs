@@ -1,13 +1,15 @@
+use crate::embedded_data::PB_MSGFT_BIN_COMPRESSED_DATA_BASE85;
 use crate::errors::GroupDataError;
 use crate::fullscrn::ResolutionInfo;
 use crate::gdrv::{BitmapTypes, GdrvBitmap8};
 use crate::zdrv::ZMapHeaderType;
-use crate::{fullscrn, zdrv};
+use crate::{fullscrn, pb, zdrv};
 use num_derive::FromPrimitive;
 use std::array;
 use std::cmp::PartialOrd;
 use std::ffi::{CStr, c_char};
 use std::sync::LockResult;
+use std::sync::atomic::Ordering::Relaxed;
 
 #[derive(PartialEq, PartialOrd, Copy, Clone, FromPrimitive)]
 #[repr(i16)]
@@ -347,6 +349,21 @@ impl DatFile {
         }
 
         None
+    }
+
+    pub fn finalize(&self) {
+        let is_full_tilt = pb::FULL_TILT_MODE.load(Relaxed);
+
+        if !is_full_tilt {
+            let group_index = self.record_labeled(c"pbmsg_ft".as_ptr());
+            assert!(group_index < 0, "DatFile: pbmsg_ft is already in .dat");
+        }
+
+        let rc_data = base85::decode(PB_MSGFT_BIN_COMPRESSED_DATA_BASE85).unwrap(); //TODO: use result yadda yadda
+    }
+
+    fn AddMsgFont(&self, font: MsgFont, font_name: &str) {
+        // TODO: Continue here L321 of GroupData.cpp
     }
 
     pub fn field_size_nth(
