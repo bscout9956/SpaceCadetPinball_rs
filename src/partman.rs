@@ -250,7 +250,12 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
 
             group_data.add_entry(entry_data);
         }
+        dat_file.groups.push(group_data);
     }
-
-    Ok(dat_file)
+    
+    if dat_file.groups.len() == header.number_of_groups as usize {
+        dat_file.finalize();
+        return Ok(dat_file)
+    }
+    Err(RecordLoadError::Unknown)
 }
