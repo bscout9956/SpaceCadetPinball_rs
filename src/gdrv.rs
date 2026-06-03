@@ -103,7 +103,7 @@ pub struct GdrvBitmap8 {
     pub y_position: i32,
     pub resolution: u32,
     pub texture: Option<SDL_Texture>,
-    pub current_palette: [ColorRgba; 256],
+    // pub current_palette: [ColorRgba; 256],
 }
 
 impl GdrvBitmap8 {
@@ -157,6 +157,14 @@ impl GdrvBitmap8 {
         instance
     }
 
+    pub fn new_dims(width: i32, height: i32) -> Self {
+        Self::new_dims_indexed_buff(width, height, true, true)
+    }
+
+    pub fn new_dims_indexed(width: i32, height: i32, indexed: bool) -> Self {
+        Self::new_dims_indexed_buff(width, height, indexed, true)
+    }
+
     pub fn default() -> Self {
         Self {
             bmp_buffer_data: Vec::new(),
@@ -170,7 +178,33 @@ impl GdrvBitmap8 {
             y_position: 0,
             resolution: 0,
             texture: None,
-            current_palette: [ColorRgba::black(); 256],
+        }
+    }
+
+    fn new_dims_indexed_buff(width: i32, height: i32, indexed: bool, bmp_buff: bool) -> Self {
+        assert!(width >= 0 && height >= 0, "Negative bitmap8 dimensions");
+        let stride = width;
+
+        Self {
+            bmp_buffer_data: if bmp_buff {
+                vec![ColorRgba::black(); (height * stride) as usize]
+            } else {
+                vec![]
+            },
+            indexed_bmp_data: if indexed {
+                vec![0; (stride * height) as usize]
+            } else {
+                vec![]
+            },
+            width,
+            height,
+            stride,
+            indexed_stride: stride,
+            bitmap_type: BitmapTypes::DibBitmap,
+            x_position: 0,
+            y_position: 0,
+            resolution: 0,
+            texture: None,
         }
     }
 }
