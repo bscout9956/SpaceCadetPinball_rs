@@ -7,22 +7,6 @@ use std::sync::atomic::{AtomicBool, AtomicI32};
 use std::sync::{Mutex, MutexGuard, PoisonError, atomic};
 use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum FullscreenError {
-    #[error("Could not find main window to turn into fullscreen")]
-    MainWindowMissingError,
-    #[error("Resolution is out of bounds")]
-    ResolutionOutOfBoundsError,
-    #[error("Renderer is missing (possibly none) `{0}`")]
-    MissingRendererError(MainError),
-    #[error("Faild to lock OPTIONS: `{0}`")]
-    OptionsLockError(#[from] PoisonError<MutexGuard<'static, OptionsStruct>>),
-    #[error("Failed to lock ResolutionArray: `{0}`")]
-    ResolutionArrayLockError(#[from] PoisonError<MutexGuard<'static, [ResolutionInfo; 3]>>),
-    #[error("Failed to lock Scale value: `{0}`")]
-    FloatLockError(#[from] PoisonError<MutexGuard<'static, f32>>),
-}
-
 static RESOLUTION: AtomicI32 = AtomicI32::new(0);
 
 #[derive(Clone)]
