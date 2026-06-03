@@ -1,3 +1,4 @@
+use crate::errors::FullscreenError;
 use crate::options::{OPTIONS, OptionsStruct};
 use crate::{MainError, get_main_menu_height, get_main_window, get_renderer, pb, render};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
@@ -53,8 +54,8 @@ pub fn set_resolution(mut value: i32) -> Result<(), FullscreenError> {
     if pb::FULL_TILT_MODE.load(Relaxed) && !pb::FULL_TILT_DEMO_MODE.load(Relaxed) {
         value = 0;
     }
-    if value < 0 || value > 2 {
-        return Err(FullscreenError::ResolutionOutOfBoundsError);
+    if !(0..=2).contains(&value) {
+        return Err(FullscreenError::ResolutionOutOfBounds);
     }
     RESOLUTION.store(value, Relaxed);
     Ok(())
@@ -102,7 +103,7 @@ pub fn get_resolution() -> i32 {
 fn reset_offset(offset: &Mutex<f32>) -> Result<(), FullscreenError> {
     let mut offset = offset
         .lock()
-        .map_err(|_| FullscreenError::MainWindowMissingError)?;
+        .map_err(|_| FullscreenError::MainWindowMissing)?;
     *offset = 0.0f32;
     Ok(())
 }
@@ -114,7 +115,7 @@ pub fn window_size_changed() -> Result<(), FullscreenError> {
             SDL_GetRendererOutputSize(main_renderer, &mut width, &mut height);
         },
         Err(e) => {
-            return Err(FullscreenError::MainWindowMissingError);
+            return Err(FullscreenError::MainWindowMissing);
         }
     }
     let options = OPTIONS.lock()?;
@@ -130,7 +131,7 @@ pub fn window_size_changed() -> Result<(), FullscreenError> {
             resolution_array[idx].clone()
         }
         Err(e) => {
-            return Err(FullscreenError::ResolutionArrayLockError(e));
+            return Err(FullscreenError::ResolutionArrayLock(e));
         }
     };
 
@@ -144,8 +145,8 @@ pub fn window_size_changed() -> Result<(), FullscreenError> {
     let mut offset2y = 0;
 
     if *options.integer_scaling {
-        let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLockError)?;
-        let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLockError)?;
+        let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
+        let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
 
         *scale_x = if *scale_x < 1.0 {
             *scale_x
@@ -161,19 +162,19 @@ pub fn window_size_changed() -> Result<(), FullscreenError> {
     }
 
     if *options.uniform_scaling {
-        let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLockError)?;
-        let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLockError)?;
+        let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
+        let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
         *scale_x = f32::min(*scale_x, *scale_y);
         *scale_y = *scale_x;
     }
 
-    let scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLockError)?;
-    let scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLockError)?;
+    let scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
+    let scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
     offset2x = (width as f32 - res.table_width as f32 * *scale_x).floor() as i32;
     offset2y = (height as f32 - res.table_height as f32 * *scale_y).floor() as i32;
 
-    let mut offset_x = OFFSET_X.lock().map_err(FullscreenError::FloatLockError)?;
-    let mut offset_y = OFFSET_Y.lock().map_err(FullscreenError::FloatLockError)?;
+    let mut offset_x = OFFSET_X.lock().map_err(FullscreenError::FloatLock)?;
+    let mut offset_y = OFFSET_Y.lock().map_err(FullscreenError::FloatLock)?;
     *offset_x = offset2x as f32 / 2.0f32;
     *offset_y = offset2y as f32 / 2.0f32;
 
@@ -185,27 +186,25 @@ pub fn window_size_changed() -> Result<(), FullscreenError> {
     //     h: height - offset2y,
     // };
 
-    return Ok(());
+    Ok(())
 }
 
 fn update_y_scale(height: &mut i32, res: &ResolutionInfo) -> Result<(), FullscreenError> {
-    let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLockError)?;
+    let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
     *scale_y = *height as f32 / res.screen_height as f32;
     Ok(())
 }
 
 fn update_x_scale(width: &mut i32, res: &ResolutionInfo) -> Result<(), FullscreenError> {
-    let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLockError)?;
+    let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
     *scale_x = *width as f32 / res.screen_width as f32;
     Ok(())
 }
 
 pub fn activate(flag: bool) {
     let screen_mode = SCREEN_MODE.load(Relaxed);
-    if screen_mode {
-        if (!flag) {
-            set_screen_mode(false);
-        }
+    if screen_mode && (!flag) {
+        set_screen_mode(false);
     }
 }
 
@@ -245,10 +244,10 @@ unsafe fn enable_fullscreen() -> Result<bool, FullscreenError> {
                 }
             }
         } else {
-            return Err(FullscreenError::MainWindowMissingError);
+            return Err(FullscreenError::MainWindowMissing);
         }
     }
-    return Ok(false);
+    Ok(false)
 }
 
 fn disable_fullscreen() -> Result<bool, FullscreenError> {
@@ -264,11 +263,11 @@ fn disable_fullscreen() -> Result<bool, FullscreenError> {
                 }
             }
         } else {
-            return Err(FullscreenError::MainWindowMissingError);
+            return Err(FullscreenError::MainWindowMissing);
         }
     }
 
-    return Ok(false);
+    Ok(false)
 }
 
 pub fn init() {
