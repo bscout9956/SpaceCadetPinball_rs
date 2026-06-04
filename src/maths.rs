@@ -52,6 +52,7 @@ pub struct Vector2i {
     pub y: i32,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 pub struct RectangleType {
     pub x_position: i32,
     pub y_position: i32,
