@@ -185,11 +185,57 @@ pub fn init() -> Result<(bool), PbInitError> {
                 score::load_msg_font("pbmsg_ft");
             }
 
-            if record_table.is_none() {
-                return Ok(true);
+            match *record_table {
+                Some(table) => {
+                    let plt = table.field_labeled("background", FieldTypes::Palette);
+                    let plt_data = plt.unwrap();
+                    match plt_data {
+                        EntryBuffer::Raw(data) => {
+                            let color = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
+                            let color_rgba = ColorRgba { color };
+                            gdrv::display_palette(color_rgba);
+                        }
+                        _ => {}
+                    }
+
+                    let background_bmp = table.get_bitmap(table.record_labeled("background"));
+                    let camera_info_id =
+                        table.record_labeled("camera_info") + fullscrn::get_resolution();
+                    let camera_data = table.field(camera_info_id, FieldTypes::FloatArray).unwrap();
+                    let mut camera_info: Vec<f32> = Vec::new();
+                    match camera_data {
+                        EntryBuffer::Raw(float_data) => {
+                            camera_info = read_camera_floats(float_data);
+                        }
+                        _ => {}
+                    }
+                    let res_array = RESOLUTION_ARRAY.lock().unwrap();
+                    let res_info = &(*res_array)[fullscrn::get_resolution() as usize];
+
+                    if !camera_info.is_empty() {
+                        projection_matrix.copy_from_slice(&camera_info);
+
+                        let proj_center_x = res_info.table_width as f32 * 0.5;
+                        let proj_center_y = res_info.table_height as f32 * 0.5;
+                        let proj_d = camera_info[0];
+                        let z_min = camera_info[1];
+                        let z_scaler = camera_info[2];
+                        proj::init(
+                            projection_matrix,
+                            proj_d,
+                            proj_center_x,
+                            proj_center_y,
+                            z_min,
+                            z_scaler,
+                        );
+                    }
+                    
+                    render::init(,res_info.table_width, res_info.table_height);
+                }
+                None => {
+                    return Ok(true);
+                }
             }
-            
-            
         }
         Err(e) => {
             println!("Error locking RECORD_TABLE: {}", e);
