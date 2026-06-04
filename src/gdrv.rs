@@ -207,3 +207,30 @@ impl GdrvBitmap8 {
         }
     }
 }
+
+static CURRENT_PALLETTE: Mutex<[ColorRgba; 256]> = Mutex::new([ColorRgba::black(); 256]);
+
+pub fn display_palette(plt: ColorRgba) {
+    // TODO: Verify, this strained my eyes
+    const SYS_PALETTE_COLORS: [ColorRgba; 10] = [
+        ColorRgba::color_rgba(0, 0, 0, 0),
+        ColorRgba::color_rgba(0x80, 0, 0, 0xff),
+        ColorRgba::color_rgba(0, 0x80, 0, 0xff),
+        ColorRgba::color_rgba(0x80, 0x80, 0, 0xff),
+        ColorRgba::color_rgba(0x0, 0x80, 0x80, 0xff),
+        ColorRgba::color_rgba(0x80, 0, 0x80, 0xff),
+        ColorRgba::color_rgba(0x0, 0x80, 0x80, 0xff),
+        ColorRgba::color_rgba(0xC0, 0xC0, 0xC0, 0xff),
+        ColorRgba::color_rgba(0xC0, 0xDC, 0xC0, 0xff),
+        ColorRgba::color_rgba(0xA6, 0xCA, 0xF0, 0xff),
+    ];
+
+    match CURRENT_PALLETTE.lock() {
+        Ok(mut pallette) => {
+            (*pallette).copy_from_slice(&SYS_PALETTE_COLORS);
+        }
+        Err(e) => {
+            println!("Failed to lock CURRENT_PALLETTE {}", e); // TODO: Result, Err
+        }
+    }
+}
