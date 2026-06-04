@@ -51,6 +51,7 @@ mod midi;
 mod partman;
 mod pb;
 mod render;
+pub mod text_array;
 mod utils;
 
 pub fn restart_func() {
