@@ -155,7 +155,7 @@ fn read_camera_floats(float_data: &[u8]) -> Vec<f32> {
 }
 
 pub fn init() -> Result<(bool), PbInitError> {
-    let projection_matrix: [f32; 12] = [0.0; 12];
+    let mut projection_matrix: [f32; 12] = [0.0; 12];
 
     let mut data_file_path = String::new();
 
