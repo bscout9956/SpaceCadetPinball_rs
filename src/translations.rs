@@ -1,7 +1,9 @@
+use crate::text_array::TEXT_ARRAY;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use std::cmp::PartialEq;
-use std::sync::{LazyLock, Mutex};
+use std::sync::{LazyLock, LockResult, Mutex, MutexGuard, PoisonError};
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, FromPrimitive)]
 pub enum Msg {
@@ -423,4 +425,70 @@ pub fn set_current_language(short_name: &str) {
 //             builder.add_text(translation);
 //         }
 //     }
+// }
+
+pub fn get_translation(id: Msg) -> Result<&'static str, TranslationError> {
+    if TEXT_ARRAY.iter().find(|(msg, _)| *msg == id).is_none() {
+        return Ok("!Missing MsgId");
+    }
+
+    match CURRENT_LANGUAGE.lock() {
+        Ok(language) => {
+            let mut text = get(id, *language);
+
+            // Language fallback to english if available
+            if text.is_err() {
+                text = get(id, Lang::ENGLISH);
+                if text.is_err() {
+                    Err(TranslationError::MissingEnglishText)
+                } else {
+                    Ok(text?)
+                }
+            } else {
+                Ok(text?)
+            }
+        }
+        Err(e) => {
+            Err(TranslationError::FailedToLockLanguage(e))
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum TranslationError {
+    #[error("Message id out of bounds")]
+    MsgIdOutOfBounds,
+    #[error("Language id out of bounds")]
+    LangIdOutOfBounds,
+    #[error("Failed to acquire lock")]
+    FailedToLockLanguage(#[from] PoisonError<MutexGuard<'static, Lang>>),
+    MissingEnglishText,
+}
+
+pub fn get(id: Msg, lang_id: Lang) -> Result<&'static str, TranslationError> {
+    let (_, translations) = TEXT_ARRAY
+        .iter()
+        .find(|(msg, _)| *msg == id)
+        .ok_or(TranslationError::MsgIdOutOfBounds)?;
+
+    let (_, text) = translations
+        .iter()
+        .find(|(lang, _)| *lang == lang_id)
+        .ok_or(TranslationError::LangIdOutOfBounds)?;
+
+    Ok(text)
+}
+
+// pub fn set(id: Msg, lang_id: Lang, text: &str) -> Result<(), TranslationError> {
+//     let (_, translations) = TEXT_ARRAY
+//         .iter()
+//         .find(|(msg, _)| *msg == id)
+//         .ok_or(TranslationError::MsgIdOutOfBounds)?;
+//
+//     let (_, text) = translations
+//         .iter()
+//         .find(|(lang, _)| *lang == lang_id)
+//         .ok_or(TranslationError::LangIdOutOfBounds)?;
+//
+//
 // }
