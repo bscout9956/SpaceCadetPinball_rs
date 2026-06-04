@@ -5,6 +5,7 @@ use std::ffi::c_char;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::ptr::{null, null_mut};
+use std::sync::{LockResult, Mutex};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(u8)]
