@@ -138,6 +138,22 @@ fn set_base_path(path: &str) {
     }
 }
 
+fn read_camera_floats(float_data: &[u8]) -> Vec<f32> {
+    let mut data: Vec<f32> = Vec::new();
+
+    for i in 0..12 {
+        let offset = i * 4;
+        data.push(f32::from_le_bytes([
+            float_data[offset],
+            float_data[offset + 1],
+            float_data[offset + 2],
+            float_data[offset + 3],
+        ]));
+    }
+
+    data
+}
+
 pub fn init() -> Result<(bool), PbInitError> {
     let projection_matrix: [f32; 12] = [0.0; 12];
 
