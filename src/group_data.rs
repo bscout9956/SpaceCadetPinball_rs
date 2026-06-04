@@ -357,20 +357,13 @@ impl DatFile {
         None
     }
 
-    pub fn field_labeled(&self, target_group_name: &str) -> i32 {
-        let target_length = target_group_name.len();
-
-        for group_index in (0..self.groups.len() - 1).rev() {
-            let group_name = self.field(group_index as i32, FieldTypes::GroupName);
-            match group_name {
-                Some(data) => {}
-                None => {
-                    continue;
-                }
-            }
+    pub fn field_labeled(&self, name: &str, field_type: FieldTypes) -> Option<&EntryBuffer> {
+        let group_index = self.record_labeled(name);
+        if group_index < 0 {
+            None
+        } else {
+            self.field(group_index, field_type)
         }
-
-        1
     }
 
     pub fn finalize(&mut self) -> Result<(), DatFileError> {
