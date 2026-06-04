@@ -1,8 +1,8 @@
 use crate::errors::PbInitError;
 use crate::group_data::DatFile;
 use crate::options::OPTIONS;
-use crate::partman;
-use crate::translations::Msg;
+use crate::translations::{Msg, TranslationError};
+use crate::{partman, score, translations};
 use sdl2::sys::SDL_MessageBoxFlags;
 use std::ffi::c_char;
 use std::fs::File;
