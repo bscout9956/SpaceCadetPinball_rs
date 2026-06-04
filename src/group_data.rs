@@ -4,12 +4,14 @@ use crate::fullscrn::ResolutionInfo;
 use crate::gdrv::{BitmapTypes, GdrvBitmap8};
 use crate::zdrv::ZMapHeaderType;
 use crate::{fullscrn, pb, zdrv};
+use base85::Error;
 use num_derive::FromPrimitive;
 use std::array;
 use std::cmp::PartialOrd;
 use std::ffi::{CStr, c_char};
 use std::sync::LockResult;
 use std::sync::atomic::Ordering::Relaxed;
+use thiserror::Error;
 
 #[derive(PartialEq, PartialOrd, Copy, Clone, FromPrimitive)]
 #[repr(i16)]
@@ -69,19 +71,17 @@ impl EntryData {
     }
 }
 
-#[repr(C, packed)]
 struct MsgFontChar {
     width: u8,
-    data: [u8; 1],
+    data: Vec<u8>,
 }
 
-#[repr(C, packed)]
 struct MsgFont {
     gap_width: i16,
     unknown_1: i16,
     height: i16,
     char_widths: [u8; 128],
-    data: [MsgFontChar; 1],
+    data: Vec<MsgFontChar>,
 }
 
 pub struct GroupData {
@@ -288,6 +288,12 @@ pub struct DatFile {
     pub groups: Vec<GroupData>,
 }
 
+#[derive(Error, Debug)]
+pub enum DatFileError {
+    #[error("Could not parse pinball font file")]
+    DecodeError(#[from] Error),
+}
+
 unsafe impl Send for DatFile {}
 unsafe impl Sync for DatFile {}
 
@@ -351,7 +357,23 @@ impl DatFile {
         None
     }
 
-    pub fn finalize(&self) {
+    pub fn field_labeled(&self, target_group_name: &str) -> i32 {
+        let target_length = target_group_name.len();
+
+        for group_index in (0..self.groups.len() - 1).rev() {
+            let group_name = self.field(group_index as i32, FieldTypes::GroupName);
+            match group_name {
+                Some(data) => {}
+                None => {
+                    continue;
+                }
+            }
+        }
+
+        1
+    }
+
+    pub fn finalize(&mut self) -> Result<(), DatFileError> {
         let is_full_tilt = pb::FULL_TILT_MODE.load(Relaxed);
 
         if !is_full_tilt {
@@ -359,11 +381,100 @@ impl DatFile {
             assert!(group_index < 0, "DatFile: pbmsg_ft is already in .dat");
         }
 
-        let rc_data = base85::decode(PB_MSGFT_BIN_COMPRESSED_DATA_BASE85).unwrap(); //TODO: use result yadda yadda
+        let rc_data = base85::decode(PB_MSGFT_BIN_COMPRESSED_DATA_BASE85)?; //TODO: use result yadda yadda
+
+        self.add_msg_font(&rc_data, "pbmsg_ft");
+        Ok(())
     }
 
-    fn AddMsgFont(&self, font: MsgFont, font_name: &str) {
-        // TODO: Continue here L321 of GroupData.cpp
+    fn add_msg_font(&mut self, font_data: &[u8], font_name: &str) -> Result<(), GroupDataError> {
+        if font_data.len() < 134 {
+            return Err(GroupDataError::InvalidBufferLength);
+        }
+
+        let gap_width = i16::from_le_bytes(font_data[0..2].try_into().unwrap());
+        let height = i16::from_le_bytes(font_data[4..6].try_into().unwrap()) as usize;
+
+        let mut char_widths = [0u8; 128];
+        char_widths.copy_from_slice(&font_data[6..134]); // 128
+
+        let mut cursor = &font_data[134..];
+        let mut group_id = self.groups.last().map(|g| g.group_id).unwrap_or(0) + 1;
+
+        for char_index in 32..128 {
+            if cursor.is_empty() {
+                return Err(GroupDataError::InvalidBufferLength);
+            }
+
+            let width = cursor[0] as usize;
+            if width != char_widths[char_index] as usize {
+                return Err(GroupDataError::FontWidthMismatch);
+            }
+
+            let total_chunk_size = 1 + (width * height);
+            if cursor.len() < total_chunk_size {
+                return Err(GroupDataError::InvalidBufferLength);
+            }
+
+            let char_pixel_data = &cursor[1..total_chunk_size];
+
+            let mut bmp = GdrvBitmap8::new_dims(width as i32, height as i32);
+            let byte_count = (bmp.height * bmp.stride) as usize;
+            bmp.indexed_bmp_data.resize(byte_count, 0);
+
+            for y in 0..height {
+                let src_start = y * width;
+                let src_end = src_start + width;
+
+                let dst_row = height - 1 - y;
+                let dst_start = dst_row * (bmp.stride as usize);
+                let dst_end = dst_start + width;
+
+                bmp.indexed_bmp_data[dst_start..dst_end]
+                    .copy_from_slice(&char_pixel_data[src_start..src_end]);
+            }
+
+            let mut group_data = GroupData::new(group_id);
+            let bmp_field_size = byte_count as i32;
+            let bmp_entry = EntryData::new(
+                FieldTypes::Bitmap8bit,
+                bmp_field_size,
+                EntryBuffer::Bitmap8(bmp),
+            );
+            group_data.add_entry(bmp_entry);
+
+            if char_index == 32 {
+                let mut name_bytes = font_name.as_bytes().to_vec();
+                name_bytes.push(0);
+
+                let name_entry = EntryData::new(
+                    FieldTypes::GroupName,
+                    name_bytes.len() as i32,
+                    EntryBuffer::Raw(name_bytes),
+                );
+
+                group_data.add_entry(name_entry);
+
+                let gap_bytes = gap_width.to_le_bytes().to_vec();
+                let gap_entry =
+                    EntryData::new(FieldTypes::ShortArray, 2, EntryBuffer::Raw(gap_bytes));
+                group_data.add_entry(gap_entry);
+            } else {
+                let group_name = format!("char {}='{}'\0", char_index, char_index as u8 as char);
+                let name_bytes = group_name.into_bytes();
+
+                let name_entry = EntryData::new(
+                    FieldTypes::GroupName,
+                    name_bytes.len() as i32,
+                    EntryBuffer::Raw(name_bytes),
+                );
+                group_data.add_entry(name_entry);
+            }
+            self.groups.push(group_data);
+            group_id += 1;
+        }
+
+        Ok(())
     }
 
     pub fn field_size_nth(
@@ -411,10 +522,8 @@ impl DatFile {
         group.get_zmap(fullscrn::get_resolution())
     }
 
-    // Worth considering changing this name to &str
-    pub fn record_labeled(&self, target_group_name: *const c_char) -> i32 {
-        let target_cstr = unsafe { CStr::from_ptr(target_group_name) };
-        let target_data = target_cstr.to_bytes();
+    pub fn record_labeled(&self, target_group_name: &str) -> i32 {
+        let target_data = target_group_name.as_bytes();
 
         for group_index in (0..self.groups.len()).rev() {
             match self.field(group_index as i32, FieldTypes::GroupName) {
