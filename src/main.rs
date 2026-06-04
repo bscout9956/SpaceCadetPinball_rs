@@ -50,6 +50,7 @@ mod imgui_sdl;
 mod midi;
 mod partman;
 mod pb;
+pub mod proj;
 mod render;
 pub mod text_array;
 mod utils;
