@@ -35,6 +35,10 @@ pub enum PbInitError {
 pub enum GroupDataError {
     #[error("Failed to split spliced bitmap: `{0}`")]
     Split(#[from] PoisonError<MutexGuard<'static, [ResolutionInfo; 3]>>),
+    #[error("There was a mismatch between the font widths")]
+    FontWidthMismatch,
+    #[error("Buffer length is not the correct size")]
+    InvalidBufferLength,
 }
 
 #[derive(Error, Debug)]
