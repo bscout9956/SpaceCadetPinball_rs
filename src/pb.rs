@@ -155,11 +155,23 @@ pub fn init() -> Result<(bool), PbInitError> {
     }
 
     match RECORD_TABLE.lock() {
-        Ok(mut table_opt) => {
-            *table_opt = Some(partman::load_records(
+        Ok(mut record_table) => {
+            *record_table = Some(partman::load_records(
                 data_file_path,
                 FULL_TILT_MODE.load(Relaxed),
             )?);
+
+            let use_bmp_font: i32 = 0;
+            get_rc_int(Msg::TextBoxUseBitmapFont, &use_bmp_font);
+            if use_bmp_font == 1 {
+                score::load_msg_font("pbmsg_ft");
+            }
+
+            if record_table.is_none() {
+                return Ok(true);
+            }
+            
+            
         }
         Err(e) => {
             println!("Error locking RECORD_TABLE: {}", e);
