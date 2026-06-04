@@ -3,7 +3,7 @@ use sdl2::sys::SDL_Rect;
 use thiserror::Error;
 use crate::gdrv::GdrvBitmap8;
 use crate::maths::RectangleType;
-use crate::zdrv;
+use crate::{gdrv, zdrv};
 use crate::zdrv::ZMapHeaderType;
 
 pub enum VisualTypes {
@@ -29,7 +29,7 @@ struct RenderSprite {
 }
 
 pub static V_SCREEN: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
-pub static BACKGROUND_BITMAP: Option<GdrvBitmap8> = None;
+pub static BACKGROUND_BITMAP: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
 pub static BACKGROUND_ZMAP: Option<ZMapHeaderType> = None;
 
 pub static Z_MAP_OFFSET_X: i32 = 0;
@@ -57,6 +57,8 @@ static Z_SCREEN: Mutex<Option<ZMapHeaderType>> = Mutex::new(None);
 pub enum RenderError {
     #[error("Failed to lock V_SCREEN")]
     VScreenLock(#[from] PoisonError<MutexGuard<'static, Option<GdrvBitmap8>>>),
+    #[error("Failed to lock BALL_BITMAP")]
+    BallBitmapLock(#[from] PoisonError<MutexGuard<'static, Option<[GdrvBitmap8;20]>>>),
     #[error("Failed to lock Z_SCREEN")]
     ZScreenLock(#[from] PoisonError<MutexGuard<'static, Option<ZMapHeaderType>>>),
     #[error("Failed to lock RectangleType")]
@@ -85,15 +87,24 @@ pub fn init(bmp: Option<GdrvBitmap8>, width: i32, height: i32) -> Result<(), Ren
     v_screen_unwrap.y_position = 0;
     v_screen_unwrap.x_position = 0;
 
-    let ball_bitmap = BALL_BITMAP.lock()?;
-    let mut ball_unwrap = ball_bitmap.unwrap();
-    ball_unwrap = std::array::from_fn(|_| GdrvBitmap8::default());
+    let mut ball_bitmap = BALL_BITMAP.lock()?;
+    let mut ball_unwrap = ball_bitmap.as_mut().unwrap();
+    let mut defaults: [GdrvBitmap8; 20] = std::array::from_fn(|_| GdrvBitmap8::default());
+    ball_unwrap = &mut defaults;
+
     for mut bmp in ball_unwrap.iter_mut() {
         bmp = &mut GdrvBitmap8::new_dims_indexed(64, 64, false);
     }
 
-    
+    // TODO: Continue on Line 116 of render.cpp
+    *BACKGROUND_BITMAP.lock()? = bmp.clone();
+    if bmp.is_some() {
+        gdrv::copy_bitmap()
+    } else {
+        gdrv::fill_bitmap()
+    }
 
+    recreate_screen_texture();
 
     Ok(())
 }
