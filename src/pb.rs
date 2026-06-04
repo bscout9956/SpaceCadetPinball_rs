@@ -170,3 +170,14 @@ pub fn init() -> Result<(bool), PbInitError> {
 
     Ok(false)
 }
+
+// Note: This used to be code that took a string like "1 Blablabla" and would get only the first part of the string
+// It's an old CPP programming practice apparently,
+// I guess valued enums weren't a thing? I am not quite sure
+pub fn get_rc_int(u_id: Msg, use_bmp_font: &i32) -> Result<i32, TranslationError> {
+    let s = get_rc_string(u_id)?;
+
+    let first_char = s.split_whitespace().next().unwrap_or("0");
+
+    Ok(first_char.parse::<i32>().unwrap_or(0))
+}
