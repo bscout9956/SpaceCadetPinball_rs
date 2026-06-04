@@ -1,3 +1,112 @@
-pub(crate) fn recreate_screen_texture() {
+use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
+use sdl2::sys::SDL_Rect;
+use thiserror::Error;
+use crate::gdrv::GdrvBitmap8;
+use crate::maths::RectangleType;
+use crate::zdrv;
+use crate::zdrv::ZMapHeaderType;
+
+pub enum VisualTypes {
+    Background,
+    Sprite,
+    Ball,
+}
+
+struct RenderSprite {
+    bmp_rect: RectangleType, // TODO: List?
+    bmp: Option<GdrvBitmap8>,
+    zmap: Option<ZMapHeaderType>,
+    delete_flag: bool,
+    visual_types: VisualTypes,
+    depth: u16,
+    dirty_rect_prev: RectangleType,
+    z_map_offset_y: i32,
+    z_map_offset_x: i32,
+    dirty_rect: RectangleType,
+    occluded_sprites: Option<Vec<Option<RenderSprite>>> // TODO: Is this really it?
+    bounding_rect: RectangleType,
+    dirty_flag: bool,
+}
+
+pub static V_SCREEN: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
+pub static BACKGROUND_BITMAP: Option<GdrvBitmap8> = None;
+pub static BACKGROUND_ZMAP: Option<ZMapHeaderType> = None;
+
+pub static Z_MAP_OFFSET_X: i32 = 0;
+pub static Z_MAP_OFFSET_Y: i32 = 0;
+
+pub static DESTINATION_RECT: LazyLock<Mutex<SDL_Rect>> = LazyLock::new(|| Mutex::new(SDL_Rect {
+    x: 0,
+    y: 0,
+    w: 0,
+    h: 0,
+}));
+
+static SPRITE_LIST: Mutex<Vec<RenderSprite>> = Mutex::new(Vec::new());
+static BALL_LIST: Mutex<Vec<RenderSprite>> = Mutex::new(Vec::new());
+
+static OFFSET_X: Mutex<i32> = Mutex::new(0);
+static OFFSET_Y: Mutex<i32> = Mutex::new(0);
+
+static V_SCREEN_RECT: Mutex<RectangleType> = Mutex::new(RectangleType::default());
+static BALL_BITMAP: Mutex<Option<[GdrvBitmap8; 20]>> = Mutex::new(None);
+
+static Z_SCREEN: Mutex<Option<ZMapHeaderType>> = Mutex::new(None);
+
+#[derive(Debug, Error)]
+pub enum RenderError {
+    #[error("Failed to lock V_SCREEN")]
+    VScreenLock(#[from] PoisonError<MutexGuard<'static, Option<GdrvBitmap8>>>),
+    #[error("Failed to lock Z_SCREEN")]
+    ZScreenLock(#[from] PoisonError<MutexGuard<'static, Option<ZMapHeaderType>>>),
+    #[error("Failed to lock RectangleType")]
+    RectangleLock(#[from] PoisonError<MutexGuard<'static, RectangleType>>),
+}
+
+pub fn init(bmp: Option<GdrvBitmap8>, width: i32, height: i32) -> Result<(), RenderError> {
+    let mut v_screen = V_SCREEN.lock()?;
+    *v_screen = Some(GdrvBitmap8::new_dims_indexed(width, height, false));
+    let mut z_screen = Z_SCREEN.lock()?;
+    *z_screen = Some(ZMapHeaderType::new(width, height, width));
+
+    let mut z_unwrap = (*z_screen).as_mut().unwrap();
+    let z_width = z_unwrap.width;
+    let z_height = z_unwrap.height;
+
+    zdrv::fill(z_unwrap, z_width, z_height, 0, 0, 0xFFFF);
+
+    let mut v_screen_rect = V_SCREEN_RECT.lock()?;
+    (*v_screen_rect).x_position = 0;
+    (*v_screen_rect).y_position = 0;
+    (*v_screen_rect).width = width;
+    (*v_screen_rect).height = height;
+
+    let mut v_screen_unwrap = (*v_screen).as_mut().unwrap();
+    v_screen_unwrap.y_position = 0;
+    v_screen_unwrap.x_position = 0;
+
+    let ball_bitmap = BALL_BITMAP.lock()?;
+    let mut ball_unwrap = ball_bitmap.unwrap();
+    ball_unwrap = std::array::from_fn(|_| GdrvBitmap8::default());
+    for mut bmp in ball_unwrap.iter_mut() {
+        bmp = &mut GdrvBitmap8::new_dims_indexed(64, 64, false);
+    }
+
+    
+
+
+    Ok(())
+}
+
+fn repaint(sprite: &RenderSprite) {
     todo!()
 }
+
+fn paint_balls() {
+    todo!()
+}
+
+fn unpaint_balls() {
+    todo!()
+}
+
