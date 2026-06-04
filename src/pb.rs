@@ -39,8 +39,8 @@ pub fn make_path_name(file_name: &str) -> String {
     String::new()
 }
 
-pub fn get_rc_string(p0: Msg) -> *const c_char {
-    todo!()
+pub fn get_rc_string(u_id: Msg) -> Result<&'static str, TranslationError> {
+    translations::get_translation(u_id)
 }
 
 pub fn show_message_box(p0: SDL_MessageBoxFlags, p1: &str, p2: *const c_char) {
