@@ -1,8 +1,10 @@
 use crate::errors::PbInitError;
-use crate::group_data::DatFile;
+use crate::fullscrn::RESOLUTION_ARRAY;
+use crate::gdrv::ColorRgba;
+use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::options::OPTIONS;
 use crate::translations::{Msg, TranslationError};
-use crate::{partman, score, translations};
+use crate::{fullscrn, gdrv, partman, proj, score, translations};
 use sdl2::sys::SDL_MessageBoxFlags;
 use std::ffi::c_char;
 use std::fs::File;
