@@ -103,7 +103,6 @@ pub struct GdrvBitmap8 {
     pub y_position: i32,
     pub resolution: u32,
     pub texture: Option<SDL_Texture>,
-    // pub current_palette: [ColorRgba; 256],
 }
 
 impl GdrvBitmap8 {
