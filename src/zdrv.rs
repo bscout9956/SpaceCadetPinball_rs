@@ -57,7 +57,11 @@ pub fn fill(
     }
 }
 
-pub fn flip_zmap_horizontally(zmap: &mut ZMapHeaderType) -> ZMapHeaderType {
+pub fn flip_zmap_horizontally(zmap: &mut ZMapHeaderType) {
+    if zmap.height <= 1 || zmap.width == 0 || zmap.z_map_data.is_empty() {
+        return;
+    }
+
     let mut dst_idx = 0;
     let mut src_idx = zmap.stride as usize * (zmap.height as usize - 1);
 
