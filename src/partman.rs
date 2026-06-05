@@ -236,11 +236,13 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
 
                 EntryBuffer::Bitmap16(zmap)
             } else {
-                let mut raw_buffer = vec![0; field_size as usize];
-                if raw_buffer.is_empty() && field_size > 0 {
+                let mut raw_buffer = Vec::new();
+                if raw_buffer.try_reserve_exact(field_size as usize).is_err() {
                     abort = true;
                     break;
                 }
+                
+                raw_buffer.resize(field_size as usize, 0);
                 reader.read_exact(&mut raw_buffer)?;
 
                 EntryBuffer::Raw(raw_buffer) // Return Enum variant
@@ -252,10 +254,10 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
         }
         dat_file.groups.push(group_data);
     }
-    
+
     if dat_file.groups.len() == header.number_of_groups as usize {
         dat_file.finalize();
-        return Ok(dat_file)
+        return Ok(dat_file);
     }
     Err(RecordLoadError::Unknown)
 }
