@@ -105,6 +105,13 @@ impl GroupData {
         &self.bitmaps[resolution as usize]
     }
 
+    pub fn finalize_group(&mut self) {
+        if self.needs_sort {
+            self.needs_sort = false;
+            self.entries.sort_by(|a, b| a.entry_type.partial_cmp(&b.entry_type).unwrap());
+        }
+    }
+
     pub fn new(group_id: i32) -> Self {
         Self {
             group_id,
@@ -377,6 +384,11 @@ impl DatFile {
         let rc_data = base85::decode(PB_MSGFT_BIN_COMPRESSED_DATA_BASE85)?; //TODO: use result yadda yadda
 
         self.add_msg_font(&rc_data, "pbmsg_ft");
+
+        for group in &mut self.groups {
+            group.finalize_group();
+        }
+
         Ok(())
     }
 
