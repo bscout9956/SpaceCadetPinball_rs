@@ -110,21 +110,24 @@ pub fn init(bmp: Option<GdrvBitmap8>, width: i16, height: i16) -> Result<(), Ren
     }
 
     *BACKGROUND_BITMAP.lock()? = bmp.clone();
-    if bmp.is_some() {
-        gdrv::copy_bitmap(
-            &mut v_screen_unwrap,
-            width as i32,
-            height as i32,
-            0,
-            0,
-            bmp.unwrap(),
-            0,
-            0,
-        );
-    } else {
-        let v_width = v_screen_unwrap.width;
-        let v_height = v_screen_unwrap.height;
-        gdrv::fill_bitmap(v_screen_unwrap, v_width, v_height, 0, 0, 0);
+    match bmp.is_some() {
+        true => {
+            gdrv::copy_bitmap(
+                &mut v_screen_unwrap,
+                width as i32,
+                height as i32,
+                0,
+                0,
+                bmp.unwrap(),
+                0,
+                0,
+            );
+        }
+        false => {
+            let v_width = v_screen_unwrap.width;
+            let v_height = v_screen_unwrap.height;
+            gdrv::fill_bitmap(v_screen_unwrap, v_width, v_height, 0, 0, 0);
+        }
     }
 
     recreate_screen_texture();
