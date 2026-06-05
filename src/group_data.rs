@@ -180,28 +180,37 @@ impl GroupData {
         let bmp_height = bmp.height as usize;
         let bmp_width = bmp.width as usize;
 
+        assert_eq!(self.bitmaps[bmp_res].width, 0, "GroupData: bitmap override");
         self.bitmaps[bmp_res] = bmp;
 
         let zmap = &self.z_maps[bmp_res];
-        assert!(
-            bmp_width == zmap.width as usize && bmp_height == zmap.height as usize,
-            "GroupData: Mismatched bitmap/zmap dimensions"
-        );
+
+        if zmap.width > 0 && zmap.height > 0 {
+            assert!(
+                bmp_width == zmap.width as usize && bmp_height == zmap.height as usize,
+                "GroupData: Mismatched bitmap/zmap dimensions"
+            );
+        }
     }
 
     pub fn set_zmap(&mut self, mut zmap: ZMapHeaderType) {
-        zmap = zdrv::flip_zmap_horizontally(&mut zmap);
+        zdrv::flip_zmap_horizontally(&mut zmap);
         let zmap_res = zmap.resolution as usize;
         let zmap_width = zmap.width as usize;
         let zmap_height = zmap.height as usize;
 
+        assert_eq!(self.z_maps[zmap_res].width, 0, "GroupData: zMap override");
+
         self.z_maps[zmap_res] = zmap;
 
         let bmp = &self.bitmaps[zmap_res];
-        assert!(
-            bmp.width as usize == zmap_width && bmp.height as usize == zmap_height,
-            "GroupData: Mismatched bitmap/zmap dimensions"
-        );
+
+        if bmp.width > 0 && bmp.height > 0 {
+            assert!(
+                bmp.width as usize == zmap_width && bmp.height as usize == zmap_height,
+                "GroupData: Mismatched bitmap/zmap dimensions"
+            );
+        }
     }
 }
 
