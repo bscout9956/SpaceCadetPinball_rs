@@ -12,8 +12,8 @@ use std::ffi::{CStr, c_char};
 use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
-use std::sync::{LazyLock, Mutex};
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
+use std::sync::{LazyLock, Mutex};
 
 #[derive(Copy, Clone)]
 pub struct ErrorMessage {
@@ -175,11 +175,11 @@ pub struct SpriteData {
 }
 
 #[derive(Clone)]
-pub struct VisualStruct<'a> {
+pub struct VisualStruct {
     pub smoothness: f32,
     pub elasticity: f32,
     pub float_arr_count: i32,
-    pub float_arr: &'a [f32],
+    pub float_arr: Vec<f32>,
     pub soft_hit_sound_id: i32,
     pub kicker: VisualKickerStruct,
     pub collision_group: i32,
@@ -320,7 +320,7 @@ pub fn get_sound_id(group_index: i32) -> i32 {
                 // File name is in lower case, while game data is usually in upper case.
                 let file_name_ptr = loader_table.field(sound_group_id, FieldTypes::String);
                 if let Some(EntryBuffer::Raw(file_name_data)) = file_name_ptr {
-                    let mut file_name = String::from_utf8_lossy(file_name_data)
+                    let mut file_name = String::from_utf8_lossy(file_name_data.as_ref())
                         .trim_end_matches('\0')
                         .to_string();
 
@@ -894,8 +894,7 @@ pub fn query_visual(group_index: i32, group_index_offset: i32, visual: &mut Visu
             let val = f32::from_le_bytes(float_array_data[base..base + 4].try_into().unwrap());
             arr.push(val);
         }
-        // TODO: Revise this
-        visual.float_arr = arr.leak();
+        visual.float_arr = arr;
     }
 
     0
