@@ -100,14 +100,12 @@ pub fn init(bmp: Option<GdrvBitmap8>, width: i16, height: i16) -> Result<(), Ren
     v_screen_unwrap.y_position = 0;
     v_screen_unwrap.x_position = 0;
 
-    let mut ball_bitmap = BALL_BITMAP.lock()?;
-    let mut ball_unwrap = ball_bitmap.as_mut().unwrap();
+    let mut ball_bitmap_guard = BALL_BITMAP.lock()?;
+    let mut ball_array = ball_bitmap_guard.get_or_insert_with(|| {
+        std::array::from_fn(|_| GdrvBitmap8::new_dims_indexed(64, 64, false))
+    });
     let mut defaults: [GdrvBitmap8; 20] = std::array::from_fn(|_| GdrvBitmap8::default());
-    ball_unwrap = &mut defaults;
-
-    for mut ball_bmp in ball_unwrap.iter_mut() {
-        ball_bmp = &mut GdrvBitmap8::new_dims_indexed(64, 64, false);
-    }
+    ball_array = &mut defaults;
 
     *BACKGROUND_BITMAP.lock()? = bmp.clone();
     match bmp.is_some() {
