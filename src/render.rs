@@ -91,10 +91,10 @@ pub fn init(bmp: Option<GdrvBitmap8>, width: i16, height: i16) -> Result<(), Ren
     zdrv::fill(z_unwrap, z_width, z_height, 0, 0, 0xFFFF);
 
     let mut v_screen_rect = V_SCREEN_RECT.lock()?;
-    (*v_screen_rect).x_position = 0;
-    (*v_screen_rect).y_position = 0;
-    (*v_screen_rect).width = width as i32;
-    (*v_screen_rect).height = height as i32;
+    v_screen_rect.x_position = 0;
+    v_screen_rect.y_position = 0;
+    v_screen_rect.width = width as i32;
+    v_screen_rect.height = height as i32;
 
     let mut v_screen_unwrap = (*v_screen).to_owned().unwrap();
     v_screen_unwrap.y_position = 0;
