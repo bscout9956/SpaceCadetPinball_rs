@@ -12,6 +12,7 @@ use std::ffi::{CStr, c_char};
 use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
+use std::sync::Mutex;
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
 
 #[derive(Copy, Clone)]
@@ -204,43 +205,21 @@ pub struct WaveHeader {
 
 const _: () = assert!(size_of::<WaveHeader>() == 44, "Wrong size for WaveHeader");
 
-pub struct Loader {
-    sound_count: i32,
-    loader_sound_count: i32,
-    loader_table: DatFile,
-    sound_record_table: Option<DatFile>,
-    sound_list: [SoundListStruct; 65],
-    loader_errors: [ErrorMessage; 28],
-}
-
-pub fn new() -> Self {
-    Self {
-        sound_count: 1,
-        loader_sound_count: 0,
-        loader_table: DatFile {
-            app_name: "".to_string(),
-            description: "".to_string(),
-            groups: vec![],
-        },
-        sound_record_table: None,
-        sound_list: [SoundListStruct {
-            wave_ptr: null(),
-            group_index: 0,
-            loaded: false,
-            duration: 0.0,
-        }; 65],
-        loader_errors: LOADER_ERRORS,
-    }
-}
+static SOUND_COUNT: i32 = 1;
+static LOADER_SOUND_COUNT: i32 = 0;
+static LOADER_TABLE: Option<DatFile> = None;
+static sound_record_table: Option<DatFile> = None;
+static SOUND_LIST: Mutex<[SoundListStruct; 65]> =
+    Mutex::new(std::array::from_fn(|_| SoundListStruct::default()));
 
 pub fn error(error_code: i32, caption_code: i32) -> i32 {
-    let error_text = loader_errors
+    let error_text = LOADER_ERRORS
         .iter()
         .find(|e| e.code == error_code)
         .map(|e| e.message)
         .unwrap_or("Unknown Error");
 
-    let error_caption = loader_errors
+    let error_caption = LOADER_ERRORS
         .iter()
         .find(|e| e.code == caption_code)
         .map(|e| e.message)
@@ -270,46 +249,49 @@ pub fn default_vsi(visual: &mut VisualStruct) {
     visual.sound_index_4 = 0;
 }
 
-pub fn load_from(dat_file: &DatFile) {
-    let loader_table = dat_file;
-    let sound_record_table = loader_table;
-
-    for group_index in 0..dat_file.groups.len() as i32 {
-        if let Some(EntryBuffer::Raw(value_data)) =
-            dat_file.field(group_index, FieldTypes::ShortValue)
-        {
-            let final_val = i16::from_le_bytes([(*value_data)[0], (*value_data)[1]]);
-            if final_val == 202 && sound_count < 65 {
-                sound_list[sound_count as usize] = SoundListStruct {
-                    wave_ptr: null(),
-                    group_index,
-                    loaded: false,
-                    duration: 0.0,
-                };
-                sound_count += 1;
-            }
-        }
-    }
-    loader_sound_count = sound_count;
-}
+// pub fn load_from(dat_file: &DatFile) {
+//     let LOADER_TABLE = dat_file;
+//     let sound_record_table = LOADER_TABLE;
+//
+//     for group_index in 0..dat_file.groups.len() as i32 {
+//         if let Some(EntryBuffer::Raw(value_data)) =
+//             dat_file.field(group_index, FieldTypes::ShortValue)
+//         {
+//             let final_val = i16::from_le_bytes([(*value_data)[0], (*value_data)[1]]);
+//             if final_val == 202 && SOUND_COUNT < 65 {
+//                 sound_list[SOUND_COUNT as usize] = SoundListStruct {
+//                     wave_ptr: null(),
+//                     group_index,
+//                     loaded: false,
+//                     duration: 0.0,
+//                 };
+//                 SOUND_COUNT += 1;
+//             }
+//         }
+//     }
+//     LOADER_SOUND_COUNT = SOUND_COUNT;
+// }
 
 pub fn unload() {
-    for index in 1..loader_sound_count {
+    let mut sound_list = SOUND_LIST.lock().unwrap();
+    for index in 1..LOADER_SOUND_COUNT {
         sound::freesound(sound_list[index as usize].wave_ptr);
         sound_list[index as usize] = SoundListStruct::default();
     }
 }
 
 pub fn get_sound_id(group_index: i32) -> i32 {
+    let mut sound_list = SOUND_LIST.lock().unwrap();
+
     let mut sound_index: i16 = 1;
-    if sound_count <= 1 {
+    if SOUND_COUNT <= 1 {
         error(25, 26);
         return -1;
     }
 
     while (sound_list[sound_index as usize].group_index != group_index) {
         sound_index += 1;
-        if sound_index as i32 >= sound_count {
+        if sound_index as i32 >= SOUND_COUNT {
             error(25, 26);
             return -1;
         }
@@ -324,10 +306,11 @@ pub fn get_sound_id(group_index: i32) -> i32 {
         sound_list[sound_index as usize].duration = 0.0;
 
         let quick_flag_val = pb::QUICK_FLAG.load(Relaxed);
+        let loader_table = LOADER_TABLE.as_ref().unwrap();
         if sound_group_id != 0
             && !quick_flag_val
-            && let Some(EntryBuffer::Raw(value_data)) = loader_table
-                .field(sound_group_id, FieldTypes::ShortValue)
+            && let Some(EntryBuffer::Raw(value_data)) =
+                loader_table.field(sound_group_id, FieldTypes::ShortValue)
         {
             let val = i16::from_le_bytes([value_data[0], value_data[1]]);
             if val == 202 {
@@ -365,8 +348,7 @@ pub fn get_sound_id(group_index: i32) -> i32 {
                         }
                     }
                     sound_list[sound_index as usize].duration = duration;
-                    sound_list[sound_index as usize].wave_ptr =
-                        sound::load_wave_file(file_path);
+                    sound_list[sound_index as usize].wave_ptr = sound::load_wave_file(file_path);
                 }
             }
         }
@@ -377,6 +359,7 @@ pub fn get_sound_id(group_index: i32) -> i32 {
 }
 
 pub fn query_handle(lp_string: *const c_char) -> i32 {
+    let loader_table = LOADER_TABLE.as_ref().unwrap();
     let lp_str = unsafe { CStr::from_ptr(lp_string).to_string_lossy().into_owned() };
     loader_table.record_labeled(&lp_str)
 }
@@ -389,6 +372,8 @@ pub fn query_visual_states(group_index: i32) -> i16 {
     if group_index < 0 {
         return error(0, 17) as i16;
     }
+
+    let loader_table = LOADER_TABLE.as_ref().unwrap();
 
     match loader_table.field(group_index, FieldTypes::ShortArray) {
         Some(EntryBuffer::Raw(short_array_data)) if short_array_data.len() >= 4 => {
@@ -405,6 +390,7 @@ pub fn query_visual_states(group_index: i32) -> i16 {
 }
 
 pub fn query_name(group_index: i32) -> *const c_char {
+    let loader_table = LOADER_TABLE.as_ref().unwrap();
     if group_index < 0 {
         error(0, 19);
         return null();
@@ -419,19 +405,15 @@ pub fn query_name(group_index: i32) -> *const c_char {
     }
 }
 
-pub fn query_int_attribute(group_index: i32,
-    first_value: i32,
-    array_size: *mut i32,
-) -> *const i16 {
+pub fn query_int_attribute(group_index: i32, first_value: i32, array_size: *mut i32) -> *const i16 {
     if group_index < 0 {
         error(0, 20);
         return null::<i16>();
     }
 
+    let loader_table = LOADER_TABLE.as_ref().unwrap();
     for skip_index in 0.. {
-        match loader_table
-            .field_nth(group_index, FieldTypes::ShortArray, skip_index)
-        {
+        match loader_table.field_nth(group_index, FieldTypes::ShortArray, skip_index) {
             Some(EntryBuffer::Raw(short_array_data)) => {
                 if short_array_data.len() < 2 {
                     continue;
@@ -441,10 +423,8 @@ pub fn query_int_attribute(group_index: i32,
 
                 if short_value == first_value as i16 {
                     unsafe {
-                        *array_size = loader_table
-                            .field_size(group_index, FieldTypes::ShortArray)
-                            / 2
-                            - 1;
+                        *array_size =
+                            loader_table.field_size(group_index, FieldTypes::ShortArray) / 2 - 1;
                         return (short_array_data.as_ptr() as *const i16).add(1);
                     }
                 }
@@ -479,10 +459,10 @@ pub fn query_float_attribute_ptr(
         return null::<f32>();
     }
 
+    let loader_table = LOADER_TABLE.as_ref().unwrap();
+
     for skip_index in 0..i32::MAX {
-        match loader_table
-            .field_nth(group_index, FieldTypes::FloatArray, skip_index)
-        {
+        match loader_table.field_nth(group_index, FieldTypes::FloatArray, skip_index) {
             Some(EntryBuffer::Raw(float_array_data)) => {
                 if float_array_data.len() < 8 {
                     continue;
@@ -526,10 +506,9 @@ fn query_float_attribute(
         return f32::nan();
     }
 
+    let loader_table = LOADER_TABLE.as_ref().unwrap();
     for skip_index in 0.. {
-        match loader_table
-            .field_nth(group_index, FieldTypes::FloatArray, skip_index)
-        {
+        match loader_table.field_nth(group_index, FieldTypes::FloatArray, skip_index) {
             Some(EntryBuffer::Raw(float_array_data)) => {
                 if float_array_data.len() < 8 {
                     continue;
@@ -564,11 +543,12 @@ fn query_float_attribute(
     f32::nan()
 }
 
-pub fn material(, group_index: i32, visual: *mut VisualStruct) -> i32 {
+pub fn material(group_index: i32, visual: *mut VisualStruct) -> i32 {
     if group_index < 0 {
         error(0, 21);
     }
 
+    let loader_table = LOADER_TABLE.as_ref().unwrap();
     let short_value = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(short_array_data)) => {
             assert_eq!(short_array_data.len(), 2, "Array isn't big enough");
@@ -588,9 +568,7 @@ pub fn material(, group_index: i32, visual: *mut VisualStruct) -> i32 {
         _ => return error(11, 21),
     };
 
-    let float_array_len = loader_table
-        .field_size(group_index, FieldTypes::FloatArray)
-        / 4;
+    let float_array_len = loader_table.field_size(group_index, FieldTypes::FloatArray) / 4;
 
     for index in (0..float_array_len).step_by(2) {
         let byte_offset = (index * 4) as usize;
@@ -624,6 +602,7 @@ pub fn play_sound(sound_index: i32, sound_source: TPinballComponent, info: &[u8]
         return 0.0;
     }
 
+    let sound_list = SOUND_LIST.lock().unwrap();
     sound::play_sound(
         sound_list[sound_index as usize].wave_ptr,
         pb::TIME_TICKS.load(SeqCst),
@@ -639,6 +618,7 @@ fn state_id(mut group_index: i32, group_index_offset: i32) -> i32 {
     if visual_state <= 0 {
         return error(12, 24);
     }
+    let loader_table = LOADER_TABLE.as_ref().unwrap();
     let mut short_val = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(data)) if data.len() >= 2 => i16::from_le_bytes([data[0], data[1]]),
         _ => return error(1, 24),
@@ -676,11 +656,12 @@ fn read_float(data: &[u8], index: &mut usize) -> Result<f32, ()> {
     Ok(f32::from_le_bytes(bytes))
 }
 
-pub fn kicker(, group_index: i32, kicker: *mut VisualKickerStruct) -> i32 {
+pub fn kicker(group_index: i32, kicker: *mut VisualKickerStruct) -> i32 {
     if group_index < 0 {
         error(0, 20);
     }
 
+    let loader_table = LOADER_TABLE.as_ref().unwrap();
     let short_value = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(data)) => {
             assert_eq!(data.len(), 2, "Array isn't big enough");
@@ -700,8 +681,7 @@ pub fn kicker(, group_index: i32, kicker: *mut VisualKickerStruct) -> i32 {
         _ => return error(11, 20),
     };
 
-    let float_array_len = loader_table
-        .field_size(group_index, FieldTypes::FloatArray) as usize;
+    let float_array_len = loader_table.field_size(group_index, FieldTypes::FloatArray) as usize;
 
     let mut index: usize = 0;
     while index < float_array_len {
@@ -746,11 +726,7 @@ pub fn kicker(, group_index: i32, kicker: *mut VisualKickerStruct) -> i32 {
     0
 }
 
-pub fn query_visual(
-    group_index: i32,
-    group_index_offset: i32,
-    visual: &mut VisualStruct,
-) -> i32 {
+pub fn query_visual(group_index: i32, group_index_offset: i32, visual: &mut VisualStruct) -> i32 {
     default_vsi(visual);
     if group_index < 0 {
         return error(0, 18);
@@ -760,6 +736,7 @@ pub fn query_visual(
         return error(16, 18);
     }
 
+    let loader_table = LOADER_TABLE.as_ref().unwrap();
     let bmp = loader_table.get_bitmap(state_id).to_owned();
     let zmap = loader_table.get_zmap(state_id);
     visual.bitmap = SpriteData {
@@ -887,11 +864,8 @@ pub fn query_visual(
             return 0;
         }
 
-        visual.float_arr_count = loader_table
-            .field_size(group_index, FieldTypes::FloatArray)
-            / 4
-            / 2
-            - 2;
+        visual.float_arr_count =
+            loader_table.field_size(group_index, FieldTypes::FloatArray) / 4 / 2 - 2;
 
         let float_int = (f32::from_le_bytes([
             float_array_data[4],
@@ -923,5 +897,3 @@ pub fn query_visual(
 
     0
 }
-
-pub fn load_from(dat_file: &mut DatFile) {}
