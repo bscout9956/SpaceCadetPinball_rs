@@ -1,10 +1,10 @@
 use crate::errors::PbInitError;
 use crate::fullscrn::RESOLUTION_ARRAY;
-use crate::gdrv::ColorRgba;
+use crate::gdrv::{ColorRgba, GdrvBitmap8};
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::options::OPTIONS;
 use crate::translations::{Msg, TranslationError};
-use crate::{fullscrn, gdrv, partman, proj, score, translations};
+use crate::{fullscrn, gdrv, loader, partman, proj, render, score, translations};
 use sdl2::sys::SDL_MessageBoxFlags;
 use std::ffi::c_char;
 use std::fs::File;
@@ -178,71 +178,111 @@ pub fn init() -> Result<(bool), PbInitError> {
                 data_file_path,
                 FULL_TILT_MODE.load(Relaxed),
             )?);
-
-            let use_bmp_font: i32 = 0;
-            get_rc_int(Msg::TextBoxUseBitmapFont, &use_bmp_font);
-            if use_bmp_font == 1 {
-                score::load_msg_font("pbmsg_ft");
-            }
-
-            match *record_table {
-                Some(table) => {
-                    let plt = table.field_labeled("background", FieldTypes::Palette);
-                    let plt_data = plt.unwrap();
-                    match plt_data {
-                        EntryBuffer::Raw(data) => {
-                            let color = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
-                            let color_rgba = ColorRgba { color };
-                            gdrv::display_palette(color_rgba);
-                        }
-                        _ => {}
-                    }
-
-                    let background_bmp = table.get_bitmap(table.record_labeled("background"));
-                    let camera_info_id =
-                        table.record_labeled("camera_info") + fullscrn::get_resolution();
-                    let camera_data = table.field(camera_info_id, FieldTypes::FloatArray).unwrap();
-                    let mut camera_info: Vec<f32> = Vec::new();
-                    match camera_data {
-                        EntryBuffer::Raw(float_data) => {
-                            camera_info = read_camera_floats(float_data);
-                        }
-                        _ => {}
-                    }
-                    let res_array = RESOLUTION_ARRAY.lock().unwrap();
-                    let res_info = &(*res_array)[fullscrn::get_resolution() as usize];
-
-                    if !camera_info.is_empty() {
-                        projection_matrix.copy_from_slice(&camera_info);
-
-                        let proj_center_x = res_info.table_width as f32 * 0.5;
-                        let proj_center_y = res_info.table_height as f32 * 0.5;
-                        let proj_d = camera_info[0];
-                        let z_min = camera_info[1];
-                        let z_scaler = camera_info[2];
-                        proj::init(
-                            projection_matrix,
-                            proj_d,
-                            proj_center_x,
-                            proj_center_y,
-                            z_min,
-                            z_scaler,
-                        );
-                    }
-                    
-                    render::init(,res_info.table_width, res_info.table_height);
-                }
-                None => {
-                    return Ok(true);
-                }
-            }
         }
         Err(e) => {
             println!("Error locking RECORD_TABLE: {}", e);
         }
     }
 
-    let use_bmp_font = false;
+
+    let use_bmp_font: i32 = get_rc_int(Msg::TextBoxUseBitmapFont)?;
+    if use_bmp_font == 1 {
+        score::load_msg_font("pbmsg_ft");
+    }
+
+    match RECORD_TABLE.lock() {
+        Ok(mut record_table) => {
+            if record_table.is_none() {
+                return Ok(true);
+            } else {
+                let table = record_table.as_mut().unwrap();
+                let plt = table.field_labeled("background", FieldTypes::Palette);
+                let plt_data = plt.unwrap();
+                match plt_data {
+                    EntryBuffer::Raw(data) => {
+                        let mut palette_colors = Vec::with_capacity(256);
+                        // extract method here
+                        for i in 0..256 {
+                            let offset = i * 4;
+                            if offset + 3 < data.len() {
+                                let color = u32::from_le_bytes([
+                                    data[offset],
+                                    data[offset + 1],
+                                    data[offset + 2],
+                                    data[offset + 3],
+                                ]);
+                                palette_colors.push(ColorRgba::color_rgba_u32(color));
+                            } else {
+                                palette_colors.push(ColorRgba::black());
+                            }
+                        }
+
+                        gdrv::display_palette(Some(&palette_colors));
+                    }
+                    _ => {}
+                }
+
+                let mut background_bmp = table
+                    .get_bitmap(table.record_labeled("background"))
+                    .to_owned();
+                let camera_info_id =
+                    table.record_labeled("camera_info") + fullscrn::get_resolution();
+                let camera_data = table.field(camera_info_id, FieldTypes::FloatArray).unwrap();
+                let mut camera_info: Vec<f32> = Vec::new();
+                match camera_data {
+                    EntryBuffer::Raw(float_data) => {
+                        camera_info = read_camera_floats(float_data);
+                    }
+                    _ => {}
+                }
+                let res_array = RESOLUTION_ARRAY.lock().unwrap();
+                let res_info = &(*res_array)[fullscrn::get_resolution() as usize];
+
+                if !camera_info.is_empty() {
+                    projection_matrix.copy_from_slice(&camera_info);
+
+                    let proj_center_x = res_info.table_width as f32 * 0.5;
+                    let proj_center_y = res_info.table_height as f32 * 0.5;
+                    let proj_d = camera_info[0];
+                    let z_min = camera_info[1];
+                    let z_scaler = camera_info[2];
+                    proj::init(
+                        projection_matrix,
+                        proj_d,
+                        proj_center_x,
+                        proj_center_y,
+                        z_min,
+                        z_scaler,
+                    );
+                }
+
+                render::init(None, res_info.table_width, res_info.table_height);
+
+                let mut v_guard = render::V_SCREEN.lock().unwrap();
+                if let Some(ref mut dst) = *v_guard {
+                    gdrv::copy_bitmap(
+                        dst,
+                        background_bmp.width,
+                        background_bmp.height,
+                        background_bmp.x_position,
+                        background_bmp.y_position,
+                        background_bmp,
+                        0,
+                        0,
+                    );
+                }
+
+                //l96
+                // loader::load_from();
+            }
+        }
+        Err(e) => {
+            println!("Error locking RECORD_TABLE {}", e);
+        }
+    }
+       
+            
+
 
     Ok(false)
 }
@@ -250,7 +290,7 @@ pub fn init() -> Result<(bool), PbInitError> {
 // Note: This used to be code that took a string like "1 Blablabla" and would get only the first part of the string
 // It's an old CPP programming practice apparently,
 // I guess valued enums weren't a thing? I am not quite sure
-pub fn get_rc_int(u_id: Msg, use_bmp_font: &i32) -> Result<i32, TranslationError> {
+pub fn get_rc_int(u_id: Msg) -> Result<i32, TranslationError> {
     let s = get_rc_string(u_id)?;
 
     let first_char = s.split_whitespace().next().unwrap_or("0");
