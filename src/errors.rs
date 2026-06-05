@@ -6,6 +6,7 @@ use thiserror::Error;
 use crate::MainError;
 use crate::fullscrn::ResolutionInfo;
 use crate::options::OptionsStruct;
+use crate::translations::TranslationError;
 
 #[derive(Error, Debug)]
 pub enum RecordLoadError {
@@ -29,6 +30,8 @@ pub enum RecordLoadError {
 pub enum PbInitError {
     #[error(transparent)]
     RecordLoadError(#[from] RecordLoadError),
+    #[error("Failed to get rc: `{0}`")]
+    GetRcError(#[from] TranslationError)
 }
 
 #[derive(Error, Debug)]
