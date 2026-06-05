@@ -56,7 +56,7 @@ pub fn init(max4x3: [f32; 12], d: f32, cen_x: f32, cen_y: f32, zm: f32, zscaler:
     *center_y = cen_y;
     *z_min = zm;
     *z_scaler = zscaler;
-    *z_max = (0xffFFffFFu32 as f32) / *z_scaler + *z_min;
+    *z_max = (0xFFFF_FFFFu32 as f32) / *z_scaler + *z_min;
 }
 
 pub fn matrix_vector_multiply(mat: &Mat4RowMajor, vec: &Vector3) -> Vector3 {

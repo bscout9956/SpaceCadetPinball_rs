@@ -238,7 +238,7 @@ pub fn error(error_code: i32, caption_code: i32) -> i32 {
 
 pub fn default_vsi(visual: &mut VisualStruct) {
     visual.collision_group = 0;
-    visual.kicker.threshold = 8.99999999;
+    visual.kicker.threshold = 8.999_999_99;
     visual.kicker.hard_hit_sound_id = 0;
     visual.smoothness = 0.95;
     visual.elasticity = 0.6;

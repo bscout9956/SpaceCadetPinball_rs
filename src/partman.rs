@@ -241,7 +241,7 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
                     abort = true;
                     break;
                 }
-                
+
                 raw_buffer.resize(field_size as usize, 0);
                 reader.read_exact(&mut raw_buffer)?;
 

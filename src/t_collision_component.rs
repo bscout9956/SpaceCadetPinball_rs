@@ -179,7 +179,7 @@ impl TCollisionComponentBehavior for TCollisionComponent<'_> {
                     direction,
                     self.elasticity,
                     self.smoothness,
-                    1000000000.0,
+                    1_000_000_000.0,
                     0.0,
                 );
                 return false;

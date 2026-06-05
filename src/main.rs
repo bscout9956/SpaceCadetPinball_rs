@@ -89,7 +89,7 @@ impl Clock for SdlTickClock {
     type TimePoint = TimePoint<1_000>;
     const IS_STEADY: bool = true;
     unsafe fn now() -> Self::TimePoint {
-        let ticks = SDL_GetTicks();
+        let ticks = unsafe { SDL_GetTicks() };
         TimePoint(Duration(ticks as i64))
     }
 }

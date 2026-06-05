@@ -209,7 +209,7 @@ pub fn ray_intersect_circle(ray: &RayType, circle: &CircleType) -> f32 {
     // Tca, l dot D, projection of l on D
     let tca = dot_product(&l, &ray.direction);
     if tca < 0.0 {
-        return 1000000000.0;
+        return 1_000_000_000.0;
     }
 
     // l dot l, distance from ray origin to circle center
@@ -226,12 +226,12 @@ pub fn ray_intersect_circle(ray: &RayType, circle: &CircleType) -> f32 {
 
     // No intersection if ThcSq is negative, that is if d > rad
     if thc_sq < 0.0 {
-        return 1000000000.0;
+        return 1_000_000_000.0;
     }
 
     let t0: f32 = tca - f32::sqrt(thc_sq);
     if t0 < 0.0 || t0 > ray.max_distance {
-        return 1000000000.0;
+        return 1_000_000_000.0;
     }
 
     t0
@@ -262,7 +262,7 @@ pub fn line_init(line: &mut LineType, x0: f32, y0: f32, x1: f32, y1: f32) {
     let mut line_start = x0;
     let mut line_end = x1;
 
-    if f32::abs(line.direction.x) < 0.000000001 {
+    if f32::abs(line.direction.x) < 0.000_000_001 {
         line.direction.x = 0.0;
         line_start = y0;
         line_end = y1;
@@ -306,7 +306,7 @@ pub fn ray_intersect_line(ray: &RayType, line: &mut LineType) -> f32 {
         }
     }
 
-    1000000000.0
+    1_000_000_000.0
 }
 
 pub fn cross_mut(vec1: &Vector3, vec2: &Vector3, dst_vect: &mut Vector3) {
@@ -439,7 +439,7 @@ pub fn rotate_pt(point: &mut Vector2, sin: f32, cos: f32, origin: &Vector2) {
 // Return the distance from ray1 origin to the intersection point with the closest flipper feature.
 // Sets ray2 origin to intersection point, direction to collision direction
 pub fn distance_to_flipper(flipper: &mut TFlipperEdge, ray1: &RayType, ray2: &mut RayType) -> f32 {
-    let mut distance: f32 = 1000000000.0;
+    let mut distance: f32 = 1_000_000_000.0;
     let mut distance_type = FlipperIntersect::None;
     let mut new_distance = ray_intersect_line(ray1, &mut flipper.line_a);
     if new_distance < distance {
@@ -507,7 +507,7 @@ pub fn find_closest_edge(
     line_end: &mut Vector2,
     line_start: &mut Vector2,
 ) {
-    let mut distance: f32 = 1000000000.0;
+    let mut distance: f32 = 1_000_000_000.0;
     for plane in planes.iter().take(plane_count as usize) {
         let point_order: [&Vector2; 4] = [&plane.v1, &plane.v2, &plane.v3, &plane.v1];
 

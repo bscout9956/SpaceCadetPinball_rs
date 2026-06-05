@@ -210,10 +210,10 @@ pub fn initialize(
     let tex_data = context.fonts().get_tex_data();
     unsafe {
         let (pixels, width, height) = ((*tex_data).Pixels, (*tex_data).Width, (*tex_data).Height);
-        let rmask = 0x000000ff;
-        let gmask = 0x0000ff00;
-        let bmask = 0x00ff0000;
-        let amask = 0xff000000;
+        let rmask = 0x0000_00ff;
+        let gmask = 0x0000_ff00;
+        let bmask = 0x00ff_0000;
+        let amask = 0xff00_0000;
 
         let surface = SDL_CreateRGBSurfaceFrom(
             pixels as *mut c_void,

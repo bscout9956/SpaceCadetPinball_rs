@@ -71,7 +71,8 @@ pub enum RenderLockError {
 }
 
 pub fn init(bmp: Option<GdrvBitmap8>, width: i16, height: i16) -> Result<(), RenderLockError> {
-    { // This block prevents the locks from holding on the next call to recreate_screen_texture();
+    {
+        // This block prevents the locks from holding on the next call to recreate_screen_texture();
         let mut v_screen = V_SCREEN.lock()?;
         *v_screen = Some(GdrvBitmap8::new_dims_indexed(
             width as i32,

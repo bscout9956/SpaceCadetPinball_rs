@@ -30,7 +30,7 @@ pub struct ColorRgba {
 const ALPHA_OFFSET: u32 = 3 * 8;
 const RED_OFFSET: u32 = 2 * 8;
 const GREEN_OFFSET: u32 = 1 * 8;
-const BLUE_OFFSET: u32 = 0; // TODO: Was 0 * 8, did I mess it up?
+const BLUE_OFFSET: u32 = 0;
 
 impl ColorRgba {
     pub const fn black() -> Self {

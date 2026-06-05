@@ -150,9 +150,9 @@ impl GroupData {
                         ));
 
                         return;
-                    } else {
-                        self.set_bitmap(src_bmp.clone());
                     }
+
+                    self.set_bitmap(src_bmp.clone());
                 }
             }
             FieldTypes::GroupName => {
@@ -362,9 +362,8 @@ impl DatFile {
                 if skip_count == skip_first_n {
                     skip_count += 1;
                     return Some(&entry.buffer);
-                } else {
-                    skip_count += 1;
                 }
+                skip_count += 1;
             }
         }
 
@@ -511,9 +510,8 @@ impl DatFile {
                 if skip_count == skip_first_n {
                     skip_count += 1;
                     return entry.field_size;
-                } else {
-                    skip_count += 1;
                 }
+                skip_count += 1;
             }
         }
 
