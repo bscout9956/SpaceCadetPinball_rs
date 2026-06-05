@@ -79,21 +79,19 @@ impl ColorRgba {
     }
 
     pub fn set_alpha(&mut self, val: u8) {
-        self.color =
-            (self.color & (!(0xFFu8 << ALPHA_OFFSET)) as u32) | (val << ALPHA_OFFSET) as u32;
+        self.color = (self.color & !(0xFFu32 << ALPHA_OFFSET)) | ((val as u32) << ALPHA_OFFSET);
     }
 
     pub fn set_red(&mut self, val: u8) {
-        self.color = (self.color & (!(0xFFu8 << RED_OFFSET)) as u32) | (val << RED_OFFSET) as u32;
+        self.color = (self.color & !(0xFFu32 << RED_OFFSET)) | ((val as u32) << RED_OFFSET);
     }
 
     pub fn set_green(&mut self, val: u8) {
-        self.color =
-            (self.color & (!(0xFFu8 << GREEN_OFFSET)) as u32 | (val << GREEN_OFFSET) as u32);
+        self.color = (self.color & !(0xFFu32 << GREEN_OFFSET)) | ((val as u32) << GREEN_OFFSET);
     }
 
     pub fn set_blue(&mut self, val: u8) {
-        self.color = (self.color & (!(0xFFu8 << BLUE_OFFSET)) as u32 | (val << BLUE_OFFSET) as u32);
+        self.color = (self.color & !(0xFFu32 << BLUE_OFFSET)) | ((val as u32) << BLUE_OFFSET);
     }
 }
 
