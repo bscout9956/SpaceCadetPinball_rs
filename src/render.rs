@@ -59,18 +59,18 @@ static BALL_BITMAP: Mutex<Option<[GdrvBitmap8; 20]>> = Mutex::new(None);
 static Z_SCREEN: Mutex<Option<ZMapHeaderType>> = Mutex::new(None);
 
 #[derive(Debug, Error)]
-pub enum RenderError {
+pub enum RenderLockError {
     #[error("Failed to lock V_SCREEN")]
-    VScreenLock(#[from] PoisonError<MutexGuard<'static, Option<GdrvBitmap8>>>),
+    VScreen(#[from] PoisonError<MutexGuard<'static, Option<GdrvBitmap8>>>),
     #[error("Failed to lock BALL_BITMAP")]
-    BallBitmapLock(#[from] PoisonError<MutexGuard<'static, Option<[GdrvBitmap8; 20]>>>),
+    BallBitmap(#[from] PoisonError<MutexGuard<'static, Option<[GdrvBitmap8; 20]>>>),
     #[error("Failed to lock Z_SCREEN")]
-    ZScreenLock(#[from] PoisonError<MutexGuard<'static, Option<ZMapHeaderType>>>),
+    ZScreen(#[from] PoisonError<MutexGuard<'static, Option<ZMapHeaderType>>>),
     #[error("Failed to lock RectangleType")]
-    RectangleLock(#[from] PoisonError<MutexGuard<'static, RectangleType>>),
+    Rectangle(#[from] PoisonError<MutexGuard<'static, RectangleType>>),
 }
 
-pub fn init(bmp: Option<GdrvBitmap8>, width: i16, height: i16) -> Result<(), RenderError> {
+pub fn init(bmp: Option<GdrvBitmap8>, width: i16, height: i16) -> Result<(), RenderLockError> {
     let mut v_screen = V_SCREEN.lock()?;
     *v_screen = Some(GdrvBitmap8::new_dims_indexed(
         width as i32,
