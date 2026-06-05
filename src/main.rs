@@ -511,7 +511,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 exit(1);
             }
 
-            // fullscrn::init();
+            fullscrn::init();
+
+            pb::reset_table();
+            pb::firsttime_setup();
 
             SDL_ShowWindow(window);
 

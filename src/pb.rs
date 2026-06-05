@@ -184,7 +184,6 @@ pub fn init() -> Result<(bool), PbInitError> {
         }
     }
 
-
     let use_bmp_font: i32 = get_rc_int(Msg::TextBoxUseBitmapFont)?;
     if use_bmp_font == 1 {
         score::load_msg_font("pbmsg_ft");
@@ -273,16 +272,13 @@ pub fn init() -> Result<(bool), PbInitError> {
                 }
 
                 //l96
-                // loader::load_from();
+                loader::load_from(table);
             }
         }
         Err(e) => {
             println!("Error locking RECORD_TABLE {}", e);
         }
     }
-       
-            
-
 
     Ok(false)
 }
@@ -296,4 +292,12 @@ pub fn get_rc_int(u_id: Msg) -> Result<i32, TranslationError> {
     let first_char = s.split_whitespace().next().unwrap_or("0");
 
     Ok(first_char.parse::<i32>().unwrap_or(0))
+}
+
+pub(crate) fn reset_table() {
+    todo!()
+}
+
+pub(crate) fn firsttime_setup() {
+    todo!()
 }
