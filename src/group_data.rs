@@ -1,6 +1,5 @@
 use crate::embedded_data::PB_MSGFT_BIN_COMPRESSED_DATA_BASE85;
 use crate::errors::GroupDataError;
-use crate::fullscrn::ResolutionInfo;
 use crate::gdrv::{BitmapTypes, GdrvBitmap8};
 use crate::zdrv::ZMapHeaderType;
 use crate::{fullscrn, pb, zdrv};
@@ -8,8 +7,6 @@ use base85::Error;
 use num_derive::FromPrimitive;
 use std::array;
 use std::cmp::PartialOrd;
-use std::ffi::{CStr, c_char};
-use std::sync::LockResult;
 use std::sync::atomic::Ordering::Relaxed;
 use thiserror::Error;
 
@@ -108,7 +105,8 @@ impl GroupData {
     pub fn finalize_group(&mut self) {
         if self.needs_sort {
             self.needs_sort = false;
-            self.entries.sort_by(|a, b| a.entry_type.partial_cmp(&b.entry_type).unwrap());
+            self.entries
+                .sort_by(|a, b| a.entry_type.partial_cmp(&b.entry_type).unwrap());
         }
     }
 
