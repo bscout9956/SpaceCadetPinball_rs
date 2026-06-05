@@ -109,6 +109,19 @@ pub fn init(bmp: Option<GdrvBitmap8>, width: i32, height: i32) -> Result<(), Ren
     Ok(())
 }
 
+pub fn recreate_screen_texture() {
+    let mut vscreen = V_SCREEN.lock().unwrap();
+    let options = OPTIONS.lock().unwrap();
+    let filtering = if *options.linear_filtering {
+        c"linear"
+    } else {
+        c"nearest"
+    };
+    let v_screen_def = (*vscreen).as_mut().unwrap();
+
+    v_screen_def.create_texture(filtering.as_ptr(), SDL_TEXTUREACCESS_STREAMING as i32);
+}
+
 fn repaint(sprite: &RenderSprite) {
     todo!()
 }
