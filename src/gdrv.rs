@@ -1,7 +1,13 @@
+use crate::RENDERER;
 use crate::partman::{Bmp8Flags, Dat8BitBmpHeader};
-use sdl2::sys::SDL_Texture;
+use sdl2::pixels::PixelFormatEnum::BGR24;
+use sdl2::pixels::{Color, PixelFormatEnum};
+use sdl2::sys::{
+    SDL_CreateTexture, SDL_DestroyTexture, SDL_HINT_RENDER_SCALE_QUALITY, SDL_Renderer,
+    SDL_SetHint, SDL_Texture,
+};
 use std::cmp::PartialEq;
-use std::ffi::c_char;
+use std::ffi::{CStr, c_char};
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::ptr::{null, null_mut};
@@ -207,18 +213,47 @@ impl GdrvBitmap8 {
             texture: None,
         }
     }
+
+    pub fn create_texture(&mut self, scale_hint: *const c_char, access: i32) {
+        if self.texture.is_some() {
+            let text_ref = self.texture.as_mut().unwrap();
+            unsafe { SDL_DestroyTexture(text_ref) };
+        }
+        let renderer_guard = RENDERER.lock().unwrap();
+        unsafe {
+            SDL_SetHint(
+                SDL_HINT_RENDER_SCALE_QUALITY.as_ptr() as *const i8,
+                scale_hint,
+            );
+        }
+
+        match (*renderer_guard) {
+            Some(mut renderer) => {
+                let renderer_ptr = &raw mut renderer;
+                unsafe {
+                    SDL_CreateTexture(
+                        renderer_ptr,
+                        PixelFormatEnum::BGRA32 as u32,
+                        access,
+                        self.width,
+                        self.height,
+                    )
+                };
+            }
+            None => {}
+        }
+    }
 }
 
-static CURRENT_PALLETTE: Mutex<[ColorRgba; 256]> = Mutex::new([ColorRgba::black(); 256]);
+static CURRENT_PALETTE: Mutex<[ColorRgba; 256]> = Mutex::new([ColorRgba::black(); 256]);
 
-pub fn display_palette(plt: ColorRgba) {
-    // TODO: Verify, this strained my eyes
+pub fn display_palette(plt: Option<&[ColorRgba]>) {
     const SYS_PALETTE_COLORS: [ColorRgba; 10] = [
         ColorRgba::color_rgba(0, 0, 0, 0),
         ColorRgba::color_rgba(0x80, 0, 0, 0xff),
         ColorRgba::color_rgba(0, 0x80, 0, 0xff),
         ColorRgba::color_rgba(0x80, 0x80, 0, 0xff),
-        ColorRgba::color_rgba(0x0, 0x80, 0x80, 0xff),
+        ColorRgba::color_rgba(0x0, 0, 0x80, 0xff),
         ColorRgba::color_rgba(0x80, 0, 0x80, 0xff),
         ColorRgba::color_rgba(0x0, 0x80, 0x80, 0xff),
         ColorRgba::color_rgba(0xC0, 0xC0, 0xC0, 0xff),
@@ -226,12 +261,95 @@ pub fn display_palette(plt: ColorRgba) {
         ColorRgba::color_rgba(0xA6, 0xCA, 0xF0, 0xff),
     ];
 
-    match CURRENT_PALLETTE.lock() {
-        Ok(mut pallette) => {
-            (*pallette).copy_from_slice(&SYS_PALETTE_COLORS);
+    match CURRENT_PALETTE.lock() {
+        Ok(mut palette) => {
+            *palette = [ColorRgba::black(); 256];
+
+            palette[..10].copy_from_slice(&SYS_PALETTE_COLORS);
+
+            if let Some(plt_slice) = plt {
+                for index in 10..246 {
+                    if index < plt_slice.len() {
+                        let mut src_clr = plt_slice[index];
+                        src_clr.set_alpha(0xff);
+
+                        let mut current_clr = src_clr;
+                        current_clr.set_alpha(2);
+
+                        palette[index] = current_clr;
+                    }
+                }
+            }
+
+            palette[255] = ColorRgba::white();
         }
         Err(e) => {
             println!("Failed to lock CURRENT_PALLETTE {}", e); // TODO: Result, Err
         }
+    }
+}
+
+pub fn copy_bitmap(
+    mut dst_bmp: &mut GdrvBitmap8,
+    width: i32,
+    height: i32,
+    x_off: i32,
+    y_off: i32,
+    mut src_bmp: GdrvBitmap8,
+    src_x_off: i32,
+    src_y_off: i32,
+) {
+    let mut src_index = (src_bmp.stride * src_y_off + src_x_off) as usize;
+    let mut dst_index = (dst_bmp.stride * y_off + x_off) as usize;
+
+    let width = width as usize;
+    let src_stride = src_bmp.stride as usize;
+    let dst_stride = dst_bmp.stride as usize;
+
+    for _ in 0..height {
+        let src_slice = &src_bmp.bmp_buffer_data[src_index..width + src_index];
+        let dst_slice = &mut dst_bmp.bmp_buffer_data[dst_index..width + dst_index];
+
+        dst_slice.copy_from_slice(src_slice);
+
+        src_index += src_stride;
+        dst_index += dst_stride;
+    }
+}
+
+pub fn fill_bitmap(
+    mut bmp: GdrvBitmap8,
+    width: i32,
+    height: i32,
+    x_off: i32,
+    y_off: i32,
+    fill_char: u8,
+) {
+    let mut palette = CURRENT_PALETTE.lock().unwrap();
+    fill_bitmap_color_rgba(
+        bmp,
+        width,
+        height,
+        x_off,
+        y_off,
+        (*palette)[fill_char as usize],
+    );
+}
+
+fn fill_bitmap_color_rgba(
+    mut bmp: GdrvBitmap8,
+    width: i32,
+    height: i32,
+    x_off: i32,
+    y_off: i32,
+    fill_color: ColorRgba,
+) {
+    let mut index = bmp.width * y_off + x_off;
+    for _ in 0..height {
+        for x in (0..width).rev() {
+            bmp.bmp_buffer_data[index as usize] = fill_color;
+            index += 1;
+        }
+        index += bmp.stride - width;
     }
 }
