@@ -17,7 +17,7 @@ impl VectorType4 {
 }
 
 #[derive(Default, Clone, Copy, PartialEq)]
-struct Mat4RowMajor {
+pub struct Mat4RowMajor {
     row0: VectorType4,
     row1: VectorType4,
     row2: VectorType4,
