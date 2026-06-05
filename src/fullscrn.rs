@@ -1,12 +1,11 @@
 use crate::errors::FullscreenError;
-use crate::options::{OPTIONS, OptionsStruct};
-use crate::{MainError, get_main_menu_height, get_main_window, get_renderer, pb, render};
+use crate::options::OPTIONS;
+use crate::{get_main_menu_height, get_main_window, get_renderer, pb};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
-use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_Renderer, SDL_SetWindowFullscreen};
+use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicI32};
-use std::sync::{Mutex, MutexGuard, PoisonError, atomic};
-use thiserror::Error;
+use std::sync::{Mutex, atomic};
 
 static RESOLUTION: AtomicI32 = AtomicI32::new(0);
 

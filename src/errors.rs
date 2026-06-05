@@ -1,12 +1,12 @@
 use std::ffi::FromBytesUntilNulError;
 use std::io::Error;
-use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::sync::{MutexGuard, PoisonError};
 use thiserror::Error;
 
-use crate::MainError;
 use crate::fullscrn::ResolutionInfo;
 use crate::options::OptionsStruct;
 use crate::translations::TranslationError;
+use crate::MainError;
 
 #[derive(Error, Debug)]
 pub enum RecordLoadError {

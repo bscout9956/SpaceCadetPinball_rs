@@ -1,5 +1,5 @@
+use dear_imgui_rs::sys::{igGetMainViewport, ImGuiMouseCursor_COUNT};
 use dear_imgui_rs::BackendFlags;
-use dear_imgui_rs::sys::{ImGuiMouseCursor_COUNT, igGetMainViewport};
 use dear_imgui_rs::{Context, TextureId};
 use sdl2::render::RenderTarget;
 use sdl2::sys::SDL_SystemCursor::{
@@ -11,11 +11,11 @@ use sdl2::sys::SDL_SystemCursor::{
 use sdl2::sys::{
     SDL_CreateRGBSurfaceFrom, SDL_CreateSystemCursor, SDL_CreateTextureFromSurface, SDL_Cursor,
     SDL_DestroyTexture, SDL_FreeSurface, SDL_GetCurrentVideoDriver, SDL_GetVersion,
-    SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE, SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH,
-    SDL_Renderer, SDL_SYSWM_TYPE, SDL_SetHint, SDL_Surface, SDL_SysWMinfo, SDL_Texture, SDL_Window,
-    SDL_bool, SDL_version,
+    SDL_GetWindowWMInfo, SDL_Renderer, SDL_SetHint,
+    SDL_Surface, SDL_SysWMinfo, SDL_Texture, SDL_Window, SDL_bool, SDL_version, SDL_HINT_MOUSE_AUTO_CAPTURE,
+    SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, SDL_SYSWM_TYPE,
 };
-use std::ffi::{CStr, c_char, c_void};
+use std::ffi::{c_char, c_void, CStr};
 use std::ops::{Add, Mul};
 use std::ptr::{addr_of_mut, null_mut};
 use std::sync::{LazyLock, Mutex};

@@ -1,6 +1,5 @@
 use crate::maths::Vector3;
-use dear_imgui_rs::sys::Vector4;
-use std::sync::{LazyLock, LockResult, Mutex};
+use std::sync::{LazyLock, Mutex};
 
 #[derive(Default, Clone, Copy, PartialEq)]
 struct VectorType4 {

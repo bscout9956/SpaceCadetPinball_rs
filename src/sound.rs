@@ -1,11 +1,11 @@
 use crate::maths::Vector2;
 use crate::options::Setting;
 use crate::t_pinball_component::TPinballComponent;
-use sdl2::sys::SDL_RWFromFile;
 use sdl2::sys::mixer::{
     Mix_AllocateChannels, Mix_Chunk, Mix_FreeChunk, Mix_HaltChannel, Mix_LoadWAV_RW, Mix_Pause,
     Mix_PlayChannelTimed, Mix_Playing, Mix_Resume, Mix_Volume,
 };
+use sdl2::sys::SDL_RWFromFile;
 use std::ffi::CString;
 use std::path::Path;
 

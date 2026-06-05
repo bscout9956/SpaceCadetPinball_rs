@@ -1,16 +1,13 @@
 use crate::errors::RecordLoadError;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, EntryData, FieldTypes, GroupData};
-use crate::pb::FULL_TILT_MODE;
 use crate::utils;
 use crate::zdrv::ZMapHeaderType;
-use num_traits::{FromPrimitive, ToPrimitive};
-use std::ffi::{CStr, c_char};
+use num_traits::FromPrimitive;
+use std::ffi::CStr;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::ops::{BitAnd, BitOr};
-use std::sync::atomic::Ordering::Relaxed;
-use std::sync::{LazyLock, Mutex};
 use utils::LRead;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
