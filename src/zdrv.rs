@@ -79,5 +79,4 @@ pub fn flip_zmap_horizontally(zmap: &mut ZMapHeaderType) {
 
         y -= 1;
     }
-    zmap.clone()
 }
