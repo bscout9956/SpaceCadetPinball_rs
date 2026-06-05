@@ -8,7 +8,7 @@ use crate::{pb, sound};
 use num_traits::Float;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::mixer::Mix_Chunk;
-use std::ffi::c_char;
+use std::ffi::{CStr, c_char};
 use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
@@ -382,7 +382,8 @@ impl Loader {
     }
 
     pub fn query_handle(&self, lp_string: *const c_char) -> i32 {
-        self.loader_table.record_labeled(lp_string)
+        let lp_str = unsafe { CStr::from_ptr(lp_string).to_string_lossy().into_owned() };
+        self.loader_table.record_labeled(&lp_str)
     }
 
     // TODO: Might be able to define new types in the EntryBuffer enum
