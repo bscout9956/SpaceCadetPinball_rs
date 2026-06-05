@@ -2,9 +2,10 @@
 
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
+use crate::pb::RECORD_TABLE;
 use crate::{fullscrn, pb};
 use dear_imgui_rs::table;
-use std::sync::{LockResult, Mutex, MutexGuard, PoisonError};
+use std::sync::{LazyLock, LockResult, Mutex, MutexGuard, PoisonError, TryLockResult};
 use thiserror::Error;
 
 pub struct ScoreStruct {
@@ -46,9 +47,7 @@ pub enum ScoreError {
 }
 
 pub fn load_msg_font(font_name: &str) -> Result<(), ScoreError> {
-    let record_table = pb::RECORD_TABLE
-        .lock()
-        .map_err(ScoreError::RecordTableLock)?;
+    let record_table = RECORD_TABLE.lock().map_err(ScoreError::RecordTableLock)?;
 
     let record_table = match &*record_table {
         Some(record_table) => record_table,
