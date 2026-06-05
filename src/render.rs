@@ -1,10 +1,12 @@
-use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
-use sdl2::sys::SDL_Rect;
-use thiserror::Error;
 use crate::gdrv::GdrvBitmap8;
 use crate::maths::RectangleType;
-use crate::{gdrv, zdrv};
+use crate::options::OPTIONS;
 use crate::zdrv::ZMapHeaderType;
+use crate::{gdrv, zdrv};
+use sdl2::sys::SDL_Rect;
+use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
+use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
+use thiserror::Error;
 
 pub enum VisualTypes {
     Background,
@@ -23,7 +25,7 @@ struct RenderSprite {
     z_map_offset_y: i32,
     z_map_offset_x: i32,
     dirty_rect: RectangleType,
-    occluded_sprites: Option<Vec<Option<RenderSprite>>> // TODO: Is this really it?
+    occluded_sprites: Option<Vec<Option<RenderSprite>>>, // TODO: Is this really it?
     bounding_rect: RectangleType,
     dirty_flag: bool,
 }
@@ -35,12 +37,14 @@ pub static BACKGROUND_ZMAP: Option<ZMapHeaderType> = None;
 pub static Z_MAP_OFFSET_X: i32 = 0;
 pub static Z_MAP_OFFSET_Y: i32 = 0;
 
-pub static DESTINATION_RECT: LazyLock<Mutex<SDL_Rect>> = LazyLock::new(|| Mutex::new(SDL_Rect {
-    x: 0,
-    y: 0,
-    w: 0,
-    h: 0,
-}));
+pub static DESTINATION_RECT: LazyLock<Mutex<SDL_Rect>> = LazyLock::new(|| {
+    Mutex::new(SDL_Rect {
+        x: 0,
+        y: 0,
+        w: 0,
+        h: 0,
+    })
+});
 
 static SPRITE_LIST: Mutex<Vec<RenderSprite>> = Mutex::new(Vec::new());
 static BALL_LIST: Mutex<Vec<RenderSprite>> = Mutex::new(Vec::new());
@@ -59,7 +63,7 @@ pub enum RenderError {
     #[error("Failed to lock V_SCREEN")]
     VScreenLock(#[from] PoisonError<MutexGuard<'static, Option<GdrvBitmap8>>>),
     #[error("Failed to lock BALL_BITMAP")]
-    BallBitmapLock(#[from] PoisonError<MutexGuard<'static, Option<[GdrvBitmap8;20]>>>),
+    BallBitmapLock(#[from] PoisonError<MutexGuard<'static, Option<[GdrvBitmap8; 20]>>>),
     #[error("Failed to lock Z_SCREEN")]
     ZScreenLock(#[from] PoisonError<MutexGuard<'static, Option<ZMapHeaderType>>>),
     #[error("Failed to lock RectangleType")]
