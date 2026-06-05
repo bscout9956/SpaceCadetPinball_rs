@@ -12,7 +12,7 @@ use std::ffi::{CStr, c_char};
 use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
 
 #[derive(Copy, Clone)]
@@ -144,6 +144,9 @@ pub struct SoundListStruct {
     duration: f32,
 }
 
+unsafe impl Sync for SoundListStruct {}
+unsafe impl Send for SoundListStruct {}
+
 impl Default for SoundListStruct {
     fn default() -> Self {
         Self {
@@ -209,8 +212,8 @@ static SOUND_COUNT: i32 = 1;
 static LOADER_SOUND_COUNT: i32 = 0;
 static LOADER_TABLE: Option<DatFile> = None;
 static sound_record_table: Option<DatFile> = None;
-static SOUND_LIST: Mutex<[SoundListStruct; 65]> =
-    Mutex::new(std::array::from_fn(|_| SoundListStruct::default()));
+static SOUND_LIST: LazyLock<Mutex<[SoundListStruct; 65]>> =
+    LazyLock::new(|| Mutex::new(std::array::from_fn(|_| SoundListStruct::default())));
 
 pub fn error(error_code: i32, caption_code: i32) -> i32 {
     let error_text = LOADER_ERRORS
