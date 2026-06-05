@@ -48,7 +48,8 @@ static BALL_LIST: Mutex<Vec<RenderSprite>> = Mutex::new(Vec::new());
 static OFFSET_X: Mutex<i32> = Mutex::new(0);
 static OFFSET_Y: Mutex<i32> = Mutex::new(0);
 
-static V_SCREEN_RECT: Mutex<RectangleType> = Mutex::new(RectangleType::default());
+static V_SCREEN_RECT: LazyLock<Mutex<RectangleType>> =
+    LazyLock::new(|| Mutex::new(RectangleType::default()));
 static BALL_BITMAP: Mutex<Option<[GdrvBitmap8; 20]>> = Mutex::new(None);
 
 static Z_SCREEN: Mutex<Option<ZMapHeaderType>> = Mutex::new(None);
