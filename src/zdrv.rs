@@ -22,13 +22,19 @@ impl ZMapHeaderType {
         }
     }
 
-    pub fn new(width: i32, height: i32, stride: i32) -> Self {
+    pub fn new(width: i32, height: i32, mut stride: i32) -> Self {
+        if stride < 0 {
+            stride = pad(width);
+        }
+
+        let size = (stride * height) as usize;
+
         Self {
             width,
             height,
             stride,
             resolution: 0,
-            z_map_data: vec![],
+            z_map_data: vec![0; size],
             texture: None,
         }
     }
@@ -55,6 +61,14 @@ pub fn fill(
         dst_ptr += (zmap.stride - width) as usize;
         y -= 1;
     }
+}
+
+pub fn pad(width: i32) -> i32 {
+    let mut result = width;
+    if (width & 3 != 0) {
+        result = width - (width & 3) + 4;
+    }
+    result
 }
 
 pub fn flip_zmap_horizontally(zmap: &mut ZMapHeaderType) {
