@@ -14,8 +14,8 @@ pub enum VisualTypes {
     Ball,
 }
 
-struct RenderSprite {
-    bmp_rect: RectangleType, // TODO: List?
+pub struct RenderSprite {
+    bmp_rect: RectangleType,
     bmp: Option<GdrvBitmap8>,
     zmap: Option<ZMapHeaderType>,
     delete_flag: bool,
