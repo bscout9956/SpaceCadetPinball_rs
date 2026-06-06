@@ -453,13 +453,18 @@ pub fn query_name(group_index: i32) -> Result<*const c_char, LoaderError> {
     }
 }
 
-pub fn query_int_attribute(group_index: i32, first_value: i32, array_size: *mut i32) -> *const i16 {
+pub fn query_int_attribute(
+    group_index: i32,
+    first_value: i32,
+    array_size: *mut i32,
+) -> Result<*const i16, LoaderError> {
     if group_index < 0 {
         error(0, 20);
-        return null::<i16>();
+        return Ok(null::<i16>());
     }
 
-    let loader_table = LOADER_TABLE.as_ref().unwrap();
+    let loader_guard = LOADER_TABLE.lock()?;
+    let loader_table = loader_guard.as_ref().unwrap();
     for skip_index in 0.. {
         match loader_table.field_nth(group_index, FieldTypes::ShortArray, skip_index) {
             Some(EntryBuffer::Raw(short_array_data)) => {
@@ -473,7 +478,7 @@ pub fn query_int_attribute(group_index: i32, first_value: i32, array_size: *mut 
                     unsafe {
                         *array_size =
                             loader_table.field_size(group_index, FieldTypes::ShortArray) / 2 - 1;
-                        return (short_array_data.as_ptr() as *const i16).add(1);
+                        return Ok((short_array_data.as_ptr() as *const i16).add(1));
                     }
                 }
             }
@@ -488,7 +493,7 @@ pub fn query_int_attribute(group_index: i32, first_value: i32, array_size: *mut 
     unsafe {
         *array_size = 0;
     }
-    null()
+    Ok(null())
 }
 
 pub fn query_float_attribute_ptr(
