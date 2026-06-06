@@ -1,7 +1,8 @@
 use crate::maths::Vector2;
 use crate::score::ScoreStruct;
 use crate::t_ball::TBall;
-use crate::t_pinball_component::TPinballComponent;
+use crate::t_pinball_component::{MessageCode, TPinballComponent, TPinballComponentBehavior};
+use crate::{control, timer};
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
@@ -83,7 +84,11 @@ pub struct TPinballTable {
     t_pinball_component: Weak<RefCell<TPinballComponent>>,
 }
 
-impl TPinballTable<'_> {
+unsafe impl Sync for TPinballTable {}
+
+unsafe impl Send for TPinballTable {}
+
+impl TPinballTable {
     pub fn new() -> Self {
         let pinball_component = TPinballComponent::new(None, -1, false);
         let active_flag = Rc::new(Cell::new(true));
@@ -190,7 +195,7 @@ impl TPinballTable<'_> {
             unknown_p81: 0,
             unknown_p82: 0,
             tilt_lock_flag: false,
-            score_multipliers: &[1, 1, 1, 1, 1], // TODO: change me
+            score_multipliers: vec![1, 1, 1, 1, 1], // TODO: change me
             t_pinball_component: Default::default(),
         };
 
