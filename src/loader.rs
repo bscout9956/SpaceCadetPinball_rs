@@ -398,10 +398,11 @@ pub fn get_sound_id(group_index: i32) -> Result<i32, LoaderError> {
     Ok(sound_index as i32)
 }
 
-pub fn query_handle(lp_string: *const c_char) -> i32 {
-    let loader_table = LOADER_TABLE.as_ref().unwrap();
+pub fn query_handle(lp_string: *const c_char) -> Result<i32, LoaderError> {
+    let loader_guard = LOADER_TABLE.lock()?;
+    let loader_table = loader_guard.as_ref().unwrap();
     let lp_str = unsafe { CStr::from_ptr(lp_string).to_string_lossy().into_owned() };
-    loader_table.record_labeled(&lp_str)
+    Ok(loader_table.record_labeled(&lp_str))
 }
 
 // TODO: Might be able to define new types in the EntryBuffer enum
