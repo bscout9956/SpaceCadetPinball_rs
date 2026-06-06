@@ -506,7 +506,7 @@ pub fn query_float_attribute_ptr(
         return Ok(null::<f32>());
     }
 
-    let state_id = state_id(group_index, group_index_offset);
+    let state_id = state_id(group_index, group_index_offset)?;
     if state_id < 0 {
         error(16, 22);
         return Ok(null::<f32>());
