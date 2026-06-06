@@ -275,12 +275,14 @@ pub fn default_vsi(visual: &mut VisualStruct) {
 //     LOADER_SOUND_COUNT = SOUND_COUNT;
 // }
 
-pub fn unload() {
-    let mut sound_list = SOUND_LIST.lock().unwrap();
-    for index in 1..LOADER_SOUND_COUNT {
+pub fn unload() -> Result<(), LoaderError> {
+    let mut sound_list = SOUND_LIST.lock()?;
+    let loader_sound_count = LOADER_SOUND_COUNT.lock()?;
+    for index in 1..*loader_sound_count {
         sound::freesound(sound_list[index as usize].wave_ptr);
         sound_list[index as usize] = SoundListStruct::default();
     }
+    Ok(())
 }
 
 pub fn get_sound_id(group_index: i32) -> i32 {
