@@ -236,8 +236,7 @@ fn hybrid_sleep(seconds: DurationMs) {
     todo!()
 }
 
-fn main_loop() {}
-
+// TODO: Implement?
 // bool defaults to false
 fn imgui_menu_item_w_shortcut(binding: GameBindings, selected: Option<bool>) {}
 
@@ -530,14 +529,33 @@ fn main() -> Result<(), Box<dyn Error>> {
             fullscrn::init();
 
             pb::reset_table();
-            pb::firsttime_setup();
+            pb::first_time_setup();
 
-            SDL_ShowWindow(window);
+            let fullscreen = env::args().any(|arg| arg == "-fullscreen");
+            if fullscreen {
+                let mut options = OPTIONS.lock()?;
+                *options.full_screen = true;
+            }
+
+            {
+                let options = OPTIONS.lock()?;
+                if *options.full_screen == false {
+                    let resolution_array = RESOLUTION_ARRAY.lock()?;
+                    let res_info = &resolution_array[fullscrn::get_resolution() as usize];
+                    SDL_SetWindowSize(
+                        window,
+                        res_info.table_width as c_int,
+                        res_info.table_height as c_int,
+                    );
+                }
+                SDL_ShowWindow(window);
+                fullscrn::set_screen_mode(*options.full_screen);
+            }
 
             let do_restart = RESTART.load(Relaxed);
-            // if do_restart {
-            //     Ok(break);
-            // }
+            if do_restart {
+                ()
+            }
         }
     }
 }
