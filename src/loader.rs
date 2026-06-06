@@ -13,7 +13,7 @@ use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
-use std::sync::{LazyLock, LockResult, Mutex, MutexGuard, PoisonError};
+use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
 #[derive(Copy, Clone)]
@@ -663,39 +663,40 @@ pub fn play_sound(sound_index: i32, sound_source: TPinballComponent, info: &[u8]
     sound_list[sound_index as usize].duration
 }
 
-fn state_id(mut group_index: i32, group_index_offset: i32) -> i32 {
-    let visual_state = query_visual_states(group_index);
+fn state_id(mut group_index: i32, group_index_offset: i32) -> Result<i32, LoaderError> {
+    let visual_state = query_visual_states(group_index)?;
 
     if visual_state <= 0 {
-        return error(12, 24);
+        return Ok(error(12, 24));
     }
-    let loader_table = LOADER_TABLE.as_ref().unwrap();
+    let loader_guard = LOADER_TABLE.lock()?;
+    let loader_table = loader_guard.as_ref().unwrap();
     let mut short_val = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(data)) if data.len() >= 2 => i16::from_le_bytes([data[0], data[1]]),
-        _ => return error(1, 24),
+        _ => return Ok(error(1, 24)),
     };
 
     if short_val != 200 {
-        return error(5, 24);
+        return Ok(error(5, 24));
     }
     if group_index_offset > visual_state as i32 {
-        return error(12, 24);
+        return Ok(error(12, 24));
     }
     if group_index_offset == 0 {
-        return group_index;
+        return Ok(group_index);
     }
     group_index += group_index_offset;
 
     short_val = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(data)) if data.len() >= 2 => i16::from_le_bytes([data[0], data[1]]),
-        _ => return error(1, 24),
+        _ => return Ok(error(1, 24)),
     };
 
     if short_val != 201 {
-        return error(6, 24);
+        return Ok(error(6, 24));
     }
 
-    group_index
+    Ok(group_index)
 }
 
 fn read_float(data: &[u8], index: &mut usize) -> Result<f32, ()> {
