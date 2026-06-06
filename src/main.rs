@@ -44,6 +44,7 @@ mod t_pinball_table;
 mod translations;
 mod zdrv;
 
+pub mod control;
 mod embedded_data;
 mod errors;
 mod imgui_sdl;
