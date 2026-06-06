@@ -9,6 +9,7 @@ use crate::loader::SoundListStruct;
 use crate::options::OptionsStruct;
 use crate::translations::TranslationError;
 use crate::MainError;
+use crate::t_pinball_table::TPinballTable;
 
 #[derive(Error, Debug)]
 pub enum RecordLoadError {
@@ -39,13 +40,15 @@ pub enum LoaderError {
 }
 
 #[derive(Error, Debug)]
-pub enum PbInitError {
+pub enum PbError {
     #[error(transparent)]
     RecordLoadError(#[from] RecordLoadError),
     #[error("Failed to get rc: `{0}`")]
     GetRcError(#[from] TranslationError),
     #[error(transparent)]
     LoaderError(#[from] LoaderError),
+    #[error("Failed to lock main_table")]
+    TableLock(#[from] PoisonError<MutexGuard<'static, Option<TPinballTable>>>),
 }
 
 #[derive(Error, Debug)]
