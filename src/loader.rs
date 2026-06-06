@@ -208,10 +208,10 @@ pub struct WaveHeader {
 
 const _: () = assert!(size_of::<WaveHeader>() == 44, "Wrong size for WaveHeader");
 
-static SOUND_COUNT: i32 = 1;
-static LOADER_SOUND_COUNT: i32 = 0;
-static LOADER_TABLE: Option<DatFile> = None;
-static sound_record_table: Option<DatFile> = None;
+static SOUND_COUNT: Mutex<i32> = Mutex::new(1);
+static LOADER_SOUND_COUNT: Mutex<i32> = Mutex::new(0);
+static LOADER_TABLE: Mutex<Option<DatFile>> = Mutex::new(None);
+static SOUND_RECORD_TABLE: Mutex<Option<DatFile>> = Mutex::new(None);
 static SOUND_LIST: LazyLock<Mutex<[SoundListStruct; 65]>> =
     LazyLock::new(|| Mutex::new(std::array::from_fn(|_| SoundListStruct::default())));
 
