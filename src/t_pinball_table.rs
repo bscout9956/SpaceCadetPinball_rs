@@ -22,6 +22,12 @@ struct TPlunger;
 struct TDrain;
 struct TDemo;
 struct TLightGroup;
+
+impl TLightGroup {
+    pub(crate) fn message(&self, p0: MessageCode, p1: f64) {
+        todo!()
+    }
+}
 // End of temporary structs
 
 pub struct TPinballTable {
