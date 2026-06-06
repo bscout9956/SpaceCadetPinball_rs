@@ -1,3 +1,4 @@
+use crate::errors::LoaderError;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::maths::*;
@@ -13,8 +14,7 @@ use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
-use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
-use thiserror::Error;
+use std::sync::{LazyLock, Mutex};
 
 #[derive(Copy, Clone)]
 pub struct ErrorMessage {
@@ -251,16 +251,6 @@ pub fn default_vsi(visual: &mut VisualStruct) {
     };
     visual.sound_index_3 = 0;
     visual.sound_index_4 = 0;
-}
-
-#[derive(Error, Debug)]
-pub enum LoaderError {
-    #[error("Failed to lock LOADER_TABLE")]
-    TableLock(#[from] PoisonError<MutexGuard<'static, Option<DatFile>>>),
-    #[error("Failed to lock SOUND_LIST")]
-    SoundListLock(#[from] PoisonError<MutexGuard<'static, [SoundListStruct; 65]>>),
-    #[error("Failed to lock SOUND_COUNT")]
-    SoundCountLock(#[from] PoisonError<MutexGuard<'static, i32>>),
 }
 
 pub fn load_from(dat_file: &mut DatFile) -> Result<(), LoaderError> {

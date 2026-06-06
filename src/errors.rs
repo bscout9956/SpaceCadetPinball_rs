@@ -4,6 +4,8 @@ use std::sync::{MutexGuard, PoisonError};
 use thiserror::Error;
 
 use crate::fullscrn::ResolutionInfo;
+use crate::group_data::DatFile;
+use crate::loader::SoundListStruct;
 use crate::options::OptionsStruct;
 use crate::translations::TranslationError;
 use crate::MainError;
@@ -27,11 +29,23 @@ pub enum RecordLoadError {
 }
 
 #[derive(Error, Debug)]
+pub enum LoaderError {
+    #[error("Failed to lock LOADER_TABLE")]
+    TableLock(#[from] PoisonError<MutexGuard<'static, Option<DatFile>>>),
+    #[error("Failed to lock SOUND_LIST")]
+    SoundListLock(#[from] PoisonError<MutexGuard<'static, [SoundListStruct; 65]>>),
+    #[error("Failed to lock SOUND_COUNT")]
+    SoundCountLock(#[from] PoisonError<MutexGuard<'static, i32>>),
+}
+
+#[derive(Error, Debug)]
 pub enum PbInitError {
     #[error(transparent)]
     RecordLoadError(#[from] RecordLoadError),
     #[error("Failed to get rc: `{0}`")]
-    GetRcError(#[from] TranslationError)
+    GetRcError(#[from] TranslationError),
+    #[error(transparent)]
+    LoaderError(#[from] LoaderError),
 }
 
 #[derive(Error, Debug)]
