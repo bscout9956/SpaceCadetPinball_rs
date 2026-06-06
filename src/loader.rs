@@ -522,7 +522,9 @@ pub fn query_float_attribute_ptr(
                 ]);
                 if (float_val.floor() as i16) == (first_value as i16) {
                     let float_ptr = float_array_data.as_ptr() as *const f32;
-                    unsafe { return float_ptr.add(1) }
+                    unsafe {
+                        return float_ptr.add(1);
+                    }
                 }
             }
             //Bitmap or none
