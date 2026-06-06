@@ -2,12 +2,14 @@ use crate::gdrv::GdrvBitmap8;
 use crate::maths::RectangleType;
 use crate::options::OPTIONS;
 use crate::zdrv::ZMapHeaderType;
-use crate::{gdrv, zdrv};
+use crate::{gdrv, maths, zdrv};
 use sdl2::sys::SDL_Rect;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
+use std::cmp::PartialEq;
 use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
+#[derive(PartialEq, Debug)]
 pub enum VisualTypes {
     Background,
     Sprite,
