@@ -271,8 +271,7 @@ pub fn init() -> Result<(bool), PbInitError> {
                     );
                 }
 
-                //l96
-                loader::load_from(table);
+                loader::load_from(table)?;
             }
         }
         Err(e) => {
