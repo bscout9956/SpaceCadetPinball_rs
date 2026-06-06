@@ -318,20 +318,21 @@ pub fn unload() -> Result<(), LoaderError> {
     Ok(())
 }
 
-pub fn get_sound_id(group_index: i32) -> i32 {
-    let mut sound_list = SOUND_LIST.lock().unwrap();
+pub fn get_sound_id(group_index: i32) -> Result<i32, LoaderError> {
+    let mut sound_list = SOUND_LIST.lock()?;
 
     let mut sound_index: i16 = 1;
-    if SOUND_COUNT <= 1 {
+    let sound_count = SOUND_COUNT.lock()?;
+    if *sound_count <= 1 {
         error(25, 26);
-        return -1;
+        return Ok(-1);
     }
 
     while (sound_list[sound_index as usize].group_index != group_index) {
         sound_index += 1;
-        if sound_index as i32 >= SOUND_COUNT {
+        if sound_index as i32 >= *sound_count {
             error(25, 26);
-            return -1;
+            return Ok(-1);
         }
     }
 
@@ -344,7 +345,8 @@ pub fn get_sound_id(group_index: i32) -> i32 {
         sound_list[sound_index as usize].duration = 0.0;
 
         let quick_flag_val = pb::QUICK_FLAG.load(Relaxed);
-        let loader_table = LOADER_TABLE.as_ref().unwrap();
+        let table_guard = LOADER_TABLE.lock()?;
+        let loader_table = table_guard.as_ref().unwrap();
         if sound_group_id != 0
             && !quick_flag_val
             && let Some(EntryBuffer::Raw(value_data)) =
@@ -393,7 +395,7 @@ pub fn get_sound_id(group_index: i32) -> i32 {
     }
 
     sound_list[sound_index as usize].loaded = true;
-    sound_index as i32
+    Ok(sound_index as i32)
 }
 
 pub fn query_handle(lp_string: *const c_char) -> i32 {
