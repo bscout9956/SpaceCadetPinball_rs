@@ -312,7 +312,7 @@ pub fn copy_bitmap(
 }
 
 pub fn fill_bitmap(
-    mut bmp: GdrvBitmap8,
+    bmp: &mut GdrvBitmap8,
     width: i32,
     height: i32,
     x_off: i32,
@@ -331,7 +331,7 @@ pub fn fill_bitmap(
 }
 
 fn fill_bitmap_color_rgba(
-    mut bmp: GdrvBitmap8,
+    bmp: &mut GdrvBitmap8,
     width: i32,
     height: i32,
     x_off: i32,
