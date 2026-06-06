@@ -600,29 +600,30 @@ fn query_float_attribute(
     Ok(f32::nan())
 }
 
-pub fn material(group_index: i32, visual: *mut VisualStruct) -> i32 {
+pub fn material(group_index: i32, visual: *mut VisualStruct) -> Result<i32, LoaderError> {
     if group_index < 0 {
         error(0, 21);
     }
 
-    let loader_table = LOADER_TABLE.as_ref().unwrap();
+    let loader_guard = LOADER_TABLE.lock()?;
+    let loader_table = loader_guard.as_ref().unwrap();
     let short_value = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(short_array_data)) => {
             assert_eq!(short_array_data.len(), 2, "Array isn't big enough");
             i16::from_le_bytes([short_array_data[0], short_array_data[1]])
         }
         _ => {
-            return error(1, 21);
+            return Ok(error(1, 21));
         }
     };
 
     if short_value != 300 {
-        return error(3, 21);
+        return Ok(error(3, 21));
     }
 
     let float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
         Some(EntryBuffer::Raw(data)) => data.to_vec(),
-        _ => return error(11, 21),
+        _ => return Ok(error(11, 21)),
     };
 
     let float_array_len = loader_table.field_size(group_index, FieldTypes::FloatArray) / 4;
@@ -632,26 +633,26 @@ pub fn material(group_index: i32, visual: *mut VisualStruct) -> i32 {
 
         let key = match float_array_data.get(byte_offset..byte_offset + 4) {
             Some(bytes) => f32::from_le_bytes(bytes.try_into().unwrap()),
-            None => return error(9, 21),
+            None => return Ok(error(9, 21)),
         };
 
         let value = match float_array_data.get(byte_offset + 4..byte_offset + 8) {
             Some(bytes) => f32::from_le_bytes(bytes.try_into().unwrap()),
-            None => return error(9, 21),
+            None => return Ok(error(9, 21)),
         };
 
         match key.floor() as i32 {
             301 => unsafe { (*visual).smoothness = value },
             302 => unsafe { (*visual).elasticity = value },
             304 => unsafe {
-                let sound_id = get_sound_id(value.floor() as i32);
+                let sound_id = get_sound_id(value.floor() as i32)?;
                 unsafe { (*visual).soft_hit_sound_id = sound_id }
             },
-            _ => return error(9, 21),
+            _ => return Ok(error(9, 21)),
         }
     }
 
-    0
+    Ok(0)
 }
 
 pub fn play_sound(sound_index: i32, sound_source: TPinballComponent, info: &[u8]) -> f32 {
