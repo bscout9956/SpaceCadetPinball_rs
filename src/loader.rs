@@ -407,26 +407,31 @@ pub fn query_handle(lp_string: *const c_char) -> Result<i32, LoaderError> {
 
 // TODO: Might be able to define new types in the EntryBuffer enum
 
-pub fn query_visual_states(group_index: i32) -> i16 {
+pub fn query_visual_states(group_index: i32) -> Result<i16, LoaderError> {
     let mut result: i16 = 0;
 
     if group_index < 0 {
-        return error(0, 17) as i16;
+        // TODO REFACTOR, use actual errors and deal with them
+        return Ok(error(0, 17) as i16);
     }
 
-    let loader_table = LOADER_TABLE.as_ref().unwrap();
+    let loader_guard = LOADER_TABLE.lock()?;
+    let loader_table = loader_guard.as_ref().unwrap();
 
     match loader_table.field(group_index, FieldTypes::ShortArray) {
         Some(EntryBuffer::Raw(short_array_data)) if short_array_data.len() >= 4 => {
             let short_value = i16::from_le_bytes([short_array_data[0], short_array_data[1]]);
             if short_value == 100 {
-                i16::from_le_bytes([short_array_data[2], short_array_data[3]])
+                Ok(i16::from_le_bytes([
+                    short_array_data[2],
+                    short_array_data[3],
+                ]))
             } else {
-                1
+                Ok(1)
             }
         }
         // Bitmap or none
-        _ => 1,
+        _ => Ok(1),
     }
 }
 
