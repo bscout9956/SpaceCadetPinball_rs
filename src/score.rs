@@ -91,3 +91,7 @@ pub fn load_msg_font(font_name: &str) -> Result<(), ScoreError> {
 
     Ok(())
 }
+
+pub(crate) fn init() {
+    todo!()
+}
