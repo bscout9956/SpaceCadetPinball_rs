@@ -146,7 +146,7 @@ pub fn init(bmp: Option<GdrvBitmap8>, width: i16, height: i16) -> Result<(), Ren
             false => {
                 let v_width = v_screen_unwrap.width;
                 let v_height = v_screen_unwrap.height;
-                gdrv::fill_bitmap(v_screen_unwrap, v_width, v_height, 0, 0, 0);
+                gdrv::fill_bitmap(&mut v_screen_unwrap, v_width, v_height, 0, 0, 0);
             }
         }
     }
@@ -173,10 +173,106 @@ fn repaint(sprite: &RenderSprite) {
     todo!()
 }
 
+// TODO: CONTINUE HERE RENDER.CPP
 fn paint_balls() {
     todo!()
 }
 
 fn unpaint_balls() {
     todo!()
+}
+
+pub fn update() {
+    // TODO: IMPLEMENT ME FAST!
+    unpaint_balls();
+
+    let v_screen_rect = V_SCREEN_RECT.lock().unwrap();
+
+    let mut sprite_list = SPRITE_LIST.lock().unwrap();
+    for sprite in sprite_list.iter_mut() {
+        if sprite.dirty_flag {
+            continue;
+        }
+
+        let mut clear_sprite: bool = false;
+        match sprite.visual_types {
+            VisualTypes::Background => {
+                let rec_clip =
+                    maths::rectangle_clip(&sprite.bmp_rect, &v_screen_rect, &mut sprite.dirty_rect);
+                if rec_clip {
+                    clear_sprite = sprite.bmp.is_some();
+                } else {
+                    sprite.dirty_rect.width = -1;
+                }
+            }
+            VisualTypes::Sprite => {
+                if sprite.dirty_rect_prev.width > 0 {
+                    maths::enclosing_box(
+                        &sprite.dirty_rect_prev,
+                        &sprite.bmp_rect,
+                        &mut sprite.dirty_rect,
+                    );
+                }
+
+                let dirty_rect = sprite.dirty_rect;
+                let mut clipped_rect = dirty_rect;
+                let rec_clip =
+                    maths::rectangle_clip(&dirty_rect, &v_screen_rect, &mut clipped_rect);
+
+                if rec_clip {
+                    clear_sprite = true;
+                }
+            }
+            _ => {}
+        }
+
+        if clear_sprite {
+            let y_pos = sprite.dirty_rect.y_position;
+            let width = sprite.dirty_rect.width;
+            let x_pos = sprite.dirty_rect.x_position;
+            let height = sprite.dirty_rect.height;
+            let mut z_screen_guard = Z_SCREEN.lock().unwrap();
+            let z_screen_mut = z_screen_guard.as_mut().unwrap();
+            zdrv::fill(z_screen_mut, width, height, x_pos, y_pos, 0xFFFF);
+            let background_bmp = BACKGROUND_BITMAP.lock().unwrap();
+            if background_bmp.is_some() {
+                let bg_bmp = background_bmp.clone().unwrap();
+                let mut v_screen_guard = V_SCREEN.lock().unwrap();
+                let v_screen = v_screen_guard.as_mut().unwrap();
+                gdrv::copy_bitmap(v_screen, width, height, x_pos, y_pos, bg_bmp, x_pos, y_pos);
+            } else {
+                let mut v_screen_guard = V_SCREEN.lock().unwrap();
+                let v_screen = v_screen_guard.as_mut().unwrap();
+                gdrv::fill_bitmap(v_screen, width, height, x_pos, y_pos, 0);
+            }
+        }
+    }
+
+    for sprite in sprite_list.iter_mut() {
+        if sprite.dirty_flag == false {
+            continue;
+        }
+
+        repaint(sprite);
+        sprite.dirty_flag = false;
+        sprite.dirty_rect_prev = sprite.dirty_rect;
+        if sprite.delete_flag {
+            remove_sprite(sprite);
+        }
+    }
+
+    paint_balls();
+}
+
+pub fn remove_sprite(sprite: &RenderSprite) {
+    let list = if sprite.visual_types == VisualTypes::Ball {
+        &BALL_LIST
+    } else {
+        &SPRITE_LIST
+    };
+
+    let mut list_sprites = list.lock().unwrap();
+    if let Some(pos) = list_sprites.iter().position(|s| std::ptr::eq(s, sprite)) {
+        list_sprites.remove(pos);
+    }
 }
