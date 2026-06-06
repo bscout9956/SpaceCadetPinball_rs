@@ -13,7 +13,8 @@ use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
-use std::sync::{LazyLock, Mutex};
+use std::sync::{LazyLock, LockResult, Mutex, MutexGuard, PoisonError};
+use thiserror::Error;
 
 #[derive(Copy, Clone)]
 pub struct ErrorMessage {
