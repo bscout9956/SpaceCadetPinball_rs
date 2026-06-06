@@ -32,6 +32,25 @@ pub struct RenderSprite {
     dirty_flag: bool,
 }
 
+impl PartialEq for RenderSprite {
+    // NOTE: I am comparing as much as possible since deriving PartialEq isn't trivial
+    fn eq(&self, other: &Self) -> bool {
+        self.bmp_rect == other.bmp_rect
+            && self.depth == other.depth
+            && self.visual_types == other.visual_types
+            && self.delete_flag == other.delete_flag
+            && self.dirty_flag == other.dirty_flag
+            && self.z_map_offset_x == other.z_map_offset_x
+            && self.z_map_offset_y == other.z_map_offset_y
+            && self.dirty_rect == other.dirty_rect
+            && self.dirty_rect_prev == other.dirty_rect_prev
+            && self.bounding_rect == other.bounding_rect
+            && self.bmp.is_some() == other.bmp.is_some()
+            && self.zmap.is_some() == other.zmap.is_some()
+            && self.occluded_sprites == other.occluded_sprites
+    }
+}
+
 pub static V_SCREEN: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
 pub static BACKGROUND_BITMAP: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
 pub static BACKGROUND_ZMAP: Option<ZMapHeaderType> = None;
