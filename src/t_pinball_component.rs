@@ -136,7 +136,7 @@ struct Control;
 // TODO: Temporary
 struct RenderSprite;
 
-pub struct TPinballComponent<'a> {
+pub struct TPinballComponent {
     pub unused_base_flag: Rc<Cell<bool>>,
     pub active_flag: Rc<Cell<bool>>,
     pub message_field: MessageCode,
@@ -144,7 +144,7 @@ pub struct TPinballComponent<'a> {
     pub component_control: Option<Weak<RefCell<Control>>>,
     pub group_index: i32,
     pub render_sprite: RenderSprite, //TODO: Decide what this will be
-    pub pinball_table: Option<Weak<RefCell<TPinballTable<'a>>>>,
+    pub pinball_table: Option<Weak<RefCell<TPinballTable>>>,
     pub list_bitmap: Vec<SpriteData>,
 
     visual_pos_norm_x: f32,
@@ -163,9 +163,9 @@ pub trait TPinballComponentBehavior {
 // TODO: Temporary
 struct VisualStruct;
 
-impl<'a> TPinballComponent<'a> {
+impl TPinballComponent {
     pub fn new(
-        table: Option<Rc<RefCell<TPinballTable<'a>>>>,
+        table: Option<Rc<RefCell<TPinballTable>>>,
         group_index: i32,
         load_visuals: bool,
     ) -> Self {
@@ -206,7 +206,7 @@ impl<'a> TPinballComponent<'a> {
     }
 }
 
-impl Drop for TPinballComponent<'_> {
+impl Drop for TPinballComponent {
     fn drop(&mut self) {
         if self.pinball_table.is_some() {
             // TODO: Add field, use let Some, upgrade weakptr, borrow mut?
@@ -220,7 +220,7 @@ impl Drop for TPinballComponent<'_> {
     }
 }
 
-impl TPinballComponentBehavior for TPinballComponent<'_> {
+impl TPinballComponentBehavior for TPinballComponent {
     fn sprite_set(index: i32) {
         todo!()
     }
