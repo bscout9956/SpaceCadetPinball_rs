@@ -3,6 +3,7 @@
 extern crate core;
 
 use crate::embedded_data::load_controller_db;
+use crate::fullscrn::RESOLUTION_ARRAY;
 use crate::options::{GameBindings, OptionsStruct};
 use dear_imgui_rs::sys::ImGuiIO;
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig};
@@ -54,6 +55,7 @@ mod pb;
 pub mod proj;
 mod render;
 pub mod text_array;
+pub mod timer;
 mod utils;
 
 pub fn restart_func() {
@@ -222,16 +224,29 @@ pub fn get_imgui_io() -> Option<NonNull<ImGuiIO>> {
     IMGUI_IO.with(|cell| *cell.borrow())
 }
 
-fn render_ui() {}
+fn render_ui() {
+    todo!()
+}
 
-fn render_frame_time_dialog() {}
+fn render_frame_time_dialog() {
+    todo!()
+}
 
-fn hybrid_sleep(seconds: DurationMs) {}
+fn hybrid_sleep(seconds: DurationMs) {
+    todo!()
+}
 
 fn main_loop() {}
 
 // bool defaults to false
 fn imgui_menu_item_w_shortcut(binding: GameBindings, selected: Option<bool>) {}
+
+fn main_loop() {
+    B_QUIT.store(false, Relaxed);
+
+    let update_count: usize = 0;
+    let frame_counter: usize = 0;
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Game version: {}", VERSION);
