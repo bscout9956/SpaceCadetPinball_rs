@@ -778,17 +778,22 @@ pub fn kicker(group_index: i32, kicker: *mut VisualKickerStruct) -> i32 {
     0
 }
 
-pub fn query_visual(group_index: i32, group_index_offset: i32, visual: &mut VisualStruct) -> i32 {
+pub fn query_visual(
+    group_index: i32,
+    group_index_offset: i32,
+    visual: &mut VisualStruct,
+) -> Result<i32, LoaderError> {
     default_vsi(visual);
     if group_index < 0 {
-        return error(0, 18);
+        return Ok(error(0, 18));
     }
-    let state_id = state_id(group_index, group_index_offset);
+    let state_id = state_id(group_index, group_index_offset)?;
     if state_id < 0 {
-        return error(16, 18);
+        return Ok(error(16, 18));
     }
 
-    let loader_table = LOADER_TABLE.as_ref().unwrap();
+    let loader_guard = LOADER_TABLE.lock()?;
+    let loader_table = loader_guard.as_ref().unwrap();
     let bmp = loader_table.get_bitmap(state_id).to_owned();
     let zmap = loader_table.get_zmap(state_id);
     visual.bitmap = SpriteData {
@@ -814,18 +819,18 @@ pub fn query_visual(group_index: i32, group_index_offset: i32, visual: &mut Visu
             match id {
                 100 => {
                     if group_index_offset == 0 {
-                        return error(7, 18);
+                        return Ok(error(7, 18));
                     }
                 }
                 300 => {
                     if i + 1 >= short_arr_size {
-                        return error(15, 18);
+                        return Ok(error(15, 18));
                     }
                     let material_value =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
                     if material(material_value as i32, visual as *mut _) != 0 {
-                        return error(15, 18);
+                        return Ok(error(15, 18));
                     }
                 }
                 304 => {
@@ -835,7 +840,7 @@ pub fn query_visual(group_index: i32, group_index_offset: i32, visual: &mut Visu
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.soft_hit_sound_id = get_sound_id(sound_id as i32);
+                    visual.soft_hit_sound_id = get_sound_id(sound_id as i32)?;
                 }
                 400 => {
                     if i + 1 >= short_arr_size {
@@ -846,7 +851,7 @@ pub fn query_visual(group_index: i32, group_index_offset: i32, visual: &mut Visu
                     i += 2;
                     // VERIFY: Is the 0 check correct? Should it be not 0?
                     if kicker(kicker_val as i32, &mut visual.kicker) != 0 {
-                        return error(14, 18);
+                        return Ok(error(14, 18));
                     }
                 }
                 406 => {
@@ -857,7 +862,7 @@ pub fn query_visual(group_index: i32, group_index_offset: i32, visual: &mut Visu
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.kicker.hard_hit_sound_id = get_sound_id(sound_id as i32);
+                    visual.kicker.hard_hit_sound_id = get_sound_id(sound_id as i32)?;
                 }
                 602 => {
                     if i + 1 >= short_arr_size {
@@ -874,7 +879,7 @@ pub fn query_visual(group_index: i32, group_index_offset: i32, visual: &mut Visu
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.sound_index_4 = get_sound_id(sound_id as i32);
+                    visual.sound_index_4 = get_sound_id(sound_id as i32)?;
                 }
                 1101 => {
                     if i + 1 >= short_arr_size {
@@ -883,14 +888,14 @@ pub fn query_visual(group_index: i32, group_index_offset: i32, visual: &mut Visu
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.sound_index_3 = get_sound_id(sound_id as i32);
+                    visual.sound_index_3 = get_sound_id(sound_id as i32)?;
                 }
                 1500 => {
                     // Skipping 7 shorts or 14 bytes
                     i += 14;
                 }
                 _ => {
-                    return error(9, 18);
+                    return Ok(error(9, 18));
                 }
             }
         }
@@ -913,7 +918,7 @@ pub fn query_visual(group_index: i32, group_index_offset: i32, visual: &mut Visu
         ]);
 
         if float_val != 600.0 {
-            return 0;
+            return Ok(0);
         }
 
         visual.float_arr_count =
@@ -932,7 +937,7 @@ pub fn query_visual(group_index: i32, group_index_offset: i32, visual: &mut Visu
             1 => visual.float_arr_count = 2,
             _ => {
                 if float_int != visual.float_arr_count {
-                    return error(8, 18);
+                    return Ok(error(8, 18));
                 }
             }
         }
@@ -946,5 +951,5 @@ pub fn query_visual(group_index: i32, group_index_offset: i32, visual: &mut Visu
         visual.float_arr = arr;
     }
 
-    0
+    Ok(0)
 }
