@@ -837,7 +837,7 @@ pub fn query_visual(
                     let material_value =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    if material(material_value as i32, visual as *mut _) != 0 {
+                    if material(material_value as i32, visual as *mut _)? != 0 {
                         return Ok(error(15, 18));
                     }
                 }
@@ -858,7 +858,7 @@ pub fn query_visual(
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
                     // VERIFY: Is the 0 check correct? Should it be not 0?
-                    if kicker(kicker_val as i32, &mut visual.kicker) != 0 {
+                    if kicker(kicker_val as i32, &mut visual.kicker)? != 0 {
                         return Ok(error(14, 18));
                     }
                 }
