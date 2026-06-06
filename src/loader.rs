@@ -495,19 +495,20 @@ pub fn query_float_attribute_ptr(
     group_index: i32,
     group_index_offset: i32,
     first_value: i32,
-) -> *const f32 {
+) -> Result<*const f32, LoaderError> {
     if group_index < 0 {
         error(0, 22);
-        return null::<f32>();
+        return Ok(null::<f32>());
     }
 
     let state_id = state_id(group_index, group_index_offset);
     if state_id < 0 {
         error(16, 22);
-        return null::<f32>();
+        return Ok(null::<f32>());
     }
 
-    let loader_table = LOADER_TABLE.as_ref().unwrap();
+    let loader_guard = LOADER_TABLE.lock()?;
+    let loader_table = loader_guard.as_ref().unwrap();
 
     for skip_index in 0..i32::MAX {
         match loader_table.field_nth(group_index, FieldTypes::FloatArray, skip_index) {
@@ -525,7 +526,7 @@ pub fn query_float_attribute_ptr(
                 if (float_val.floor() as i16) == (first_value as i16) {
                     let float_ptr = float_array_data.as_ptr() as *const f32;
                     unsafe {
-                        return float_ptr.add(1);
+                        return Ok(float_ptr.add(1));
                     }
                 }
             }
@@ -537,7 +538,7 @@ pub fn query_float_attribute_ptr(
     }
 
     error(13, 22);
-    null::<f32>()
+    Ok(null::<f32>())
 }
 fn query_float_attribute(
     group_index: i32,
