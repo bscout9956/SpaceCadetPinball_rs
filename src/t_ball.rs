@@ -5,7 +5,7 @@ use crate::t_pinball_table::TPinballTable;
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
-pub struct TBall<'a> {
+pub struct TBall {
     pub position: Vector3,
     pub prev_position: Vector3,
     pub direction: Vector3,
@@ -13,9 +13,9 @@ pub struct TBall<'a> {
     pub ray_max_distance: f32,
     pub time_delta: f32,
     pub ramp_field_force: Vector2,
-    pub collision_comp: Option<Weak<RefCell<TCollisionComponent<'a>>>>,
+    pub collision_comp: Option<Weak<RefCell<TCollisionComponent>>>,
     pub collision_mask: i32,
-    pub collisions: [Option<Weak<RefCell<TEdgeSegment<'a>>>>; 16],
+    pub collisions: [Option<Weak<RefCell<TEdgeSegment>>>; 16],
     pub edge_collision_count: i32,
     pub edge_collision_reset_flag: bool,
     pub collision_offset: Vector3,
@@ -26,10 +26,10 @@ pub struct TBall<'a> {
     pub last_active_time: i32,
     pub visual_z_array: [f32; 50],
     pub collision_disabled_flag: bool,
-    t_edge_segment: Weak<RefCell<TEdgeSegment<'a>>>,
+    t_edge_segment: Weak<RefCell<TEdgeSegment>>,
 }
 
-impl TBall<'_> {
+impl TBall {
     pub fn new(table: TPinballTable, group_index: i32) -> Self {
         let active_flag = Rc::new(Cell::new(true)); // VERIFY: default??
 
@@ -67,7 +67,7 @@ impl TBall<'_> {
     }
 }
 
-impl TCollisionComponentBehavior for TBall<'_> {
+impl TCollisionComponentBehavior for TBall {
     fn collision(
         &mut self,
         ball: &mut TBall,
@@ -93,7 +93,7 @@ impl TCollisionComponentBehavior for TBall<'_> {
     }
 }
 
-impl TEdgeSegmentBehavior for TBall<'_> {
+impl TEdgeSegmentBehavior for TBall {
     fn edge_collision(&self, ball: &mut TBall, distance: f32) {
         todo!()
     }
