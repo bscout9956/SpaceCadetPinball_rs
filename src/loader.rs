@@ -550,19 +550,20 @@ fn query_float_attribute(
     group_index_offset: i32,
     first_value: i32,
     def_val: f32,
-) -> f32 {
+) -> Result<f32, LoaderError> {
     if group_index < 0 {
         error(0, 22);
-        return f32::nan();
+        return Ok(f32::nan());
     }
 
-    let state_id = state_id(group_index, group_index_offset);
+    let state_id = state_id(group_index, group_index_offset)?;
     if state_id < 0 {
         error(16, 22);
-        return f32::nan();
+        return Ok(f32::nan());
     }
 
-    let loader_table = LOADER_TABLE.as_ref().unwrap();
+    let loader_guard = LOADER_TABLE.lock()?;
+    let loader_table = loader_guard.as_ref().unwrap();
     for skip_index in 0.. {
         match loader_table.field_nth(group_index, FieldTypes::FloatArray, skip_index) {
             Some(EntryBuffer::Raw(float_array_data)) => {
@@ -578,12 +579,12 @@ fn query_float_attribute(
                 ]);
 
                 if (float_value.floor() as i16) == (first_value as i16) {
-                    return f32::from_le_bytes([
+                    return Ok(f32::from_le_bytes([
                         float_array_data[4],
                         float_array_data[5],
                         float_array_data[6],
                         float_array_data[7],
-                    ]);
+                    ]));
                 }
             }
             _ => {
@@ -593,10 +594,10 @@ fn query_float_attribute(
     }
 
     if !def_val.is_nan() {
-        return def_val;
+        return Ok(def_val);
     }
     error(13, 22);
-    f32::nan()
+    Ok(f32::nan())
 }
 
 pub fn material(group_index: i32, visual: *mut VisualStruct) -> i32 {
