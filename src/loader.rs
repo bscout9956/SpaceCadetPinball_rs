@@ -715,29 +715,30 @@ fn read_float(data: &[u8], index: &mut usize) -> Result<f32, ()> {
     Ok(f32::from_le_bytes(bytes))
 }
 
-pub fn kicker(group_index: i32, kicker: *mut VisualKickerStruct) -> i32 {
+pub fn kicker(group_index: i32, kicker: *mut VisualKickerStruct) -> Result<i32, LoaderError> {
     if group_index < 0 {
         error(0, 20);
     }
 
-    let loader_table = LOADER_TABLE.as_ref().unwrap();
+    let loader_guard = LOADER_TABLE.lock()?;
+    let loader_table = loader_guard.as_ref().unwrap();
     let short_value = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(data)) => {
             assert_eq!(data.len(), 2, "Array isn't big enough");
             i16::from_le_bytes([data[0], data[1]])
         }
         _ => {
-            return error(1, 20);
+            return Ok(error(1, 20));
         }
     };
 
     if short_value != 400 {
-        return error(4, 20);
+        return Ok(error(4, 20));
     }
 
     let float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
         Some(EntryBuffer::Raw(data)) => data.to_vec(),
-        _ => return error(11, 20),
+        _ => return Ok(error(11, 20)),
     };
 
     let float_array_len = loader_table.field_size(group_index, FieldTypes::FloatArray) as usize;
@@ -746,7 +747,7 @@ pub fn kicker(group_index: i32, kicker: *mut VisualKickerStruct) -> i32 {
     while index < float_array_len {
         let id = match float_array_data.get(index..index + 4) {
             Some(bytes) => f32::from_le_bytes(bytes.try_into().unwrap()) as i32,
-            None => return error(10, 20),
+            None => return Ok(error(10, 20)),
         };
         index += 4;
 
@@ -775,14 +776,14 @@ pub fn kicker(group_index: i32, kicker: *mut VisualKickerStruct) -> i32 {
             },
             406 => unsafe {
                 let val = read_float(&float_array_data, &mut index).unwrap();
-                (*kicker).hard_hit_sound_id = get_sound_id(val.floor() as i32);
+                (*kicker).hard_hit_sound_id = get_sound_id(val.floor() as i32)?;
             },
 
-            _ => return error(10, 20),
+            _ => return Ok(error(10, 20)),
         }
     }
 
-    0
+    Ok(0)
 }
 
 pub fn query_visual(
