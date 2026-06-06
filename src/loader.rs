@@ -252,28 +252,60 @@ pub fn default_vsi(visual: &mut VisualStruct) {
     visual.sound_index_4 = 0;
 }
 
-// pub fn load_from(dat_file: &DatFile) {
-//     let LOADER_TABLE = dat_file;
-//     let sound_record_table = LOADER_TABLE;
-//
-//     for group_index in 0..dat_file.groups.len() as i32 {
-//         if let Some(EntryBuffer::Raw(value_data)) =
-//             dat_file.field(group_index, FieldTypes::ShortValue)
-//         {
-//             let final_val = i16::from_le_bytes([(*value_data)[0], (*value_data)[1]]);
-//             if final_val == 202 && SOUND_COUNT < 65 {
-//                 sound_list[SOUND_COUNT as usize] = SoundListStruct {
-//                     wave_ptr: null(),
-//                     group_index,
-//                     loaded: false,
-//                     duration: 0.0,
-//                 };
-//                 SOUND_COUNT += 1;
-//             }
-//         }
-//     }
-//     LOADER_SOUND_COUNT = SOUND_COUNT;
-// }
+#[derive(Error, Debug)]
+pub enum LoaderError {
+    #[error("Failed to lock LOADER_TABLE")]
+    TableLock(#[from] PoisonError<MutexGuard<'static, Option<DatFile>>>),
+    #[error("Failed to lock SOUND_LIST")]
+    SoundListLock(#[from] PoisonError<MutexGuard<'static, [SoundListStruct; 65]>>),
+    #[error("Failed to lock SOUND_COUNT")]
+    SoundCountLock(#[from] PoisonError<MutexGuard<'static, i32>>),
+}
+
+pub fn load_from(dat_file: &mut DatFile) -> Result<(), LoaderError> {
+    match LOADER_TABLE.lock() {
+        Ok(mut table_guard) => match table_guard.as_mut() {
+            Some(mut table) => {
+                table = &mut *dat_file;
+                let mut srt_guard = SOUND_RECORD_TABLE.lock()?;
+                match (srt_guard.as_mut()) {
+                    None => {}
+                    Some(mut srt) => {
+                        srt = table;
+                    }
+                }
+            }
+            None => {}
+        },
+        Err(e) => {
+            return Err(LoaderError::TableLock(e));
+        }
+    }
+
+    let mut sound_list = SOUND_LIST.lock()?;
+    for group_index in 0..dat_file.groups.len() as i32 {
+        if let Some(EntryBuffer::Raw(value_data)) =
+            dat_file.field(group_index, FieldTypes::ShortValue)
+        {
+            let final_val = i16::from_le_bytes([(*value_data)[0], (*value_data)[1]]);
+            let mut sound_count = SOUND_COUNT.lock()?;
+            if final_val == 202 && *sound_count < 65 {
+                sound_list[(*sound_count) as usize] = SoundListStruct {
+                    wave_ptr: null(),
+                    group_index,
+                    loaded: false,
+                    duration: 0.0,
+                };
+                *sound_count += 1;
+            }
+        }
+    }
+
+    let mut loader_sound_count = LOADER_SOUND_COUNT.lock()?;
+    let sound_count = SOUND_COUNT.lock()?;
+    loader_sound_count = sound_count;
+    Ok(())
+}
 
 pub fn unload() -> Result<(), LoaderError> {
     let mut sound_list = SOUND_LIST.lock()?;
