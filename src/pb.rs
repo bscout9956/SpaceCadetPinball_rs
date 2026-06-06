@@ -1,13 +1,17 @@
-use crate::errors::PbInitError;
+use crate::errors::PbError;
 use crate::fullscrn::RESOLUTION_ARRAY;
 use crate::gdrv::{ColorRgba, GdrvBitmap8};
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::options::OPTIONS;
+use crate::t_pinball_component::MessageCode;
+use crate::t_pinball_table::TPinballTable;
 use crate::translations::{Msg, TranslationError};
-use crate::{fullscrn, gdrv, loader, partman, proj, render, score, translations};
+use crate::{fullscrn, gdrv, loader, partman, proj, render, score, timer, translations};
 use sdl2::sys::SDL_MessageBoxFlags;
+use std::cell::RefCell;
 use std::ffi::c_char;
 use std::fs::File;
+use std::rc::Rc;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{LazyLock, Mutex};
@@ -28,6 +32,8 @@ pub static TIME_TICKS: AtomicUsize = AtomicUsize::new(0);
 pub static DAT_FILE_NAME: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
 pub static BASE_PATH: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
 pub static RECORD_TABLE: LazyLock<Mutex<Option<DatFile>>> = LazyLock::new(|| Mutex::new(None));
+
+pub static MAIN_TABLE: LazyLock<Mutex<Option<TPinballTable>>> = LazyLock::new(|| Mutex::new(None));
 
 pub fn make_path_name(file_name: &str) -> String {
     match BASE_PATH.lock() {
@@ -154,7 +160,7 @@ fn read_camera_floats(float_data: &[u8]) -> Vec<f32> {
     data
 }
 
-pub fn init() -> Result<(bool), PbInitError> {
+pub fn init() -> Result<(bool), PbError> {
     let mut projection_matrix: [f32; 12] = [0.0; 12];
 
     let mut data_file_path = String::new();
@@ -279,7 +285,16 @@ pub fn init() -> Result<(bool), PbInitError> {
         }
     }
 
-    Ok(false)
+    // TODO: Implement modechange and gamemodes
+    //mode_change(GameModes::InGame);
+
+    TIME_TICKS.store(0, Relaxed);
+    // TODO: Implement timer init
+    //timer::init(150);
+    // TODO: Implement score init
+    //score::init();
+
+    Ok(true)
 }
 
 // Note: This used to be code that took a string like "1 Blablabla" and would get only the first part of the string
@@ -293,10 +308,17 @@ pub fn get_rc_int(u_id: Msg) -> Result<i32, TranslationError> {
     Ok(first_char.parse::<i32>().unwrap_or(0))
 }
 
-pub(crate) fn reset_table() {
-    todo!()
+pub fn reset_table() -> Result<(), PbError> {
+    let mut table_opt = MAIN_TABLE.lock()?;
+    match table_opt.as_mut() {
+        Some(mut main_table) => {
+            main_table.message(MessageCode::RESET, 0.0);
+            Ok(())
+        }
+        None => Ok(()),
+    }
 }
 
-pub(crate) fn firsttime_setup() {
-    todo!()
+pub fn first_time_setup() {
+    render::update();
 }
