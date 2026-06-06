@@ -23,7 +23,7 @@ struct TDemo;
 struct TLightGroup;
 // End of temporary structs
 
-pub struct TPinballTable<'a> {
+pub struct TPinballTable {
     pub flipper_l: TFlipper,
     pub flipper_r: TFlipper,
     pub cur_score_struct: Option<ScoreStruct>,
@@ -49,8 +49,8 @@ pub struct TPinballTable<'a> {
     pub y_offset: i32,
     pub width: i32,
     pub height: i32,
-    pub component_list: Vec<TPinballComponent<'a>>,
-    pub ball_list: Vec<TBall<'a>>,
+    pub component_list: Vec<TPinballComponent>,
+    pub ball_list: Vec<TBall>,
     pub flipper_list: Vec<TFlipper>,
     pub light_group: TLightGroup,
     pub gravity_dir_vect_mult: f32,
@@ -79,8 +79,8 @@ pub struct TPinballTable<'a> {
     pub unknown_p81: i32,
     pub unknown_p82: i32,
     pub tilt_lock_flag: bool,
-    pub score_multipliers: &'static [i32; 5],
-    t_pinball_component: Weak<RefCell<TPinballComponent<'a>>>,
+    pub score_multipliers: Vec<i32>,
+    t_pinball_component: Weak<RefCell<TPinballComponent>>,
 }
 
 impl TPinballTable<'_> {
