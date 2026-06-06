@@ -435,19 +435,21 @@ pub fn query_visual_states(group_index: i32) -> Result<i16, LoaderError> {
     }
 }
 
-pub fn query_name(group_index: i32) -> *const c_char {
-    let loader_table = LOADER_TABLE.as_ref().unwrap();
+// TODO: Stop using pointers?
+pub fn query_name(group_index: i32) -> Result<*const c_char, LoaderError> {
+    let loader_guard = LOADER_TABLE.lock()?;
+    let loader_table = loader_guard.as_ref().unwrap();
     if group_index < 0 {
         error(0, 19);
-        return null();
+        return Ok(null());
     }
 
     if let Some(EntryBuffer::Raw(result_data)) =
         loader_table.field(group_index, FieldTypes::GroupName)
     {
-        result_data.as_ptr() as *const c_char
+        Ok(result_data.as_ptr() as *const c_char)
     } else {
-        null()
+        Ok(null())
     }
 }
 
