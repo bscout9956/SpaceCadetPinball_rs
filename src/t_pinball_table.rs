@@ -219,4 +219,46 @@ impl TPinballTable {
 
         instance
     }
+
+    pub fn message(&mut self, code: MessageCode, value: f32) -> i32 {
+        let rc_text = String::new();
+
+        match code {
+            MessageCode::RESET => {
+                for component in self.component_list.iter_mut() {
+                    component.message(MessageCode::RESET, 0.0);
+                }
+                if self.replay_timer > 0 {
+                    timer::kill_id(self.replay_timer);
+                }
+                self.replay_timer = 0;
+                if self.light_show_timer > 0 {
+                    timer::kill_id(self.light_show_timer);
+                    self.light_group
+                        .message(MessageCode::T_LIGHT_GROUP_RESET, 0.0);
+                }
+                self.light_show_timer = 0;
+                self.score_multiplier = 0;
+                self.score_added = 0;
+                self.reflex_shot_score = 0;
+                self.bonus_score = 10000;
+                self.bonus_score_flag = false;
+                self.jackpot_score = 20000;
+                self.jackpot_score_flag = false;
+                self.unknown_p71 = 0;
+                self.extra_balls = 0;
+                self.multiball_count = 0;
+                self.ball_locked_counter = 0;
+                self.multiball_flag = false;
+                self.unknown_p78 = 0;
+                self.replay_active_flag = 0;
+                self.replay_timer = 0;
+                self.tilt_lock_flag = false;
+            }
+            _ => {}
+        }
+        // TODO: Implement me
+        //control::table_control_handler(code);
+        0
+    }
 }
