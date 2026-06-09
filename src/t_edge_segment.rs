@@ -1,6 +1,7 @@
 use crate::maths::{RayType, RectF};
 use crate::t_ball::TBall;
 use crate::t_collision_component::TCollisionComponent;
+use crate::t_pinball_component::IPinballComponent;
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
@@ -62,11 +63,11 @@ impl TEdgeSegment {
     }
 
     pub fn install_wall(
-        float_arr: &[f32],
-        coll_comp: &Rc<RefCell<TCollisionComponent>>,
-        active_flag: Rc<Cell<bool>>,
+        float_arr: *const f32,
+        coll_comp: Weak<RefCell<dyn IPinballComponent>>,
+        active_flag: bool,
         collision_group: u32,
-        offset: u32,
+        offset: f32,
         wall_value: usize,
     ) -> Box<dyn TEdgeSegmentBehavior> {
         todo!()
