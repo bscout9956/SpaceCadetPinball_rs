@@ -43,6 +43,23 @@ pub trait TCollisionComponentBehavior {
     ) -> bool;
 }
 
+use std::ops::{Deref, DerefMut};
+use std::rc::Weak;
+
+impl Deref for TCollisionComponent {
+    type Target = TPinballComponent;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
+impl DerefMut for TCollisionComponent {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.base
+    }
+}
+
 impl TCollisionComponent {
     pub fn new(
         table: Option<Rc<RefCell<TPinballTable>>>,
