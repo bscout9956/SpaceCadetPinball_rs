@@ -305,3 +305,4 @@ build.ninja
 # Added by cargo
 
 /target
+result.mp4
