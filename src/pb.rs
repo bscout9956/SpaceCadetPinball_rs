@@ -368,11 +368,11 @@ fn mode_change(mode: GameModes) -> Result<(), PbError> {
                 LAUNCH_BALL_ENABLED.store(false, Relaxed);
                 HIGH_SCORES_ENABLED.store(false, Relaxed);
                 DEMO_ACTIVE.store(true, Relaxed);
-                let main_table = MAIN_TABLE.lock()?;
-                match *main_table {
+                let mut main_table = MAIN_TABLE.lock()?;
+                match main_table.as_mut() {
                     Some(table) => {
                         if table.demo.is_some() {
-                            table.demo.unwrap().active_flag = true;
+                            table.demo.as_mut().unwrap().active_flag = true;
                         }
                     }
                     None => {}
@@ -381,11 +381,12 @@ fn mode_change(mode: GameModes) -> Result<(), PbError> {
                 LAUNCH_BALL_ENABLED.store(true, Relaxed);
                 HIGH_SCORES_ENABLED.store(true, Relaxed);
                 DEMO_ACTIVE.store(false, Relaxed);
-                let main_table = MAIN_TABLE.lock()?;
-                match *main_table {
-                    Some(table) => {
+                let mut main_table = MAIN_TABLE.lock()?;
+                match main_table.as_mut() {
+                    Some(mut table) => {
                         if table.demo.is_some() {
-                            table.demo.unwrap().active_flag = true;
+                            let table_demo = table.demo.as_mut().unwrap();
+                            table_demo.active_flag = true;
                         }
                     }
                     None => {}
@@ -399,19 +400,18 @@ fn mode_change(mode: GameModes) -> Result<(), PbError> {
                 DEMO_ACTIVE.store(false, Relaxed);
             }
             let main_table = MAIN_TABLE.lock()?;
-            match *main_table {
+            match (main_table.as_ref()) {
                 Some(table) => {
                     if table.light_group.is_some() {
-                        table
-                            .light_group.unwrap()
-                            .message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
+                        let light_group = table.light_group.as_ref().unwrap();
+                        light_group.message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
                     }
                 }
                 None => {}
             }
         }
     }
-    let game_mode_grd = GAME_MODE.lock().map_err(|_| PbError::LockGeneric)?;
+    let mut game_mode_grd = GAME_MODE.lock().map_err(|_| PbError::LockGeneric)?;
     *game_mode_grd = mode;
 
     Ok(())
