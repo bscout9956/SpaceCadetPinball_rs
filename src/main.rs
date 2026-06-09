@@ -266,8 +266,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 | SDL_INIT_GAMECONTROLLER,
         ) < 0)
         {
-            // TODO: ShowMessageBox
-            // pb::ShowMessageBox(SDL_MESSAGEBOX_ERROR, "Could not initialize SDL2", SDL_GetError());
+            pb::show_message_box_cstr_message(
+                SDL_MESSAGEBOX_ERROR,
+                "Could not initialize SDL2",
+                SDL_GetError(),
+            );
             println!("OOPS!! No init, closing");
             exit(1);
         }
@@ -327,12 +330,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         if renderer.is_null() {
-            // TODO: Implement me
-            //pb::ShowMessageBox(
-            //    SDL_MESSAGEBOX_ERROR,
-            //    "Could not create renderer",
-            //    SDL_GetError(),
-            //);
+            pb::show_message_box_cstr_message(
+                SDL_MESSAGEBOX_ERROR,
+                "Could not create renderer",
+                SDL_GetError(),
+            );
             println!("Could not create renderer, is null");
             exit(1);
         }
@@ -515,11 +517,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     message += str_push;
                 }
                 println!("Could not load game data");
-                pb::show_message_box(
-                    SDL_MESSAGEBOX_ERROR,
-                    "Could not load game data",
-                    &message,
-                );
+                pb::show_message_box(SDL_MESSAGEBOX_ERROR, "Could not load game data", &message);
                 exit(1);
             }
 

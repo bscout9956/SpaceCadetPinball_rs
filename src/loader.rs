@@ -232,7 +232,7 @@ pub fn error(error_code: i32, caption_code: i32) -> i32 {
     pb::show_message_box(
         SDL_MESSAGEBOX_ERROR,
         error_caption,
-        error_text.as_ptr() as *const c_char,
+        error_text,
     );
     -1
 }
