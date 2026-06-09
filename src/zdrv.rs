@@ -1,3 +1,4 @@
+use crate::gdrv::{BitmapTypes, GdrvBitmap8};
 use sdl2::sys::SDL_Texture;
 
 #[derive(Clone)]
@@ -92,5 +93,46 @@ pub fn flip_zmap_horizontally(zmap: &mut ZMapHeaderType) {
         src_idx -= (zmap.stride + zmap.width) as usize;
 
         y -= 1;
+    }
+}
+
+pub fn paint_flat(
+    width: i32,
+    height: i32,
+    dst_bmp: &mut GdrvBitmap8,
+    dst_bmp_x_off: i32,
+    dst_bmp_y_off: i32,
+    z_map: &ZMapHeaderType,
+    dst_zmap_x_off: i32,
+    dst_zmap_y_off: i32,
+    src_bmp: &GdrvBitmap8,
+    src_bmp_x_off: i32,
+    src_bmp_y_off: i32,
+    depth: u16,
+) {
+    assert_ne!(
+        src_bmp.bitmap_type,
+        BitmapTypes::Spliced,
+        "Wrong bitmap type"
+    );
+
+    let mut dst_idx = (dst_bmp.stride * dst_bmp_y_off + dst_zmap_x_off) as usize;
+    let mut src_idx = (src_bmp.stride * src_bmp_x_off + src_bmp_x_off) as usize;
+    let mut z_idx = (z_map.stride * dst_bmp_y_off + dst_bmp_y_off) as usize;
+
+    let mut y = height;
+    while y > 0 {
+        let mut x = width;
+        while x > 0 {
+            if dst_bmp.bmp_buffer_data[dst_idx].color > 0 && z_map.z_map_data[z_idx] > depth {
+                dst_bmp.bmp_buffer_data[dst_idx] = src_bmp.bmp_buffer_data[src_idx];
+            }
+            src_idx += 1;
+            dst_idx += 1;
+            z_idx += 1;
+        }
+        src_idx += (src_bmp.stride - width) as usize;
+        dst_idx += (dst_bmp.stride - width) as usize;
+        z_idx += (z_map.stride - width) as usize;
     }
 }
