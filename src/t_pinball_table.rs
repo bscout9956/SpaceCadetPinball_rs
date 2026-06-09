@@ -56,7 +56,7 @@ pub struct TPinballTable {
     pub y_offset: i32,
     pub width: i32,
     pub height: i32,
-    pub component_list: Vec<TPinballComponent>,
+    pub component_list: Vec<Rc<RefCell<TPinballComponent>>>,
     pub ball_list: Vec<TBall>,
     pub flipper_list: Vec<TFlipper>,
     pub light_group: TLightGroup,
@@ -87,7 +87,6 @@ pub struct TPinballTable {
     pub unknown_p82: i32,
     pub tilt_lock_flag: bool,
     pub score_multipliers: Vec<i32>,
-    t_pinball_component: Weak<RefCell<TPinballComponent>>,
 }
 
 unsafe impl Sync for TPinballTable {}
@@ -96,7 +95,6 @@ unsafe impl Send for TPinballTable {}
 
 impl TPinballTable {
     pub fn new() -> Self {
-        let pinball_component = TPinballComponent::new(None, -1, false);
         let active_flag = Rc::new(Cell::new(true));
 
         let instance = Self {
@@ -202,7 +200,6 @@ impl TPinballTable {
             unknown_p82: 0,
             tilt_lock_flag: false,
             score_multipliers: vec![1, 1, 1, 1, 1], // TODO: change me
-            t_pinball_component: Default::default(),
         };
 
         // TODO: Implement AddBall
