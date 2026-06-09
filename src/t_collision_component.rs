@@ -94,8 +94,8 @@ impl TCollisionComponent {
             },
         };
         instance_data.active_flag = true;
-        if instance_data.base.group_name.is_none() {
-            instance_data.base.unused_base_flag = true;
+        if (*instance_data).group_name.is_none() {
+            (*instance_data).unused_base_flag = true;
         }
 
         let instance = Rc::new(RefCell::new(Self::default()));
@@ -139,7 +139,7 @@ impl TCollisionComponentBehavior for TCollisionComponent {
         edge: &TEdgeSegment,
     ) {
         //TODO: Undo borrow?
-        if let Some(pinball_table) = &self.t_pinball_component.pinball_table
+        if let Some(pinball_table) = &self.base.pinball_table
             && let Some(upgraded_table) = pinball_table.upgrade()
         {
             let table = upgraded_table.borrow();
@@ -186,7 +186,7 @@ impl TCollisionComponentBehavior for TCollisionComponent {
         direction: &mut Vector2,
     ) -> bool {
         // TODO: Undo borrow
-        if let Some(pinball_table) = &self.t_pinball_component.pinball_table
+        if let Some(pinball_table) = &self.base.pinball_table
             && let Some(upgraded_table) = pinball_table.upgrade()
         {
             let table = upgraded_table.borrow();
@@ -228,11 +228,11 @@ impl TCollisionComponentBehavior for TCollisionComponent {
 
 impl IPinballComponent for TCollisionComponent {
     // TODO: Some remain unimplemented I suppose?? Maybe I should look into trait defaults
-    fn sprite_set(index: i32) {
+    fn sprite_set(&self, index: i32) {
         todo!()
     }
 
-    fn sprite_set_ball(index: i32, pos: Vector2i, depth: f32) {
+    fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32) {
         todo!()
     }
 
