@@ -323,7 +323,7 @@ pub fn init() -> Result<(bool), PbError> {
                         background_bmp.height,
                         background_bmp.x_position,
                         background_bmp.y_position,
-                        background_bmp,
+                        &mut background_bmp,
                         0,
                         0,
                     );
