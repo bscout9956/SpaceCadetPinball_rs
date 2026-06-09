@@ -9,13 +9,15 @@ use std::cmp::PartialEq;
 use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
-#[derive(PartialEq, Debug, PartialOrd, Ord, Eq)]
+#[derive(PartialEq, Debug, PartialOrd, Ord, Eq, Default)]
 pub enum VisualTypes {
+    #[default]
     Background,
     Sprite,
     Ball,
 }
 
+#[derive(Default)]
 pub struct RenderSprite {
     bmp_rect: RectangleType,
     bmp: Option<GdrvBitmap8>,

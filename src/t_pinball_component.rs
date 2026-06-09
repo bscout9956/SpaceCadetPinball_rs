@@ -7,7 +7,7 @@ use crate::maths::*;
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Default)]
 pub struct MessageCode(pub i32);
 
 #[allow(dead_code)]
@@ -131,11 +131,7 @@ impl MessageCode {
     pub const RESET: MessageCode = MessageCode(1024);
 }
 
-// TODO: Temporary
-struct Control;
-// TODO: Temporary
-struct RenderSprite;
-
+#[derive(Default)]
 pub struct TPinballComponent {
     pub unused_base_flag: Rc<Cell<bool>>,
     pub active_flag: Rc<Cell<bool>>,
