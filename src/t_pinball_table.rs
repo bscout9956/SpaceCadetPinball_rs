@@ -2,11 +2,11 @@ use crate::maths::Vector2;
 use crate::score::ScoreStruct;
 use crate::t_ball::TBall;
 use crate::t_demo::TDemo;
-use crate::t_pinball_component::{MessageCode, TPinballComponent, TPinballComponentBehavior};
+use crate::t_light_group::TLightGroup;
+use crate::t_pinball_component::{IPinballComponent, MessageCode, TPinballComponent};
 use crate::{control, timer};
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
-use crate::t_light_group::TLightGroup;
 
 pub struct ScoreStructSuper {
     pub score_struct: ScoreStruct,
@@ -51,7 +51,7 @@ pub struct TPinballTable {
     pub y_offset: i32,
     pub width: i32,
     pub height: i32,
-    pub component_list: Vec<Rc<RefCell<TPinballComponent>>>,
+    pub component_list: Vec<Rc<RefCell<dyn IPinballComponent>>>,
     pub ball_list: Vec<TBall>,
     pub flipper_list: Vec<TFlipper>,
     pub light_group: Option<TLightGroup>,
@@ -92,7 +92,7 @@ impl TPinballTable {
     pub fn new() {
         todo!()
     }
-    
+
     pub fn message(&mut self, code: MessageCode, value: f32) -> i32 {
         let rc_text = String::new();
 
@@ -107,7 +107,8 @@ impl TPinballTable {
                 self.replay_timer = 0;
                 if self.light_show_timer > 0 {
                     timer::kill_id(self.light_show_timer);
-                    self.light_group.unwrap()
+                    self.light_group
+                        .unwrap()
                         .message(MessageCode::T_LIGHT_GROUP_RESET, 0.0);
                 }
                 self.light_show_timer = 0;
