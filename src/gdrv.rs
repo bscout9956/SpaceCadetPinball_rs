@@ -9,7 +9,7 @@ use std::ffi::c_char;
 use std::fmt::Debug;
 use std::sync::Mutex;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
 #[repr(u8)]
 pub enum BitmapTypes {
     None = 0,
@@ -18,7 +18,7 @@ pub enum BitmapTypes {
     Spliced = 3,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ColorRgba {
     pub color: u32,
 }
