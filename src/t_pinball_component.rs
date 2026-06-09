@@ -57,8 +57,7 @@ impl TPinballComponent {
         };
 
         if let Some(table_result) = table {
-            let table_instance = Rc::downgrade(&table_result);
-            instance.pinball_table = Some(table_instance)
+            instance.pinball_table = Some(table_result)
             // TODO: table.component_list.push_back();
         }
 
@@ -92,11 +91,11 @@ impl Drop for TPinballComponent {
 }
 
 impl IPinballComponent for TPinballComponent {
-    fn sprite_set(index: i32) {
+    fn sprite_set(&self, index: i32) {
         todo!()
     }
 
-    fn sprite_set_ball(index: i32, pos: Vector2i, depth: f32) {
+    fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32) {
         todo!()
     }
 
@@ -108,19 +107,7 @@ impl IPinballComponent for TPinballComponent {
     }
 
     fn get_scoring(&self, index: u32) -> i32 {
-        if let Some(weak_control) = &self.component_control
-            && let Some(strong_control_rc) = weak_control.upgrade()
-        {
-            let control = strong_control_rc.borrow();
-
-            // TODO: Implement control struct
-            // if index >= control.score_count {
-            //     0
-            // } else {
-            //     control.scores[index as usize]
-            // }
-        }
-        0
+        todo!()
     }
 
     fn port_draw(&self) {
