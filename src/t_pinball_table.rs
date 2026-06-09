@@ -3,10 +3,11 @@ use crate::score::ScoreStruct;
 use crate::t_ball::TBall;
 use crate::t_demo::TDemo;
 use crate::t_light_group::TLightGroup;
-use crate::t_pinball_component::{IPinballComponent, MessageCode, TPinballComponent};
+use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::{control, timer};
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
+use crate::message_code::MessageCode;
 
 pub struct ScoreStructSuper {
     pub score_struct: ScoreStruct,

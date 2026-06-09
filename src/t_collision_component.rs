@@ -6,7 +6,7 @@ use crate::maths::*;
 use crate::render::RenderSprite;
 use crate::t_ball::TBall;
 use crate::t_edge_segment::{TEdgeSegment, TEdgeSegmentBehavior};
-use crate::t_pinball_component::{IPinballComponent, MessageCode, TPinballComponent};
+use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use std::cell::Cell;
 use std::{cell::RefCell, rc::Rc};
@@ -45,6 +45,7 @@ pub trait TCollisionComponentBehavior {
 
 use std::ops::{Deref, DerefMut};
 use std::rc::Weak;
+use crate::message_code::MessageCode;
 
 impl Deref for TCollisionComponent {
     type Target = TPinballComponent;
