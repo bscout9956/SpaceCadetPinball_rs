@@ -10,15 +10,15 @@ use std::{cell::RefCell, rc::Rc};
 #[derive(Default)]
 #[allow(non_snake_case)]
 pub struct TCollisionComponent {
-    edge_list: Vec<Rc<RefCell<TEdgeSegment>>>,
-    elasticity: f32,
-    smoothness: f32,
-    boost: f32,
-    threshold: f32,
-    soft_hit_sound_id: i32,
-    hard_hit_sound_id: i32,
-    AABB: RectF,
-    t_pinball_component: TPinballComponent,
+    pub base: TPinballComponent,
+    pub edge_list: Vec<Rc<RefCell<TEdgeSegment>>>,
+    pub elasticity: f32,
+    pub smoothness: f32,
+    pub boost: f32,
+    pub threshold: f32,
+    pub soft_hit_sound_id: i32,
+    pub hard_hit_sound_id: i32,
+    pub AABB: RectF,
 }
 
 pub trait TCollisionComponentBehavior {
