@@ -51,10 +51,7 @@ impl TTextBox {
             font: (*font).clone(),
             current_message: None,
             previous_message: None,
-            t_pinball_component: None,
         };
-
-        instance.t_pinball_component = TPinballComponent::new(table, group_index, true);
 
         if group_index > 0 {
             /*Full tilt: text box dimensions index is offset by resolution*/
