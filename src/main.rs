@@ -51,6 +51,7 @@ pub mod control;
 mod embedded_data;
 mod errors;
 mod imgui_sdl;
+pub mod message_code;
 mod midi;
 mod partman;
 mod pb;
