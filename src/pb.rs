@@ -8,13 +8,15 @@ use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
 use crate::translations::{Msg, TranslationError};
 use crate::{
-    DEMO_ACTIVE, HIGH_SCORES_ENABLED, LAUNCH_BALL_ENABLED, fullscrn, gdrv, loader, partman, proj,
-    render, score, timer, translations,
+    DEMO_ACTIVE, HIGH_SCORES_ENABLED, LAUNCH_BALL_ENABLED, MAIN_WINDOW, fullscrn, gdrv, loader,
+    partman, proj, render, score, timer, translations,
 };
-use sdl2::sys::SDL_MessageBoxFlags;
+use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
+use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowMessageBox, SDL_ShowSimpleMessageBox};
 use std::cell::RefCell;
-use std::ffi::c_char;
+use std::ffi::{CStr, CString, c_char};
 use std::fs::File;
+use std::io::Write;
 use std::rc::Rc;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
@@ -67,8 +69,42 @@ pub fn get_rc_string(u_id: Msg) -> Result<&'static str, TranslationError> {
     translations::get_translation(u_id)
 }
 
-pub fn show_message_box(p0: SDL_MessageBoxFlags, p1: &str, p2: *const c_char) {
-    todo!()
+pub fn show_message_box(
+    flags: SDL_MessageBoxFlags,
+    title: &str,
+    message: &str,
+) -> Result<(), PbError> {
+    if flags == SDL_MESSAGEBOX_ERROR {
+        write!(std::io::stderr(), "BL error {}\n{}\n", title, message).unwrap();
+    } else {
+        write!(std::io::stdout(), "BL error {}\n{}\n", title, message).unwrap();
+    }
+
+    let title_cstr = CStr::from_bytes_with_nul(title.as_bytes()).unwrap();
+    let message_cstr = CStr::from_bytes_with_nul(message.as_bytes()).unwrap();
+
+    let mut main_window = MAIN_WINDOW.lock().map_err(|_| PbError::LockGeneric)?;
+    let main_window_ptr = main_window.as_mut().unwrap();
+
+    unsafe {
+        SDL_ShowSimpleMessageBox(
+            flags as u32,
+            title_cstr.as_ptr(),
+            message_cstr.as_ptr(),
+            main_window_ptr,
+        );
+    }
+
+    Ok(())
+}
+
+pub fn show_message_box_cstr_message(
+    flags: SDL_MessageBoxFlags,
+    title: &str,
+    message: *const c_char,
+) {
+    let message_str = unsafe { CStr::from_ptr(message).to_str().unwrap() };
+    show_message_box(flags, title, message_str);
 }
 
 pub fn select_dat_file(data_search_paths: &[&str]) {
