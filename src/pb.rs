@@ -5,8 +5,12 @@ use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::options::OPTIONS;
 use crate::t_pinball_component::MessageCode;
 use crate::t_pinball_table::TPinballTable;
+use crate::t_textbox::TTextBox;
 use crate::translations::{Msg, TranslationError};
-use crate::{fullscrn, gdrv, loader, partman, proj, render, score, timer, translations};
+use crate::{
+    DEMO_ACTIVE, HIGH_SCORES_ENABLED, LAUNCH_BALL_ENABLED, fullscrn, gdrv, loader, partman, proj,
+    render, score, timer, translations,
+};
 use sdl2::sys::SDL_MessageBoxFlags;
 use std::cell::RefCell;
 use std::ffi::c_char;
@@ -27,6 +31,8 @@ pub static DEMO_MODE: AtomicBool = AtomicBool::new(false);
 
 pub static CREDITS_ACTIVE: AtomicBool = AtomicBool::new(false);
 
+pub static IDLE_TIMER_MS: Mutex<f32> = Mutex::new(0.0);
+
 pub static TIME_TICKS: AtomicUsize = AtomicUsize::new(0);
 
 pub static DAT_FILE_NAME: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
@@ -34,6 +40,16 @@ pub static BASE_PATH: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(Stri
 pub static RECORD_TABLE: LazyLock<Mutex<Option<DatFile>>> = LazyLock::new(|| Mutex::new(None));
 
 pub static MAIN_TABLE: LazyLock<Mutex<Option<TPinballTable>>> = LazyLock::new(|| Mutex::new(None));
+
+pub static MISS_TEXT_BOX: Mutex<Option<TTextBox>> = Mutex::new(None);
+
+pub static GAME_MODE: Mutex<GameModes> = Mutex::new(GameModes::GameOver);
+
+#[derive(PartialEq, Eq, Ord, PartialOrd)]
+pub enum GameModes {
+    InGame = 1,
+    GameOver = 2,
+}
 
 pub fn make_path_name(file_name: &str) -> String {
     match BASE_PATH.lock() {
@@ -321,4 +337,82 @@ pub fn reset_table() -> Result<(), PbError> {
 
 pub fn first_time_setup() {
     render::update();
+}
+
+pub(crate) fn toggle_demo() {
+    todo!()
+}
+
+pub(crate) fn replay_level(demo_mode: bool) -> Result<(), PbError> {
+    DEMO_MODE.store(demo_mode, Relaxed);
+    mode_change(GameModes::InGame)?;
+    Ok(())
+}
+
+fn mode_change(mode: GameModes) -> Result<(), PbError> {
+    let mut credits_active = CREDITS_ACTIVE.load(Relaxed);
+    let box_guard = MISS_TEXT_BOX.lock().map_err(|_| PbError::LockGeneric)?;
+    let miss_text_box = (*box_guard);
+    let mut idle_guard = IDLE_TIMER_MS.lock().map_err(|_| PbError::LockGeneric)?;
+
+    if credits_active && miss_text_box.is_some() {
+        miss_text_box.unwrap().clear(true);
+    }
+    credits_active = false;
+    CREDITS_ACTIVE.store(credits_active, Relaxed);
+    *idle_guard = 0.0;
+
+    match mode {
+        GameModes::InGame => {
+            if (DEMO_MODE.load(Relaxed) == true) {
+                LAUNCH_BALL_ENABLED.store(false, Relaxed);
+                HIGH_SCORES_ENABLED.store(false, Relaxed);
+                DEMO_ACTIVE.store(true, Relaxed);
+                let main_table = MAIN_TABLE.lock()?;
+                match *main_table {
+                    Some(table) => {
+                        if table.demo.is_some() {
+                            table.demo.unwrap().active_flag = true;
+                        }
+                    }
+                    None => {}
+                }
+            } else {
+                LAUNCH_BALL_ENABLED.store(true, Relaxed);
+                HIGH_SCORES_ENABLED.store(true, Relaxed);
+                DEMO_ACTIVE.store(false, Relaxed);
+                let main_table = MAIN_TABLE.lock()?;
+                match *main_table {
+                    Some(table) => {
+                        if table.demo.is_some() {
+                            table.demo.unwrap().active_flag = true;
+                        }
+                    }
+                    None => {}
+                }
+            }
+        }
+        GameModes::GameOver => {
+            LAUNCH_BALL_ENABLED.store(false, Relaxed);
+            if DEMO_MODE.load(Relaxed) == false {
+                HIGH_SCORES_ENABLED.store(true, Relaxed);
+                DEMO_ACTIVE.store(false, Relaxed);
+            }
+            let main_table = MAIN_TABLE.lock()?;
+            match *main_table {
+                Some(table) => {
+                    if table.light_group.is_some() {
+                        table
+                            .light_group.unwrap()
+                            .message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
+                    }
+                }
+                None => {}
+            }
+        }
+    }
+    let game_mode_grd = GAME_MODE.lock().map_err(|_| PbError::LockGeneric)?;
+    *game_mode_grd = mode;
+
+    Ok(())
 }
