@@ -20,6 +20,7 @@ pub struct ScoreStruct {
     pub msg_font: &'static ScoreMessageFontType,
 }
 
+#[derive(Clone)]
 pub struct ScoreMessageFontType {
     pub gap_width: i32,
     pub height: i32,
