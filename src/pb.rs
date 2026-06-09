@@ -352,7 +352,7 @@ pub(crate) fn replay_level(demo_mode: bool) -> Result<(), PbError> {
 fn mode_change(mode: GameModes) -> Result<(), PbError> {
     let mut credits_active = CREDITS_ACTIVE.load(Relaxed);
     let box_guard = MISS_TEXT_BOX.lock().map_err(|_| PbError::LockGeneric)?;
-    let miss_text_box = (*box_guard);
+    let miss_text_box = box_guard.as_ref();
     let mut idle_guard = IDLE_TIMER_MS.lock().map_err(|_| PbError::LockGeneric)?;
 
     if credits_active && miss_text_box.is_some() {
