@@ -1,5 +1,5 @@
+use crate::message_code::MessageCode;
 use crate::t_light::TLight;
-use crate::t_pinball_component::MessageCode;
 
 struct TLightGroupPlayerBackup {
     message_field: i32,
@@ -11,7 +11,7 @@ struct TLightGroupPlayerBackup {
 pub struct TLightGroup {
     list: Vec<Option<TLight>>,
     timer1time: f32,
-    timer1time_default:f32,
+    timer1time_default: f32,
     message_field_2: MessageCode,
     animation_flag: bool,
     notify_timer: i32,

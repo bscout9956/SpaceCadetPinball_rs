@@ -1,6 +1,7 @@
-use crate::t_pinball_component::{MessageCode, TPinballComponent};
+use crate::message_code::MessageCode;
+use crate::t_pinball_component::TPinballComponent;
 
-pub(crate) fn table_control_handler(p0: MessageCode) {
+pub fn table_control_handler(code: MessageCode) {
     todo!()
 }
 
@@ -28,4 +29,3 @@ struct ComponentInfo {
     tag: ComponentTagBase,
     control: ComponentControl,
 }
-

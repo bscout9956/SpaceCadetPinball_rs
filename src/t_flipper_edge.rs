@@ -1,7 +1,7 @@
 use crate::maths::*;
+use crate::message_code::MessageCode;
 use crate::t_ball::TBall;
 use crate::t_edge_segment::TEdgeSegmentBehavior;
-use crate::t_pinball_component::MessageCode;
 
 pub struct TFlipperEdge {
     pub flipper_flag: MessageCode,
