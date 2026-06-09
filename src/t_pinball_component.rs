@@ -147,9 +147,9 @@ pub struct TPinballComponent {
     visual_pos_norm_y: f32,
 }
 
-pub trait TPinballComponentBehavior {
-    fn sprite_set(index: i32);
-    fn sprite_set_ball(index: i32, pos: Vector2i, depth: f32);
+pub trait IPinballComponent {
+    fn sprite_set(&self, index: i32);
+    fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32);
     fn get_coordinates(&self) -> Vector2;
     fn get_scoring(&self, index: u32) -> i32;
     fn port_draw(&self);
