@@ -49,6 +49,8 @@ pub enum PbError {
     LoaderError(#[from] LoaderError),
     #[error("Failed to lock main_table")]
     TableLock(#[from] PoisonError<MutexGuard<'static, Option<TPinballTable>>>),
+    #[error("Failed to lock Mutex")]
+    LockGeneric
 }
 
 #[derive(Error, Debug)]
