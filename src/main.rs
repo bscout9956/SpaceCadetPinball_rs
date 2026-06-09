@@ -552,6 +552,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                 fullscrn::set_screen_mode(*options.full_screen);
             }
 
+            let is_demo = env::args().any(|arg| arg == "-demo");
+            if is_demo {
+                // TODO LOWPRIO: Implement me
+                pb::toggle_demo();
+            } else {
+                pb::replay_level(false);
+            }
+
             let do_restart = RESTART.load(Relaxed);
             if do_restart {
                 ()
