@@ -140,7 +140,7 @@ pub fn init(bmp: Option<GdrvBitmap8>, width: i16, height: i16) -> Result<(), Ren
                     height as i32,
                     0,
                     0,
-                    bmp.unwrap(),
+                    &mut bmp.unwrap(),
                     0,
                     0,
                 );
@@ -179,8 +179,9 @@ fn paint_balls() -> Result<(), RenderLockError> {
     let mut ball_list = BALL_LIST.lock()?;
     let v_screen_rect = V_SCREEN_RECT.lock()?;
     let mut v_screen_guard = V_SCREEN.lock()?;
-    let vscreen = (*v_screen_guard).as_mut().unwrap();
     let z_screen_guard = Z_SCREEN.lock()?;
+
+    let v_screen = (*v_screen_guard).as_mut().unwrap();
     let z_screen = (*z_screen_guard).as_ref().unwrap();
 
     // Sort ball sprites by ascending depth
@@ -188,12 +189,17 @@ fn paint_balls() -> Result<(), RenderLockError> {
 
     // For balls that clip vScreen: save original vScreen contents and paint the ball bitmap.
     for index in 0..ball_list.len() {
-        let ball = &mut ball_list[index];
-        let ball_bitmap = BALL_BITMAP.lock()?.unwrap().as_mut();
-        let dirty = &mut ball.dirty_rect;
-        if ball.bmp.is_some()
-            && maths::rectangle_clip(&ball.bmp_rect, &(*v_screen_rect), &mut ball.dirty_rect)
+        let ball_sprite = &mut ball_list[index];
+        let mut ball_guard = BALL_BITMAP.lock()?;
+        let mut ball_bitmap = ball_guard.as_mut().unwrap();
+
+        let dirty = &mut ball_sprite.dirty_rect;
+
+        if ball_sprite.bmp.is_some()
+            && maths::rectangle_clip(&ball_sprite.bmp_rect, &(*v_screen_rect), dirty)
         {
+            let ball_sprite_bmp = ball_sprite.bmp.as_ref().unwrap();
+
             let x_pos = dirty.x_position;
             let y_pos = dirty.y_position;
             gdrv::copy_bitmap(
@@ -202,23 +208,24 @@ fn paint_balls() -> Result<(), RenderLockError> {
                 dirty.height,
                 0,
                 0,
-                *vscreen,
+                v_screen,
                 x_pos,
                 y_pos,
             );
+
             zdrv::paint_flat(
                 dirty.width,
                 dirty.height,
-                vscreen,
+                v_screen,
                 x_pos,
                 y_pos,
                 z_screen,
                 x_pos,
                 y_pos,
-                &ball.bmp.unwrap(),
-                x_pos - ball.bmp_rect.x_position,
-                y_pos - ball.bmp_rect.y_position,
-                ball.depth,
+                &ball_sprite_bmp,
+                x_pos - ball_sprite.bmp_rect.x_position,
+                y_pos - ball_sprite.bmp_rect.y_position,
+                ball_sprite.depth,
             )
         }
     }
@@ -248,7 +255,7 @@ fn unpaint_balls() -> Result<(), RenderLockError> {
                 cur_ball.dirty_rect.height,
                 cur_ball.dirty_rect.x_position,
                 cur_ball.dirty_rect.y_position,
-                ball_bitmap[index].clone(),
+                &mut ball_bitmap[index].clone(),
                 0,
                 0,
             );
@@ -316,10 +323,19 @@ pub fn update() {
             zdrv::fill(z_screen_mut, width, height, x_pos, y_pos, 0xFFFF);
             let background_bmp = BACKGROUND_BITMAP.lock().unwrap();
             if background_bmp.is_some() {
-                let bg_bmp = background_bmp.clone().unwrap();
+                let mut bg_bmp = background_bmp.clone().unwrap();
                 let mut v_screen_guard = V_SCREEN.lock().unwrap();
                 let v_screen = v_screen_guard.as_mut().unwrap();
-                gdrv::copy_bitmap(v_screen, width, height, x_pos, y_pos, bg_bmp, x_pos, y_pos);
+                gdrv::copy_bitmap(
+                    v_screen,
+                    width,
+                    height,
+                    x_pos,
+                    y_pos,
+                    &mut bg_bmp,
+                    x_pos,
+                    y_pos,
+                );
             } else {
                 let mut v_screen_guard = V_SCREEN.lock().unwrap();
                 let v_screen = v_screen_guard.as_mut().unwrap();

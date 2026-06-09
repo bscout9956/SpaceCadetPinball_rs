@@ -289,7 +289,7 @@ pub fn copy_bitmap(
     height: i32,
     x_off: i32,
     y_off: i32,
-    mut src_bmp: GdrvBitmap8,
+    src_bmp: &mut GdrvBitmap8,
     src_x_off: i32,
     src_y_off: i32,
 ) {
