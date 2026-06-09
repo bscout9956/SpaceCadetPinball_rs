@@ -133,11 +133,11 @@ impl MessageCode {
 
 #[derive(Default)]
 pub struct TPinballComponent {
-    pub unused_base_flag: Rc<Cell<bool>>,
-    pub active_flag: Rc<Cell<bool>>,
+    pub unused_base_flag: bool,
+    pub active_flag: bool,
     pub message_field: MessageCode,
     pub group_name: Option<Rc<Cell<String>>>,
-    pub component_control: Option<Weak<RefCell<Control>>>,
+    pub control: Option<Weak<RefCell<ComponentControl>>>,
     pub group_index: i32,
     pub render_sprite: RenderSprite, //TODO: Decide what this will be
     pub pinball_table: Option<Weak<RefCell<TPinballTable>>>,
