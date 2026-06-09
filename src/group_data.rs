@@ -228,7 +228,7 @@ pub fn split_sliced_bitmap(
     bmp.y_position = src_bmp.y_position;
     bmp.resolution = src_bmp.resolution;
 
-    crate::zdrv::fill(zmap, zmap.width, zmap.height, 0, 0, 0xFFFF);
+    zdrv::fill(zmap, zmap.width, zmap.height, 0, 0, 0xFFFF);
     zmap.resolution = src_bmp.resolution;
 
     let res_array = fullscrn::RESOLUTION_ARRAY.lock()?;
