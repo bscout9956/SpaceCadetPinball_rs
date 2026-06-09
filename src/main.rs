@@ -54,6 +54,8 @@ mod partman;
 mod pb;
 pub mod proj;
 mod render;
+pub mod t_textbox;
+pub mod t_textbox_message;
 pub mod text_array;
 pub mod timer;
 mod utils;
@@ -249,7 +251,7 @@ fn main_loop() {
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Game version: {}", VERSION);
-    let args: Vec<String> = std::env::args().collect();
+    let args: Vec<String> = env::args().collect();
     println!("Command line: {:?}", args);
     print!(
         "Compiled with: SDL {}.{}.{}",
