@@ -293,7 +293,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             *main_window = Some(*window);
         }
         if main_window.is_none() {
-            pb::show_message_box(
+            pb::show_message_box_cstr_message(
                 SDL_MESSAGEBOX_ERROR,
                 "Could not create window",
                 SDL_GetError(),
@@ -518,7 +518,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 pb::show_message_box(
                     SDL_MESSAGEBOX_ERROR,
                     "Could not load game data",
-                    CString::from_str(&message).unwrap().as_ptr(),
+                    &message,
                 );
                 exit(1);
             }
