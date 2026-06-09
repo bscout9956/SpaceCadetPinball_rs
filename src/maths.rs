@@ -22,7 +22,7 @@ impl PartialEq for Vector2 {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 pub struct Vector3 {
     pub x: f32,
     pub y: f32,
@@ -98,6 +98,7 @@ pub struct RampPlaneType {
     pub field_force: Vector2,
 }
 
+#[derive(Default)]
 pub struct RectF {
     pub x_max: f32,
     pub y_max: f32,

@@ -7,6 +7,7 @@ use crate::t_pinball_table::TPinballTable;
 use std::cell::Cell;
 use std::{cell::RefCell, rc::Rc};
 
+#[derive(Default)]
 #[allow(non_snake_case)]
 pub struct TCollisionComponent {
     edge_list: Vec<Rc<RefCell<TEdgeSegment>>>,

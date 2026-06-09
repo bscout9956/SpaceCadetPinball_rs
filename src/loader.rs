@@ -159,7 +159,7 @@ impl Default for SoundListStruct {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct VisualKickerStruct {
     pub threshold: f32,
     pub boost: f32,
@@ -169,13 +169,13 @@ pub struct VisualKickerStruct {
     pub hard_hit_sound_id: i32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct SpriteData {
     bmp: Option<GdrvBitmap8>,
     zmap: Option<ZMapHeaderType>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct VisualStruct {
     pub smoothness: f32,
     pub elasticity: f32,
