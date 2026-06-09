@@ -4,6 +4,8 @@ use std::{
 };
 
 use crate::maths::*;
+use crate::render::RenderSprite;
+use crate::{control::ComponentControl, loader::VisualStruct};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
 
 #[allow(dead_code)]
@@ -156,25 +158,22 @@ pub trait IPinballComponent {
     fn message(&mut self, code: MessageCode, value: f32) -> MessageCode;
 }
 
-// TODO: Temporary
-struct VisualStruct;
-
 impl TPinballComponent {
     pub fn new(
-        table: Option<Rc<RefCell<TPinballTable>>>,
+        table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         load_visuals: bool,
     ) -> Self {
         let visual: VisualStruct;
 
         let mut instance = Self {
-            unused_base_flag: Rc::new(Cell::new(false)),
-            active_flag: Rc::new(Cell::new(false)),
+            unused_base_flag: false,
+            active_flag: false,
             message_field: MessageCode(0),
             group_name: Some(Rc::new(Cell::new(String::new()))),
-            component_control: None,
+            control: None,
             group_index,
-            render_sprite: RenderSprite,
+            render_sprite: RenderSprite::default(),
             pinball_table: None,
             list_bitmap: Vec::new(),
             visual_pos_norm_x: -1.0,
@@ -216,7 +215,7 @@ impl Drop for TPinballComponent {
     }
 }
 
-impl TPinballComponentBehavior for TPinballComponent {
+impl IPinballComponent for TPinballComponent {
     fn sprite_set(index: i32) {
         todo!()
     }
