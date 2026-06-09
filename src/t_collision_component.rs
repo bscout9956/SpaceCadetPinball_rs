@@ -44,73 +44,41 @@ pub trait TCollisionComponentBehavior {
 }
 
 impl TCollisionComponent {
-    pub fn new(table: TPinballTable, group_index: i32, create_wall: bool) -> Self {
-        // TODO: Should we pass the table or create a new one?
-        let pinball_table = Rc::new(RefCell::new(TPinballTable::new()));
-        let pinball_component = TPinballComponent::new(Some(pinball_table), group_index, true);
+    pub fn new(
+        table: Option<Rc<RefCell<TPinballTable>>>,
+        group_index: i32,
+        create_wall: bool,
+    ) -> Rc<RefCell<Self>> {
+        let base =
+            TPinballComponent::new(table.clone().map(|t| Rc::downgrade(&t)), group_index, true);
 
-        let visual: VisualStruct = VisualStruct {
-            smoothness: todo!(),
-            elasticity: todo!(),
-            float_arr_count: todo!(),
-            float_arr: todo!(),
-            soft_hit_sound_id: todo!(),
-            kicker: todo!(),
-            collision_group: todo!(),
-            sound_index_4: todo!(),
-            sound_index_3: todo!(),
-            bitmap: todo!(),
-        };
+        let mut visual = VisualStruct::default();
 
-        let mut instance = Self {
-            edge_list: vec![],
-            elasticity: 0.0,
-            smoothness: 0.0,
-            boost: 0.0,
-            threshold: 0.0,
-            soft_hit_sound_id: 0,
-            hard_hit_sound_id: 0,
-            AABB: RectF {
-                x_max: -10000.0,
-                y_max: -10000.0,
-                x_min: 10000.0,
-                y_min: 10000.0,
-            },
-            t_pinball_component: pinball_component,
-        };
-
-        instance.t_pinball_component.active_flag = Rc::new(Cell::new(true));
-        if instance.t_pinball_component.group_name.is_none() {
-            instance.t_pinball_component.unused_base_flag = Rc::new(Cell::new(true));
+        let mut instance = Rc::new(RefCell::new(Self::default()));
+        let mut inst = instance.borrow_mut();
+        inst.base.active_flag = true;
+        if inst.base.group_name.is_none() {
+            inst.base.unused_base_flag = true;
         }
-        // if group_index <= 0 {
-        //     // TODO: Implement loader
-        //     loader::default_vsi(visual);
-        // } else {
-        //     // TODO: Implement loader
-        //     loader::query_visual(group_index, 0, &visual);
-        //     if (create_wall) {
-        //         let offset: f32 = table.collision_comp_offset;
-        //         // TODO: Implement loader
-        //         let float_arr = loader::query_float_attribute(group_index, 0, 600);
-        //         TEdgeSegment::install_wall(
-        //             &float_arr,
-        //             &Rc::new(RefCell::new(Instance)),
-        //             Instance.t_pinball_component.active_flag,
-        //             visual.collision_group,
-        //             offset,
-        //             0,
-        //         );
-        //     }
-        // }
+        if group_index <= 0 {
+            loader::default_vsi(&mut visual);
+        } else {
+            loader::query_visual(group_index, 0, &mut visual);
+            if create_wall {
+                let offset: f32 = table.as_ref().unwrap().borrow_mut().collision_comp_offset;
+                let float_array = loader::query_float_attribute_ptr(group_index, 0, 600);
+                match float_array {
+                    Ok(array_ptr) => TEdgeSegment::install_wall(),
+                    Err(e) => {
+                        panic!("failed to load float attr ptr {}", e);
+                    }
+                }
+            }
+        }
 
-        instance.threshold = visual.kicker.threshold;
-        instance.elasticity = visual.elasticity;
-        instance.smoothness = visual.smoothness;
-        instance.boost = visual.kicker.boost;
-        instance.hard_hit_sound_id = visual.kicker.hard_hit_sound_id;
-        instance.soft_hit_sound_id = visual.soft_hit_sound_id;
-        instance.t_pinball_component.group_index = group_index;
+        if let Some(t) = table {
+            t.borrow_mut().component_list.push(instance.clone());
+        }
 
         instance
     }
