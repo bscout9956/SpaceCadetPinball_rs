@@ -9,7 +9,7 @@ use std::cmp::PartialEq;
 use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, PartialOrd, Ord, Eq)]
 pub enum VisualTypes {
     Background,
     Sprite,
@@ -89,6 +89,8 @@ pub enum RenderLockError {
     ZScreen(#[from] PoisonError<MutexGuard<'static, Option<ZMapHeaderType>>>),
     #[error("Failed to lock RectangleType")]
     Rectangle(#[from] PoisonError<MutexGuard<'static, RectangleType>>),
+    #[error("Failed to lock BALL_LIST")]
+    BallList(#[from] PoisonError<MutexGuard<'static, Vec<RenderSprite>>>),
 }
 
 pub fn init(bmp: Option<GdrvBitmap8>, width: i16, height: i16) -> Result<(), RenderLockError> {
@@ -173,22 +175,100 @@ fn repaint(sprite: &RenderSprite) {
     todo!()
 }
 
-// TODO: CONTINUE HERE RENDER.CPP
-fn paint_balls() {
-    todo!()
+fn paint_balls() -> Result<(), RenderLockError> {
+    let mut ball_list = BALL_LIST.lock()?;
+    let v_screen_rect = V_SCREEN_RECT.lock()?;
+    let mut v_screen_guard = V_SCREEN.lock()?;
+    let vscreen = (*v_screen_guard).as_mut().unwrap();
+    let z_screen_guard = Z_SCREEN.lock()?;
+    let z_screen = (*z_screen_guard).as_ref().unwrap();
+
+    // Sort ball sprites by ascending depth
+    ball_list.sort_by(|a, b| a.depth.cmp(&b.depth));
+
+    // For balls that clip vScreen: save original vScreen contents and paint the ball bitmap.
+    for index in 0..ball_list.len() {
+        let ball = &mut ball_list[index];
+        let ball_bitmap = BALL_BITMAP.lock()?.unwrap().as_mut();
+        let dirty = &mut ball.dirty_rect;
+        if ball.bmp.is_some()
+            && maths::rectangle_clip(&ball.bmp_rect, &(*v_screen_rect), &mut ball.dirty_rect)
+        {
+            let x_pos = dirty.x_position;
+            let y_pos = dirty.y_position;
+            gdrv::copy_bitmap(
+                &mut ball_bitmap[index],
+                dirty.width,
+                dirty.height,
+                0,
+                0,
+                *vscreen,
+                x_pos,
+                y_pos,
+            );
+            zdrv::paint_flat(
+                dirty.width,
+                dirty.height,
+                vscreen,
+                x_pos,
+                y_pos,
+                z_screen,
+                x_pos,
+                y_pos,
+                &ball.bmp.unwrap(),
+                x_pos - ball.bmp_rect.x_position,
+                y_pos - ball.bmp_rect.y_position,
+                ball.depth,
+            )
+        }
+    }
+
+    Ok(())
 }
 
-fn unpaint_balls() {
-    todo!()
+fn unpaint_balls() -> Result<(), RenderLockError> {
+    // Restore portions of v_screen saved during previous paint_balls call.
+    let mut ball_list = BALL_LIST.lock()?;
+    let ball_list_size = (*ball_list).len();
+
+    let mut v_screen_guard = V_SCREEN.lock()?;
+    let vscreen = (*v_screen_guard).as_mut().unwrap();
+
+    let mut index = ball_list_size - 1;
+    while index >= 0 {
+        let cur_ball = &mut ball_list[index];
+
+        let mut ball_bitmap_guard = BALL_BITMAP.lock()?;
+        let ball_bitmap = ball_bitmap_guard.as_mut().unwrap();
+
+        if cur_ball.dirty_rect.width > 0 {
+            gdrv::copy_bitmap(
+                vscreen,
+                cur_ball.dirty_rect.width,
+                cur_ball.dirty_rect.height,
+                cur_ball.dirty_rect.x_position,
+                cur_ball.dirty_rect.y_position,
+                ball_bitmap[index].clone(),
+                0,
+                0,
+            );
+        }
+
+        cur_ball.dirty_rect_prev = cur_ball.dirty_rect;
+
+        index -= 1;
+    }
+
+    Ok(())
 }
 
 pub fn update() {
-    // TODO: IMPLEMENT ME FAST!
     unpaint_balls();
 
     let v_screen_rect = V_SCREEN_RECT.lock().unwrap();
 
     let mut sprite_list = SPRITE_LIST.lock().unwrap();
+    // Clip dirty sprites with vScreen, clear clipping (dirty) rectangles
     for sprite in sprite_list.iter_mut() {
         if sprite.dirty_flag {
             continue;
@@ -248,6 +328,7 @@ pub fn update() {
         }
     }
 
+    // Paint dirty rectangles of dirty sprites
     for sprite in sprite_list.iter_mut() {
         if sprite.dirty_flag == false {
             continue;
