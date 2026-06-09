@@ -139,7 +139,7 @@ pub struct TPinballComponent {
     pub group_name: Option<Rc<Cell<String>>>,
     pub control: Option<Weak<RefCell<ComponentControl>>>,
     pub group_index: i32,
-    pub render_sprite: RenderSprite, //TODO: Decide what this will be
+    pub render_sprite: RenderSprite,
     pub pinball_table: Option<Weak<RefCell<TPinballTable>>>,
     pub list_bitmap: Vec<SpriteData>,
 
