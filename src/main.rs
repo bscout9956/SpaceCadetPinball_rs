@@ -5,8 +5,10 @@ extern crate core;
 use crate::embedded_data::load_controller_db;
 use crate::fullscrn::RESOLUTION_ARRAY;
 use crate::options::{GameBindings, OptionsStruct};
+use crate::translations::Msg;
 use dear_imgui_rs::sys::ImGuiIO;
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig};
+use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::SDL_RendererFlags::{SDL_RENDERER_ACCELERATED, SDL_RENDERER_SOFTWARE};
 use sdl2::sys::SDL_WindowFlags::{SDL_WINDOW_HIDDEN, SDL_WINDOW_RESIZABLE};
 use sdl2::sys::mixer::{
@@ -17,7 +19,7 @@ use sdl2::sys::*;
 use std::cell::RefCell;
 use std::env;
 use std::error::Error;
-use std::ffi::{CStr, c_int};
+use std::ffi::{CStr, CString, c_int};
 use std::ops::Index;
 use std::path::PathBuf;
 use std::process::exit;
@@ -173,21 +175,7 @@ static PREV_SDL_ERROR_COUNT: AtomicU32 = AtomicU32::new(0);
 static GFR_OFFSET: AtomicU32 = AtomicU32::new(0);
 static CURSOR_IDLE_COUNTER: AtomicI32 = AtomicI32::new(0);
 
-// TODO: If I realize that I'll need to use this on threads, use OnceLock/LazyLock w/ Mutex<Option>
-thread_local! {
-    static MAIN_WINDOW: RefCell<Option<NonNull<SDL_Window>>> = RefCell::new(Option::None);
-}
-
-pub fn set_main_window(window: *mut SDL_Window) {
-    MAIN_WINDOW.with(|cell| {
-        let ptr = NonNull::new(window).expect("window is null");
-        *cell.borrow_mut() = Some(ptr);
-    })
-}
-
-pub fn get_main_window() -> Option<NonNull<SDL_Window>> {
-    MAIN_WINDOW.with(|cell| *cell.borrow())
-}
+pub static MAIN_WINDOW: Mutex<Option<SDL_Window>> = Mutex::new(Option::None);
 
 pub fn get_main_menu_height() -> i32 {
     MAIN_MENU_HEIGHT.load(SeqCst)
@@ -290,22 +278,26 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     unsafe {
         println!("Creating window");
+        let rc_string = pb::get_rc_string(Msg::STRING139)?;
+        let rc_cstr = CStr::from_bytes_with_nul_unchecked(rc_string.as_bytes());
         let window = SDL_CreateWindow(
-            // TODO: Implement
-            // pb::get_rc_string(Msg::STRING139),
-            c"PinBall Space Cadet (0.0.0)".as_ptr(),
+            rc_cstr.as_ptr(),
             0,
             0,
             800,
             556,
             SDL_WINDOW_HIDDEN as u32 | SDL_WINDOW_RESIZABLE as u32,
         );
-        let mut main_window = get_main_window();
-        set_main_window(window);
-        main_window = get_main_window();
+        let mut main_window = MAIN_WINDOW.lock()?;
+        if !window.is_null() {
+            *main_window = Some(*window);
+        }
         if main_window.is_none() {
-            // TODO: Implement ShowMSGBOX
-            //  pb::ShowMessageBox(SDL_MESSAGEBOX_ERROR, "Could not create window", SDL_GetError());
+            pb::show_message_box(
+                SDL_MESSAGEBOX_ERROR,
+                "Could not create window",
+                SDL_GetError(),
+            );
             println!("Could not create window");
             exit(1);
         }
@@ -523,11 +515,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                     message += str_push;
                 }
                 println!("Could not load game data");
-                // pb::show_message_box(
-                //     SDL_MESSAGEBOX_ERROR,
-                //     "Could not load game data",
-                //     CString::from_str(&message).unwrap().as_ptr(),
-                // );
+                pb::show_message_box(
+                    SDL_MESSAGEBOX_ERROR,
+                    "Could not load game data",
+                    CString::from_str(&message).unwrap().as_ptr(),
+                );
                 exit(1);
             }
 
