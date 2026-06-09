@@ -54,30 +54,58 @@ impl TCollisionComponent {
 
         let mut visual = VisualStruct::default();
 
-        let mut instance = Rc::new(RefCell::new(Self::default()));
-        let mut inst = instance.borrow_mut();
-        inst.base.active_flag = true;
-        if inst.base.group_name.is_none() {
-            inst.base.unused_base_flag = true;
-        }
         if group_index <= 0 {
             loader::default_vsi(&mut visual);
         } else {
             loader::query_visual(group_index, 0, &mut visual);
-            if create_wall {
-                let offset: f32 = table.as_ref().unwrap().borrow_mut().collision_comp_offset;
+        }
+
+        let mut instance_data = Self {
+            base,
+            threshold: visual.kicker.threshold,
+            elasticity: visual.elasticity,
+            smoothness: visual.smoothness,
+            boost: visual.kicker.boost,
+            hard_hit_sound_id: visual.kicker.hard_hit_sound_id,
+            soft_hit_sound_id: visual.soft_hit_sound_id,
+            edge_list: vec![],
+            AABB: RectF {
+                x_max: -10000.0,
+                y_max: -10000.0,
+                x_min: 10000.0,
+                y_min: 10000.0,
+            },
+        };
+        instance_data.active_flag = true;
+        if instance_data.base.group_name.is_none() {
+            instance_data.base.unused_base_flag = true;
+        }
+
+        let instance = Rc::new(RefCell::new(Self::default()));
+
+        if create_wall && group_index > 0 {
+            if let Some(tbl) = &table {
+                let offset: f32 = tbl.borrow().collision_comp_offset;
                 let float_array = loader::query_float_attribute_ptr(group_index, 0, 600);
                 match float_array {
-                    Ok(array_ptr) => TEdgeSegment::install_wall(),
+                    Ok(array_ptr) => {
+                        let weak_comp =
+                            Rc::downgrade(&instance) as Weak<RefCell<dyn IPinballComponent>>;
+
+                        TEdgeSegment::install_wall(
+                            array_ptr,
+                            weak_comp,
+                            instance.borrow().base.active_flag,
+                            visual.collision_group as u32,
+                            offset,
+                            0,
+                        )
+                    }
                     Err(e) => {
                         panic!("failed to load float attr ptr {}", e);
                     }
-                }
+                };
             }
-        }
-
-        if let Some(t) = table {
-            t.borrow_mut().component_list.push(instance.clone());
         }
 
         instance
