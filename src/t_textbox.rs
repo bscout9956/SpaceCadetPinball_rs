@@ -20,7 +20,12 @@ pub struct TTextBox {
     pub font: Option<ScoreMessageFontType>,
     pub current_message: Option<TTextBoxMessage>,
     pub previous_message: Option<TTextBoxMessage>,
-    t_pinball_component: Option<Weak<RefCell<TPinballComponent>>>,
+}
+
+impl TTextBox {
+    pub(crate) fn clear(&self, p0: bool) {
+        todo!()
+    }
 }
 
 #[derive(Debug, Error)]
