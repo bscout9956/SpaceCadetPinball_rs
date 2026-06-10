@@ -217,10 +217,10 @@ static SHOW_EXIT_POPUP: AtomicBool = AtomicBool::new(false);
 pub type DurationMs = f64;
 
 static UPDATE_TO_FRAME_RATIO: Mutex<f64> = Mutex::new(0.0);
-static TARGET_FRAMETIME: LazyLock<Mutex<DurationMs>> =
-    LazyLock::new(|| Mutex::new(DurationMs::default()));
-static SPIN_THRESHOLD: LazyLock<Mutex<DurationMs>> =
-    LazyLock::new(|| Mutex::new(DurationMs::default()));
+static TARGET_FRAMETIME: LazyLock<Mutex<Duration<1_000_000_000>>> =
+    LazyLock::new(|| Mutex::new(Duration(0)));
+static SPIN_THRESHOLD: LazyLock<Mutex<Duration<1_000_000_000>>> =
+    LazyLock::new(|| Mutex::new(Duration(0)));
 static SLEEP_STATE: LazyLock<Mutex<WelfordState>> =
     LazyLock::new(|| Mutex::new(WelfordState::new()));
 
