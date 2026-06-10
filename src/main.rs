@@ -97,11 +97,39 @@ pub trait Clock {
     unsafe fn now() -> Self::TimePoint;
 }
 
+// TODO: Review these docs
+/// A high-resolution, monotonic clock backed by SDL's performance counter.
+///
+/// This clock leverages `SDL_GetPerformanceCounter` and `SDL_GetPerformanceFrequency`
+/// to provide steady, nanosecond-precision time measurement. It is highly suitable
+/// for frame pacing, profiling, and precise delta-time calculations in an SDL context.
 pub struct SdlPerformanceClock;
+
 impl Clock for SdlPerformanceClock {
+    /// The duration type representing differences between two time points.
+    /// The generic parameter `1_000_000_000` indicates a nanosecond resolution.
     type Duration = Duration<1_000_000_000>;
+    /// The absolute time point type returned by this clock.
+    /// The generic parameter `1_000_000_000` indicates a nanosecond resolution.
     type TimePoint = TimePoint<1_000_000_000>;
+    /// Indicates that this clock is monotonic.
+    ///
+    /// Because it is backed by hardware performance counters, time will continuously
+    /// move forward and will not be affected by system clock adjustments (e.g., NTP syncing).
     const IS_STEADY: bool = true;
+
+    /// Returns the current time point.
+    ///
+    /// This calculates the elapsed time in nanoseconds by separating the calculation
+    /// into whole seconds and fractional seconds. This prevents integer overflow that
+    /// could occur if the raw counter was multiplied by `1_000_000_000` before division.
+    ///
+    /// # Safety
+    ///
+    /// This function performs `unsafe` FFI calls to `SDL_GetPerformanceFrequency`
+    /// and `SDL_GetPerformanceCounter`. The caller must ensure that the underlying
+    /// SDL bindings allow these functions to be called in the current context
+    /// (though generally, SDL allows querying the performance counter at any time).
     unsafe fn now() -> Self::TimePoint {
         let freq = unsafe { SDL_GetPerformanceFrequency() };
         let ctr = unsafe { SDL_GetPerformanceCounter() };
@@ -189,10 +217,10 @@ static SHOW_EXIT_POPUP: AtomicBool = AtomicBool::new(false);
 pub type DurationMs = f64;
 
 static UPDATE_TO_FRAME_RATIO: Mutex<f64> = Mutex::new(0.0);
-static TARGET_FRAMETIME: LazyLock<Mutex<DurationMs>> =
-    LazyLock::new(|| Mutex::new(DurationMs::default()));
-static SPIN_THRESHOLD: LazyLock<Mutex<DurationMs>> =
-    LazyLock::new(|| Mutex::new(DurationMs::default()));
+static TARGET_FRAMETIME: LazyLock<Mutex<Duration<1_000_000_000>>> =
+    LazyLock::new(|| Mutex::new(Duration(0)));
+static SPIN_THRESHOLD: LazyLock<Mutex<Duration<1_000_000_000>>> =
+    LazyLock::new(|| Mutex::new(Duration(0)));
 static SLEEP_STATE: LazyLock<Mutex<WelfordState>> =
     LazyLock::new(|| Mutex::new(WelfordState::new()));
 
@@ -216,6 +244,8 @@ pub enum MainError {
 
     #[error("Unable to lock Mutex for retrieving the SDL_Renderer on main")]
     MutexError(#[from] PoisonError<MutexGuard<'static, Option<SDL_Renderer>>>),
+    #[error("Failed to lock Mutex")]
+    LockGeneric,
 }
 
 pub fn get_renderer() -> Result<*mut SDL_Renderer, MainError> {
@@ -259,11 +289,129 @@ fn hybrid_sleep(seconds: DurationMs) {
 // bool defaults to false
 fn imgui_menu_item_w_shortcut(binding: GameBindings, selected: Option<bool>) {}
 
-fn main_loop() {
+#[derive(Error, Debug)]
+pub enum MainLoopError {
+    #[error("Failed to lock Mutex")]
+    MutexLock,
+    #[error(transparent)]
+    NulError(#[from] NulError),
+}
+
+fn main_loop() -> Result<(), MainLoopError> {
     B_QUIT.store(false, Relaxed);
 
-    let update_count: usize = 0;
-    let frame_counter: usize = 0;
+    let mut update_count: usize = 0;
+    let mut frame_counter: usize = 0;
+
+    let frame_start = unsafe { SdlPerformanceClock::now() };
+    let mut prev_time = frame_start;
+
+    let _update_to_frame_counter = 0.0;
+    let _sleep_remainder: Duration<1_000_000_000> = Duration(0);
+
+    let target_frametime = TARGET_FRAMETIME
+        .lock()
+        .map_err(|e| MainLoopError::MutexLock)?;
+
+    let _frame_duration = *target_frametime;
+
+    loop {
+        if DISP_FRAME_RATE.load(SeqCst) == true {
+            let cur_time = unsafe { SdlPerformanceClock::now() };
+
+            if (cur_time - prev_time) > Duration(1_000_000_000) {
+                let elapsed_sec = (cur_time - prev_time).count() as f64 / 1_000_000_000f64;
+
+                let title = format!(
+                    "Updates/sec = {:02.2} Frames/sec = {:02.2} ",
+                    update_count as f64 / elapsed_sec,
+                    frame_counter as f64 / elapsed_sec
+                );
+                let c_str_title = CString::new(title.clone())?;
+
+                let window_guard = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
+                let mut window = window_guard.unwrap();
+                unsafe {
+                    SDL_SetWindowTitle(&raw mut window, c_str_title.as_ptr());
+                };
+
+                let mut fps_det = FPS_DETAILS.lock().map_err(|_| MainLoopError::MutexLock)?;
+                *fps_det = String::from(&title);
+                update_count = 0;
+                frame_counter = update_count;
+                prev_time = cur_time;
+            }
+        }
+
+        if !process_window_messages() || B_QUIT.load(SeqCst) == true {
+            break;
+        }
+
+        if HAS_FOCUS.load(SeqCst) == true {
+            if MOUSE_DOWN.load(SeqCst) > 0 {
+                let mut x = 0;
+                let mut y = 0;
+                let mut w = 0;
+                let mut h = 0;
+                unsafe {
+                    SDL_GetMouseState(&mut x, &mut y);
+
+                    let window_guard = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
+                    let mut window = window_guard.unwrap();
+
+                    // Assuming *window extracts the raw pointer to SDL_Window
+                    SDL_GetWindowSize(&raw mut window, &mut w, &mut h);
+
+                    let dx = (LAST_MOUSE_X.load(SeqCst) - x) as f32 / w as f32;
+                    let dy = (y - LAST_MOUSE_Y.load(SeqCst)) as f32 / h as f32;
+                    pb::ball_set(dx, dy);
+
+                    // Original creates continuous mouse movement with mouse capture.
+                    // Alternative solution: mouse warp at window edges.
+                    let mut x_mod: i32;
+                    let mut y_mod: i32;
+
+                    if (x as i32 == 0 || x as i32 >= (w as i32 - 1)) {
+                        x_mod = w as i32 - 2;
+                    }
+                    if (y as i32 == 0 || y as i32 >= (h as i32 - 1)) {
+                        y_mod = h as i32 - 2;
+                    }
+                    if (x_mod != 0 || y_mod != 0) {
+                        x = i32::abs(x as i32 - x_mod);
+                        y = i32::abs(y as i32 - y_mod);
+                        SDL_WarpMouseInWindow(&raw mut window, x, y);
+                    }
+
+                    LAST_MOUSE_X.store(x, SeqCst);
+                    LAST_MOUSE_Y.store(y, SeqCst);
+                }
+            }
+            if SINGLE_STEP.load(SeqCst) == false && NO_TIME_LOSS.load(SeqCst) == false {
+                let dt = _frame_duration.count() as f32;
+                pb::frame(dt);
+                if DISP_GR_HISTORY.load(SeqCst) == true {
+                    // TODO: Continue from L360 in winmain.cpp
+                }
+            }
+
+            NO_TIME_LOSS.store(false, SeqCst);
+
+            let update_to_frame_ratio = UPDATE_TO_FRAME_RATIO
+                .lock()
+                .map_err(|_| MainLoopError::MutexLock)?;
+
+            if _update_to_frame_counter >= *update_to_frame_ratio {
+                let options = OPTIONS.lock().map_err(|_| MainLoopError::MutexLock)?;
+                if *options.hide_cursor && CURSOR_IDLE_COUNTER.load(SeqCst) <= 0 {
+                    // TODO: ImGUiSetCursor l376
+                }
+                // TODO TODO TODO TODO, do all the todos above before continuing
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -580,6 +728,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             } else {
                 pb::replay_level(false);
             }
+
+            main_loop();
+
+            options::uninit();
+            midi::music_shutdown();
+            // TODO: Implement sound stuff
+            //sound::close();
+            pb::uninit();
 
             let do_restart = RESTART.load(Relaxed);
             if do_restart {
