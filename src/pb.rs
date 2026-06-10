@@ -47,6 +47,10 @@ pub static MISS_TEXT_BOX: Mutex<Option<TTextBox>> = Mutex::new(None);
 
 pub static GAME_MODE: Mutex<GameModes> = Mutex::new(GameModes::GameOver);
 
+static TIME_NEXT: Mutex<f32> = Mutex::new(0.0);
+
+static TIME_NOW: Mutex<f32> = Mutex::new(0.0);
+
 #[derive(PartialEq, Eq, Ord, PartialOrd)]
 pub enum GameModes {
     InGame = 1,
