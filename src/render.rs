@@ -2,14 +2,14 @@ use crate::gdrv::GdrvBitmap8;
 use crate::maths::RectangleType;
 use crate::options::OPTIONS;
 use crate::zdrv::ZMapHeaderType;
-use crate::{gdrv, maths, zdrv};
+use crate::{gdrv, maths, render, zdrv};
 use sdl2::sys::SDL_Rect;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
 use std::cmp::PartialEq;
 use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
-#[derive(PartialEq, Debug, PartialOrd, Ord, Eq, Default)]
+#[derive(PartialEq, Debug, PartialOrd, Ord, Eq, Default, Clone)]
 pub enum VisualTypes {
     #[default]
     Background,
@@ -17,13 +17,13 @@ pub enum VisualTypes {
     Ball,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct RenderSprite {
     bmp_rect: RectangleType,
     bmp: Option<GdrvBitmap8>,
     zmap: Option<ZMapHeaderType>,
     delete_flag: bool,
-    visual_types: VisualTypes,
+    visual_type: VisualTypes,
     depth: u16,
     dirty_rect_prev: RectangleType,
     z_map_offset_y: i32,
