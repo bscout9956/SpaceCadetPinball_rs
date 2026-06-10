@@ -289,7 +289,15 @@ fn hybrid_sleep(seconds: DurationMs) {
 // bool defaults to false
 fn imgui_menu_item_w_shortcut(binding: GameBindings, selected: Option<bool>) {}
 
-fn main_loop() {
+#[derive(Error, Debug)]
+pub enum MainLoopError {
+    #[error("Failed to lock Mutex")]
+    MutexLock,
+    #[error(transparent)]
+    NulError(#[from] NulError),
+}
+
+fn main_loop() -> Result<(), MainLoopError> {
     B_QUIT.store(false, Relaxed);
 
     let update_count: usize = 0;
