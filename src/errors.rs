@@ -77,4 +77,6 @@ pub enum FullscreenError {
     ResolutionArrayLock(#[from] PoisonError<MutexGuard<'static, [ResolutionInfo; 3]>>),
     #[error("Failed to lock Scale value: `{0}`")]
     FloatLock(#[from] PoisonError<MutexGuard<'static, f32>>),
+    #[error("Failed to lock Mutex")]
+    LockGeneric,
 }
