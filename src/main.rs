@@ -729,6 +729,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                 pb::replay_level(false);
             }
 
+            main_loop();
+
+            options::uninit();
+            midi::music_shutdown();
+            // TODO: Implement sound stuff
+            //sound::close();
+            pb::uninit();
+
             let do_restart = RESTART.load(Relaxed);
             if do_restart {
                 ()
