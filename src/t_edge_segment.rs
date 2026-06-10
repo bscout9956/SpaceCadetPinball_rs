@@ -1,6 +1,6 @@
 use crate::maths::{RayType, RectF};
 use crate::t_ball::TBall;
-use crate::t_collision_component::TCollisionComponent;
+use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_pinball_component::IPinballComponent;
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
@@ -16,9 +16,9 @@ pub enum WallValue {
 }
 
 pub struct TEdgeSegment {
-    pub collision_component: Weak<RefCell<TCollisionComponent>>,
+    pub collision_component: Option<Weak<RefCell<dyn ICollisionComponent>>>,
     pub active_flag: Rc<Cell<bool>>,
-    pub processed_flag: bool,
+    pub processed_flag: Rc<Cell<bool>>,
     pub wall_value: WallValue,
     pub collision_group: u32,
 }
@@ -49,14 +49,14 @@ impl TEdgeSegmentBehavior for TEdgeSegment {
 
 impl TEdgeSegment {
     pub fn new(
-        coll_comp: &Rc<RefCell<TCollisionComponent>>,
+        collision_component: Option<Weak<RefCell<dyn ICollisionComponent>>>,
         active_flag: Rc<Cell<bool>>,
         collision_group: u32,
     ) -> Self {
         Self {
-            collision_component: Rc::downgrade(coll_comp),
+            collision_component,
             active_flag,
-            processed_flag: false,
+            processed_flag: Rc::new(Cell::new(false)),
             wall_value: WallValue::Empty,
             collision_group,
         }
