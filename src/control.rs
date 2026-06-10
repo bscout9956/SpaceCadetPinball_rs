@@ -1,4 +1,5 @@
 use crate::message_code::MessageCode;
+use crate::t_ball::TBall;
 use crate::t_pinball_component::TPinballComponent;
 
 pub fn table_control_handler(code: MessageCode) {
@@ -28,4 +29,12 @@ pub struct ComponentControl {
 struct ComponentInfo {
     tag: ComponentTagBase,
     control: ComponentControl,
+}
+
+pub(crate) fn pbctrl_bdoor_controller(p0: &u8) {
+    todo!()
+}
+
+pub(crate) fn unstuck_ball(p0: &mut TBall, p1: usize) {
+    todo!()
 }
