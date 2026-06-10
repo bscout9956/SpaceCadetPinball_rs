@@ -8,7 +8,7 @@ pub struct Vector2 {
 }
 
 impl Vector2 {
-    fn from_vec3(vec3: Vector3) -> Self {
+    pub(crate) fn from_vec3(vec3: Vector3) -> Self {
         Self {
             x: vec3.x,
             y: vec3.y,
