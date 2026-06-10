@@ -549,3 +549,8 @@ fn timed_frame(time_delta: f32) -> Result<(), PbError> {
     Ok(())
 }
 
+fn push_cheat(name: &str) {
+    for ch in name.as_bytes() {
+        control::pbctrl_bdoor_controller(ch);
+    }
+}
