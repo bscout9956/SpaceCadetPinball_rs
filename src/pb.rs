@@ -379,9 +379,16 @@ pub(crate) fn toggle_demo() {
     todo!()
 }
 
-pub(crate) fn replay_level(demo_mode: bool) -> Result<(), PbError> {
+pub fn replay_level(demo_mode: bool) -> Result<(), PbError> {
     DEMO_MODE.store(demo_mode, Relaxed);
     mode_change(GameModes::InGame)?;
+    let options = OPTIONS.lock().map_err(|_| PbError::LockGeneric)?;
+    if *options.music == true {
+        midi::music_play();
+    }
+    let mut main_table = MAIN_TABLE.lock().map_err(|_| PbError::LockGeneric)?;
+    let table = (*main_table).as_mut().unwrap();
+    table.message(MessageCode::NEW_GAME, *options.players as f32);
     Ok(())
 }
 
