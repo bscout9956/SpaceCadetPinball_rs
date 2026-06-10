@@ -25,7 +25,7 @@ pub struct TCollisionComponent {
     pub AABB: RectF,
 }
 
-pub trait TCollisionComponentBehavior {
+pub trait ICollisionComponent {
     fn collision(
         &mut self,
         ball: &mut TBall,
@@ -43,9 +43,9 @@ pub trait TCollisionComponentBehavior {
     ) -> bool;
 }
 
+use crate::message_code::MessageCode;
 use std::ops::{Deref, DerefMut};
 use std::rc::Weak;
-use crate::message_code::MessageCode;
 
 impl Deref for TCollisionComponent {
     type Target = TPinballComponent;
@@ -99,7 +99,7 @@ impl TCollisionComponent {
             (*instance_data).unused_base_flag = true;
         }
 
-        let instance = Rc::new(RefCell::new(Self::default()));
+        let instance = Rc::new(RefCell::new(instance_data));
 
         if create_wall && group_index > 0 {
             if let Some(tbl) = &table {
@@ -130,7 +130,7 @@ impl TCollisionComponent {
     }
 }
 
-impl TCollisionComponentBehavior for TCollisionComponent {
+impl ICollisionComponent for TCollisionComponent {
     fn collision(
         &mut self,
         ball: &mut TBall,
