@@ -1,3 +1,4 @@
+use crate::maths;
 use crate::maths::Vector3;
 use std::sync::{LazyLock, Mutex};
 
@@ -60,4 +61,10 @@ pub fn init(max4x3: [f32; 12], d: f32, cen_x: f32, cen_y: f32, zm: f32, zscaler:
 
 pub fn matrix_vector_multiply(mat: &Mat4RowMajor, vec: &Vector3) -> Vector3 {
     todo!()
+}
+
+pub fn z_distance(vec: &Vector3) -> f32 {
+    let matrix = *MATRIX.lock().unwrap();
+    let proj_vec = matrix_vector_multiply(&matrix, vec);
+    maths::magnitude(&proj_vec)
 }
