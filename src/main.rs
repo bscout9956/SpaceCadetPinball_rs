@@ -111,6 +111,14 @@ impl Clock for SdlPerformanceClock {
     }
 }
 
+impl Sub for Duration<1000000000> {
+    type Output = Duration<1000000000>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Duration(self.0 - rhs.0)
+    }
+}
+
 pub struct SdlTickClock;
 impl Clock for SdlTickClock {
     type Duration = Duration<1_000>;
