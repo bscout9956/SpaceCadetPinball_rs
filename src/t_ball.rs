@@ -12,8 +12,8 @@ use std::ptr::slice_from_raw_parts;
 use std::rc::{Rc, Weak};
 
 pub struct TBall {
-    base_component: TPinballComponent,
-    base_segment: TEdgeSegment,
+    pub base_component: TPinballComponent,
+    pub base_segment: TEdgeSegment,
     pub position: Vector3,
     pub prev_position: Vector3,
     pub direction: Vector3,
@@ -31,7 +31,7 @@ pub struct TBall {
     pub radius: f32,
     pub has_group_flag: bool,
     pub stuck_count: i32,
-    pub last_active_time: i32,
+    pub last_active_time: usize,
     pub visual_z_array: [f32; 50],
     pub collision_disabled_flag: bool,
 }
@@ -121,7 +121,8 @@ impl TBall {
                 .base_component
                 .list_bitmap
                 .push(visual.bitmap.clone());
-            let vis_vec_ptr = loader::query_float_attribute_ptr(group_index, index as i32, 501).unwrap();
+            let vis_vec_ptr =
+                loader::query_float_attribute_ptr(group_index, index as i32, 501).unwrap();
             let vis_vec_slice = slice_from_raw_parts(vis_vec_ptr, 3);
             unsafe {
                 let vis_vec = Vector3 {
