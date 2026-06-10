@@ -1,7 +1,7 @@
 use crate::t_ball::TBall;
 use crate::t_flipper_edge::TFlipperEdge;
 
-#[derive(Copy, Clone, Debug, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialOrd, Default)]
 pub struct Vector2 {
     pub x: f32,
     pub y: f32,
@@ -65,6 +65,7 @@ pub struct CircleType {
     pub radius_sq: f32,
 }
 
+#[derive(Default)]
 pub struct RayType {
     pub origin: Vector2,
     pub direction: Vector2,

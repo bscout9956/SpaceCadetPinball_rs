@@ -1,4 +1,5 @@
 use crate::maths::Vector2;
+use crate::message_code::MessageCode;
 use crate::score::ScoreStruct;
 use crate::t_ball::TBall;
 use crate::t_demo::TDemo;
@@ -7,7 +8,6 @@ use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::{control, timer};
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
-use crate::message_code::MessageCode;
 
 pub struct ScoreStructSuper {
     pub score_struct: ScoreStruct,
@@ -21,6 +21,22 @@ pub struct ScoreStructSuper {
 
 // TODO: Temporary structs here \/
 struct TFlipper;
+
+// TODO: Implement me asap
+
+impl TFlipper {
+    pub(crate) fn update_sprite(&self) {
+        todo!()
+    }
+}
+
+// TODO: Implement me asap
+impl TFlipper {
+    pub(crate) fn get_flipper_step_angle(&self, p0: f32, p1: &mut f32) -> f32 {
+        todo!()
+    }
+}
+
 struct TPlunger;
 struct TDrain;
 

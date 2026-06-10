@@ -2,7 +2,7 @@ use crate::errors::PbError;
 use crate::fullscrn::RESOLUTION_ARRAY;
 use crate::gdrv::{ColorRgba, GdrvBitmap8};
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
-use crate::maths::{Vector2, Vector3, normalize_2d};
+use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
 use crate::message_code::MessageCode;
 use crate::options::OPTIONS;
 use crate::t_collision_component::ICollisionComponent;
