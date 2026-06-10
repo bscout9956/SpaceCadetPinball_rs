@@ -60,6 +60,7 @@ mod render;
 pub mod t_demo;
 pub mod t_light;
 mod t_light_group;
+pub mod t_table_layer;
 pub mod t_textbox;
 pub mod t_textbox_message;
 pub mod text_array;
