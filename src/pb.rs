@@ -463,3 +463,89 @@ fn mode_change(mode: GameModes) -> Result<(), PbError> {
 
     Ok(())
 }
+
+fn timed_frame(time_delta: f32) -> Result<(), PbError> {
+    let main_table = MAIN_TABLE.lock()?;
+    let mut table = (*main_table).as_mut().unwrap();
+    for ball in &mut table.ball_list {
+        if ball.base_component.active_flag.take() == false
+            || ball.has_group_flag
+            || ball.collision_comp.is_some()
+            || ball.speed >= 0.8f32
+        {
+            if ball.stuck_count > 0 {
+                let dist: Vector2 = Vector2 {
+                    x: ball.position.x - ball.prev_position.x,
+                    y: ball.position.y - ball.prev_position.y,
+                };
+                let radius_x2 = ball.radius * 2.0f32;
+                if radius_x2 * radius_x2 < maths::magnitude_sq(&dist) {
+                    ball.stuck_count = 0;
+                }
+            }
+            ball.last_active_time = TIME_TICKS.load(SeqCst);
+        } else if (TIME_TICKS.load(SeqCst) - ball.last_active_time > 500) {
+            let dist: Vector2 = Vector2 {
+                x: ball.position.x - ball.prev_position.x,
+                y: ball.position.y - ball.prev_position.y,
+            };
+            let radius_d2 = ball.radius / 2.0f32;
+            ball.prev_position = ball.position;
+            if radius_d2 * radius_d2 < maths::magnitude_sq(&dist) {
+                ball.stuck_count = 0;
+            } else {
+                ball.stuck_count += 1;
+            }
+            control::unstuck_ball(ball, TIME_TICKS.load(SeqCst) - ball.last_active_time);
+        }
+    }
+
+    let mut ball_steps: [i32; 20] = [0; 20];
+    let mut ball_steps_distance: [f32; 20] = [0.0f32; 20];
+    let mut max_step = -1;
+
+    for index in 0..table.ball_list.len() {
+        let ball = &mut table.ball_list[index];
+        ball_steps[index] = -1;
+        if ball.base_component.active_flag.take() != false {
+            let mut vec_dst: Vector2 = Vector2 { x: 0.0, y: 0.0 };
+            ball.time_delta = time_delta;
+            if ball.time_delta > 0.01f32 && ball.speed < 0.8f32 {
+                ball.time_delta = 0.01f32;
+            }
+            ball.collision_disabled_flag = false;
+            if let Some(rc_ptr) = ball.collision_comp.as_ref().and_then(|weak| weak.upgrade()) {
+                let mut collision_comp = rc_ptr.borrow_mut();
+                collision_comp.field_effect(ball, &mut vec_dst);
+            } else {
+                // TODO: Implement this edge manager ig
+                //t_table_layer::edge_manager.field_effects(ball, &mut vec_dst);
+                vec_dst.x = ball.time_delta;
+                vec_dst.y = ball.time_delta;
+                ball.direction.x *= ball.speed;
+                ball.direction.y *= ball.speed;
+                // TODO: Boring shit
+                //maths::vector_add(ball.direction, &vec_dst);
+                // TODO: Boring shit
+                // ball.speed = maths::normalize_2d(ball.direction);
+                // TODO: Add static
+                if ball.speed > BALL_MAX_SPEED.load(SeqCst) {
+                    ball.speed = BALL_MAX_SPEED.load(SeqCst);
+                }
+
+                ball_steps_distance[index] = ball.speed * ball.time_delta;
+                // TODO: Ball half radius static
+                let ball_step =
+                    (f32::ceil(ball_steps_distance[index] / BALL_HALF_RADIUS.load(SeqCst)) - 1.0)
+                        as i32;
+                ball_steps[index] = ball_step;
+                if ball_step > max_step {
+                    max_step = ball_step;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
