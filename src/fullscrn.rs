@@ -1,11 +1,11 @@
 use crate::errors::FullscreenError;
 use crate::options::OPTIONS;
-use crate::{get_main_menu_height, get_renderer, pb, MAIN_WINDOW};
+use crate::{MAIN_WINDOW, get_main_menu_height, get_renderer, pb, render};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicI32};
-use std::sync::{atomic, Mutex};
+use std::sync::{Mutex, atomic};
 
 static RESOLUTION: AtomicI32 = AtomicI32::new(0);
 
@@ -177,13 +177,16 @@ pub fn window_size_changed() -> Result<(), FullscreenError> {
     *offset_x = offset2x as f32 / 2.0f32;
     *offset_y = offset2y as f32 / 2.0f32;
 
-    // TODO render is barely implemented
-    // render::DestinationRect = SDL_Rect {
-    //     x: *offset_x as i32,
-    //     y: *offset_y as i32 + menu_height,
-    //     w: width - offset2x,
-    //     h: height - offset2y,
-    // };
+    let mut dest_rect = render::DESTINATION_RECT
+        .lock()
+        .map_err(|_| FullscreenError::LockGeneric)?;
+
+    *dest_rect = SDL_Rect {
+        x: *offset_x as i32,
+        y: *offset_y as i32 + menu_height,
+        w: width - offset2x,
+        h: height - offset2y,
+    };
 
     Ok(())
 }
