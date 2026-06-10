@@ -71,8 +71,24 @@ pub fn restart_func() {
     todo!();
 }
 
-pub struct Duration<const DEN: u64>(i64);
+#[derive(PartialEq, Eq, Ord, PartialOrd, Clone, Copy)]
+pub struct Duration<const DEN: u64>(pub i64);
+#[derive(PartialEq, Eq, Ord, PartialOrd, Clone, Copy)]
 pub struct TimePoint<const DEN: u64>(Duration<DEN>);
+
+impl<const DEN: u64> Duration<DEN> {
+    pub fn count(&self) -> i64 {
+        self.0
+    }
+}
+
+impl<const DEN: u64> Sub for TimePoint<DEN> {
+    type Output = Duration<DEN>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Duration(self.0.count() - rhs.0.count())
+    }
+}
 
 pub trait Clock {
     type Duration;
