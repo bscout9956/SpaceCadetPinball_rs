@@ -244,6 +244,8 @@ pub enum MainError {
 
     #[error("Unable to lock Mutex for retrieving the SDL_Renderer on main")]
     MutexError(#[from] PoisonError<MutexGuard<'static, Option<SDL_Renderer>>>),
+    #[error("Failed to lock Mutex")]
+    LockGeneric,
 }
 
 pub fn get_renderer() -> Result<*mut SDL_Renderer, MainError> {
