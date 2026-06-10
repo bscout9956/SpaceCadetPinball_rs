@@ -300,8 +300,118 @@ pub enum MainLoopError {
 fn main_loop() -> Result<(), MainLoopError> {
     B_QUIT.store(false, Relaxed);
 
-    let update_count: usize = 0;
-    let frame_counter: usize = 0;
+    let mut update_count: usize = 0;
+    let mut frame_counter: usize = 0;
+
+    let frame_start = unsafe { SdlPerformanceClock::now() };
+    let mut prev_time = frame_start;
+
+    let _update_to_frame_counter = 0.0;
+    let _sleep_remainder: Duration<1_000_000_000> = Duration(0);
+
+    let target_frametime = TARGET_FRAMETIME
+        .lock()
+        .map_err(|e| MainLoopError::MutexLock)?;
+
+    let _frame_duration = *target_frametime;
+
+    loop {
+        if DISP_FRAME_RATE.load(SeqCst) == true {
+            let cur_time = unsafe { SdlPerformanceClock::now() };
+
+            if (cur_time - prev_time) > Duration(1_000_000_000) {
+                let elapsed_sec = (cur_time - prev_time).count() as f64 / 1_000_000_000f64;
+
+                let title = format!(
+                    "Updates/sec = {:02.2} Frames/sec = {:02.2} ",
+                    update_count as f64 / elapsed_sec,
+                    frame_counter as f64 / elapsed_sec
+                );
+                let c_str_title = CString::new(title.clone())?;
+
+                let window_guard = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
+                let mut window = window_guard.unwrap();
+                unsafe {
+                    SDL_SetWindowTitle(&raw mut window, c_str_title.as_ptr());
+                };
+
+                let mut fps_det = FPS_DETAILS.lock().map_err(|_| MainLoopError::MutexLock)?;
+                *fps_det = String::from(&title);
+                update_count = 0;
+                frame_counter = update_count;
+                prev_time = cur_time;
+            }
+        }
+
+        if !process_window_messages() || B_QUIT.load(SeqCst) == true {
+            break;
+        }
+
+        if HAS_FOCUS.load(SeqCst) == true {
+            if MOUSE_DOWN.load(SeqCst) > 0 {
+                let mut x = 0;
+                let mut y = 0;
+                let mut w = 0;
+                let mut h = 0;
+                unsafe {
+                    SDL_GetMouseState(&mut x, &mut y);
+
+                    let window_guard = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
+                    let mut window = window_guard.unwrap();
+
+                    // Assuming *window extracts the raw pointer to SDL_Window
+                    SDL_GetWindowSize(&raw mut window, &mut w, &mut h);
+
+                    let dx = (LAST_MOUSE_X.load(SeqCst) - x) as f32 / w as f32;
+                    let dy = (y - LAST_MOUSE_Y.load(SeqCst)) as f32 / h as f32;
+                    pb::ball_set(dx, dy);
+
+                    // Original creates continuous mouse movement with mouse capture.
+                    // Alternative solution: mouse warp at window edges.
+                    let mut x_mod: i32;
+                    let mut y_mod: i32;
+
+                    if (x as i32 == 0 || x as i32 >= (w as i32 - 1)) {
+                        x_mod = w as i32 - 2;
+                    }
+                    if (y as i32 == 0 || y as i32 >= (h as i32 - 1)) {
+                        y_mod = h as i32 - 2;
+                    }
+                    if (x_mod != 0 || y_mod != 0) {
+                        x = i32::abs(x as i32 - x_mod);
+                        y = i32::abs(y as i32 - y_mod);
+                        SDL_WarpMouseInWindow(&raw mut window, x, y);
+                    }
+
+                    LAST_MOUSE_X.store(x, SeqCst);
+                    LAST_MOUSE_Y.store(y, SeqCst);
+                }
+            }
+            if SINGLE_STEP.load(SeqCst) == false && NO_TIME_LOSS.load(SeqCst) == false {
+                let dt = _frame_duration.count() as f32;
+                pb::frame(dt);
+                if DISP_GR_HISTORY.load(SeqCst) == true {
+                    // TODO: Continue from L360 in winmain.cpp
+                }
+            }
+
+            NO_TIME_LOSS.store(false, SeqCst);
+
+            let update_to_frame_ratio = UPDATE_TO_FRAME_RATIO
+                .lock()
+                .map_err(|_| MainLoopError::MutexLock)?;
+
+            if _update_to_frame_counter >= *update_to_frame_ratio {
+                let options = OPTIONS.lock().map_err(|_| MainLoopError::MutexLock)?;
+                if *options.hide_cursor && CURSOR_IDLE_COUNTER.load(SeqCst) <= 0 {
+                    // TODO: ImGUiSetCursor l376
+                }
+                // TODO TODO TODO TODO, do all the todos above before continuing
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
