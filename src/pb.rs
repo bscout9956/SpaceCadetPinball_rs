@@ -603,6 +603,36 @@ fn timed_frame(time_delta: f32) -> Result<(), PbError> {
         }
     }
 
+    let mut delta_angle: [f32; 4] = [0.0f32; 4];
+    let mut flipper_steps: [i32; 4] = [0; 4];
+
+    for index in 0..table.flipper_list.len() {
+        let flip_step = (table.flipper_list[index]
+            .get_flipper_step_angle(time_delta, &mut delta_angle[index])
+            - 1.0) as i32;
+        flipper_steps[index] = flip_step;
+        if flip_step > max_step {
+            max_step = flip_step;
+        }
+    }
+
+    let mut ray = RayType::default();
+    ray.min_distance = 0.002f32;
+
+    for step in 0..=max_step {
+        // TODO: I'm tired continue here from L417 in pb.cpp
+    }
+
+    for flipper in table.flipper_list {
+        flipper.update_sprite();
+    }
+
+    for ball in table.ball_list {
+        if ball.base_component.active_flag.take() == true {
+            ball.repaint();
+        }
+    }
+
     Ok(())
 }
 
