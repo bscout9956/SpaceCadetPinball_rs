@@ -11,8 +11,8 @@ use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
 
 #[derive(Default)]
 pub struct TPinballComponent {
-    pub unused_base_flag: bool,
-    pub active_flag: bool,
+    pub unused_base_flag: Rc<Cell<bool>>,
+    pub active_flag: Rc<Cell<bool>>,
     pub message_field: MessageCode,
     pub group_name: Option<Rc<Cell<String>>>,
     pub control: Option<Weak<RefCell<ComponentControl>>>,
