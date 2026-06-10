@@ -464,6 +464,36 @@ fn mode_change(mode: GameModes) -> Result<(), PbError> {
     Ok(())
 }
 
+pub(crate) fn uninit() {
+    todo!()
+}
+
+pub fn ball_set(dx: f32, dy: f32) -> Result<(), PbError> {
+    // dx and dy are normalized to window, ideally in [-1, 1]
+    const SENSITIVITY: f32 = 7000.0;
+    let mut table = MAIN_TABLE.lock()?;
+    let table = (*table).as_mut().unwrap();
+    for ball in &mut table.ball_list {
+        if ball.base_component.active_flag.take() == true {
+            ball.direction.x = dx * SENSITIVITY;
+            ball.direction.y = dy * SENSITIVITY;
+
+            // We're copying the ball to a mutable Vector2, so we mutate it and reassign back to the
+            // original ball
+            let ball_dir = &mut Vector2::from_vec3(ball.direction);
+            ball.speed = normalize_2d(ball_dir);
+            ball.direction = Vector3 {
+                x: ball_dir.x,
+                y: ball_dir.y,
+                z: ball.direction.z,
+            };
+            ball.last_active_time = TIME_TICKS.load(SeqCst);
+        }
+    }
+
+    Ok(())
+}
+
 pub(crate) fn frame(mut dt_milli_sec: f32) -> Result<(), PbError> {
     if dt_milli_sec > 100.0 {
         dt_milli_sec = 100.0;
