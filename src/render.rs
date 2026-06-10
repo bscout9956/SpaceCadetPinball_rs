@@ -34,6 +34,74 @@ pub struct RenderSprite {
     dirty_flag: bool,
 }
 
+impl RenderSprite {
+    pub fn new(
+        visual_type: VisualTypes,
+        bmp: Option<GdrvBitmap8>,
+        zmap: Option<ZMapHeaderType>,
+        x_pos: i32,
+        y_pos: i32,
+        bounding_rect: Option<RectangleType>,
+    ) -> Self {
+        let dirty_flag = visual_type != VisualTypes::Ball;
+        let mut instance = Self {
+            bmp_rect: Default::default(),
+            bmp,
+            zmap,
+            delete_flag: false,
+            visual_type,
+            depth: 0xFFFF,
+            dirty_rect_prev: Default::default(),
+            z_map_offset_y: 0,
+            z_map_offset_x: 0,
+            dirty_rect: Default::default(),
+            occluded_sprites: None,
+            bounding_rect: Default::default(),
+            dirty_flag,
+        };
+
+        if bounding_rect.is_some() {
+            instance.bounding_rect = bounding_rect.unwrap();
+        } else {
+            instance.bounding_rect.width = -1;
+            instance.bounding_rect.height = -1;
+            instance.bounding_rect.x_position = 0;
+            instance.bounding_rect.y_position = 0;
+        }
+
+        instance.bmp_rect.x_position = x_pos;
+        instance.bmp_rect.y_position = y_pos;
+
+        if let Some(bmp) = instance.bmp.clone() {
+            instance.bmp_rect.width = bmp.width;
+            instance.bmp_rect.height = bmp.height;
+        } else {
+            instance.bmp_rect.width = 0;
+            instance.bmp_rect.height = 0;
+        }
+        instance.dirty_rect_prev = instance.bmp_rect;
+
+        if instance.zmap.is_none() && instance.visual_type != VisualTypes::Ball {
+            assert!(false, "Background zmap should not be used");
+            instance.zmap = BACKGROUND_ZMAP.lock().unwrap().take();
+            instance.z_map_offset_x = x_pos - Z_MAP_OFFSET_X;
+            instance.z_map_offset_y = y_pos - Z_MAP_OFFSET_Y;
+        }
+
+        add_sprite(instance.clone());
+        instance
+    }
+}
+
+fn add_sprite(sprite: RenderSprite) {
+    let mut list = if sprite.visual_type == VisualTypes::Ball {
+        BALL_LIST.lock().unwrap()
+    } else {
+        SPRITE_LIST.lock().unwrap()
+    };
+    list.push(sprite);
+}
+
 impl PartialEq for RenderSprite {
     // NOTE: I am comparing as much as possible since deriving PartialEq isn't trivial
     fn eq(&self, other: &Self) -> bool {
