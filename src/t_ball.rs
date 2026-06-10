@@ -37,6 +37,13 @@ pub struct TBall {
 }
 
 impl TBall {
+    // TODO: Is this part of a trait?
+    pub(crate) fn repaint(&self) {
+        todo!()
+    }
+}
+
+impl TBall {
     pub fn new(
         table: Option<Rc<RefCell<TPinballTable>>>,
         mut group_index: i32,
