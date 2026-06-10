@@ -107,7 +107,7 @@ impl PartialEq for RenderSprite {
     fn eq(&self, other: &Self) -> bool {
         self.bmp_rect == other.bmp_rect
             && self.depth == other.depth
-            && self.visual_types == other.visual_types
+            && self.visual_type == other.visual_type
             && self.delete_flag == other.delete_flag
             && self.dirty_flag == other.dirty_flag
             && self.z_map_offset_x == other.z_map_offset_x
@@ -123,7 +123,7 @@ impl PartialEq for RenderSprite {
 
 pub static V_SCREEN: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
 pub static BACKGROUND_BITMAP: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
-pub static BACKGROUND_ZMAP: Option<ZMapHeaderType> = None;
+pub static BACKGROUND_ZMAP: Mutex<Option<ZMapHeaderType>> = Mutex::new(None);
 
 pub static Z_MAP_OFFSET_X: i32 = 0;
 pub static Z_MAP_OFFSET_Y: i32 = 0;
@@ -352,7 +352,7 @@ pub fn update() {
         }
 
         let mut clear_sprite: bool = false;
-        match sprite.visual_types {
+        match sprite.visual_type {
             VisualTypes::Background => {
                 let rec_clip =
                     maths::rectangle_clip(&sprite.bmp_rect, &v_screen_rect, &mut sprite.dirty_rect);
@@ -432,7 +432,7 @@ pub fn update() {
 }
 
 pub fn remove_sprite(sprite: &RenderSprite) {
-    let list = if sprite.visual_types == VisualTypes::Ball {
+    let list = if sprite.visual_type == VisualTypes::Ball {
         &BALL_LIST
     } else {
         &SPRITE_LIST
