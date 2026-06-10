@@ -97,11 +97,39 @@ pub trait Clock {
     unsafe fn now() -> Self::TimePoint;
 }
 
+// TODO: Review these docs
+/// A high-resolution, monotonic clock backed by SDL's performance counter.
+///
+/// This clock leverages `SDL_GetPerformanceCounter` and `SDL_GetPerformanceFrequency`
+/// to provide steady, nanosecond-precision time measurement. It is highly suitable
+/// for frame pacing, profiling, and precise delta-time calculations in an SDL context.
 pub struct SdlPerformanceClock;
+
 impl Clock for SdlPerformanceClock {
+    /// The duration type representing differences between two time points.
+    /// The generic parameter `1_000_000_000` indicates a nanosecond resolution.
     type Duration = Duration<1_000_000_000>;
+    /// The absolute time point type returned by this clock.
+    /// The generic parameter `1_000_000_000` indicates a nanosecond resolution.
     type TimePoint = TimePoint<1_000_000_000>;
+    /// Indicates that this clock is monotonic.
+    ///
+    /// Because it is backed by hardware performance counters, time will continuously
+    /// move forward and will not be affected by system clock adjustments (e.g., NTP syncing).
     const IS_STEADY: bool = true;
+
+    /// Returns the current time point.
+    ///
+    /// This calculates the elapsed time in nanoseconds by separating the calculation
+    /// into whole seconds and fractional seconds. This prevents integer overflow that
+    /// could occur if the raw counter was multiplied by `1_000_000_000` before division.
+    ///
+    /// # Safety
+    ///
+    /// This function performs `unsafe` FFI calls to `SDL_GetPerformanceFrequency`
+    /// and `SDL_GetPerformanceCounter`. The caller must ensure that the underlying
+    /// SDL bindings allow these functions to be called in the current context
+    /// (though generally, SDL allows querying the performance counter at any time).
     unsafe fn now() -> Self::TimePoint {
         let freq = unsafe { SDL_GetPerformanceFrequency() };
         let ctr = unsafe { SDL_GetPerformanceCounter() };
