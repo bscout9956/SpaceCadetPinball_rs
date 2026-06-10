@@ -464,6 +464,31 @@ fn mode_change(mode: GameModes) -> Result<(), PbError> {
     Ok(())
 }
 
+pub(crate) fn frame(mut dt_milli_sec: f32) -> Result<(), PbError> {
+    if dt_milli_sec > 100.0 {
+        dt_milli_sec = 100.0;
+    }
+    if dt_milli_sec <= 0.0 {
+        return Ok(());
+    }
+
+    if FULL_TILT_MODE.load(Relaxed) == true && DEMO_MODE.load(Relaxed) == false {
+        let mut timer = IDLE_TIMER_MS.lock().unwrap();
+        *timer += dt_milli_sec;
+        if *timer >= 60000.0 && CREDITS_ACTIVE.load(Relaxed) == false {
+            push_cheat("credits");
+        }
+    }
+
+    let dt_sec = dt_milli_sec * 0.001f32;
+    let mut time_next = *TIME_NEXT.lock().map_err(|_| PbError::LockGeneric)?;
+    let mut time_now = *TIME_NOW.lock().map_err(|_| PbError::LockGeneric)?;
+    time_next = time_now + dt_sec;
+    timed_frame(dt_sec)?;
+
+    Ok(())
+}
+
 fn timed_frame(time_delta: f32) -> Result<(), PbError> {
     let main_table = MAIN_TABLE.lock()?;
     let mut table = (*main_table).as_mut().unwrap();
