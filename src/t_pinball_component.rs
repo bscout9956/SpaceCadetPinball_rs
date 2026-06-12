@@ -1,13 +1,13 @@
+use crate::maths::*;
+use crate::message_code::MessageCode;
+use crate::render::RenderSprite;
+use crate::{control::ComponentControl, loader, loader::VisualStruct};
+use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
+use std::ffi::{CStr, CString};
 use std::{
     cell::{Cell, RefCell},
     rc::{Rc, Weak},
 };
-
-use crate::maths::*;
-use crate::message_code::MessageCode;
-use crate::render::RenderSprite;
-use crate::{control::ComponentControl, loader::VisualStruct};
-use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
 
 #[derive(Default)]
 pub struct TPinballComponent {
@@ -62,8 +62,9 @@ impl TPinballComponent {
         }
 
         if group_index >= 0 {
-            // TODO: Create module
-            //instance.group_name = loader::query_name(group_index);
+            let name = loader::query_name(group_index).unwrap();
+            let name_string = unsafe { CStr::from_ptr(name).to_string_lossy().into_owned() };
+            instance.group_name = Some(Rc::new(Cell::new(name_string)))
         }
 
         if load_visuals && group_index >= 0 {
