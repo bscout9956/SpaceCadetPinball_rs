@@ -157,9 +157,13 @@ pub static OPTIONS: LazyLock<Mutex<OptionsStruct>> = LazyLock::new(|| {
         debug_overlay_ball_depth_grid: Setting::new("Debug Overlay Ball Depth Grid", true),
         debug_overlay_aabb: Setting::new("Debug Overlay AABB", true),
         font_file_name: Setting::new("FontFileName", "".to_string()),
-        // TODO: Implement translations
-        // language: Setting::new("Language", translations::GetCurrentLanguage().ShortName),
-        language: Setting::new("Language", "".to_string()),
+        language: Setting::new(
+            "Language",
+            translations::get_current_language()
+                .unwrap()
+                .short_name
+                .to_string(),
+        ),
         hide_cursor: Setting::new("Hide Cursor", false),
     })
 });
