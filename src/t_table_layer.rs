@@ -137,8 +137,8 @@ impl TTableLayer {
         let edge_points = f32_vec_to_vec3(&visual.float_arr)?;
 
         let mut instance = Self {
-            base_component: *base.borrow(),
-            vis_bmp: *bmp,
+            base_component: base.take(),
+            vis_bmp: (*bmp).clone(),
             x_min: f32::min(
                 edge_points[0].x,
                 f32::min(edge_points[1].x, edge_points[2].y),
