@@ -6,11 +6,11 @@ use crate::t_ball::TBall;
 use crate::t_demo::TDemo;
 use crate::t_light_group::TLightGroup;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
+use crate::t_table_layer::TTableLayer;
 use crate::{control, pb, timer};
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 use std::sync::atomic::Ordering::SeqCst;
-use crate::t_table_layer::TTableLayer;
 
 pub struct ScoreStructSuper {
     pub score_struct: ScoreStruct,
@@ -180,7 +180,7 @@ impl TPinballTable {
             None => {}
         }
 
-        let table_layer = TTableLayer::new()
+        //TODO: pass self, let table_layer = TTableLayer::new()
 
         instance
     }
