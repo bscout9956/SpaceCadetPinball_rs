@@ -6,6 +6,8 @@ use crate::render::{RenderSprite, VisualTypes};
 use crate::t_ball::TBall;
 use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_manager::{FieldEffectType, TEdgeManager};
+use crate::t_edge_segment::IEdgeSegment;
+use crate::t_line::TLine;
 use crate::t_pinball_table::TPinballTable;
 use crate::{fullscrn, loader, pb, proj, render};
 use std::cell::RefCell;
@@ -17,8 +19,6 @@ use std::slice::from_raw_parts;
 use std::sync::Mutex;
 use std::sync::atomic::Ordering::SeqCst;
 use thiserror::Error;
-use crate::t_edge_segment::IEdgeSegment;
-use crate::t_line::TLine;
 
 pub struct TTableLayer {
     pub base_component: TCollisionComponent,
@@ -177,11 +177,12 @@ impl TTableLayer {
         ));
 
         for i in 0..visual.float_arr_count {
-            let line = TLine::new(/*this*/, visual.collision_group, edge_points[i + 1].x, edge_points[i + 1].y, edge_points[i].x, edge_points[i].y);
-            line.place_in_grid(&instance.base_component.AABB);
+            // TODO: Finish me pls
+            // let line = TLine::new(/*this*/, visual.collision_group, edge_points[i + 1].x, edge_points[i + 1].y, edge_points[i].x, edge_points[i].y);
+            // line.place_in_grid(&instance.base_component.AABB);
         }
 
-        Ok()
+        Ok(TTableLayer::new(table)?) // TODO: I'm unfinished, just so rustc can stfu
     }
 }
 
