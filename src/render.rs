@@ -125,8 +125,8 @@ pub static V_SCREEN: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
 pub static BACKGROUND_BITMAP: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
 pub static BACKGROUND_ZMAP: Mutex<Option<ZMapHeaderType>> = Mutex::new(None);
 
-pub static Z_MAP_OFFSET_X: i32 = 0;
-pub static Z_MAP_OFFSET_Y: i32 = 0;
+pub static Z_MAP_OFFSET_X: Mutex<i32> = Mutex::new(0);
+pub static Z_MAP_OFFSET_Y: Mutex<i32> = Mutex::new(0);
 
 pub static DESTINATION_RECT: LazyLock<Mutex<SDL_Rect>> = LazyLock::new(|| {
     Mutex::new(SDL_Rect {
