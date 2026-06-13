@@ -196,7 +196,7 @@ impl ICollisionComponent for TBall {
     }
 }
 
-impl TEdgeSegmentBehavior for TBall {
+impl IEdgeSegment for TBall {
     fn edge_collision(&self, ball: &mut TBall, distance: f32) {
         todo!()
     }
