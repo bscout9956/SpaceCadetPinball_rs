@@ -346,6 +346,11 @@ pub fn vector_add(vec1_dst: &mut Vector2, vec2: &Vector2) {
     vec1_dst.y += vec2.y;
 }
 
+pub fn vector_add_vec2_to_vec3(vec3_dst: &mut Vector3, vec2_src: &Vector2) {
+    vec3_dst.x += vec2_src.x;
+    vec3_dst.y += vec2_src.y;
+}
+
 pub fn vector_sub_vec2(vec1: &Vector2, vec2: &Vector2) -> Vector2 {
     Vector2 {
         x: vec1.x - vec2.x,
