@@ -1,8 +1,8 @@
-use crate::RENDERER;
 use crate::partman::{Bmp8Flags, Dat8BitBmpHeader};
+use crate::RENDERER;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::sys::{
-    SDL_CreateTexture, SDL_DestroyTexture, SDL_HINT_RENDER_SCALE_QUALITY, SDL_SetHint, SDL_Texture,
+    SDL_CreateTexture, SDL_DestroyTexture, SDL_SetHint, SDL_Texture, SDL_HINT_RENDER_SCALE_QUALITY,
 };
 use std::cmp::PartialEq;
 use std::ffi::c_char;

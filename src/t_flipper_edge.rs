@@ -1,10 +1,10 @@
-use std::cell::RefCell;
-use std::rc::Rc;
 use crate::maths::*;
 use crate::message_code::MessageCode;
 use crate::t_ball::TBall;
 use crate::t_edge_segment::IEdgeSegment;
 use crate::t_line::EdgeSegmentError;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct TFlipperEdge {
     pub flipper_flag: MessageCode,

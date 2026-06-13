@@ -1,14 +1,10 @@
-use crate::control::ComponentControl;
-use crate::errors::LoaderError;
 use crate::loader;
-use crate::loader::{SpriteData, VisualStruct};
+use crate::loader::VisualStruct;
 use crate::maths::*;
-use crate::render::RenderSprite;
 use crate::t_ball::TBall;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
-use std::cell::Cell;
 use std::{cell::RefCell, rc::Rc};
 
 #[derive(Default)]

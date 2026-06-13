@@ -1,12 +1,11 @@
 use crate::errors::LoaderError;
 use crate::gdrv::GdrvBitmap8;
 use crate::score::ScoreMessageFontType;
-use crate::t_pinball_component::TPinballComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox_message::TTextBoxMessage;
 use crate::{fullscrn, loader, render, score};
 use std::cell::RefCell;
-use std::rc::{Rc, Weak};
+use std::rc::Weak;
 use std::slice;
 use thiserror::Error;
 

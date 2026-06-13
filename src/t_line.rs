@@ -1,8 +1,7 @@
 use crate::maths::{LineType, RayType, RectF, Vector2};
 use crate::t_ball::TBall;
-use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
+use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
-use crate::t_table_layer::TTableLayer;
 use crate::{maths, t_table_layer};
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};

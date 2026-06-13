@@ -2,7 +2,7 @@ use crate::gdrv::GdrvBitmap8;
 use crate::maths::RectangleType;
 use crate::options::OPTIONS;
 use crate::zdrv::ZMapHeaderType;
-use crate::{gdrv, maths, render, zdrv};
+use crate::{gdrv, maths, zdrv};
 use sdl2::sys::SDL_Rect;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
 use std::cmp::PartialEq;

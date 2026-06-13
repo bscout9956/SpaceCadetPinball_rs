@@ -3,7 +3,7 @@ use crate::message_code::MessageCode;
 use crate::render::RenderSprite;
 use crate::{control::ComponentControl, loader, loader::VisualStruct};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::{
     cell::{Cell, RefCell},
     rc::{Rc, Weak},

@@ -1,6 +1,6 @@
 use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_box::TEdgeBox;
-use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
+use crate::t_edge_segment::IEdgeSegment;
 use crate::t_line::EdgeSegmentError;
 use std::cell::RefCell;
 use std::rc::Rc;

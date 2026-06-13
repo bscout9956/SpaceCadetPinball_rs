@@ -1,6 +1,6 @@
 use crate::errors::PbError;
 use crate::fullscrn::RESOLUTION_ARRAY;
-use crate::gdrv::{ColorRgba, GdrvBitmap8};
+use crate::gdrv::ColorRgba;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
 use crate::message_code::MessageCode;
@@ -11,15 +11,13 @@ use crate::t_textbox::TTextBox;
 use crate::translations::{Msg, TranslationError};
 use crate::{
     DEMO_ACTIVE, HIGH_SCORES_ENABLED, LAUNCH_BALL_ENABLED, MAIN_WINDOW, control, fullscrn, gdrv,
-    loader, maths, midi, partman, proj, render, score, t_table_layer, timer, translations,
+    loader, maths, midi, partman, proj, render, score, timer, translations,
 };
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
-use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowMessageBox, SDL_ShowSimpleMessageBox};
-use std::cell::RefCell;
-use std::ffi::{CStr, CString, c_char};
+use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
+use std::ffi::{CStr, c_char};
 use std::fs::File;
 use std::io::Write;
-use std::rc::Rc;
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, LazyLock, Mutex};
