@@ -265,7 +265,7 @@ pub enum MathsError {
     IncorrectF32VecSize(usize),
 }
 
-pub fn f32_vec_to_vec3(f32_vec: &'static [f32]) -> Result<Vec<Vector3>, MathsError> {
+pub fn f32_vec_to_vec3(f32_vec: &[f32]) -> Result<Vec<Vector3>, MathsError> {
     if f32_vec.len() == 0 || f32_vec.len() % 3 != 0 {
         return Err(MathsError::IncorrectF32VecSize(f32_vec.len()));
     }
