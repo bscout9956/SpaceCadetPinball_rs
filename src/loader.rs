@@ -7,14 +7,14 @@ use crate::utils::PATH_SEPARATOR;
 use crate::zdrv::ZMapHeaderType;
 use crate::{pb, sound};
 use num_traits::Float;
-use sdl2::sys::mixer::Mix_Chunk;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
-use std::ffi::{c_char, CStr};
+use sdl2::sys::mixer::Mix_Chunk;
+use std::ffi::{CStr, c_char};
 use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
-use std::sync::{LazyLock, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 
 #[derive(Copy, Clone)]
 pub struct ErrorMessage {
@@ -211,8 +211,8 @@ const _: () = assert!(size_of::<WaveHeader>() == 44, "Wrong size for WaveHeader"
 
 static SOUND_COUNT: Mutex<i32> = Mutex::new(1);
 static LOADER_SOUND_COUNT: Mutex<i32> = Mutex::new(0);
-static LOADER_TABLE: Mutex<Option<DatFile>> = Mutex::new(None);
-static SOUND_RECORD_TABLE: Mutex<Option<DatFile>> = Mutex::new(None);
+static LOADER_TABLE: Mutex<Option<Arc<DatFile>>> = Mutex::new(None);
+static SOUND_RECORD_TABLE: Mutex<Option<Arc<DatFile>>> = Mutex::new(None);
 static SOUND_LIST: LazyLock<Mutex<[SoundListStruct; 65]>> =
     LazyLock::new(|| Mutex::new(std::array::from_fn(|_| SoundListStruct::default())));
 
@@ -249,30 +249,23 @@ pub fn default_vsi(visual: &mut VisualStruct) {
     visual.sound_index_4 = 0;
 }
 
-pub fn load_from(dat_file: &mut DatFile) -> Result<(), LoaderError> {
-    match LOADER_TABLE.lock() {
-        Ok(mut table_guard) => match table_guard.as_mut() {
-            Some(mut table) => {
-                table = &mut *dat_file;
-                let mut srt_guard = SOUND_RECORD_TABLE.lock()?;
-                match (srt_guard.as_mut()) {
-                    None => {}
-                    Some(mut srt) => {
-                        srt = table;
-                    }
-                }
-            }
-            None => {}
-        },
-        Err(e) => {
-            return Err(LoaderError::TableLock(e));
-        }
+pub fn load_from(dat_file: DatFile) -> Result<(), LoaderError> {
+    let shared_dat = Arc::new(dat_file);
+
+    if let Ok(mut table_guard) = LOADER_TABLE.lock() {
+        *table_guard = Some(Arc::clone(&shared_dat));
+    }
+
+    if let Ok(mut srt_guard) = SOUND_RECORD_TABLE.lock() {
+        *srt_guard = Some(Arc::clone(&shared_dat));
     }
 
     let mut sound_list = SOUND_LIST.lock()?;
-    for group_index in 0..dat_file.groups.len() as i32 {
+
+    let groups_len = shared_dat.groups.len() as i32;
+    for group_index in 0..groups_len {
         if let Some(EntryBuffer::Raw(value_data)) =
-            dat_file.field(group_index, FieldTypes::ShortValue)
+            shared_dat.field(group_index, FieldTypes::ShortValue)
         {
             let final_val = i16::from_le_bytes([(*value_data)[0], (*value_data)[1]]);
             let mut sound_count = SOUND_COUNT.lock()?;
