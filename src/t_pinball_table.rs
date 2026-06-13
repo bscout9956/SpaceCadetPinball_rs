@@ -190,7 +190,8 @@ impl TPinballTable {
 
         match code {
             MessageCode::RESET => {
-                for component in self.component_list.iter_mut() {
+                for component_rc in self.component_list.iter_mut() {
+                    let mut component = component_rc.borrow_mut();
                     component.message(MessageCode::RESET, 0.0);
                 }
                 if self.replay_timer > 0 {
