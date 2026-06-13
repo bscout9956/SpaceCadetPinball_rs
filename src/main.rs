@@ -371,8 +371,8 @@ fn main_loop() -> Result<(), MainLoopError> {
 
                     // Original creates continuous mouse movement with mouse capture.
                     // Alternative solution: mouse warp at window edges.
-                    let mut x_mod: i32;
-                    let mut y_mod: i32;
+                    let mut x_mod: i32 = 0;
+                    let mut y_mod: i32 = 0;
 
                     if (x as i32 == 0 || x as i32 >= (w as i32 - 1)) {
                         x_mod = w as i32 - 2;
@@ -380,6 +380,7 @@ fn main_loop() -> Result<(), MainLoopError> {
                     if (y as i32 == 0 || y as i32 >= (h as i32 - 1)) {
                         y_mod = h as i32 - 2;
                     }
+
                     if (x_mod != 0 || y_mod != 0) {
                         x = i32::abs(x as i32 - x_mod);
                         y = i32::abs(y as i32 - y_mod);
@@ -415,6 +416,10 @@ fn main_loop() -> Result<(), MainLoopError> {
     }
 
     Ok(())
+}
+
+fn process_window_messages() -> bool {
+    todo!()
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
