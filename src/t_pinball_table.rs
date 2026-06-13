@@ -23,7 +23,7 @@ pub struct ScoreStructSuper {
 }
 
 // TODO: Temporary structs here \/
-struct TFlipper;
+pub struct TFlipper;
 
 // TODO: Implement me asap
 
