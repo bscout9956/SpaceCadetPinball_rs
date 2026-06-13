@@ -17,6 +17,7 @@ use std::slice::from_raw_parts;
 use std::sync::Mutex;
 use std::sync::atomic::Ordering::SeqCst;
 use thiserror::Error;
+use crate::t_edge_segment::IEdgeSegment;
 use crate::t_line::TLine;
 
 pub struct TTableLayer {
