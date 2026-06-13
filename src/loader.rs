@@ -7,9 +7,9 @@ use crate::utils::PATH_SEPARATOR;
 use crate::zdrv::ZMapHeaderType;
 use crate::{pb, sound};
 use num_traits::Float;
-use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::mixer::Mix_Chunk;
-use std::ffi::{CStr, c_char};
+use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
+use std::ffi::{c_char, CStr};
 use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
@@ -229,11 +229,7 @@ pub fn error(error_code: i32, caption_code: i32) -> i32 {
         .map(|e| e.message)
         .unwrap_or("Unknown Error");
 
-    pb::show_message_box(
-        SDL_MESSAGEBOX_ERROR,
-        error_caption,
-        error_text,
-    );
+    pb::show_message_box(SDL_MESSAGEBOX_ERROR, error_caption, error_text);
     -1
 }
 
