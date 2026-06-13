@@ -1,5 +1,6 @@
 use crate::t_ball::TBall;
 use crate::t_flipper_edge::TFlipperEdge;
+use thiserror::Error;
 
 #[derive(Copy, Clone, Debug, PartialOrd, Default)]
 pub struct Vector2 {
@@ -74,6 +75,7 @@ pub struct RayType {
     pub collision_mask: i32,
 }
 
+#[derive(Default)]
 pub struct LineType {
     pub perpendicular: Vector2,
     pub direction: Vector2,
@@ -108,7 +110,7 @@ pub struct RectF {
 }
 
 impl RectF {
-    fn merge(&mut self, aabb: &RectF) {
+    pub(crate) fn merge(&mut self, aabb: &RectF) {
         self.x_max = f32::max(self.x_max, aabb.x_max);
         self.y_max = f32::max(self.y_max, aabb.y_max);
         self.x_min = f32::min(self.x_min, aabb.x_min);
