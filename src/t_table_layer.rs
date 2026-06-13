@@ -166,7 +166,7 @@ impl TTableLayer {
         let height = instance.x_max;
         let width = instance.y_max;
 
-        let edge_manager = EDGE_MANAGER
+        let mut edge_manager = EDGE_MANAGER
             .lock()
             .map_err(|_| TTableLayerError::LockError)?;
         (*edge_manager) = Some(TEdgeManager::new(
