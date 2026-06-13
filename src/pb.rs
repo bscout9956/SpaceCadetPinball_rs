@@ -356,7 +356,7 @@ pub fn init() -> Result<(bool), PbError> {
     (*table_guard) = Some(TPinballTable::new());
 
     let table = table_guard.as_ref().unwrap();
-    let ball = &table.ball_list[0];
+    let ball = &table.ball_list[0].borrow();
 
     let mut ball_max_speed = BALL_MAX_SPEED.lock().map_err(|_| PbError::LockGeneric)?;
     let mut ball_half_radius = BALL_HALF_RADIUS.lock().map_err(|_| PbError::LockGeneric)?;
@@ -491,7 +491,8 @@ pub fn ball_set(dx: f32, dy: f32) -> Result<(), PbError> {
     const SENSITIVITY: f32 = 7000.0;
     let mut table = MAIN_TABLE.lock()?;
     let table = (*table).as_mut().unwrap();
-    for ball in &mut table.ball_list {
+    for ball_rc in &mut table.ball_list {
+        let mut ball = ball_rc.borrow_mut();
         if ball.base_component.active_flag.take() == true {
             ball.direction.x = dx * SENSITIVITY;
             ball.direction.y = dy * SENSITIVITY;
@@ -540,7 +541,8 @@ pub(crate) fn frame(mut dt_milli_sec: f32) -> Result<(), PbError> {
 fn timed_frame(time_delta: f32) -> Result<(), PbError> {
     let main_table = MAIN_TABLE.lock()?;
     let mut table = (*main_table).as_mut().unwrap();
-    for ball in &mut table.ball_list {
+    for ball_rc in &mut table.ball_list {
+        let mut ball = ball_rc.borrow_mut();
         if ball.base_component.active_flag.take() == false
             || ball.has_group_flag
             || ball.collision_comp.is_some()
@@ -569,7 +571,7 @@ fn timed_frame(time_delta: f32) -> Result<(), PbError> {
             } else {
                 ball.stuck_count += 1;
             }
-            control::unstuck_ball(ball, TIME_TICKS.load(SeqCst) - ball.last_active_time);
+            control::unstuck_ball(&mut *ball, TIME_TICKS.load(SeqCst) - ball.last_active_time);
         }
     }
 
@@ -578,7 +580,7 @@ fn timed_frame(time_delta: f32) -> Result<(), PbError> {
     let mut max_step = -1;
 
     for index in 0..table.ball_list.len() {
-        let ball = &mut table.ball_list[index];
+        let ball = &mut table.ball_list[index].borrow_mut();
         ball_steps[index] = -1;
         if ball.base_component.active_flag.take() != false {
             let mut vec_dst: Vector2 = Vector2 { x: 0.0, y: 0.0 };
@@ -599,15 +601,15 @@ fn timed_frame(time_delta: f32) -> Result<(), PbError> {
                 ball.direction.y *= ball.speed;
                 maths::vector_add_vec2_to_vec3(&mut ball.direction, &vec_dst);
                 ball.speed = maths::normalize_3d(&mut ball.direction);
-                if ball.speed > BALL_MAX_SPEED.load(SeqCst) {
-                    ball.speed = BALL_MAX_SPEED.load(SeqCst);
+                if ball.speed > *BALL_MAX_SPEED.lock().unwrap() {
+                    ball.speed = *BALL_MAX_SPEED.lock().unwrap();
                 }
 
                 ball_steps_distance[index] = ball.speed * ball.time_delta;
                 // TODO: Ball half radius static
                 let ball_step =
-                    (f32::ceil(ball_steps_distance[index] / BALL_HALF_RADIUS.load(SeqCst)) - 1.0)
-                        as i32;
+                    (f32::ceil(ball_steps_distance[index] / *BALL_HALF_RADIUS.lock().unwrap())
+                        - 1.0) as i32;
                 ball_steps[index] = ball_step;
                 if ball_step > max_step {
                     max_step = ball_step;
@@ -636,11 +638,12 @@ fn timed_frame(time_delta: f32) -> Result<(), PbError> {
         // TODO: I'm tired continue here from L417 in pb.cpp
     }
 
-    for flipper in table.flipper_list {
+    for flipper in &table.flipper_list {
         flipper.update_sprite();
     }
 
-    for ball in table.ball_list {
+    for ball_rc in table.ball_list.iter() {
+        let mut ball = ball_rc.borrow_mut();
         if ball.base_component.active_flag.take() == true {
             ball.repaint();
         }
