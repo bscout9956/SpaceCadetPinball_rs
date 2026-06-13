@@ -93,9 +93,9 @@ impl TCollisionComponent {
                 y_min: 10000.0,
             },
         };
-        instance_data.active_flag = true;
+        instance_data.active_flag.set(true);
         if (*instance_data).group_name.is_none() {
-            (*instance_data).unused_base_flag = true;
+            (*instance_data).unused_base_flag.set(true);
         }
 
         let instance = Rc::new(RefCell::new(instance_data));
