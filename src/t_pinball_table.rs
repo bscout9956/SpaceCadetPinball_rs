@@ -200,9 +200,9 @@ impl TPinballTable {
                 self.replay_timer = 0;
                 if self.light_show_timer > 0 {
                     timer::kill_id(self.light_show_timer);
-                    self.light_group
-                        .unwrap()
-                        .message(MessageCode::T_LIGHT_GROUP_RESET, 0.0);
+                    if let Some(lg) = &self.light_group {
+                        lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0);
+                    }
                 }
                 self.light_show_timer = 0;
                 self.score_multiplier = 0;
