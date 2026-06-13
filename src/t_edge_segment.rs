@@ -1,6 +1,7 @@
 use crate::maths::{RayType, RectF};
 use crate::t_ball::TBall;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
+use crate::t_line::EdgeSegmentError;
 use crate::t_pinball_component::IPinballComponent;
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
@@ -10,9 +11,10 @@ pub enum WallType {
     Line = 1,
 }
 
+// TODO/VERIFY: I think this will always only hold a bunch of bytes, so Raw as u8
 pub enum WallValue {
-    //TODO: Define what will be possible here
     Empty,
+    Raw(u8),
 }
 
 pub struct TEdgeSegment {
@@ -23,14 +25,18 @@ pub struct TEdgeSegment {
     pub collision_group: u32,
 }
 
-pub trait TEdgeSegmentBehavior {
+pub trait IEdgeSegment {
     fn edge_collision(&self, ball: &mut TBall, distance: f32);
     fn port_draw(&self);
-    fn place_in_grid(&self, aabb: RectF);
+    fn place_in_grid(
+        &self,
+        aabb: &mut RectF,
+        this_rc: Rc<RefCell<dyn IEdgeSegment>>,
+    ) -> Result<(), EdgeSegmentError>;
     fn find_collision_distance(&self, ray: &RayType) -> f32;
 }
 
-impl TEdgeSegmentBehavior for TEdgeSegment {
+impl IEdgeSegment for TEdgeSegment {
     fn edge_collision(&self, ball: &mut TBall, distance: f32) {
         todo!()
     }
@@ -38,7 +44,7 @@ impl TEdgeSegmentBehavior for TEdgeSegment {
     // Original does nothing
     fn port_draw(&self) {}
 
-    fn place_in_grid(&self, aabb: RectF) {
+    fn place_in_grid(&self, aabb: &mut RectF, this_rc: Rc<RefCell<dyn IEdgeSegment>>) -> Result<(), EdgeSegmentError> {
         todo!()
     }
 
@@ -65,11 +71,11 @@ impl TEdgeSegment {
     pub fn install_wall(
         float_arr: *const f32,
         coll_comp: Weak<RefCell<dyn IPinballComponent>>,
-        active_flag: bool,
+        active_flag: &Rc<Cell<bool>>,
         collision_group: u32,
         offset: f32,
         wall_value: usize,
-    ) -> Box<dyn TEdgeSegmentBehavior> {
+    ) -> Box<dyn IEdgeSegment> {
         todo!()
     }
 }
