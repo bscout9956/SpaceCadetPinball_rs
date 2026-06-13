@@ -1,13 +1,16 @@
-use crate::maths::Vector2;
+use crate::maths::{Vector2, Vector3};
 use crate::message_code::MessageCode;
+use crate::render::RenderLockError::BallList;
 use crate::score::ScoreStruct;
 use crate::t_ball::TBall;
 use crate::t_demo::TDemo;
 use crate::t_light_group::TLightGroup;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
-use crate::{control, timer};
+use crate::{control, pb, timer};
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
+use std::sync::atomic::Ordering::SeqCst;
+use crate::t_table_layer::TTableLayer;
 
 pub struct ScoreStructSuper {
     pub score_struct: ScoreStruct,
@@ -43,6 +46,7 @@ struct TDrain;
 // End of temporary structs
 
 pub struct TPinballTable {
+    base: TPinballComponent,
     pub flipper_l: TFlipper,
     pub flipper_r: TFlipper,
     pub cur_score_struct: Option<ScoreStruct>,
@@ -69,7 +73,7 @@ pub struct TPinballTable {
     pub width: i32,
     pub height: i32,
     pub component_list: Vec<Rc<RefCell<dyn IPinballComponent>>>,
-    pub ball_list: Vec<TBall>,
+    pub ball_list: Vec<Rc<RefCell<TBall>>>,
     pub flipper_list: Vec<TFlipper>,
     pub light_group: Option<TLightGroup>,
     pub gravity_dir_vect_mult: f32,
@@ -92,7 +96,6 @@ pub struct TPinballTable {
     pub ball_locked_counter: i32,
     pub multiball_flag: bool,
     pub unknown_p78: i32,
-    pub active_flag: Rc<Cell<bool>>,
     pub replay_active_flag: i32,
     pub replay_timer: i32,
     pub unknown_p81: i32,
@@ -106,8 +109,80 @@ unsafe impl Sync for TPinballTable {}
 unsafe impl Send for TPinballTable {}
 
 impl TPinballTable {
-    pub fn new() {
-        todo!()
+    pub fn new() -> Self {
+        let short_arr_length: usize;
+        let base = TPinballComponent::new(None, -1, false);
+
+        let mut instance = Self {
+            base,
+            flipper_l: TFlipper,
+            flipper_r: TFlipper,
+            cur_score_struct: None,
+            score_ball_count: None,
+            score_player_number_1: None,
+            cheats_used: 0,
+            sound_index_1: 0,
+            sound_index_2: 0,
+            sound_index_3: 0,
+            ball_in_drain_flag: 0,
+            cur_score: 0,
+            cur_score_e9: 0,
+            light_show_timer: 0,
+            end_game_timeout_timer: 0,
+            tilt_timeout_timer: 0,
+            player_scores: std::array::from_fn(|_| ScoreStruct::default()),
+            player_count: 0,
+            current_player: 0,
+            plunger: TPlunger,
+            drain: TDrain,
+            demo: None,
+            x_offset: 0,
+            y_offset: 0,
+            width: 0,
+            height: 0,
+            component_list: vec![],
+            ball_list: vec![],
+            flipper_list: vec![],
+            light_group: None,
+            gravity_dir_vect_mult: 0.0,
+            gravity_angle_x: 0.0,
+            gravity_angle_y: 0.0,
+            collision_comp_offset: 0.0,
+            plunger_position: Default::default(),
+            score_multiplier: 0,
+            score_added: 0,
+            reflex_shot_score: 0,
+            bonus_score: 0,
+            bonus_score_flag: false,
+            jackpot_score: 0,
+            jackpot_score_flag: false,
+            unknown_p71: 0,
+            ball_count: 0,
+            max_ball_count: 0,
+            extra_balls: 0,
+            multiball_count: 0,
+            ball_locked_counter: 0,
+            multiball_flag: false,
+            unknown_p78: 0,
+            replay_active_flag: 0,
+            replay_timer: 0,
+            unknown_p81: 0,
+            unknown_p82: 0,
+            tilt_lock_flag: false,
+            score_multipliers: vec![],
+        };
+
+        let ball = instance.add_ball(Vector2::default());
+        match ball {
+            Some(b) => {
+                b.borrow_mut().disable();
+            }
+            None => {}
+        }
+
+        let table_layer = TTableLayer::new()
+
+        instance
     }
 
     pub fn message(&mut self, code: MessageCode, value: f32) -> i32 {
