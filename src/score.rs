@@ -17,7 +17,23 @@ pub struct ScoreStruct {
     pub width: i32,
     pub height: i32,
     pub char_bmp: [GdrvBitmap8; 10],
-    pub msg_font: &'static ScoreMessageFontType,
+    pub msg_font: ScoreMessageFontType,
+}
+
+impl Default for ScoreStruct {
+    fn default() -> ScoreStruct {
+        Self {
+            score: 0,
+            dirty_flag: false,
+            background_bmp: GdrvBitmap8::default(),
+            offset_x: 0,
+            offset_y: 0,
+            width: 0,
+            height: 0,
+            char_bmp: std::array::from_fn(|_| GdrvBitmap8::default()),
+            msg_font: ScoreMessageFontType::new(),
+        }
+    }
 }
 
 #[derive(Clone)]
