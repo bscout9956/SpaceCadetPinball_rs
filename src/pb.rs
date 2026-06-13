@@ -261,86 +261,85 @@ pub fn init() -> Result<(bool), PbError> {
         Ok(mut record_table) => {
             if record_table.is_none() {
                 return Ok(true);
-            } else {
-                let table = record_table.as_mut().unwrap();
-                let plt = table.field_labeled("background", FieldTypes::Palette);
-                let plt_data = plt.unwrap();
-                match plt_data {
-                    EntryBuffer::Raw(data) => {
-                        let mut palette_colors = Vec::with_capacity(256);
-                        // extract method here
-                        for i in 0..256 {
-                            let offset = i * 4;
-                            if offset + 3 < data.len() {
-                                let color = u32::from_le_bytes([
-                                    data[offset],
-                                    data[offset + 1],
-                                    data[offset + 2],
-                                    data[offset + 3],
-                                ]);
-                                palette_colors.push(ColorRgba::color_rgba_u32(color));
-                            } else {
-                                palette_colors.push(ColorRgba::black());
-                            }
-                        }
-
-                        gdrv::display_palette(Some(&palette_colors));
-                    }
-                    _ => {}
-                }
-
-                let mut background_bmp = table
-                    .get_bitmap(table.record_labeled("background"))
-                    .to_owned();
-                let camera_info_id =
-                    table.record_labeled("camera_info") + fullscrn::get_resolution();
-                let camera_data = table.field(camera_info_id, FieldTypes::FloatArray).unwrap();
-                let mut camera_info: Vec<f32> = Vec::new();
-                match camera_data {
-                    EntryBuffer::Raw(float_data) => {
-                        camera_info = read_camera_floats(float_data);
-                    }
-                    _ => {}
-                }
-                let res_array = RESOLUTION_ARRAY.lock().unwrap();
-                let res_info = &(*res_array)[fullscrn::get_resolution() as usize];
-
-                if !camera_info.is_empty() {
-                    projection_matrix.copy_from_slice(&camera_info);
-
-                    let proj_center_x = res_info.table_width as f32 * 0.5;
-                    let proj_center_y = res_info.table_height as f32 * 0.5;
-                    let proj_d = camera_info[0];
-                    let z_min = camera_info[1];
-                    let z_scaler = camera_info[2];
-                    proj::init(
-                        projection_matrix,
-                        proj_d,
-                        proj_center_x,
-                        proj_center_y,
-                        z_min,
-                        z_scaler,
-                    );
-                }
-
-                render::init(None, res_info.table_width, res_info.table_height);
-
-                let mut v_guard = render::V_SCREEN.lock().unwrap();
-                if let Some(ref mut dst) = *v_guard {
-                    gdrv::copy_bitmap(
-                        dst,
-                        background_bmp.width,
-                        background_bmp.height,
-                        background_bmp.x_position,
-                        background_bmp.y_position,
-                        &mut background_bmp,
-                        0,
-                        0,
-                    );
-                }
-
-                loader::load_from(table)?;
             }
+
+            let table = record_table.as_mut().unwrap();
+            let plt = table.field_labeled("background", FieldTypes::Palette);
+            let plt_data = plt.unwrap();
+            match plt_data {
+                EntryBuffer::Raw(data) => {
+                    let mut palette_colors = Vec::with_capacity(256);
+                    // extract method here
+                    for i in 0..256 {
+                        let offset = i * 4;
+                        if offset + 3 < data.len() {
+                            let color = u32::from_le_bytes([
+                                data[offset],
+                                data[offset + 1],
+                                data[offset + 2],
+                                data[offset + 3],
+                            ]);
+                            palette_colors.push(ColorRgba::color_rgba_u32(color));
+                        } else {
+                            palette_colors.push(ColorRgba::black());
+                        }
+                    }
+
+                    gdrv::display_palette(Some(&palette_colors));
+                }
+                _ => {}
+            }
+
+            let mut background_bmp = table
+                .get_bitmap(table.record_labeled("background"))
+                .to_owned();
+            let camera_info_id = table.record_labeled("camera_info") + fullscrn::get_resolution();
+            let camera_data = table.field(camera_info_id, FieldTypes::FloatArray).unwrap();
+            let mut camera_info: Vec<f32> = Vec::new();
+            match camera_data {
+                EntryBuffer::Raw(float_data) => {
+                    camera_info = read_camera_floats(float_data);
+                }
+                _ => {}
+            }
+            let res_array = RESOLUTION_ARRAY.lock().unwrap();
+            let res_info = &(*res_array)[fullscrn::get_resolution() as usize];
+
+            if !camera_info.is_empty() {
+                projection_matrix.copy_from_slice(&camera_info);
+
+                let proj_center_x = res_info.table_width as f32 * 0.5;
+                let proj_center_y = res_info.table_height as f32 * 0.5;
+                let proj_d = camera_info[0];
+                let z_min = camera_info[1];
+                let z_scaler = camera_info[2];
+                proj::init(
+                    projection_matrix,
+                    proj_d,
+                    proj_center_x,
+                    proj_center_y,
+                    z_min,
+                    z_scaler,
+                );
+            }
+
+            render::init(None, res_info.table_width, res_info.table_height);
+
+            let mut v_guard = render::V_SCREEN.lock().unwrap();
+            if let Some(ref mut dst) = *v_guard {
+                gdrv::copy_bitmap(
+                    dst,
+                    background_bmp.width,
+                    background_bmp.height,
+                    background_bmp.x_position,
+                    background_bmp.y_position,
+                    &mut background_bmp,
+                    0,
+                    0,
+                );
+            }
+
+            loader::load_from(table)?;
         }
         Err(e) => {
             println!("Error locking RECORD_TABLE {}", e);
