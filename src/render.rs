@@ -84,8 +84,8 @@ impl RenderSprite {
         if instance.zmap.is_none() && instance.visual_type != VisualTypes::Ball {
             assert!(false, "Background zmap should not be used");
             instance.zmap = BACKGROUND_ZMAP.lock().unwrap().take();
-            instance.z_map_offset_x = x_pos - Z_MAP_OFFSET_X;
-            instance.z_map_offset_y = y_pos - Z_MAP_OFFSET_Y;
+            instance.z_map_offset_x = x_pos - *Z_MAP_OFFSET_X.lock().unwrap();
+            instance.z_map_offset_y = y_pos - *Z_MAP_OFFSET_Y.lock().unwrap();
         }
 
         add_sprite(instance.clone());
