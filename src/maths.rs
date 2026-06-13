@@ -249,6 +249,16 @@ pub fn normalize_2d(vec2: &mut Vector2) -> f32 {
     mag
 }
 
+pub fn normalize_3d(vec3: &mut Vector3) -> f32 {
+    let mag: f32 = f32::sqrt(vec3.x * vec3.x + vec3.y * vec3.y + vec3.z * vec3.z);
+    if mag != 0.0 {
+        vec3.x /= mag;
+        vec3.y /= mag;
+        vec3.z /= mag;
+    }
+    mag
+}
+
 pub fn line_init(line: &mut LineType, x0: f32, y0: f32, x1: f32, y1: f32) {
     line.origin = Vector2 { x: x0, y: y0 };
     line.end = Vector2 { x: x1, y: y1 };
