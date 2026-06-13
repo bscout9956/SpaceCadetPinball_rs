@@ -1,15 +1,15 @@
 use std::ffi::FromBytesUntilNulError;
 use std::io::Error;
-use std::sync::{MutexGuard, PoisonError};
+use std::sync::{Arc, MutexGuard, PoisonError};
 use thiserror::Error;
 
+use crate::MainError;
 use crate::fullscrn::ResolutionInfo;
 use crate::group_data::DatFile;
 use crate::loader::SoundListStruct;
 use crate::options::OptionsStruct;
-use crate::translations::TranslationError;
-use crate::MainError;
 use crate::t_pinball_table::TPinballTable;
+use crate::translations::TranslationError;
 
 #[derive(Error, Debug)]
 pub enum RecordLoadError {
@@ -32,7 +32,7 @@ pub enum RecordLoadError {
 #[derive(Error, Debug)]
 pub enum LoaderError {
     #[error("Failed to lock LOADER_TABLE")]
-    TableLock(#[from] PoisonError<MutexGuard<'static, Option<DatFile>>>),
+    TableLock(#[from] PoisonError<MutexGuard<'static, Option<Arc<DatFile>>>>),
     #[error("Failed to lock SOUND_LIST")]
     SoundListLock(#[from] PoisonError<MutexGuard<'static, [SoundListStruct; 65]>>),
     #[error("Failed to lock SOUND_COUNT")]
@@ -50,7 +50,7 @@ pub enum PbError {
     #[error("Failed to lock main_table")]
     TableLock(#[from] PoisonError<MutexGuard<'static, Option<TPinballTable>>>),
     #[error("Failed to lock Mutex")]
-    LockGeneric
+    LockGeneric,
 }
 
 #[derive(Error, Debug)]
