@@ -2,8 +2,8 @@ use crate::loader::VisualStruct;
 use crate::maths::*;
 use crate::render::{RenderSprite, VisualTypes};
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
-use crate::t_edge_segment::{TEdgeSegment, TEdgeSegmentBehavior};
-use crate::t_pinball_component::TPinballComponent;
+use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
+use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use crate::{fullscrn, loader, proj};
 use std::cell::{Cell, RefCell};
@@ -34,13 +34,6 @@ pub struct TBall {
     pub last_active_time: usize,
     pub visual_z_array: [f32; 50],
     pub collision_disabled_flag: bool,
-}
-
-impl TBall {
-    // TODO: Is this part of a trait?
-    pub(crate) fn repaint(&self) {
-        todo!()
-    }
 }
 
 impl TBall {
@@ -159,6 +152,17 @@ impl TBall {
         rc_instance.borrow_mut().base_segment.collision_component = Some(weak_rc_instance);
 
         rc_instance
+    }
+
+    pub fn disable(&mut self) {
+        self.base_component.active_flag.set(false);
+        self.collision_disabled_flag = false;
+        self.base_component.sprite_set(-1);
+    }
+
+    // TODO: Is this part of a trait?
+    pub(crate) fn repaint(&self) {
+        todo!()
     }
 }
 
