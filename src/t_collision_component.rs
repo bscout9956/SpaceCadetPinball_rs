@@ -101,8 +101,8 @@ impl TCollisionComponent {
         let instance = Rc::new(RefCell::new(instance_data));
 
         if create_wall && group_index > 0 {
-            if let Some(tbl) = &table {
-                let offset: f32 = tbl.borrow().collision_comp_offset;
+            if let Some(tbl) = &instance.borrow().base.pinball_table {
+                let offset: f32 = tbl.upgrade().unwrap().borrow().collision_comp_offset;
                 let float_array = loader::query_float_attribute_ptr(group_index, 0, 600);
                 match float_array {
                     Ok(array_ptr) => {
@@ -112,7 +112,7 @@ impl TCollisionComponent {
                         TEdgeSegment::install_wall(
                             array_ptr,
                             weak_comp,
-                            instance.borrow().base.active_flag,
+                            &instance.borrow().base.active_flag,
                             visual.collision_group as u32,
                             offset,
                             0,
