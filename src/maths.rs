@@ -258,6 +258,11 @@ pub fn normalize_3d(vec3: &mut Vector3) -> f32 {
     }
     mag
 }
+#[derive(Error, Debug)]
+pub enum MathsError {
+    #[error("Incorrect size of f32 vec, size must be divisible by 3. Current size is: `{0}`")]
+    IncorrectF32VecSize(usize),
+}
 
 pub fn line_init(line: &mut LineType, x0: f32, y0: f32, x1: f32, y1: f32) {
     line.origin = Vector2 { x: x0, y: y0 };
