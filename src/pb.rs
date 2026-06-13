@@ -539,7 +539,7 @@ pub(crate) fn frame(mut dt_milli_sec: f32) -> Result<(), PbError> {
 }
 
 fn timed_frame(time_delta: f32) -> Result<(), PbError> {
-    let main_table = MAIN_TABLE.lock()?;
+    let mut main_table = MAIN_TABLE.lock()?;
     let mut table = (*main_table).as_mut().unwrap();
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
@@ -571,7 +571,7 @@ fn timed_frame(time_delta: f32) -> Result<(), PbError> {
             } else {
                 ball.stuck_count += 1;
             }
-            control::unstuck_ball(&mut *ball, TIME_TICKS.load(SeqCst) - ball.last_active_time);
+            control::unstuck_ball(&mut *ball_rc.borrow_mut(), TIME_TICKS.load(SeqCst) - ball.last_active_time);
         }
     }
 
