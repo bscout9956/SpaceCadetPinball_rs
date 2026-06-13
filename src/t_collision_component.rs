@@ -5,7 +5,7 @@ use crate::loader::{SpriteData, VisualStruct};
 use crate::maths::*;
 use crate::render::RenderSprite;
 use crate::t_ball::TBall;
-use crate::t_edge_segment::{TEdgeSegment, TEdgeSegmentBehavior};
+use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use std::cell::Cell;
@@ -63,12 +63,11 @@ impl DerefMut for TCollisionComponent {
 
 impl TCollisionComponent {
     pub fn new(
-        table: Option<Rc<RefCell<TPinballTable>>>,
+        table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         create_wall: bool,
     ) -> Rc<RefCell<Self>> {
-        let base =
-            TPinballComponent::new(table.clone().map(|t| Rc::downgrade(&t)), group_index, true);
+        let base = TPinballComponent::new(table, group_index, true);
 
         let mut visual = VisualStruct::default();
 
