@@ -68,3 +68,11 @@ pub fn z_distance(vec: &Vector3) -> f32 {
     let proj_vec = matrix_vector_multiply(&matrix, vec);
     maths::magnitude(&proj_vec)
 }
+
+pub fn recenter(center_x: &f32, center_y: &f32) {
+    let mut cx = CENTER_X.lock().unwrap();
+    let mut cy = CENTER_Y.lock().unwrap();
+
+    *cx = *center_x;
+    *cy = *center_y;
+}
