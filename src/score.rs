@@ -1,10 +1,8 @@
-//todo: temporary
-
 use crate::errors::ScoreError;
+use crate::fullscrn;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{EntryBuffer, FieldTypes};
 use crate::pb::RECORD_TABLE;
-use crate::fullscrn;
 use std::sync::Mutex;
 
 pub struct ScoreStruct {
