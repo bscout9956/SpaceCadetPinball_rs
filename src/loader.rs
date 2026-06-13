@@ -249,9 +249,7 @@ pub fn default_vsi(visual: &mut VisualStruct) {
     visual.sound_index_4 = 0;
 }
 
-pub fn load_from(dat_file: DatFile) -> Result<(), LoaderError> {
-    let shared_dat = Arc::new(dat_file);
-
+pub fn load_from(shared_dat: Arc<DatFile>) -> Result<(), LoaderError> {
     if let Ok(mut table_guard) = LOADER_TABLE.lock() {
         *table_guard = Some(Arc::clone(&shared_dat));
     }

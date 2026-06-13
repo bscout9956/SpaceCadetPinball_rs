@@ -22,7 +22,7 @@ use std::io::Write;
 use std::rc::Rc;
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
 use std::sync::atomic::{AtomicBool, AtomicUsize};
-use std::sync::{LazyLock, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 
 pub static QUICK_FLAG: AtomicBool = AtomicBool::new(false);
 pub static FULL_TILT_MODE: AtomicBool = AtomicBool::new(false);
@@ -41,7 +41,7 @@ pub static TIME_TICKS: AtomicUsize = AtomicUsize::new(0);
 
 pub static DAT_FILE_NAME: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
 pub static BASE_PATH: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
-pub static RECORD_TABLE: LazyLock<Mutex<Option<DatFile>>> = LazyLock::new(|| Mutex::new(None));
+pub static RECORD_TABLE: LazyLock<Mutex<Option<Arc<DatFile>>>> = LazyLock::new(|| Mutex::new(None));
 
 pub static MAIN_TABLE: LazyLock<Mutex<Option<TPinballTable>>> = LazyLock::new(|| Mutex::new(None));
 
@@ -240,15 +240,15 @@ pub fn init() -> Result<(bool), PbError> {
         }
     }
 
+    let dat = partman::load_records(data_file_path, FULL_TILT_MODE.load(Relaxed))?;
+    let shared_dat = Arc::new(dat);
+
     match RECORD_TABLE.lock() {
-        Ok(mut record_table) => {
-            *record_table = Some(partman::load_records(
-                data_file_path,
-                FULL_TILT_MODE.load(Relaxed),
-            )?);
+        Ok(mut table_guard) => {
+            *table_guard = Some(Arc::clone(&shared_dat));
         }
-        Err(e) => {
-            println!("Error locking RECORD_TABLE: {}", e);
+        Err(_) => {
+            Err(PbError::LockGeneric)?;
         }
     }
 
@@ -258,12 +258,12 @@ pub fn init() -> Result<(bool), PbError> {
     }
 
     match RECORD_TABLE.lock() {
-        Ok(mut record_table) => {
-            if record_table.is_none() {
+        Ok(mut record_table_grd) => {
+            if (*record_table_grd).is_none() {
                 return Ok(true);
             }
 
-            let table = record_table.as_mut().unwrap();
+            let table = record_table_grd.as_mut().unwrap();
             let plt = table.field_labeled("background", FieldTypes::Palette);
             let plt_data = plt.unwrap();
             match plt_data {
@@ -339,7 +339,7 @@ pub fn init() -> Result<(bool), PbError> {
                 );
             }
 
-            loader::load_from(table)?;
+            loader::load_from(shared_dat)?;
         }
         Err(e) => {
             println!("Error locking RECORD_TABLE {}", e);
@@ -352,10 +352,10 @@ pub fn init() -> Result<(bool), PbError> {
     timer::init(150);
     score::init();
 
-    let mut table_guard = MAIN_TABLE.lock()?;
-    (*table_guard) = Some(TPinballTable::new());
+    let mut pinball_table_grd = MAIN_TABLE.lock()?;
+    (*pinball_table_grd) = Some(TPinballTable::new());
 
-    let table = table_guard.as_ref().unwrap();
+    let table = pinball_table_grd.as_ref().unwrap();
     let ball = &table.ball_list[0].borrow();
 
     let mut ball_max_speed = BALL_MAX_SPEED.lock().map_err(|_| PbError::LockGeneric)?;
@@ -571,7 +571,10 @@ fn timed_frame(time_delta: f32) -> Result<(), PbError> {
             } else {
                 ball.stuck_count += 1;
             }
-            control::unstuck_ball(&mut *ball_rc.borrow_mut(), TIME_TICKS.load(SeqCst) - ball.last_active_time);
+            control::unstuck_ball(
+                &mut *ball_rc.borrow_mut(),
+                TIME_TICKS.load(SeqCst) - ball.last_active_time,
+            );
         }
     }
 
