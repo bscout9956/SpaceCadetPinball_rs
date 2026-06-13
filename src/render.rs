@@ -443,3 +443,12 @@ pub fn remove_sprite(sprite: &RenderSprite) {
         list_sprites.remove(pos);
     }
 }
+
+pub fn set_background_zmap(zmap: Option<ZMapHeaderType>, offset_x: i32, offset_y: i32) {
+    let mut zmap_guard = BACKGROUND_ZMAP.lock().unwrap();
+    let mut zmap = zmap;
+    let mut zmap_offset_x = Z_MAP_OFFSET_X.lock().unwrap();
+    let mut zmap_offset_y = Z_MAP_OFFSET_Y.lock().unwrap();
+    (*zmap_offset_x) = offset_x;
+    (*zmap_offset_y) = offset_y;
+}
