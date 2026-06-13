@@ -171,8 +171,8 @@ pub struct VisualKickerStruct {
 
 #[derive(Clone, Default)]
 pub struct SpriteData {
-    bmp: Option<GdrvBitmap8>,
-    zmap: Option<ZMapHeaderType>,
+    pub bmp: Option<GdrvBitmap8>,
+    pub zmap: Option<ZMapHeaderType>,
 }
 
 #[derive(Clone, Default)]
@@ -535,7 +535,7 @@ pub fn query_float_attribute_ptr(
     error(13, 22);
     Ok(null::<f32>())
 }
-fn query_float_attribute(
+pub fn query_float_attribute(
     group_index: i32,
     group_index_offset: i32,
     first_value: i32,
