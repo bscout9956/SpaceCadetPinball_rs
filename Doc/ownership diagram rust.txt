@@ -1,0 +1,24 @@
+TPinballTable
+ ├─ ComponentList: Vec<Rc<RefCell<dyn TPinballComponent>>>
+ ├─ BallList: Vec<Weak<RefCell<TBall>>>         (subset view)
+ ├─ FlipperList: Vec<Weak<RefCell<TFlipper>>>   (subset view)
+ ├─ LightGroup: Rc<RefCell<TLightGroup>>
+ ├─ Plunger: Weak<RefCell<TPlunger>>
+ ├─ Drain: Weak<RefCell<TDrain>>
+ └─ Demo: Weak<RefCell<TDemo>>
+
+TPinballComponent
+ └─ pinball_table: Weak<RefCell<TPinballTable>>
+
+TCollisionComponent
+ ├─ inherits TPinballComponent
+ └─ EdgeList: Vec<Rc<RefCell<dyn TEdgeSegment>>>
+
+TEdgeSegment
+ └─ collision_component: Weak<RefCell<TCollisionComponent>>
+
+TBall
+ ├─ inherits TCollisionComponent
+ ├─ inherits TEdgeSegment
+ ├─ collision_comp: Option<Weak<RefCell<TCollisionComponent>>>
+ └─ collisions: [Option<Weak<RefCell<dyn TEdgeSegment>>>; 16]
