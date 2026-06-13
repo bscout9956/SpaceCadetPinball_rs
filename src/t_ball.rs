@@ -138,8 +138,10 @@ impl TBall {
         instance_data.base_component.render_sprite =
             RenderSprite::new(VisualTypes::Ball, None, None, 0, 0, None);
 
-        if let Some(t) = &table {
-            t.borrow_mut().collision_comp_offset = instance_data.radius;
+        if let Some(t_weak) = &instance_data.base_component.pinball_table {
+            if let Some(t_rc) = t_weak.upgrade() {
+                t_rc.borrow_mut().collision_comp_offset = instance_data.radius;
+            }
         }
 
         instance_data.position.z = instance_data.radius;
