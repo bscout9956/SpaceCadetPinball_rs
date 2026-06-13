@@ -258,10 +258,28 @@ pub fn normalize_3d(vec3: &mut Vector3) -> f32 {
     }
     mag
 }
+
 #[derive(Error, Debug)]
 pub enum MathsError {
     #[error("Incorrect size of f32 vec, size must be divisible by 3. Current size is: `{0}`")]
     IncorrectF32VecSize(usize),
+}
+
+pub fn f32_vec_to_vec3(f32_vec: &'static [f32]) -> Result<Vec<Vector3>, MathsError> {
+    if f32_vec.len() == 0 || f32_vec.len() % 3 != 0 {
+        return Err(MathsError::IncorrectF32VecSize(f32_vec.len()));
+    }
+    let mut result: Vec<Vector3> = Vec::new();
+
+    for idx in (0..f32_vec.len()).step_by(3) {
+        result.push(Vector3 {
+            x: f32_vec[idx],
+            y: f32_vec[idx + 1],
+            z: f32_vec[idx + 2],
+        });
+    }
+
+    Ok(result)
 }
 
 pub fn line_init(line: &mut LineType, x0: f32, y0: f32, x1: f32, y1: f32) {
