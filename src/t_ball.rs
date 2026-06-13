@@ -38,14 +38,16 @@ pub struct TBall {
 
 impl TBall {
     pub fn new(
-        table: Option<Rc<RefCell<TPinballTable>>>,
+        table_weak: Option<Weak<RefCell<TPinballTable>>>,
         mut group_index: i32,
-    ) -> Rc<RefCell<TBall>> {
-        let base_component =
-            TPinballComponent::new(table.clone().map(|t| Rc::downgrade(&t)), group_index, false);
+    ) -> Rc<RefCell<Self>> {
+        let base_component = TPinballComponent::new(table_weak, group_index, false);
 
-        let base_segment =
-            TEdgeSegment::new(None, Rc::new(Cell::new(base_component.active_flag)), 0);
+        let base_segment = TEdgeSegment::new(
+            None,
+            Rc::new(Cell::new(base_component.active_flag.get())),
+            0,
+        );
 
         let mut visual = VisualStruct::default();
         let mut ball_group_name = "ball";
