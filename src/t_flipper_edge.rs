@@ -1,7 +1,10 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use crate::maths::*;
 use crate::message_code::MessageCode;
 use crate::t_ball::TBall;
-use crate::t_edge_segment::TEdgeSegmentBehavior;
+use crate::t_edge_segment::IEdgeSegment;
+use crate::t_line::EdgeSegmentError;
 
 pub struct TFlipperEdge {
     pub flipper_flag: MessageCode,
@@ -50,7 +53,7 @@ pub struct TFlipperEdge {
     pub control_point_dirty_flag: bool,
 }
 
-impl TEdgeSegmentBehavior for TFlipperEdge {
+impl IEdgeSegment for TFlipperEdge {
     fn edge_collision(&self, ball: &mut TBall, distance: f32) {
         todo!()
     }
@@ -59,7 +62,7 @@ impl TEdgeSegmentBehavior for TFlipperEdge {
         todo!()
     }
 
-    fn place_in_grid(&self, aabb: RectF) {
+    fn place_in_grid(&self, aabb: &mut RectF, this_rc: Rc<RefCell<dyn IEdgeSegment>>) -> Result<(), EdgeSegmentError> {
         todo!()
     }
 
