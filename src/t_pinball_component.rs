@@ -43,8 +43,8 @@ impl TPinballComponent {
         let visual: VisualStruct;
 
         let mut instance = Self {
-            unused_base_flag: false,
-            active_flag: false,
+            unused_base_flag: Rc::new(Cell::new(false)),
+            active_flag: Rc::new(Cell::new(false)),
             message_field: MessageCode(0),
             group_name: Some(Rc::new(Cell::new(String::new()))),
             control: None,
