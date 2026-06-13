@@ -8,6 +8,7 @@ use crate::fullscrn::ResolutionInfo;
 use crate::group_data::DatFile;
 use crate::loader::SoundListStruct;
 use crate::options::OptionsStruct;
+use crate::score::ScoreMessageFontType;
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::TranslationError;
 
@@ -27,6 +28,14 @@ pub enum RecordLoadError {
     Unknown,
     #[error("Field type is out of bounds or is not recognized")]
     InvalidFieldType,
+}
+
+#[derive(Error, Debug)]
+pub enum ScoreError {
+    #[error("Failed to lock RecordTable from PB: `{0}`")]
+    RecordTableLock(#[from] PoisonError<MutexGuard<'static, Option<Arc<DatFile>>>>),
+    #[error("Failed to lock MSG_FONTP from Score: `{0}`")]
+    MsgFontLock(#[from] PoisonError<MutexGuard<'static, Option<ScoreMessageFontType>>>),
 }
 
 #[derive(Error, Debug)]

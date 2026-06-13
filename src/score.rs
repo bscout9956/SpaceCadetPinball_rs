@@ -1,12 +1,11 @@
 //todo: temporary
 
+use crate::errors::ScoreError;
 use crate::gdrv::GdrvBitmap8;
-use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
+use crate::group_data::{EntryBuffer, FieldTypes};
 use crate::pb::RECORD_TABLE;
-use crate::{fullscrn, pb};
-use dear_imgui_rs::table;
-use std::sync::{LazyLock, LockResult, Mutex, MutexGuard, PoisonError, TryLockResult};
-use thiserror::Error;
+use crate::fullscrn;
+use std::sync::Mutex;
 
 pub struct ScoreStruct {
     pub score: i32,
@@ -54,14 +53,6 @@ impl ScoreMessageFontType {
 }
 
 pub static MSG_FONTP: Mutex<Option<ScoreMessageFontType>> = Mutex::new(None);
-
-#[derive(Error, Debug)]
-pub enum ScoreError {
-    #[error("Failed to lock RecordTable from PB: `{0}`")]
-    RecordTableLock(#[from] PoisonError<MutexGuard<'static, Option<DatFile>>>),
-    #[error("Failed to lock MSG_FONTP from Score: `{0}`")]
-    MsgFontLock(#[from] PoisonError<MutexGuard<'static, Option<ScoreMessageFontType>>>),
-}
 
 pub fn load_msg_font(font_name: &str) -> Result<(), ScoreError> {
     let record_table = RECORD_TABLE.lock().map_err(ScoreError::RecordTableLock)?;
