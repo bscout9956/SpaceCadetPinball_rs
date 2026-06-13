@@ -347,14 +347,27 @@ pub fn init() -> Result<(bool), PbError> {
         }
     }
 
-    // TODO: Implement modechange and gamemodes
-    //mode_change(GameModes::InGame);
+    mode_change(GameModes::InGame);
 
     TIME_TICKS.store(0, Relaxed);
-    // TODO: Implement timer init
-    //timer::init(150);
-    // TODO: Implement score init
-    //score::init();
+    timer::init(150);
+    score::init();
+
+    let mut table_guard = MAIN_TABLE.lock()?;
+    (*table_guard) = Some(TPinballTable::new());
+
+    let table = table_guard.as_ref().unwrap();
+    let ball = &table.ball_list[0];
+
+    let mut ball_max_speed = BALL_MAX_SPEED.lock().map_err(|_| PbError::LockGeneric)?;
+    let mut ball_half_radius = BALL_HALF_RADIUS.lock().map_err(|_| PbError::LockGeneric)?;
+    let mut ball_to_ball_col_dist = BALL_TO_BALL_COLLISION_DISTANCE
+        .lock()
+        .map_err(|_| PbError::LockGeneric)?;
+
+    (*ball_max_speed) = ball.radius * 200.0f32;
+    (*ball_half_radius) = ball.radius * 0.5f32;
+    (*ball_to_ball_col_dist) = ball.radius + *ball_half_radius * 2.0f32;
 
     Ok(true)
 }
