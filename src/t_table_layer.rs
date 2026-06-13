@@ -70,32 +70,30 @@ impl TTableLayer {
         let bmp = &sprite_data.bmp;
         rect.x_position = 0;
         rect.y_position = 0;
-        match bmp {
-            Some(b) => {
-                rect.width = b.width;
-                rect.height = b.height;
-                RenderSprite::new(
-                    VisualTypes::Background,
-                    Some(*b),
-                    sprite_data.zmap,
-                    0,
-                    0,
-                    Some(rect),
-                );
-            }
-            None => {}
+
+        if let Some(bmp) = bmp {
+            rect.width = bmp.width;
+            rect.height = bmp.height;
         }
 
+        RenderSprite::new(
+            VisualTypes::Background,
+            (*bmp).clone(),
+            sprite_data.zmap,
+            0,
+            0,
+            Some(rect),
+        );
+
         let table_angle_array = query_float_attribute_ptr(group_index, 0, 305)?;
+        let table_slice = unsafe { from_raw_parts(table_angle_array, 3) };
         if !table_angle_array.is_null() {
-            let table_slice = unsafe { from_raw_parts(table_angle_array, 3).deref() };
             if let Some(t) = table.as_ref().unwrap().upgrade() {
                 t.borrow_mut().gravity_dir_vect_mult = table_slice[0];
                 t.borrow_mut().gravity_dir_vect_mult = table_slice[1];
                 t.borrow_mut().gravity_dir_vect_mult = table_slice[2];
             }
         } else {
-            let table_slice = unsafe { from_raw_parts(table_angle_array, 3).deref() };
             if let Some(t) = table.as_ref().unwrap().upgrade() {
                 t.borrow_mut().gravity_dir_vect_mult = 25.0f32;
                 t.borrow_mut().gravity_dir_vect_mult = 0.5f32;
