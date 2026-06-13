@@ -3,6 +3,7 @@ use crate::maths::*;
 use crate::render::{RenderSprite, VisualTypes};
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
+use crate::t_line::EdgeSegmentError;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use crate::{fullscrn, loader, proj};
@@ -205,7 +206,11 @@ impl IEdgeSegment for TBall {
         todo!()
     }
 
-    fn place_in_grid(&self, aabb: RectF) {
+    fn place_in_grid(
+        &self,
+        aabb: &mut RectF,
+        this_rc: Rc<RefCell<dyn IEdgeSegment>>,
+    ) -> Result<(), EdgeSegmentError> {
         todo!()
     }
 
