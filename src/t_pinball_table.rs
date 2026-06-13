@@ -152,4 +152,56 @@ impl TPinballTable {
         //control::table_control_handler(code);
         0
     }
+
+    fn add_ball(&mut self, position: Vector2) -> Option<Rc<RefCell<TBall>>> {
+        let mut target_ball_rc: Option<Rc<RefCell<TBall>>> = None;
+
+        for rc_ball in &self.ball_list {
+            let cur_ball = rc_ball.borrow();
+
+            if !cur_ball.base_component.active_flag.get() {
+                drop(cur_ball);
+
+                target_ball_rc = Some(Rc::clone(rc_ball));
+                break;
+            }
+        }
+
+        let ball_rc = if let Some(found_rc) = target_ball_rc {
+            found_rc
+        } else {
+            if self.ball_list.len() >= 20 {
+                return None;
+            }
+
+            let table_weak = self.base.pinball_table.clone();
+
+            let new_ball_rc = TBall::new(table_weak, -1);
+
+            self.ball_list.push(Rc::clone(&new_ball_rc));
+            new_ball_rc
+        };
+
+        {
+            let mut ball = ball_rc.borrow_mut();
+
+            ball.base_component.active_flag.set(true);
+            ball.position.z = ball.radius;
+            ball.direction = Vector3::default();
+            ball.speed = 0.0f32;
+            ball.time_delta = 0.0f32;
+            ball.edge_collision_count = 0;
+            ball.collision_flag = 0;
+            ball.collision_mask = 1;
+            ball.collision_comp = None;
+
+            ball.position.x = position.x;
+            ball.position.y = position.y;
+            ball.prev_position = ball.position;
+            ball.stuck_count = 0;
+            ball.last_active_time = pb::TIME_TICKS.load(SeqCst);
+        }
+
+        Some(ball_rc)
+    }
 }
