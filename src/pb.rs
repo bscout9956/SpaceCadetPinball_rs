@@ -598,11 +598,8 @@ fn timed_frame(time_delta: f32) -> Result<(), PbError> {
                 vec_dst.y = ball.time_delta;
                 ball.direction.x *= ball.speed;
                 ball.direction.y *= ball.speed;
-                // TODO: Boring shit
-                //maths::vector_add(ball.direction, &vec_dst);
-                // TODO: Boring shit
-                // ball.speed = maths::normalize_2d(ball.direction);
-                // TODO: Add static
+                maths::vector_add_vec2_to_vec3(&mut ball.direction, &vec_dst);
+                ball.speed = maths::normalize_3d(&mut ball.direction);
                 if ball.speed > BALL_MAX_SPEED.load(SeqCst) {
                     ball.speed = BALL_MAX_SPEED.load(SeqCst);
                 }
