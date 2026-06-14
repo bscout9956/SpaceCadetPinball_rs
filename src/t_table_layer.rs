@@ -11,15 +11,15 @@ use crate::{fullscrn, loader, pb, proj, render};
 use std::cell::RefCell;
 use std::f32::consts::FRAC_PI_2;
 use std::ptr::slice_from_raw_parts;
-use std::rc::Weak;
+use std::rc::{Rc, Weak};
 use std::slice::from_raw_parts;
-use std::sync::Mutex;
 use std::sync::atomic::Ordering::SeqCst;
+use std::sync::{Arc, Mutex};
 use thiserror::Error;
 
 pub struct TTableLayer {
     pub base_component: TCollisionComponent,
-    pub vis_bmp: Option<GdrvBitmap8>,
+    pub vis_bmp: Option<Arc<GdrvBitmap8>>,
     pub x_min: f32,
     pub y_min: f32,
     pub x_max: f32,
