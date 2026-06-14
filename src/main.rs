@@ -23,11 +23,11 @@ use std::ffi::{CStr, CString, NulError, c_int};
 use std::ops::{Index, Sub};
 use std::path::PathBuf;
 use std::process::exit;
-use std::ptr::{NonNull, addr_of_mut};
+use std::ptr::NonNull;
 use std::str::FromStr;
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
-use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError, TryLockResult};
+use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
 mod fullscrn;
@@ -428,8 +428,74 @@ fn main_loop() -> Result<(), MainLoopError> {
     Ok(())
 }
 
-fn process_window_messages() -> bool {
-    todo!()
+fn process_window_messages() -> Result<bool, MainLoopError> {
+    static IDLE_WAIT: Mutex<i64> = Mutex::new(0);
+    let event: *mut SDL_Event = unsafe { std::mem::zeroed() };
+
+    let has_focus = HAS_FOCUS.load(SeqCst);
+    if has_focus == true {
+        let guard = IDLE_WAIT.lock().map_err(|_| MainLoopError::MutexLock)?;
+        let frame_time_g = TARGET_FRAMETIME
+            .lock()
+            .map_err(|_| MainLoopError::MutexLock)?;
+
+        *guard = (*frame_time_g).count();
+        unsafe {
+            while SDL_PollEvent(event) > 0 {
+                if !event_handler(event) {
+                    return Ok(false);
+                }
+            }
+        }
+
+        return Ok(true);
+    }
+
+    match IDLE_WAIT.lock().map_err(|_| MainLoopError::MutexLock) {
+        Ok(mut idle_wait) => {
+            let frame_time_g = TARGET_FRAMETIME
+                .lock()
+                .map_err(|_| MainLoopError::MutexLock)?;
+
+            // Progressively wait longer when transitioning to idle
+            *idle_wait = i64::min(*idle_wait + (*frame_time_g).0, 500);
+            unsafe {
+                if SDL_WaitEventTimeout(event, (*idle_wait) as c_int) > 0 {
+                    *idle_wait = (*frame_time_g).count();
+                    return event_handler(event);
+                }
+            }
+            Ok(true)
+        }
+        Err(_) => Err(MainLoopError::MutexLock),
+    }
+}
+
+unsafe fn event_handler(event: *mut SDL_Event) -> Result<i32, MainLoopError> {
+    let mut input_down = false;
+
+    unsafe {
+        // Evaluate the cast in an if-statement instead of a pattern match
+        if (*event).type_ == SDL_EventType::SDL_KEYDOWN as u32
+            || (*event).type_ == SDL_EventType::SDL_MOUSEBUTTONDOWN as u32
+            || (*event).type_ == SDL_EventType::SDL_CONTROLLERBUTTONDOWN as u32
+        {
+            input_down = true;
+        }
+    }
+
+    let waiting_input = options::CONTROL_WAITING_FOR_INPUT
+        .lock()
+        .map_err(|_| MainLoopError::MutexLock)?;
+
+    if (*waiting_input).is_none() || !input_down {
+        // TODO here
+        imgui_sdl::process_event(event);
+    }
+
+    let mouse_event: bool;
+
+    Ok(1)
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
