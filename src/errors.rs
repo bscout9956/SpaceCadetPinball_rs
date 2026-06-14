@@ -1,9 +1,8 @@
-use std::ffi::FromBytesUntilNulError;
+use std::ffi::{FromBytesUntilNulError, NulError};
 use std::io::Error;
 use std::sync::{Arc, MutexGuard, PoisonError};
 use thiserror::Error;
 
-use crate::MainError;
 use crate::fullscrn::ResolutionInfo;
 use crate::group_data::DatFile;
 use crate::loader::SoundListStruct;
@@ -11,6 +10,7 @@ use crate::options::OptionsStruct;
 use crate::score::ScoreMessageFontType;
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::TranslationError;
+use crate::MainError;
 
 #[derive(Error, Debug)]
 pub enum RecordLoadError {
@@ -60,6 +60,8 @@ pub enum PbError {
     TableLock(#[from] PoisonError<MutexGuard<'static, Option<TPinballTable>>>),
     #[error("Failed to lock Mutex")]
     LockGeneric,
+    #[error("Failed to convert string: `{0}`")]
+    FailedStrConversion(#[from] NulError),
 }
 
 #[derive(Error, Debug)]
