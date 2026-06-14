@@ -13,6 +13,7 @@ use std::ffi::{CStr, c_char};
 use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
+use std::rc::Rc;
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
 use std::sync::{Arc, LazyLock, Mutex};
 
@@ -171,8 +172,8 @@ pub struct VisualKickerStruct {
 
 #[derive(Clone, Default)]
 pub struct SpriteData {
-    pub bmp: Option<GdrvBitmap8>,
-    pub zmap: Option<ZMapHeaderType>,
+    pub bmp: Option<Rc<GdrvBitmap8>>,
+    pub zmap: Option<Rc<ZMapHeaderType>>,
 }
 
 #[derive(Clone, Default)]

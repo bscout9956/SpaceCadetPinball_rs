@@ -6,6 +6,7 @@ use crate::{gdrv, maths, zdrv};
 use sdl2::sys::SDL_Rect;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
 use std::cmp::PartialEq;
+use std::rc::Rc;
 use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
@@ -19,11 +20,11 @@ pub enum VisualTypes {
 
 #[derive(Default, Clone)]
 pub struct RenderSprite {
-    bmp_rect: RectangleType,
-    bmp: Option<GdrvBitmap8>,
-    zmap: Option<ZMapHeaderType>,
+    pub bmp_rect: RectangleType,
+    pub bmp: Option<Rc<GdrvBitmap8>>,
+    pub zmap: Option<Rc<ZMapHeaderType>>,
     delete_flag: bool,
-    visual_type: VisualTypes,
+    pub visual_type: VisualTypes,
     depth: u16,
     dirty_rect_prev: RectangleType,
     z_map_offset_y: i32,
@@ -90,6 +91,15 @@ impl RenderSprite {
 
         add_sprite(instance.clone());
         instance
+    }
+
+    pub fn set(
+        &self,
+        bmp: Option<Rc<GdrvBitmap8>>,
+        zmap: Option<Rc<ZMapHeaderType>>,
+        x_pos: i32,
+        y_pos: i32,
+    ) {
     }
 }
 
