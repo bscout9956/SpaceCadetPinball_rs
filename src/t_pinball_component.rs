@@ -1,6 +1,8 @@
+use crate::gdrv::GdrvBitmap8;
 use crate::maths::*;
 use crate::message_code::MessageCode;
 use crate::render::RenderSprite;
+use crate::zdrv::ZMapHeaderType;
 use crate::{control::ComponentControl, loader, loader::VisualStruct};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
 use std::ffi::CStr;
@@ -26,7 +28,7 @@ pub struct TPinballComponent {
 }
 
 pub trait IPinballComponent {
-    fn sprite_set(&self, index: i32);
+    fn sprite_set(&mut self, index: i32);
     fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32);
     fn get_coordinates(&self) -> Vector2;
     fn get_scoring(&self, index: u32) -> i32;
