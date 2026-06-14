@@ -27,7 +27,7 @@ use std::ptr::{NonNull, addr_of_mut};
 use std::str::FromStr;
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
-use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
+use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError, TryLockResult};
 use thiserror::Error;
 
 mod fullscrn;
@@ -188,6 +188,13 @@ impl WelfordState {
     }
 }
 
+pub struct SdlWindowPtr(pub *mut SDL_Window);
+unsafe impl Sync for SdlWindowPtr {}
+unsafe impl Send for SdlWindowPtr {}
+pub struct SdlRendererPtr(pub *mut SDL_Renderer);
+unsafe impl Send for SdlRendererPtr {}
+unsafe impl Sync for SdlRendererPtr {}
+
 pub const VERSION: &str = "1.0 DEV";
 pub static SINGLE_STEP: AtomicBool = AtomicBool::new(false); // VERIFY default value
 pub static LAUNCH_BALL_ENABLED: AtomicBool = AtomicBool::new(true);
@@ -232,13 +239,14 @@ static PREV_SDL_ERROR_COUNT: AtomicU32 = AtomicU32::new(0);
 static GFR_OFFSET: AtomicU32 = AtomicU32::new(0);
 static CURSOR_IDLE_COUNTER: AtomicI32 = AtomicI32::new(0);
 
-pub static MAIN_WINDOW: Mutex<Option<SDL_Window>> = Mutex::new(Option::None);
+pub static MAIN_WINDOW: Mutex<Option<SdlWindowPtr>> = Mutex::new(Option::None);
 
 pub fn get_main_menu_height() -> i32 {
     MAIN_MENU_HEIGHT.load(SeqCst)
 }
 
-static RENDERER: LazyLock<Mutex<Option<SDL_Renderer>>> = LazyLock::new(|| Mutex::new(Option::None));
+static RENDERER: LazyLock<Mutex<Option<SdlRendererPtr>>> =
+    LazyLock::new(|| Mutex::new(Option::None));
 
 #[derive(Debug, Error)]
 pub enum MainError {
@@ -246,7 +254,7 @@ pub enum MainError {
     NoneRendererError,
 
     #[error("Unable to lock Mutex for retrieving the SDL_Renderer on main")]
-    MutexError(#[from] PoisonError<MutexGuard<'static, Option<SDL_Renderer>>>),
+    MutexError(#[from] PoisonError<MutexGuard<'static, Option<SdlRendererPtr>>>),
     #[error("Failed to lock Mutex")]
     LockGeneric,
 }
@@ -298,6 +306,8 @@ pub enum MainLoopError {
     MutexLock,
     #[error(transparent)]
     NulError(#[from] NulError),
+    #[error("There is no MainWindow to attach to...")]
+    NullWindow,
 }
 
 fn main_loop() -> Result<(), MainLoopError> {
@@ -333,10 +343,13 @@ fn main_loop() -> Result<(), MainLoopError> {
                 let c_str_title = CString::new(title.clone())?;
 
                 let window_guard = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
-                let mut window = window_guard.unwrap();
-                unsafe {
-                    SDL_SetWindowTitle(&raw mut window, c_str_title.as_ptr());
-                };
+                if let Some(window) = *window_guard {
+                    unsafe {
+                        SDL_SetWindowTitle(window.0, c_str_title.as_ptr());
+                    };
+                } else {
+                    return Err(MainLoopError::NullWindow);
+                }
 
                 let mut fps_det = FPS_DETAILS.lock().map_err(|_| MainLoopError::MutexLock)?;
                 *fps_det = String::from(&title);
@@ -465,6 +478,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Creating window");
         let rc_string = pb::get_rc_string(Msg::STRING139)?;
         let rc_cstr = CStr::from_bytes_with_nul_unchecked(rc_string.as_bytes());
+
         let window = SDL_CreateWindow(
             rc_cstr.as_ptr(),
             0,
@@ -473,11 +487,25 @@ fn main() -> Result<(), Box<dyn Error>> {
             556,
             SDL_WINDOW_HIDDEN as u32 | SDL_WINDOW_RESIZABLE as u32,
         );
-        let mut main_window = MAIN_WINDOW.lock()?;
+
+        let mut main_window: Option<SdlWindowPtr> = Option::None;
         if !window.is_null() {
-            *main_window = Some(*window);
+            main_window = Some(SdlWindowPtr(window));
         }
-        if main_window.is_none() {
+
+        match MAIN_WINDOW.try_lock() {
+            Ok(mut main_window_grd) => {
+                *main_window_grd = main_window;
+            }
+            Err(std::sync::TryLockError::Poisoned(_)) => {
+                println!("Poisoned lock because a thread panicked.");
+            }
+            Err(std::sync::TryLockError::WouldBlock) => {
+                println!("Another thread is locking MAIN_WINDOW");
+            }
+        }
+
+        if MAIN_WINDOW.lock()?.is_none() {
             pb::show_message_box_cstr_message(
                 SDL_MESSAGEBOX_ERROR,
                 "Could not create window",
@@ -488,7 +516,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         let sw_offset_flag = args.iter().any(|arg| arg.contains("-sw"));
-        let mut renderer: *mut SDL_Renderer = std::mem::zeroed();
         for i in sw_offset_flag as i32..2 {
             println!("Offset {}", i);
             let flags = if i == 0 {
@@ -498,20 +525,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                 println!("Using software");
                 SDL_RENDERER_SOFTWARE
             };
-            renderer = SDL_CreateRenderer(window, -1, flags as u32);
-            let mut static_render = RENDERER.lock()?;
-            if !renderer.is_null() {
-                *static_render = Some(*renderer);
-                println!("Renderer successfully created and assigned.");
-            }
+            let renderer: *mut SDL_Renderer = SDL_CreateRenderer(window, -1, flags as u32);
 
             if !renderer.is_null() {
-                println!("Renderer is not null");
+                let mut static_renderer = RENDERER.lock()?;
+                *static_renderer = Some(SdlRendererPtr(renderer));
+                println!("Renderer successfully created and assigned.");
                 break;
             }
         }
 
-        if renderer.is_null() {
+        if RENDERER.lock()?.is_none() {
             pb::show_message_box_cstr_message(
                 SDL_MESSAGEBOX_ERROR,
                 "Could not create renderer",
@@ -520,17 +544,31 @@ fn main() -> Result<(), Box<dyn Error>> {
             println!("Could not create renderer, is null");
             exit(1);
         }
-        let mut renderer_info: SDL_RendererInfo = std::mem::zeroed();
-        let result = SDL_GetRendererInfo(renderer, &mut renderer_info);
-        if result != 0 {
-            println!("Error getting renderer information");
-        } else {
-            println!(
-                "Using SDL Renderer: {}",
-                CStr::from_ptr(renderer_info.name).to_str()?
-            );
+
+        match RENDERER.lock() {
+            Ok(guard) => {
+                let mut renderer_info: SDL_RendererInfo = std::mem::zeroed();
+
+                if let Some(renderer_ptr) = guard.as_ref() {
+                    let result = SDL_GetRendererInfo(renderer_ptr.0, &mut renderer_info);
+
+                    if result != 0 {
+                        println!("Error getting renderer information");
+                    } else {
+                        println!(
+                            "Using SDL Renderer: {}",
+                            CStr::from_ptr(renderer_info.name).to_str()?
+                        );
+                    }
+
+                    SDL_SetRenderDrawColor(renderer_ptr.0, 0, 0, 0, 255);
+                }
+            }
+            Err(e) => {
+                println!("Error locking renderer: {}", e);
+            }
         }
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+
         SDL_SetHint(
             SDL_HINT_RENDER_SCALE_QUALITY.as_ptr() as *const i8,
             c"nearest".as_ptr(),
@@ -639,23 +677,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
 
-            println!("Initializing IMGUI_SDL");
-            imgui_sdl::initialize(&mut imgui_context, renderer, 0, 0);
-
-            println!("Locking renderer to init");
             match RENDERER.lock() {
-                Ok(renderer_opt) => match *renderer_opt {
-                    Some(mut static_renderer) => {
-                        imgui_sdl::init_for_sdl_renderer(
-                            &mut imgui_context,
-                            window,
-                            addr_of_mut!(static_renderer),
-                        );
+                Ok(renderer_ptr) => {
+                    if let Some(renderer) = renderer_ptr.as_ref() {
+                        println!("Initializing IMGUI_SDL");
+                        imgui_sdl::initialize(&mut imgui_context, renderer.0, 0, 0);
+
+                        imgui_sdl::init_for_sdl_renderer(&mut imgui_context, window, renderer.0);
+                    } else {
+                        panic!("No renderer found to initialize IMGUI!");
                     }
-                    Option::None => {
-                        panic!("Could not find a renderer to initialize");
-                    }
-                },
+                }
                 Err(e) => {
                     println!("Failed to lock renderer: {}", e)
                 }
