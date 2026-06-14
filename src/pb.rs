@@ -93,16 +93,16 @@ pub fn show_message_box(
     let message = CString::new(message)?;
     let message_cstr = message.as_c_str();
 
-    let mut main_window = MAIN_WINDOW.lock().map_err(|_| PbError::LockGeneric)?;
-    let main_window_ptr = main_window.as_mut().unwrap();
-
-    unsafe {
-        SDL_ShowSimpleMessageBox(
-            flags as u32,
-            title_cstr.as_ptr(),
-            message_cstr.as_ptr(),
-            main_window_ptr,
-        );
+    let main_window = MAIN_WINDOW.lock().map_err(|_| PbError::LockGeneric)?;
+    if let Some(window) = main_window.as_ref() {
+        unsafe {
+            SDL_ShowSimpleMessageBox(
+                flags as u32,
+                title_cstr.as_ptr(),
+                message_cstr.as_ptr(),
+                window.0,
+            );
+        }
     }
 
     Ok(())

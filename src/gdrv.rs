@@ -1,8 +1,8 @@
-use crate::partman::{Bmp8Flags, Dat8BitBmpHeader};
 use crate::RENDERER;
+use crate::partman::{Bmp8Flags, Dat8BitBmpHeader};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::sys::{
-    SDL_CreateTexture, SDL_DestroyTexture, SDL_SetHint, SDL_Texture, SDL_HINT_RENDER_SCALE_QUALITY,
+    SDL_CreateTexture, SDL_DestroyTexture, SDL_HINT_RENDER_SCALE_QUALITY, SDL_SetHint, SDL_Texture,
 };
 use std::cmp::PartialEq;
 use std::ffi::c_char;
@@ -221,12 +221,11 @@ impl GdrvBitmap8 {
             );
         }
 
-        match (*renderer_guard) {
-            Some(mut renderer) => {
-                let renderer_ptr = &raw mut renderer;
+        match (renderer_guard.as_ref()) {
+            Some(renderer) => {
                 unsafe {
                     SDL_CreateTexture(
-                        renderer_ptr,
+                        renderer.0,
                         PixelFormatEnum::BGRA32 as u32,
                         access,
                         self.width,
