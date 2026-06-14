@@ -236,13 +236,13 @@ pub fn get_screen_to_pinball_ratio() -> f32 {
 unsafe fn enable_fullscreen() -> Result<bool, FullscreenError> {
     let mut display_changed = DISPLAY_CHANGED.load(Relaxed);
     if !display_changed {
-        if let Some(mut main_window) = *MAIN_WINDOW
+        if let Some(main_window) = MAIN_WINDOW
             .lock()
             .map_err(|_| FullscreenError::LockGeneric)?
+            .as_ref()
         {
-            let main_window_ptr = &raw mut main_window;
             unsafe {
-                if (SDL_SetWindowFullscreen(main_window_ptr, SDL_WINDOW_FULLSCREEN_DESKTOP as u32)
+                if (SDL_SetWindowFullscreen(main_window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32)
                     == 0)
                 {
                     display_changed = true;
@@ -260,13 +260,13 @@ unsafe fn enable_fullscreen() -> Result<bool, FullscreenError> {
 fn disable_fullscreen() -> Result<bool, FullscreenError> {
     let mut display_changed = DISPLAY_CHANGED.load(Relaxed);
     if display_changed {
-        if let Some(mut main_window) = *MAIN_WINDOW
+        if let Some(mut main_window) = MAIN_WINDOW
             .lock()
             .map_err(|_| FullscreenError::LockGeneric)?
+            .as_ref()
         {
-            let main_window_ptr = &raw mut main_window;
             unsafe {
-                if (SDL_SetWindowFullscreen(main_window_ptr, SDL_WINDOW_FULLSCREEN_DESKTOP as u32)
+                if (SDL_SetWindowFullscreen(main_window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32)
                     == 0)
                 {
                     display_changed = false;
