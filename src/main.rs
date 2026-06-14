@@ -297,7 +297,7 @@ pub enum MainLoopError {
     NullWindow,
 }
 
-fn main_loop() -> Result<(), MainLoopError> {
+fn main_loop(imgui_context: &mut Context) -> Result<(), MainLoopError> {
     B_QUIT.store(false, Relaxed);
 
     let mut update_count: usize = 0;
@@ -346,7 +346,7 @@ fn main_loop() -> Result<(), MainLoopError> {
             }
         }
 
-        if !process_window_messages() || B_QUIT.load(SeqCst) == true {
+        if !process_window_messages(imgui_context)? || B_QUIT.load(SeqCst) == true {
             break;
         }
 
@@ -424,7 +424,7 @@ fn main_loop() -> Result<(), MainLoopError> {
     Ok(())
 }
 
-fn process_window_messages() -> Result<bool, MainLoopError> {
+fn process_window_messages(imgui_context: &mut Context) -> Result<bool, MainLoopError> {
     static IDLE_WAIT: Mutex<i64> = Mutex::new(0);
     let event: *mut SDL_Event = unsafe { std::mem::zeroed() };
 
@@ -438,7 +438,7 @@ fn process_window_messages() -> Result<bool, MainLoopError> {
         *guard = (*frame_time_g).count();
         unsafe {
             while SDL_PollEvent(event) > 0 {
-                if !event_handler(event) {
+                if event_handler(event, imgui_context)? == 0 {
                     return Ok(false);
                 }
             }
@@ -467,7 +467,10 @@ fn process_window_messages() -> Result<bool, MainLoopError> {
     }
 }
 
-unsafe fn event_handler(event: *mut SDL_Event) -> Result<i32, MainLoopError> {
+unsafe fn event_handler(
+    event: *mut SDL_Event,
+    imgui_context: &mut Context,
+) -> Result<i32, MainLoopError> {
     let mut input_down = false;
 
     unsafe {
@@ -485,8 +488,7 @@ unsafe fn event_handler(event: *mut SDL_Event) -> Result<i32, MainLoopError> {
         .map_err(|_| MainLoopError::MutexLock)?;
 
     if (*waiting_input).is_none() || !input_down {
-        // TODO here
-        imgui_sdl::process_event(event);
+        imgui_sdl::impl_sdl2_process_event(imgui_context, event);
     }
 
     let mouse_event: bool;
@@ -740,9 +742,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Ok(renderer_ptr) => {
                     if let Some(renderer) = renderer_ptr.as_ref() {
                         println!("Initializing IMGUI_SDL");
-                        imgui_sdl::initialize(&mut imgui_context, renderer.0, 0, 0);
+                        imgui_sdl::initialize(imgui_context, renderer.0, 0, 0);
 
-                        imgui_sdl::init_for_sdl_renderer(&mut imgui_context, window, renderer.0);
+                        imgui_sdl::init_for_sdl_renderer(imgui_context, window, renderer.0);
                     } else {
                         panic!("No renderer found to initialize IMGUI!");
                     }
