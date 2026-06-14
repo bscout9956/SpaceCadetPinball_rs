@@ -885,8 +885,8 @@ pub fn query_visual(
             i += 2
         }
     }
-    // VERIFY: Is the 0 check correct? Should it be not 0?
-    if visual.collision_group != 0 {
+
+    if visual.collision_group == 0 {
         visual.collision_group = 1;
     }
 
