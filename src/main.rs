@@ -259,15 +259,6 @@ pub enum MainError {
     LockGeneric,
 }
 
-pub fn get_renderer() -> Result<*mut SDL_Renderer, MainError> {
-    let renderer = RENDERER.lock()?;
-    if let Some(mut sdl_renderer) = *renderer {
-        Ok(&raw mut sdl_renderer)
-    } else {
-        Err(MainError::NoneRendererError)
-    }
-}
-
 // TODO: Likewise
 thread_local! {
     static IMGUI_IO: RefCell<Option<NonNull<ImGuiIO>>> = RefCell::new(Option::None);
