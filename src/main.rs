@@ -70,10 +70,6 @@ pub mod text_array;
 pub mod timer;
 mod utils;
 
-pub fn restart_func() {
-    todo!();
-}
-
 #[derive(PartialEq, Eq, Ord, PartialOrd, Clone, Copy)]
 pub struct Duration<const DEN: u64>(pub i64);
 #[derive(PartialEq, Eq, Ord, PartialOrd, Clone, Copy)]
