@@ -128,7 +128,7 @@ impl RenderSprite {
         self.dirty_flag = self.visual_type != VisualTypes::Ball;
         self.bmp_rect.x_position = x_pos;
         self.bmp_rect.y_position = y_pos;
-        
+
         if let Some(b) = &self.bmp {
             self.bmp_rect.width = b.width;
             self.bmp_rect.height = b.height;
@@ -382,8 +382,6 @@ fn unpaint_balls() -> Result<(), RenderLockError> {
 pub fn update() {
     unpaint_balls();
 
-    let v_screen_rect = V_SCREEN_RECT.lock().unwrap();
-
     let mut sprite_list = SPRITE_LIST.lock().unwrap();
     // Clip dirty sprites with vScreen, clear clipping (dirty) rectangles
     for sprite in sprite_list.iter_mut() {
@@ -394,6 +392,7 @@ pub fn update() {
         let mut clear_sprite: bool = false;
         match sprite.visual_type {
             VisualTypes::Background => {
+                let v_screen_rect = V_SCREEN_RECT.lock().unwrap();
                 let rec_clip =
                     maths::rectangle_clip(&sprite.bmp_rect, &v_screen_rect, &mut sprite.dirty_rect);
                 if rec_clip {
@@ -413,6 +412,8 @@ pub fn update() {
 
                 let dirty_rect = sprite.dirty_rect;
                 let mut clipped_rect = dirty_rect;
+                let v_screen_rect = V_SCREEN_RECT.lock().unwrap();
+                
                 let rec_clip =
                     maths::rectangle_clip(&dirty_rect, &v_screen_rect, &mut clipped_rect);
 
