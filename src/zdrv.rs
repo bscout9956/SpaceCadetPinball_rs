@@ -11,6 +11,9 @@ pub struct ZMapHeaderType {
     pub texture: Option<SDL_Texture>,
 }
 
+unsafe impl Send for ZMapHeaderType {}
+unsafe impl Sync for ZMapHeaderType {}
+
 impl ZMapHeaderType {
     pub fn default() -> Self {
         Self {
