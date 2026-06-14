@@ -358,3 +358,87 @@ struct SdlSysWminfoWindows {
     pub window: *mut c_void,
     pub hdc: *mut c_void,
 }
+
+pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Event) -> bool {
+    let io = context.io_mut();
+    let bd = match impl_sdl2_get_backend_data(io) {
+        Some(data) => data,
+        None => return false,
+    };
+
+    unsafe {
+        if (*event).type_ as u32 == SDL_MOUSEMOTION as u32 {
+            io.add_mouse_pos_event([(*event).motion.x as f32, (*event).motion.y as f32]);
+            return true;
+        }
+        if (*event).type_ as u32 == SDL_MOUSEWHEEL as u32 {
+            let wheel_x = if (*event).wheel.x > 0 {
+                1.0f32
+            } else {
+                if (*event).wheel.x < 0 {
+                    -1.0f32
+                } else {
+                    0.0f32
+                }
+            };
+
+            let wheel_y = if (*event).wheel.y > 0 {
+                1.0f32
+            } else {
+                if (*event).wheel.y < 0 {
+                    -1.0f32
+                } else {
+                    0.0f32
+                }
+            };
+
+            io.add_mouse_wheel_event([wheel_x, wheel_y]);
+            return true;
+        }
+        if (*event).type_ as u32 == SDL_MOUSEBUTTONDOWN as u32
+            || (*event).type_ as u32 == SDL_MOUSEBUTTONUP as u32
+        {
+            let (mouse_button, button_index) = match (*event).button.button as u32 {
+                SDL_BUTTON_LEFT => (MouseButton::Left, 0),
+                SDL_BUTTON_RIGHT => (MouseButton::Right, 1),
+                SDL_BUTTON_MIDDLE => (MouseButton::Middle, 2),
+                SDL_BUTTON_X1 => (MouseButton::Extra1, 3),
+                SDL_BUTTON_X2 => (MouseButton::Extra2, 4),
+                _ => return false,
+            };
+
+            let is_down = (*event).type_ as u32 == SDL_MOUSEBUTTONDOWN as u32;
+
+            io.add_mouse_button_event(mouse_button, (*event).type_ == SDL_MOUSEBUTTONDOWN as u32);
+
+            if is_down {
+                bd.mouse_buttons_down |= 1 << button_index;
+            } else {
+                bd.mouse_buttons_down &= !(1 << button_index);
+            }
+
+            return true;
+        }
+
+        if (*event).type_ as u32 == SDL_TEXTINPUT as u32 {
+            io.add_input_character((*event).text.text); //expected char, found [char; 32]??
+            return true;
+        }
+
+        if (*event).type_ as u32 == SDL_KEYDOWN as u32 || (*event).type_ as u32 == SDL_KEYUP as u32
+        {
+            // TODO: continue at L293
+        }
+    }
+    false
+}
+
+pub fn impl_sdl2_get_backend_data(io: &mut Io) -> Option<&mut ImplSdl2Data> {
+    let ptr = io.backend_platform_user_data();
+
+    if ptr.is_null() {
+        None
+    } else {
+        Some(unsafe { &mut *(ptr as *mut ImplSdl2Data) })
+    }
+}
