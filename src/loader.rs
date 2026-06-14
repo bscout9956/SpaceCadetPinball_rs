@@ -172,8 +172,8 @@ pub struct VisualKickerStruct {
 
 #[derive(Clone, Default)]
 pub struct SpriteData {
-    pub bmp: Option<Rc<GdrvBitmap8>>,
-    pub zmap: Option<Rc<ZMapHeaderType>>,
+    pub bmp: Option<Arc<GdrvBitmap8>>,
+    pub zmap: Option<Arc<ZMapHeaderType>>,
 }
 
 #[derive(Clone, Default)]
@@ -783,8 +783,8 @@ pub fn query_visual(
     let bmp = loader_table.get_bitmap(state_id).to_owned();
     let zmap = loader_table.get_zmap(state_id).to_owned();
     visual.bitmap = SpriteData {
-        bmp: Some(Rc::new(bmp)),
-        zmap: Some(Rc::new(zmap)),
+        bmp: Some(Arc::new(bmp)),
+        zmap: Some(Arc::new(zmap)),
     };
 
     let short_array_data = match loader_table.field(state_id, FieldTypes::ShortArray) {

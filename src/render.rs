@@ -7,7 +7,7 @@ use sdl2::sys::SDL_Rect;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
 use std::cmp::PartialEq;
 use std::rc::Rc;
-use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
 #[derive(PartialEq, Debug, PartialOrd, Ord, Eq, Default, Clone)]
@@ -21,8 +21,8 @@ pub enum VisualTypes {
 #[derive(Default, Clone)]
 pub struct RenderSprite {
     pub bmp_rect: RectangleType,
-    pub bmp: Option<Rc<GdrvBitmap8>>,
-    pub zmap: Option<Rc<ZMapHeaderType>>,
+    pub bmp: Option<Arc<GdrvBitmap8>>,
+    pub zmap: Option<Arc<ZMapHeaderType>>,
     delete_flag: bool,
     pub visual_type: VisualTypes,
     depth: u16,
@@ -38,8 +38,8 @@ pub struct RenderSprite {
 impl RenderSprite {
     pub fn new(
         visual_type: VisualTypes,
-        bmp: Option<GdrvBitmap8>,
-        zmap: Option<ZMapHeaderType>,
+        bmp: Option<Arc<GdrvBitmap8>>,
+        zmap: Option<Arc<ZMapHeaderType>>,
         x_pos: i32,
         y_pos: i32,
         bounding_rect: Option<RectangleType>,
@@ -94,9 +94,9 @@ impl RenderSprite {
     }
 
     pub fn set(
-        &self,
-        bmp: Option<Rc<GdrvBitmap8>>,
-        zmap: Option<Rc<ZMapHeaderType>>,
+        &mut self,
+        bmp: Option<Arc<GdrvBitmap8>>,
+        zmap: Option<Arc<ZMapHeaderType>>,
         x_pos: i32,
         y_pos: i32,
     ) {
@@ -133,7 +133,7 @@ impl PartialEq for RenderSprite {
 
 pub static V_SCREEN: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
 pub static BACKGROUND_BITMAP: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
-pub static BACKGROUND_ZMAP: Mutex<Option<ZMapHeaderType>> = Mutex::new(None);
+pub static BACKGROUND_ZMAP: Mutex<Option<Arc<ZMapHeaderType>>> = Mutex::new(None);
 
 pub static Z_MAP_OFFSET_X: Mutex<i32> = Mutex::new(0);
 pub static Z_MAP_OFFSET_Y: Mutex<i32> = Mutex::new(0);
@@ -448,13 +448,14 @@ pub fn remove_sprite(sprite: &RenderSprite) {
         &SPRITE_LIST
     };
 
+    // TODO: Arc::ptr_eq
     let mut list_sprites = list.lock().unwrap();
     if let Some(pos) = list_sprites.iter().position(|s| std::ptr::eq(s, sprite)) {
         list_sprites.remove(pos);
     }
 }
 
-pub fn set_background_zmap(zmap: Option<ZMapHeaderType>, offset_x: i32, offset_y: i32) {
+pub fn set_background_zmap(zmap: Option<Arc<ZMapHeaderType>>, offset_x: i32, offset_y: i32) {
     let mut zmap_guard = BACKGROUND_ZMAP.lock().unwrap();
     *zmap_guard = zmap;
     let mut zmap_offset_x = Z_MAP_OFFSET_X.lock().unwrap();
