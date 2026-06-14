@@ -103,6 +103,36 @@ impl RenderSprite {
         x_pos: i32,
         y_pos: i32,
     ) {
+        let bmp_eq = match (&self.bmp, &bmp) {
+            (Some(current), Some(new)) => Arc::ptr_eq(current, new),
+            (None, None) => true,
+            _ => false,
+        };
+
+        let zmap_eq = match (&self.zmap, &bmp) {
+            (Some(current), Some(new)) => Arc::ptr_eq(current, new),
+            (None, None) => true,
+            _ => false,
+        };
+
+        if bmp_eq
+            && zmap_eq
+            && self.bmp_rect.x_position == x_pos
+            && self.bmp_rect.y_position == y_pos
+        {
+            return;
+        }
+
+        self.bmp = bmp;
+        self.zmap = zmap;
+        self.dirty_flag = self.visual_type != VisualTypes::Ball;
+        self.bmp_rect.x_position = x_pos;
+        self.bmp_rect.y_position = y_pos;
+        
+        if let Some(b) = &self.bmp {
+            self.bmp_rect.width = b.width;
+            self.bmp_rect.height = b.height;
+        }
     }
 }
 
