@@ -119,10 +119,8 @@ impl IPinballComponent for TPinballComponent {
                     }
                 }
             }
-            
         }
         self.render_sprite.set(bmp, zmap, x_pos, y_pos);
-
     }
 
     fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32) {
@@ -141,7 +139,7 @@ impl IPinballComponent for TPinballComponent {
     }
 
     fn port_draw(&self) {
-        // Doesn't have an impl
+        // TODO: Doesn't have an impl?
     }
 
     fn message(&mut self, code: MessageCode, value: f32) -> MessageCode {
