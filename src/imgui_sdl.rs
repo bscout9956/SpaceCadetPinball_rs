@@ -1,7 +1,11 @@
-use dear_imgui_rs::sys::{igGetMainViewport, ImGuiMouseCursor_COUNT};
-use dear_imgui_rs::BackendFlags;
+use dear_imgui_rs::sys::{ImGuiIO, ImGuiMouseCursor_COUNT, igGetCurrentContext, igGetMainViewport};
+use dear_imgui_rs::{BackendFlags, Io, MouseButton};
 use dear_imgui_rs::{Context, TextureId};
 use sdl2::render::RenderTarget;
+use sdl2::sys::SDL_EventType::{
+    SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEMOTION,
+    SDL_MOUSEWHEEL, SDL_TEXTINPUT,
+};
 use sdl2::sys::SDL_SystemCursor::{
     SDL_SYSTEM_CURSOR_ARROW, SDL_SYSTEM_CURSOR_HAND, SDL_SYSTEM_CURSOR_IBEAM, SDL_SYSTEM_CURSOR_NO,
     SDL_SYSTEM_CURSOR_SIZEALL, SDL_SYSTEM_CURSOR_SIZENESW, SDL_SYSTEM_CURSOR_SIZENS,
@@ -9,13 +13,14 @@ use sdl2::sys::SDL_SystemCursor::{
     SDL_SYSTEM_CURSOR_WAITARROW,
 };
 use sdl2::sys::{
+    SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2,
     SDL_CreateRGBSurfaceFrom, SDL_CreateSystemCursor, SDL_CreateTextureFromSurface, SDL_Cursor,
-    SDL_DestroyTexture, SDL_FreeSurface, SDL_GetCurrentVideoDriver, SDL_GetVersion,
-    SDL_GetWindowWMInfo, SDL_Renderer, SDL_SetHint,
-    SDL_Surface, SDL_SysWMinfo, SDL_Texture, SDL_Window, SDL_bool, SDL_version, SDL_HINT_MOUSE_AUTO_CAPTURE,
-    SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, SDL_SYSWM_TYPE,
+    SDL_DestroyTexture, SDL_Event, SDL_FreeSurface, SDL_GetCurrentVideoDriver, SDL_GetVersion,
+    SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE, SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH,
+    SDL_Renderer, SDL_SYSWM_TYPE, SDL_SetHint, SDL_Surface, SDL_SysWMinfo, SDL_Texture, SDL_Window,
+    SDL_bool, SDL_version,
 };
-use std::ffi::{c_char, c_void, CStr};
+use std::ffi::{CStr, c_char, c_void};
 use std::ops::{Add, Mul};
 use std::ptr::{addr_of_mut, null_mut};
 use std::sync::{LazyLock, Mutex};
