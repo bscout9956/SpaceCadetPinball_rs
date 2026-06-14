@@ -354,8 +354,7 @@ fn unpaint_balls() -> Result<(), RenderLockError> {
     let mut v_screen_guard = V_SCREEN.lock()?;
     let vscreen = (*v_screen_guard).as_mut().unwrap();
 
-    let mut index = ball_list_size - 1;
-    while index >= 0 {
+    for index in (0..ball_list_size).rev() {
         let cur_ball = &mut ball_list[index];
 
         let mut ball_bitmap_guard = BALL_BITMAP.lock()?;
@@ -375,8 +374,6 @@ fn unpaint_balls() -> Result<(), RenderLockError> {
         }
 
         cur_ball.dirty_rect_prev = cur_ball.dirty_rect;
-
-        index -= 1;
     }
 
     Ok(())
