@@ -786,7 +786,7 @@ pub fn query_visual(
         zmap: Some(zmap.clone()),
     };
 
-    let short_array_data = match loader_table.field(group_index, FieldTypes::ShortArray) {
+    let short_array_data = match loader_table.field(state_id, FieldTypes::ShortArray) {
         Some(EntryBuffer::Raw(data)) => data.to_vec(),
         _ => vec![],
     };
