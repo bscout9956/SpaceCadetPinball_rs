@@ -781,10 +781,10 @@ pub fn query_visual(
     let loader_guard = LOADER_TABLE.lock()?;
     let loader_table = loader_guard.as_ref().unwrap();
     let bmp = loader_table.get_bitmap(state_id).to_owned();
-    let zmap = loader_table.get_zmap(state_id);
+    let zmap = loader_table.get_zmap(state_id).to_owned();
     visual.bitmap = SpriteData {
-        bmp: Some(bmp),
-        zmap: Some(zmap.clone()),
+        bmp: Some(Rc::new(bmp)),
+        zmap: Some(Rc::new(zmap)),
     };
 
     let short_array_data = match loader_table.field(state_id, FieldTypes::ShortArray) {
