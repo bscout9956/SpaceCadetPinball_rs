@@ -14,7 +14,7 @@ pub struct TPinballComponent {
     pub unused_base_flag: Rc<Cell<bool>>,
     pub active_flag: Rc<Cell<bool>>,
     pub message_field: MessageCode,
-    pub group_name: Option<Rc<Cell<String>>>,
+    pub group_name: Option<Rc<RefCell<String>>>,
     pub control: Option<Weak<RefCell<ComponentControl>>>,
     pub group_index: i32,
     pub render_sprite: RenderSprite,
@@ -46,7 +46,7 @@ impl TPinballComponent {
             unused_base_flag: Rc::new(Cell::new(false)),
             active_flag: Rc::new(Cell::new(false)),
             message_field: MessageCode(0),
-            group_name: Some(Rc::new(Cell::new(String::new()))),
+            group_name: Some(Rc::new(RefCell::new(String::new()))),
             control: None,
             group_index,
             render_sprite: RenderSprite::default(),
@@ -64,7 +64,7 @@ impl TPinballComponent {
         if group_index >= 0 {
             let name = loader::query_name(group_index).unwrap();
             let name_string = unsafe { CStr::from_ptr(name).to_string_lossy().into_owned() };
-            instance.group_name = Some(Rc::new(Cell::new(name_string)))
+            instance.group_name = Some(Rc::new(RefCell::new(name_string)))
         }
 
         if load_visuals && group_index >= 0 {
