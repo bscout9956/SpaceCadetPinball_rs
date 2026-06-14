@@ -224,7 +224,7 @@ impl ICollisionComponent for TCollisionComponent {
 
 impl IPinballComponent for TCollisionComponent {
     // TODO: Some remain unimplemented I suppose?? Maybe I should look into trait defaults
-    fn sprite_set(&self, index: i32) {
+    fn sprite_set(&mut self, index: i32) {
         todo!()
     }
 
