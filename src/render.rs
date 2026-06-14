@@ -83,8 +83,11 @@ impl RenderSprite {
         instance.dirty_rect_prev = instance.bmp_rect;
 
         if instance.zmap.is_none() && instance.visual_type != VisualTypes::Ball {
-            assert!(false, "Background zmap should not be used");
-            instance.zmap = BACKGROUND_ZMAP.lock().unwrap().take();
+            unreachable!("Background zmap should not be used");
+            let zmap_bg = BACKGROUND_ZMAP.lock().unwrap();
+
+            instance.zmap = zmap_bg.clone();
+
             instance.z_map_offset_x = x_pos - *Z_MAP_OFFSET_X.lock().unwrap();
             instance.z_map_offset_y = y_pos - *Z_MAP_OFFSET_Y.lock().unwrap();
         }
