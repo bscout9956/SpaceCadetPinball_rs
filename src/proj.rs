@@ -60,7 +60,15 @@ pub fn init(max4x3: [f32; 12], d: f32, cen_x: f32, cen_y: f32, zm: f32, zscaler:
 }
 
 pub fn matrix_vector_multiply(mat: &Mat4RowMajor, vec: &Vector3) -> Vector3 {
-    todo!()
+    let mut dst_vec: Vector3 = Vector3::default();
+    let x: f32 = vec.x;
+    let y: f32 = vec.y;
+    let z: f32 = vec.z;
+    dst_vec.x = z * mat.row0.z + y * mat.row0.y + mat.row0.x + mat.row0.w;
+    dst_vec.y = z * mat.row1.z + y * mat.row1.y + mat.row1.x + mat.row1.w;
+    dst_vec.z = z * mat.row2.z + y * mat.row2.y + mat.row2.x + mat.row2.w;
+
+    dst_vec
 }
 
 pub fn z_distance(vec: &Vector3) -> f32 {
