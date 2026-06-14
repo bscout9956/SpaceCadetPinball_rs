@@ -1,11 +1,12 @@
+use crate::MainError::NoneRendererError;
 use crate::errors::FullscreenError;
 use crate::options::OPTIONS;
-use crate::{get_main_menu_height, get_renderer, pb, render, MAIN_WINDOW};
+use crate::{MAIN_WINDOW, RENDERER, get_main_menu_height, pb, render};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicI32};
-use std::sync::{atomic, Mutex};
+use std::sync::{Mutex, atomic};
 
 static RESOLUTION: AtomicI32 = AtomicI32::new(0);
 
@@ -109,14 +110,15 @@ fn reset_offset(offset: &Mutex<f32>) -> Result<(), FullscreenError> {
 
 pub fn window_size_changed() -> Result<(), FullscreenError> {
     let (mut width, mut height): (i32, i32) = (0, 0);
-    match get_renderer() {
-        Ok(main_renderer) => unsafe {
-            SDL_GetRendererOutputSize(main_renderer, &mut width, &mut height);
-        },
-        Err(e) => {
-            return Err(FullscreenError::MainWindowMissing);
+    let renderer_guard = RENDERER.lock().map_err(|_| FullscreenError::LockGeneric)?;
+    if let Some(renderer) = renderer_guard.as_ref() {
+        unsafe {
+            SDL_GetRendererOutputSize(renderer.0, &mut width, &mut height);
         }
+    } else {
+        return Err(FullscreenError::MissingRenderer);
     }
+
     let options = OPTIONS.lock()?;
     let menu_height = if *options.show_menu {
         get_main_menu_height()
