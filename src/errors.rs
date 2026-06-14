@@ -3,6 +3,7 @@ use std::io::Error;
 use std::sync::{Arc, MutexGuard, PoisonError};
 use thiserror::Error;
 
+use crate::MainError;
 use crate::fullscrn::ResolutionInfo;
 use crate::group_data::DatFile;
 use crate::loader::SoundListStruct;
@@ -10,7 +11,6 @@ use crate::options::OptionsStruct;
 use crate::score::ScoreMessageFontType;
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::TranslationError;
-use crate::MainError;
 
 #[derive(Error, Debug)]
 pub enum RecordLoadError {
@@ -80,8 +80,8 @@ pub enum FullscreenError {
     MainWindowMissing,
     #[error("Resolution is out of bounds")]
     ResolutionOutOfBounds,
-    #[error("Renderer is missing (possibly none) `{0}`")]
-    MissingRenderer(MainError),
+    #[error("Renderer is missing (possibly none)")]
+    MissingRenderer,
     #[error("Faild to lock OPTIONS: `{0}`")]
     OptionsLock(#[from] PoisonError<MutexGuard<'static, OptionsStruct>>),
     #[error("Failed to lock ResolutionArray: `{0}`")]
