@@ -15,7 +15,7 @@ use crate::{
 };
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
-use std::ffi::{CStr, c_char};
+use std::ffi::{CStr, CString, c_char};
 use std::fs::File;
 use std::io::Write;
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
@@ -88,8 +88,10 @@ pub fn show_message_box(
         write!(std::io::stdout(), "BL error {}\n{}\n", title, message).unwrap();
     }
 
-    let title_cstr = CStr::from_bytes_with_nul(title.as_bytes()).unwrap();
-    let message_cstr = CStr::from_bytes_with_nul(message.as_bytes()).unwrap();
+    let title = CString::new(title)?;
+    let title_cstr = title.as_c_str();
+    let message = CString::new(message)?;
+    let message_cstr = message.as_c_str();
 
     let mut main_window = MAIN_WINDOW.lock().map_err(|_| PbError::LockGeneric)?;
     let main_window_ptr = main_window.as_mut().unwrap();
