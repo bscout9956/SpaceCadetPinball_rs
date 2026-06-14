@@ -109,7 +109,7 @@ impl RenderSprite {
             _ => false,
         };
 
-        let zmap_eq = match (&self.zmap, &bmp) {
+        let zmap_eq = match (&self.zmap, &zmap) {
             (Some(current), Some(new)) => Arc::ptr_eq(current, new),
             (None, None) => true,
             _ => false,
