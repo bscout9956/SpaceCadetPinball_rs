@@ -794,16 +794,15 @@ pub fn query_visual(
         let short_arr_size = short_array_data.len();
         let mut i: usize = 0;
 
-        while i < short_arr_size {
+        while i < short_arr_size / 2 {
             if i + 1 >= short_arr_size {
                 break;
             }
             let id = i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-            i += 2;
 
             match id {
                 100 => {
-                    if group_index_offset == 0 {
+                    if group_index_offset > 0 {
                         return Ok(error(7, 18));
                     }
                 }
@@ -883,6 +882,7 @@ pub fn query_visual(
                     return Ok(error(9, 18));
                 }
             }
+            i += 2
         }
     }
     // VERIFY: Is the 0 check correct? Should it be not 0?
