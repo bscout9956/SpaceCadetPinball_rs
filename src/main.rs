@@ -556,6 +556,13 @@ unsafe fn event_handler(
     Ok(1)
 }
 
+fn end_pause() {
+    if SINGLE_STEP.load(SeqCst) == true {
+        pb::pause_continue();
+        NO_TIME_LOSS.store(true, SeqCst);
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Game version: {}", VERSION);
     let args: Vec<String> = env::args().collect();
