@@ -32,29 +32,33 @@ pub struct PinballState {
 }
 
 pub struct PbGameState {
-    pub full_tilt_mode: bool,
-    pub full_tilt_demo_mode: bool,
-    pub cheat_mode: bool,
-    pub demo_mode: bool,
-    pub main_table: Option<TPinballTable>,
-    pub time_ticks: usize,
     pub ball_max_speed: f32,
     pub ball_half_radius: f32,
     pub ball_to_ball_collision_distance: f32,
+    pub cheat_mode: bool,
+    pub demo_mode: bool,
+    pub full_tilt_mode: bool,
+    pub full_tilt_demo_mode: bool,
+    pub main_table: Option<TPinballTable>,
+    pub time_ticks: usize,
+    pub time_next: f32,
+    pub time_now: f32,
 }
 
 impl PbGameState {
     fn new() -> Self {
         Self {
+            ball_max_speed: 0.0,
+            ball_half_radius: 0.0,
+            ball_to_ball_collision_distance: 0.0,
             full_tilt_mode: false,
             full_tilt_demo_mode: false,
             cheat_mode: false,
             demo_mode: false,
             main_table: None,
             time_ticks: 0,
-            ball_max_speed: 0.0,
-            ball_half_radius: 0.0,
-            ball_to_ball_collision_distance: 0.0,
+            time_next: 0.0,
+            time_now: 0.0,
         }
     }
 }

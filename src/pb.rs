@@ -36,10 +36,6 @@ pub static MISS_TEXT_BOX: Mutex<Option<TTextBox>> = Mutex::new(None);
 
 pub static GAME_MODE: Mutex<GameModes> = Mutex::new(GameModes::GameOver);
 
-static TIME_NEXT: Mutex<f32> = Mutex::new(0.0);
-
-static TIME_NOW: Mutex<f32> = Mutex::new(0.0);
-
 #[derive(PartialEq, Eq, Ord, PartialOrd)]
 pub enum GameModes {
     InGame = 1,
@@ -514,9 +510,7 @@ pub(crate) fn frame(mut dt_milli_sec: f32, pb_game_state: &mut PbGameState) -> R
     }
 
     let dt_sec = dt_milli_sec * 0.001f32;
-    let mut time_next = *TIME_NEXT.lock().map_err(|_| PbError::LockGeneric)?;
-    let mut time_now = *TIME_NOW.lock().map_err(|_| PbError::LockGeneric)?;
-    time_next = time_now + dt_sec;
+    pb_game_state.time_next = pb_game_state.time_now + dt_sec;
     timed_frame(dt_sec, pb_game_state)?;
 
     Ok(())
