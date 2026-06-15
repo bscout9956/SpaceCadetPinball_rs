@@ -13,6 +13,7 @@ use crate::options::{
 use crate::pb::GameModes;
 use crate::render::RenderSprite;
 use crate::t_pinball_table::TPinballTable;
+use crate::t_textbox::TTextBox;
 use crate::translations::Msg;
 use crate::{Duration, translations};
 use sdl2::sys::SDL_GameControllerButton::{
@@ -55,6 +56,7 @@ pub struct PbGameState {
     pub dat_file_name: String,
     pub base_path: String,
     pub idle_timer_ms: f32,
+    pub miss_text_box: Option<TTextBox>,
 }
 
 impl PbGameState {
@@ -78,6 +80,7 @@ impl PbGameState {
             dat_file_name: String::new(),
             base_path: String::new(),
             idle_timer_ms: 0.0f32,
+            miss_text_box: None,
         }
     }
 }

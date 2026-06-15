@@ -22,8 +22,6 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::{Arc, LazyLock, Mutex};
 
-pub static MISS_TEXT_BOX: Mutex<Option<TTextBox>> = Mutex::new(None);
-
 #[derive(PartialEq, Eq, Ord, PartialOrd)]
 pub enum GameModes {
     InGame = 1,
@@ -332,8 +330,7 @@ fn mode_change(
     main_state: &mut MainState,
     pb_game_state: &mut PbGameState,
 ) -> Result<(), PbError> {
-    let box_guard = MISS_TEXT_BOX.lock().map_err(|_| PbError::LockGeneric)?;
-    let miss_text_box = box_guard.as_ref();
+    let miss_text_box = pb_game_state.miss_text_box.as_ref();
 
     if pb_game_state.credits_active && miss_text_box.is_some() {
         miss_text_box.unwrap().clear(true);
