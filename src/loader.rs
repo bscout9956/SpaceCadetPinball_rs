@@ -8,6 +8,7 @@ use crate::utils::PATH_SEPARATOR;
 use crate::zdrv::ZMapHeaderType;
 use crate::{pb, sound};
 use num_traits::Float;
+use sdl2::filesystem::base_path;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::mixer::Mix_Chunk;
 use std::ffi::{CStr, c_char};
@@ -301,6 +302,7 @@ pub fn get_sound_id(
     group_index: i32,
     full_tilt_mode: bool,
     quick_flag: bool,
+    base_path: &str,
 ) -> Result<i32, LoaderError> {
     let mut sound_list = SOUND_LIST.lock()?;
 
@@ -354,7 +356,7 @@ pub fn get_sound_id(
                             file_name = file_name.to_uppercase();
                         }
 
-                        file_path = pb::make_path_name(&file_name);
+                        file_path = pb::make_path_name(&file_name, base_path);
 
                         if let Ok(mut file) = File::open(&file_path) {
                             let mut header_bytes = [0u8; size_of::<WaveHeader>()];
@@ -587,6 +589,7 @@ pub fn material(
     visual: *mut VisualStruct,
     full_tilt_mode: bool,
     quick_flag: bool,
+    base_path: &str,
 ) -> Result<i32, LoaderError> {
     if group_index < 0 {
         error(0, 21);
@@ -632,7 +635,8 @@ pub fn material(
             301 => unsafe { (*visual).smoothness = value },
             302 => unsafe { (*visual).elasticity = value },
             304 => unsafe {
-                let sound_id = get_sound_id(value.floor() as i32, full_tilt_mode, quick_flag)?;
+                let sound_id =
+                    get_sound_id(value.floor() as i32, full_tilt_mode, quick_flag, base_path)?;
                 unsafe { (*visual).soft_hit_sound_id = sound_id }
             },
             _ => return Ok(error(9, 21)),
@@ -707,6 +711,7 @@ pub fn kicker(
     kicker: *mut VisualKickerStruct,
     full_tilt_mode: bool,
     quick_flag: bool,
+    base_path: &str,
 ) -> Result<i32, LoaderError> {
     if group_index < 0 {
         error(0, 20);
@@ -769,7 +774,7 @@ pub fn kicker(
             406 => unsafe {
                 let val = read_float(&float_array_data, &mut index).unwrap();
                 (*kicker).hard_hit_sound_id =
-                    get_sound_id(val.floor() as i32, full_tilt_mode, quick_flag)?;
+                    get_sound_id(val.floor() as i32, full_tilt_mode, quick_flag, base_path)?;
             },
 
             _ => return Ok(error(10, 20)),
@@ -835,6 +840,7 @@ pub fn query_visual(
                         visual as *mut _,
                         pb_game_state.full_tilt_mode,
                         pb_game_state.quick_flag,
+                        &pb_game_state.base_path,
                     )? != 0
                     {
                         return Ok(error(15, 18));
@@ -851,6 +857,7 @@ pub fn query_visual(
                         sound_id as i32,
                         pb_game_state.full_tilt_mode,
                         pb_game_state.quick_flag,
+                        &pb_game_state.base_path,
                     )?;
                 }
                 400 => {
@@ -866,6 +873,7 @@ pub fn query_visual(
                         &mut visual.kicker,
                         pb_game_state.full_tilt_mode,
                         pb_game_state.quick_flag,
+                        &pb_game_state.base_path,
                     )? != 0
                     {
                         return Ok(error(14, 18));
@@ -883,6 +891,7 @@ pub fn query_visual(
                         sound_id as i32,
                         pb_game_state.full_tilt_mode,
                         pb_game_state.quick_flag,
+                        &pb_game_state.base_path,
                     )?;
                 }
                 602 => {
@@ -904,6 +913,7 @@ pub fn query_visual(
                         sound_id as i32,
                         pb_game_state.full_tilt_mode,
                         pb_game_state.quick_flag,
+                        &pb_game_state.base_path,
                     )?;
                 }
                 1101 => {
@@ -917,6 +927,7 @@ pub fn query_visual(
                         sound_id as i32,
                         pb_game_state.full_tilt_mode,
                         pb_game_state.quick_flag,
+                        &pb_game_state.base_path,
                     )?;
                 }
                 1500 => {

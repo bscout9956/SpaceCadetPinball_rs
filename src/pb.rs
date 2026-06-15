@@ -24,8 +24,6 @@ use std::sync::{Arc, LazyLock, Mutex};
 
 pub static IDLE_TIMER_MS: Mutex<f32> = Mutex::new(0.0);
 
-pub static BASE_PATH: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
-
 pub static MISS_TEXT_BOX: Mutex<Option<TTextBox>> = Mutex::new(None);
 
 #[derive(PartialEq, Eq, Ord, PartialOrd)]
@@ -34,16 +32,8 @@ pub enum GameModes {
     GameOver = 2,
 }
 
-pub fn make_path_name(file_name: &str) -> String {
-    match BASE_PATH.lock() {
-        Ok(path) => {
-            return format!("{}{}", *path, file_name);
-        }
-        Err(e) => {
-            println!("Failed to lock base_path {}", e);
-        }
-    }
-    String::new()
+pub fn make_path_name(file_name: &str, base_path: &str) -> String {
+    format!("{}{}", base_path, file_name)
 }
 
 pub fn get_rc_string(u_id: Msg) -> Result<&'static str, TranslationError> {
@@ -110,7 +100,7 @@ pub fn select_dat_file(
             continue;
         }
 
-        set_base_path(path);
+        pb_game_state.base_path = path.to_string();
 
         for dat_file_name in dat_file_names {
             let mut file_name = dat_file_name.to_string();
@@ -119,7 +109,7 @@ pub fn select_dat_file(
                     file_name = file_name.to_lowercase();
                 }
 
-                let dat_file_path = make_path_name(&file_name);
+                let dat_file_path = make_path_name(&file_name, &pb_game_state.base_path);
                 if let Err(e) = File::open(&dat_file_path) {
                     println!("Error opening dat_file {}: {}", &dat_file_path, e);
                     continue;
@@ -140,17 +130,6 @@ fn update_full_tilt_mode(dat_file_name: &str, pb_game_state: &mut PbGameState) {
     if dat_file_name == "DEMO.DAT" {
         pb_game_state.full_tilt_mode = true;
         pb_game_state.full_tilt_demo_mode = true;
-    }
-}
-
-fn set_base_path(path: &str) {
-    match BASE_PATH.lock() {
-        Ok(mut base_path) => {
-            *base_path = String::from(path);
-        }
-        Err(e) => {
-            println!("Error locking BASE_PATH: {}", e);
-        }
     }
 }
 
@@ -178,8 +157,10 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
     if state.pb_game_state.dat_file_name.is_empty() {
         return Ok(false);
     }
-    data_file_path = make_path_name(&state.pb_game_state.dat_file_name);
-        
+    data_file_path = make_path_name(
+        &state.pb_game_state.dat_file_name,
+        &state.pb_game_state.base_path,
+    );
 
     let dat = partman::load_records(data_file_path, state.pb_game_state.full_tilt_mode)?;
     let shared_dat = Arc::new(dat);

@@ -7,14 +7,14 @@
 use crate::group_data::DatFile;
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
 use crate::options::{
-    ControlOption, GameInput, OptionsStruct, Setting, DEF_FPS, DEF_SOUND_CHANNELS, DEF_UPS,
-    DEF_VOLUME,
+    ControlOption, DEF_FPS, DEF_SOUND_CHANNELS, DEF_UPS, DEF_VOLUME, GameInput, OptionsStruct,
+    Setting,
 };
 use crate::pb::GameModes;
 use crate::render::RenderSprite;
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::Msg;
-use crate::{translations, Duration};
+use crate::{Duration, translations};
 use sdl2::sys::SDL_GameControllerButton::{
     SDL_CONTROLLER_BUTTON_A, SDL_CONTROLLER_BUTTON_BACK, SDL_CONTROLLER_BUTTON_DPAD_LEFT,
     SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_DPAD_UP,
@@ -22,8 +22,8 @@ use sdl2::sys::SDL_GameControllerButton::{
     SDL_CONTROLLER_BUTTON_START,
 };
 use sdl2::sys::SDL_KeyCode::{
-    SDLK_x, SDLK_z, SDLK_ESCAPE, SDLK_F2, SDLK_F3, SDLK_F4, SDLK_F5, SDLK_F6, SDLK_F8,
-    SDLK_F9, SDLK_PERIOD, SDLK_SLASH, SDLK_SPACE, SDLK_UP,
+    SDLK_ESCAPE, SDLK_F2, SDLK_F3, SDLK_F4, SDLK_F5, SDLK_F6, SDLK_F8, SDLK_F9, SDLK_PERIOD,
+    SDLK_SLASH, SDLK_SPACE, SDLK_UP, SDLK_x, SDLK_z,
 };
 use sdl2::sys::{SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2};
 use std::sync::Arc;
@@ -53,6 +53,7 @@ pub struct PbGameState {
     pub game_mode: GameModes,
     pub record_table: Option<Arc<DatFile>>,
     pub dat_file_name: String,
+    pub base_path: String,
 }
 
 impl PbGameState {
@@ -74,6 +75,7 @@ impl PbGameState {
             game_mode: GameModes::GameOver,
             record_table: None,
             dat_file_name: String::new(),
+            base_path: String::new(),
         }
     }
 }
