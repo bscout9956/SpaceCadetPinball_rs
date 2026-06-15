@@ -1,6 +1,6 @@
 use crate::loader::VisualStruct;
 use crate::maths::*;
-use crate::pinball_state::PbGameState;
+use crate::pinball_state::{PbGameState, RenderState};
 use crate::render::{RenderSprite, VisualTypes};
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
@@ -43,6 +43,7 @@ impl TBall {
         table_weak: Option<Weak<RefCell<TPinballTable>>>,
         mut group_index: i32,
         pb_game_state: &mut PbGameState,
+        render_state: &mut RenderState,
     ) -> Rc<RefCell<Self>> {
         let base_component = TPinballComponent::new(table_weak, group_index, false);
 
@@ -141,7 +142,7 @@ impl TBall {
         }
 
         instance_data.base_component.render_sprite =
-            RenderSprite::new(VisualTypes::Ball, None, None, 0, 0, None);
+            RenderSprite::new(VisualTypes::Ball, None, None, 0, 0, None, render_state);
 
         if let Some(t_weak) = &instance_data.base_component.pinball_table {
             if let Some(t_rc) = t_weak.upgrade() {

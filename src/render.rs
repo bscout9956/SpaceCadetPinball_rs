@@ -1,6 +1,6 @@
 use crate::gdrv::GdrvBitmap8;
 use crate::maths::RectangleType;
-use crate::pinball_state::OptionsState;
+use crate::pinball_state::{OptionsState, RenderState};
 use crate::zdrv::ZMapHeaderType;
 use crate::{gdrv, maths, zdrv};
 use sdl2::sys::SDL_Rect;
@@ -43,6 +43,7 @@ impl RenderSprite {
         x_pos: i32,
         y_pos: i32,
         bounding_rect: Option<RectangleType>,
+        render_state: &mut RenderState,
     ) -> Self {
         let dirty_flag = visual_type != VisualTypes::Ball;
         let mut instance = Self {
@@ -92,7 +93,7 @@ impl RenderSprite {
             instance.z_map_offset_y = y_pos - *Z_MAP_OFFSET_Y.lock().unwrap();
         }
 
-        add_sprite(instance.clone());
+        add_sprite(instance.clone(), render_state);
         instance
     }
 
@@ -136,11 +137,11 @@ impl RenderSprite {
     }
 }
 
-fn add_sprite(sprite: RenderSprite) {
+fn add_sprite(sprite: RenderSprite, render_state: &mut RenderState) {
     let mut list = if sprite.visual_type == VisualTypes::Ball {
-        BALL_LIST.lock().unwrap()
+        &mut render_state.ball_list
     } else {
-        SPRITE_LIST.lock().unwrap()
+        &mut render_state.sprite_list
     };
     list.push(sprite);
 }
@@ -179,9 +180,6 @@ pub static DESTINATION_RECT: LazyLock<Mutex<SDL_Rect>> = LazyLock::new(|| {
         h: 0,
     })
 });
-
-static SPRITE_LIST: Mutex<Vec<RenderSprite>> = Mutex::new(Vec::new());
-static BALL_LIST: Mutex<Vec<RenderSprite>> = Mutex::new(Vec::new());
 
 static OFFSET_X: Mutex<i32> = Mutex::new(0);
 static OFFSET_Y: Mutex<i32> = Mutex::new(0);
@@ -292,8 +290,7 @@ fn repaint(sprite: &RenderSprite) {
     todo!()
 }
 
-fn paint_balls() -> Result<(), RenderLockError> {
-    let mut ball_list = BALL_LIST.lock()?;
+fn paint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> {
     let v_screen_rect = V_SCREEN_RECT.lock()?;
     let mut v_screen_guard = V_SCREEN.lock()?;
     let z_screen_guard = Z_SCREEN.lock()?;
@@ -302,11 +299,11 @@ fn paint_balls() -> Result<(), RenderLockError> {
     let z_screen = (*z_screen_guard).as_ref().unwrap();
 
     // Sort ball sprites by ascending depth
-    ball_list.sort_by(|a, b| a.depth.cmp(&b.depth));
+    render_state.ball_list.sort_by(|a, b| a.depth.cmp(&b.depth));
 
     // For balls that clip vScreen: save original vScreen contents and paint the ball bitmap.
-    for index in 0..ball_list.len() {
-        let ball_sprite = &mut ball_list[index];
+    for index in 0..render_state.ball_list.len() {
+        let ball_sprite = &mut render_state.ball_list[index];
         let mut ball_guard = BALL_BITMAP.lock()?;
         let mut ball_bitmap = ball_guard.as_mut().unwrap();
 
@@ -350,16 +347,15 @@ fn paint_balls() -> Result<(), RenderLockError> {
     Ok(())
 }
 
-fn unpaint_balls() -> Result<(), RenderLockError> {
+fn unpaint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> {
     // Restore portions of v_screen saved during previous paint_balls call.
-    let mut ball_list = BALL_LIST.lock()?;
-    let ball_list_size = (*ball_list).len();
+    let ball_list_size = render_state.ball_list.len();
 
     let mut v_screen_guard = V_SCREEN.lock()?;
     let vscreen = (*v_screen_guard).as_mut().unwrap();
 
     for index in (0..ball_list_size).rev() {
-        let cur_ball = &mut ball_list[index];
+        let cur_ball = &mut render_state.ball_list[index];
 
         let mut ball_bitmap_guard = BALL_BITMAP.lock()?;
         let ball_bitmap = ball_bitmap_guard.as_mut().unwrap();
@@ -383,12 +379,11 @@ fn unpaint_balls() -> Result<(), RenderLockError> {
     Ok(())
 }
 
-pub fn update() {
-    unpaint_balls();
+pub fn update(render_state: &mut RenderState) {
+    unpaint_balls(render_state);
 
-    let mut sprite_list = SPRITE_LIST.lock().unwrap();
     // Clip dirty sprites with vScreen, clear clipping (dirty) rectangles
-    for sprite in sprite_list.iter_mut() {
+    for sprite in render_state.sprite_list.iter_mut() {
         if sprite.dirty_flag {
             continue;
         }
@@ -459,34 +454,39 @@ pub fn update() {
         }
     }
 
-    // Paint dirty rectangles of dirty sprites
-    for sprite in sprite_list.iter_mut() {
-        if sprite.dirty_flag == false {
+    let mut sprites_to_remove = Vec::new();
+
+    for (index, sprite) in render_state.sprite_list.iter_mut().enumerate() {
+        if !sprite.dirty_flag {
             continue;
         }
-
         repaint(sprite);
         sprite.dirty_flag = false;
         sprite.dirty_rect_prev = sprite.dirty_rect;
+
         if sprite.delete_flag {
-            remove_sprite(sprite);
+            sprites_to_remove.push(index);
         }
     }
 
-    paint_balls();
+    for index in sprites_to_remove.into_iter().rev() {
+        let mut isolated_sprite = render_state.sprite_list.remove(index);
+        remove_sprite(&mut isolated_sprite, render_state);
+    }
+
+    paint_balls(render_state);
 }
 
-pub fn remove_sprite(sprite: &RenderSprite) {
+pub fn remove_sprite(sprite: &RenderSprite, render_state: &mut RenderState) {
     let list = if sprite.visual_type == VisualTypes::Ball {
-        &BALL_LIST
+        &mut render_state.ball_list
     } else {
-        &SPRITE_LIST
+        &mut render_state.sprite_list
     };
 
     // TODO: Arc::ptr_eq
-    let mut list_sprites = list.lock().unwrap();
-    if let Some(pos) = list_sprites.iter().position(|s| std::ptr::eq(s, sprite)) {
-        list_sprites.remove(pos);
+    if let Some(pos) = list.iter().position(|s| std::ptr::eq(s, sprite)) {
+        list.remove(pos);
     }
 }
 

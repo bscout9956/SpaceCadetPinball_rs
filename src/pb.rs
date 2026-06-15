@@ -4,7 +4,7 @@ use crate::gdrv::ColorRgba;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
 use crate::message_code::MessageCode;
-use crate::pinball_state::{MainState, OptionsState, PbGameState};
+use crate::pinball_state::{MainState, OptionsState, PbGameState, PinballState, RenderState};
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
@@ -196,11 +196,7 @@ fn read_camera_floats(float_data: &[u8]) -> Vec<f32> {
     data
 }
 
-pub fn init(
-    main_state: &mut MainState,
-    options_state: &mut OptionsState,
-    pb_game_state: &mut PbGameState,
-) -> Result<(bool), PbError> {
+pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
     let mut projection_matrix: [f32; 12] = [0.0; 12];
 
     let mut data_file_path = String::new();
@@ -218,7 +214,7 @@ pub fn init(
         }
     }
 
-    let dat = partman::load_records(data_file_path, pb_game_state.full_tilt_mode)?;
+    let dat = partman::load_records(data_file_path, state.pb_game_state.full_tilt_mode)?;
     let shared_dat = Arc::new(dat);
 
     match RECORD_TABLE.lock() {
@@ -305,7 +301,7 @@ pub fn init(
                 None,
                 res_info.table_width,
                 res_info.table_height,
-                options_state,
+                &mut state.options_state,
             );
 
             let mut v_guard = render::V_SCREEN.lock().unwrap();
@@ -329,20 +325,27 @@ pub fn init(
         }
     }
 
-    mode_change(GameModes::InGame, main_state, pb_game_state);
+    mode_change(
+        GameModes::InGame,
+        &mut state.main_state,
+        &mut state.pb_game_state,
+    );
 
-    pb_game_state.time_ticks = 0;
+    state.pb_game_state.time_ticks = 0;
     timer::init(150);
     score::init();
 
-    pb_game_state.main_table = Some(TPinballTable::new(pb_game_state));
-    let table = pb_game_state.main_table.as_ref().unwrap();
+    state.pb_game_state.main_table = Some(TPinballTable::new(
+        &mut state.pb_game_state,
+        &mut state.render_state,
+    ));
+    let table = state.pb_game_state.main_table.as_ref().unwrap();
     let ball = &table.ball_list[0].borrow();
 
-    pb_game_state.ball_max_speed = ball.radius * 200.0f32;
-    pb_game_state.ball_half_radius = ball.radius * 0.5f32;
-    pb_game_state.ball_to_ball_collision_distance =
-        ball.radius + pb_game_state.ball_half_radius * 2.0f32;
+    state.pb_game_state.ball_max_speed = ball.radius * 200.0f32;
+    state.pb_game_state.ball_half_radius = ball.radius * 0.5f32;
+    state.pb_game_state.ball_to_ball_collision_distance =
+        ball.radius + state.pb_game_state.ball_half_radius * 2.0f32;
 
     Ok(true)
 }
@@ -368,8 +371,8 @@ pub fn reset_table(pb_game_state: &mut PbGameState) -> Result<(), PbError> {
     }
 }
 
-pub fn first_time_setup() {
-    render::update();
+pub fn first_time_setup(render_state: &mut RenderState) {
+    render::update(render_state);
 }
 
 pub(crate) fn toggle_demo() {

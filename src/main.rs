@@ -4,7 +4,7 @@ extern crate core;
 
 use crate::embedded_data::load_controller_db;
 use crate::fullscrn::RESOLUTION_ARRAY;
-use crate::options::{GameBindings, OptionsStruct};
+use crate::options::GameBindings;
 use crate::pinball_state::{MainState, OptionsState, PinballState};
 use crate::translations::Msg;
 use dear_imgui_rs::sys::ImGuiIO;
@@ -31,7 +31,7 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::ptr::NonNull;
 use std::str::FromStr;
-use std::sync::atomic::Ordering::{Relaxed, SeqCst};
+use std::sync::atomic::Ordering::SeqCst;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
 use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
@@ -336,8 +336,8 @@ fn main_loop(
             break;
         }
 
-        if pb_state.main_state.has_focus == true {
-            if pb_state.main_state.mouse_down == true {
+        if pb_state.main_state.has_focus {
+            if pb_state.main_state.mouse_down {
                 let mut x = 0;
                 let mut y = 0;
                 let mut w = 0;
@@ -815,11 +815,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             //     }
             // }
 
-            if !pb::init(
-                &mut pb_state.main_state,
-                &mut pb_state.options_state,
-                &mut pb_state.pb_game_state,
-            )? {
+            if !pb::init(&mut pb_state)? {
                 let mut message = String::from(
                     "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
                 );
@@ -839,7 +835,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             fullscrn::init(&mut pb_state.fullscrn_state, &mut pb_state.options_state);
 
             pb::reset_table(&mut pb_state.pb_game_state);
-            pb::first_time_setup();
+            pb::first_time_setup(&mut pb_state.render_state);
 
             let fullscreen = env::args().any(|arg| arg == "-fullscreen");
             if fullscreen {

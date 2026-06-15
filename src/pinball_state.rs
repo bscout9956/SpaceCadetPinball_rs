@@ -9,6 +9,7 @@ use crate::options::{
     ControlOption, DEF_FPS, DEF_SOUND_CHANNELS, DEF_UPS, DEF_VOLUME, GameInput, OptionsStruct,
     Setting,
 };
+use crate::render::RenderSprite;
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::Msg;
 use crate::{Duration, translations};
@@ -23,12 +24,14 @@ use sdl2::sys::SDL_KeyCode::{
     SDLK_SLASH, SDLK_SPACE, SDLK_UP, SDLK_x, SDLK_z,
 };
 use sdl2::sys::{SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2};
+use std::sync::Mutex;
 
 pub struct PinballState {
     pub main_state: MainState,
     pub pb_game_state: PbGameState,
     pub options_state: OptionsState,
     pub fullscrn_state: FullscrnState,
+    pub render_state: RenderState,
 }
 
 pub struct PbGameState {
@@ -63,6 +66,20 @@ impl PbGameState {
             time_next: 0.0,
             time_now: 0.0,
             quick_flag: false,
+        }
+    }
+}
+
+pub struct RenderState {
+    pub sprite_list: Vec<RenderSprite>,
+    pub ball_list: Vec<RenderSprite>,
+}
+
+impl RenderState {
+    fn new() -> Self {
+        Self {
+            sprite_list: Vec::new(),
+            ball_list: Vec::new(),
         }
     }
 }
@@ -136,6 +153,7 @@ impl PinballState {
             pb_game_state: PbGameState::new(),
             options_state: OptionsState::new(),
             fullscrn_state: FullscrnState::new(),
+            render_state: RenderState::new(),
         }
     }
 }
