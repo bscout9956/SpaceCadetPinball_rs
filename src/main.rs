@@ -295,6 +295,7 @@ fn main_loop(
     let _frame_duration = pb_state.main_state.target_frametime;
 
     loop {
+        let mut main_state = &mut pb_state.main_state;
         if DISP_FRAME_RATE.load(SeqCst) == true {
             let cur_time = unsafe { SdlPerformanceClock::now() };
 
@@ -317,7 +318,7 @@ fn main_loop(
                     return Err(MainLoopError::NullWindow);
                 }
 
-                pb_state.main_state.update_fps_details(&title);
+                main_state.update_fps_details(&title);
                 update_count = 0;
                 frame_counter = update_count;
                 prev_time = cur_time;
@@ -326,15 +327,15 @@ fn main_loop(
 
         if !process_window_messages(
             imgui_context,
-            &mut pb_state.main_state,
+            &mut main_state,
             &mut pb_state.options_state,
-        )? || pb_state.main_state.b_quit == false
+        )? || main_state.b_quit == false
         {
             break;
         }
 
-        if pb_state.main_state.has_focus {
-            if pb_state.main_state.mouse_down {
+        if main_state.has_focus {
+            if main_state.mouse_down {
                 let mut x = 0;
                 let mut y = 0;
                 let mut w = 0;
@@ -350,8 +351,8 @@ fn main_loop(
                         return Err(MainLoopError::NullWindow);
                     }
                 }
-                let dx = (pb_state.main_state.last_mouse_x - x) as f32 / w as f32;
-                let dy = (y - pb_state.main_state.last_mouse_y) as f32 / h as f32;
+                let dx = (main_state.last_mouse_x - x) as f32 / w as f32;
+                let dy = (y - main_state.last_mouse_y) as f32 / h as f32;
                 pb::ball_set(dx, dy, &mut pb_state.pb_game_state);
 
                 // Original creates continuous mouse movement with mouse capture.
@@ -377,10 +378,10 @@ fn main_loop(
                     }
                 }
 
-                pb_state.main_state.update_mouse_xy(x, y);
+                main_state.update_mouse_xy(x, y);
             }
         }
-        if pb_state.main_state.single_step == false && pb_state.main_state.no_time_loss == false {
+        if main_state.single_step == false && main_state.no_time_loss == false {
             let dt = _frame_duration.count() as f32;
             pb::frame(dt, &mut pb_state.pb_game_state);
             if DISP_GR_HISTORY.load(SeqCst) == true {
@@ -388,7 +389,7 @@ fn main_loop(
             }
         }
 
-        pb_state.main_state.no_time_loss = false;
+        main_state.no_time_loss = false;
 
         let update_to_frame_ratio = UPDATE_TO_FRAME_RATIO
             .lock()
@@ -396,7 +397,7 @@ fn main_loop(
 
         if _update_to_frame_counter >= *update_to_frame_ratio {
             if *pb_state.options_state.options.hide_cursor
-                && pb_state.main_state.cursor_idle_counter <= 0
+                && main_state.cursor_idle_counter <= 0
             {
                 // TODO: ImGUiSetCursor l376
             }
