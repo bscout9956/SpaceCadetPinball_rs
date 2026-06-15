@@ -325,11 +325,8 @@ fn main_loop(
             }
         }
 
-        if !process_window_messages(
-            imgui_context,
-            &mut main_state,
-            &mut pb_state.options_state,
-        )? || main_state.b_quit == false
+        if !process_window_messages(imgui_context, &mut main_state, &mut pb_state.options_state)?
+            || main_state.b_quit == false
         {
             break;
         }
@@ -396,9 +393,7 @@ fn main_loop(
             .map_err(|_| MainLoopError::MutexLock)?;
 
         if _update_to_frame_counter >= *update_to_frame_ratio {
-            if *pb_state.options_state.options.hide_cursor
-                && main_state.cursor_idle_counter <= 0
-            {
+            if *pb_state.options_state.options.hide_cursor && main_state.cursor_idle_counter <= 0 {
                 // TODO: ImGUiSetCursor l376
             }
             // TODO TODO TODO TODO, do all the todos above before continuing
@@ -857,7 +852,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             main_loop(&mut imgui_context, &mut pb_state);
 
             options::uninit(&mut pb_state.options_state);
-            midi::music_shutdown();
+            // TODO: Implement sound midi::music_shutdown();
             // TODO: Implement sound stuff
             //sound::close();
             pb::uninit();
