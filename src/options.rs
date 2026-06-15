@@ -532,9 +532,9 @@ pub unsafe fn init_primary(options_state: &mut OptionsState) {
         ini_handler.ReadLineFn = Some(MyUserData_ReadLine);
         ini_handler.WriteAllFn = Some(MyUserData_WriteAll);
 
-        igAddSettingsHandler(&mut ini_handler);
+        igAddSettingsHandler(&ini_handler);
 
-        if (*im_context).SettingsLoaded == false {
+        if !(*im_context).SettingsLoaded {
             igLoadIniSettingsFromDisk((*im_context).IO.IniFilename);
             (*im_context).SettingsLoaded = true;
         }
@@ -597,33 +597,27 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
         Menu::HighScores => {}
         Menu::Exit => {}
         Menu::Sounds => {
-            *(&mut state.options_state).options.sounds =
-                !(*(&mut state.options_state).options.sounds);
-            return;
+            *state.options_state.options.sounds = !(*state.options_state.options.sounds);
         }
         Menu::Music => {
-            *(&mut state.options_state).options.music =
-                !(*(&mut state.options_state).options.music);
-            if (*(&mut state.options_state).options.music) == false {
+            *state.options_state.options.music = !(*state.options_state.options.music);
+            if !(*state.options_state.options.music) {
                 midi::music_stop();
             } else {
                 midi::music_play();
             }
-            return;
         }
         Menu::SoundStereo => {
-            *(&mut state.options_state).options.sound_stereo =
-                !(*(&mut state.options_state).options.sound_stereo);
-            return;
+            *state.options_state.options.sound_stereo =
+                !(*state.options_state.options.sound_stereo);
         }
         Menu::HelpTopics => {}
         Menu::LaunchBall => {}
         Menu::PauseResumeGame => {}
         Menu::FullScreen => {
-            *(&mut state.options_state).options.full_screen =
-                !(*(&mut state.options_state).options.full_screen);
+            *state.options_state.options.full_screen = !(*state.options_state.options.full_screen);
             fullscrn::set_screen_mode(
-                *(&mut state.options_state).options.full_screen,
+                *state.options_state.options.full_screen,
                 &mut state.fullscrn_state,
             );
         }
@@ -632,8 +626,7 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
         Menu::PlayerControls => {}
         Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {}
         Menu::ShowMenu => {
-            *(&mut state.options_state).options.show_menu =
-                !(*(&mut state.options_state).options.show_menu);
+            *state.options_state.options.show_menu = !(*state.options_state.options.show_menu);
             fullscrn::window_size_changed(
                 &mut state.fullscrn_state,
                 &mut state.main_state,
@@ -646,10 +639,10 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             if u_id_check_item == Menu::MaximumResolution {
                 restart = fullscrn::get_resolution()
                     != fullscrn::get_max_resolution(&mut state.pb_game_state);
-                *(&mut state.options_state).options.resolution = -1;
+                *state.options_state.options.resolution = -1;
             } else if new_resolution <= fullscrn::get_max_resolution(&mut state.pb_game_state) {
                 let mut current_resolution: i32;
-                if (*(&mut state.options_state).options.resolution == -1) {
+                if (*state.options_state.options.resolution == -1) {
                     current_resolution = fullscrn::get_max_resolution(&mut state.pb_game_state);
                 } else {
                     current_resolution = fullscrn::get_resolution();
@@ -663,8 +656,8 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             }
         }
         Menu::WindowUniformScale => {
-            *(&mut state.options_state).options.uniform_scaling =
-                !(*(&mut state.options_state).options.uniform_scaling);
+            *state.options_state.options.uniform_scaling =
+                !(*state.options_state.options.uniform_scaling);
             fullscrn::window_size_changed(
                 &mut state.fullscrn_state,
                 &mut state.main_state,
@@ -672,8 +665,8 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             );
         }
         Menu::WindowLinearFilter => {
-            *(&mut state.options_state).options.linear_filtering =
-                !(*(&mut state.options_state).options.linear_filtering);
+            *state.options_state.options.linear_filtering =
+                !(*state.options_state.options.linear_filtering);
             render::recreate_screen_texture(
                 &mut state.main_state,
                 &mut state.options_state,
@@ -681,8 +674,8 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             );
         }
         Menu::WindowIntegerScale => {
-            *(&mut state.options_state).options.integer_scaling =
-                !(*(&mut state.options_state).options.integer_scaling);
+            *state.options_state.options.integer_scaling =
+                !(*state.options_state.options.integer_scaling);
             fullscrn::window_size_changed(
                 &mut state.fullscrn_state,
                 &mut state.main_state,
