@@ -4,8 +4,8 @@ extern crate core;
 
 use crate::embedded_data::load_controller_db;
 use crate::fullscrn::RESOLUTION_ARRAY;
-use crate::options::{CONTROL_WAITING_FOR_INPUT, GameBindings, OptionsStruct};
-use crate::pinball_state::{OptionsState, PinballState};
+use crate::options::{GameBindings, OptionsStruct};
+use crate::pinball_state::{MainState, OptionsState, PinballState};
 use crate::translations::Msg;
 use dear_imgui_rs::sys::ImGuiIO;
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig};
@@ -204,14 +204,10 @@ pub static HIGH_SCORES_ENABLED: AtomicBool = AtomicBool::new(true);
 pub static DEMO_ACTIVE: AtomicBool = AtomicBool::new(false);
 pub static MAIN_MENU_HEIGHT: AtomicI32 = AtomicI32::new(0);
 
-static RETURN_VALUE: AtomicI32 = AtomicI32::new(0);
-static MOUSE_DOWN: AtomicBool = AtomicBool::new(false);
 static LAST_MOUSE_X: AtomicI32 = AtomicI32::new(0);
 static LAST_MOUSE_Y: AtomicI32 = AtomicI32::new(0);
 static NO_TIME_LOSS: AtomicBool = AtomicBool::new(false);
 static ACTIVATED: AtomicBool = AtomicBool::new(false);
-static B_QUIT: AtomicBool = AtomicBool::new(false);
-static HAS_FOCUS: AtomicBool = AtomicBool::new(true);
 static DISP_GR_HISTORY: AtomicBool = AtomicBool::new(false);
 static DISP_FRAME_RATE: AtomicBool = AtomicBool::new(false);
 // TODO: CHECK DEFAULTS
@@ -306,7 +302,7 @@ fn main_loop(
     imgui_context: &mut Context,
     pb_state: &mut PinballState,
 ) -> Result<(), MainLoopError> {
-    B_QUIT.store(false, Relaxed);
+    pb_state.main_state.update_b_quit(false);
 
     let mut update_count: usize = 0;
     let mut frame_counter: usize = 0;
@@ -354,12 +350,14 @@ fn main_loop(
             }
         }
 
-        if !process_window_messages(imgui_context)? || B_QUIT.load(SeqCst) == true {
+        if !process_window_messages(imgui_context, &mut pb_state.main_state)?
+            || pb_state.main_state.b_quit == false
+        {
             break;
         }
 
-        if HAS_FOCUS.load(SeqCst) == true {
-            if MOUSE_DOWN.load(SeqCst) > 0 {
+        if pb_state.main_state.has_focus == true {
+            if pb_state.main_state.mouse_down == true {
                 let mut x = 0;
                 let mut y = 0;
                 let mut w = 0;
@@ -432,12 +430,14 @@ fn main_loop(
     Ok(())
 }
 
-fn process_window_messages(imgui_context: &mut Context) -> Result<bool, MainLoopError> {
+fn process_window_messages(
+    imgui_context: &mut Context,
+    main_state: &mut MainState,
+) -> Result<bool, MainLoopError> {
     static IDLE_WAIT: Mutex<i64> = Mutex::new(0);
     let event: *mut SDL_Event = unsafe { std::mem::zeroed() };
 
-    let has_focus = HAS_FOCUS.load(SeqCst);
-    if has_focus == true {
+    if main_state.has_focus == true {
         let guard = IDLE_WAIT.lock().map_err(|_| MainLoopError::MutexLock)?;
         let frame_time_g = TARGET_FRAMETIME
             .lock()
@@ -478,6 +478,7 @@ fn process_window_messages(imgui_context: &mut Context) -> Result<bool, MainLoop
 unsafe fn event_handler(
     event: *mut SDL_Event,
     imgui_context: &mut Context,
+    main_state: &mut MainState,
     options_state: &mut OptionsState,
 ) -> Result<i32, MainLoopError> {
     let mut input_down = false;
@@ -514,8 +515,8 @@ unsafe fn event_handler(
     let io = imgui_context.io_mut();
 
     if io.want_capture_mouse() && options_state.control_waiting_for_input.is_none() {
-        if MOUSE_DOWN.load(SeqCst) == true {
-            MOUSE_DOWN.store(false, SeqCst);
+        if main_state.mouse_down == true {
+            main_state.mouse_down = false;
             let main_window_grd = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
             if let Some(window) = main_window_grd.as_ref() {
                 unsafe {
@@ -543,9 +544,10 @@ unsafe fn event_handler(
 
     if (*event).type_ == SDL_QUIT as u32 {
         end_pause();
-        B_QUIT.store(true, SeqCst);
+
+        main_state.update_b_quit(true);
         fullscrn::shutdown();
-        return_value = 0;
+        main_state.return_value = 0;
         return Ok(0);
     }
     if (*event).type_ == SDL_KEYUP as u32 {
@@ -810,9 +812,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Ok(renderer_ptr) => {
                     if let Some(renderer) = renderer_ptr.as_ref() {
                         println!("Initializing IMGUI_SDL");
-                        imgui_sdl::initialize(imgui_context, renderer.0, 0, 0);
-
-                        imgui_sdl::init_for_sdl_renderer(imgui_context, window, renderer.0);
+                        imgui_sdl::initialize(&mut imgui_context, renderer.0, 0, 0);
+                        imgui_sdl::init_for_sdl_renderer(&mut imgui_context, window, renderer.0);
                     } else {
                         panic!("No renderer found to initialize IMGUI!");
                     }
