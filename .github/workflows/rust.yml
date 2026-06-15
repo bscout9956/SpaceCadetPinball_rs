@@ -8,6 +8,8 @@ on:
 
 env:
     CARGO_TERM_COLOR: always
+    VCPKG_ROOT: ${{ github.workspace }}\vcpkg
+    VCPKG_DEFAULT_TRIPLET: x64-windows-static-md
 
 jobs:
     build:
@@ -16,19 +18,28 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            # actions-rs is deprecated. dtolnay is the community standard.
             - name: Install Rust toolchain
               uses: dtolnay/rust-toolchain@stable
               with:
-                  toolchain: stable
                   components: rustfmt, clippy
 
+            - name: Verify Rust installation
+              run: |
+                  rustc --version
+                  cargo --version
+
             - name: Install SDL2 dependencies with vcpkg
-              env:
-                  VCPKG_ROOT: ${{ github.workspace }}\vcpkg
+              # VCPKG_ROOT is already in the global env, no need to redefine here
               run: |
                   git clone https://github.com/microsoft/vcpkg.git vcpkg
                   .\vcpkg\bootstrap-vcpkg.bat
+                  .\vcpkg\vcpkg integrate install
                   .\vcpkg\vcpkg install sdl2:x64-windows-static-md sdl2-mixer:x64-windows-static-md
+
+            # The correct way to append to PATH in GitHub Actions
+            - name: Add vcpkg bin to PATH
+              run: echo "${{ github.workspace }}\vcpkg\installed\x64-windows-static-md\bin" >> $env:GITHUB_PATH
 
             - name: Rust cache
               uses: Swatinem/rust-cache@v2
@@ -36,12 +47,16 @@ jobs:
                   workspaces: |
                       . -> target
                   cache-all-crates: true
-                  save-if: ${{ github.ref == 'refs/heads/main' }}
+                  # Fixed from 'main' to 'master' to match your trigger branches
+                  save-if: ${{ github.ref == 'refs/heads/master' }}
 
             # - name: Clippy lints
             #   run: cargo clippy -- -D warnings
 
             - name: Build
+              env:
+                  LIB: ${{ github.workspace }}\vcpkg\installed\x64-windows-static-md\lib
+                  INCLUDE: ${{ github.workspace }}\vcpkg\installed\x64-windows-static-md\include
               run: cargo build --release
 
             # - name: Run tests
@@ -50,6 +65,5 @@ jobs:
             # - name: Upload artifact
             #   uses: actions/upload-artifact@v4
             #   with:
-
             #       name: windows-binary
             #       path: target/release/*.exe
