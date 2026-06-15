@@ -7,7 +7,7 @@ edition = "2024"
 dear-imgui-rs = "0.14.1"
 num-derive = "0.4.2"
 num-traits = "0.2.19"
-sdl2 = { version = "0.38.0", features = ["mixer", "use-vcpkg"] }
+sdl2 = { version = "0.38.0", features = ["mixer", "use-vcpkg", "static-link"] }
 bytemuck = "1.25.0"
 thiserror = "2.0.18"
 base85 = "2.0.0"
