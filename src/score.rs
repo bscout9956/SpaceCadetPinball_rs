@@ -1,9 +1,8 @@
 use crate::errors::ScoreError;
 use crate::fullscrn;
 use crate::gdrv::GdrvBitmap8;
-use crate::group_data::{EntryBuffer, FieldTypes};
-use crate::pb::RECORD_TABLE;
-use std::sync::Mutex;
+use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
+use std::sync::{Arc, Mutex};
 
 pub struct ScoreStruct {
     pub score: i32,
@@ -52,9 +51,10 @@ impl ScoreMessageFontType {
 
 pub static MSG_FONTP: Mutex<Option<ScoreMessageFontType>> = Mutex::new(None);
 
-pub fn load_msg_font(font_name: &str) -> Result<(), ScoreError> {
-    let record_table = RECORD_TABLE.lock().map_err(ScoreError::RecordTableLock)?;
-
+pub fn load_msg_font(
+    font_name: &str,
+    record_table: &mut Option<Arc<DatFile>>,
+) -> Result<(), ScoreError> {
     let record_table = match &*record_table {
         Some(record_table) => record_table,
         None => return Ok(()),

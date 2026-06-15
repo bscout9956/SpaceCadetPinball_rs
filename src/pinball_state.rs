@@ -4,15 +4,17 @@
 // This change will be done over the course of multiple commits iteratively.
 // Until this notice is removed, it may not hold all possible states.
 
+use crate::group_data::DatFile;
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
 use crate::options::{
-    ControlOption, DEF_FPS, DEF_SOUND_CHANNELS, DEF_UPS, DEF_VOLUME, GameInput, OptionsStruct,
-    Setting,
+    ControlOption, GameInput, OptionsStruct, Setting, DEF_FPS, DEF_SOUND_CHANNELS, DEF_UPS,
+    DEF_VOLUME,
 };
+use crate::pb::GameModes;
 use crate::render::RenderSprite;
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::Msg;
-use crate::{Duration, translations};
+use crate::{translations, Duration};
 use sdl2::sys::SDL_GameControllerButton::{
     SDL_CONTROLLER_BUTTON_A, SDL_CONTROLLER_BUTTON_BACK, SDL_CONTROLLER_BUTTON_DPAD_LEFT,
     SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_DPAD_UP,
@@ -20,12 +22,11 @@ use sdl2::sys::SDL_GameControllerButton::{
     SDL_CONTROLLER_BUTTON_START,
 };
 use sdl2::sys::SDL_KeyCode::{
-    SDLK_ESCAPE, SDLK_F2, SDLK_F3, SDLK_F4, SDLK_F5, SDLK_F6, SDLK_F8, SDLK_F9, SDLK_PERIOD,
-    SDLK_SLASH, SDLK_SPACE, SDLK_UP, SDLK_x, SDLK_z,
+    SDLK_x, SDLK_z, SDLK_ESCAPE, SDLK_F2, SDLK_F3, SDLK_F4, SDLK_F5, SDLK_F6, SDLK_F8,
+    SDLK_F9, SDLK_PERIOD, SDLK_SLASH, SDLK_SPACE, SDLK_UP,
 };
 use sdl2::sys::{SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2};
-use std::sync::Mutex;
-use crate::pb::GameModes;
+use std::sync::Arc;
 
 pub struct PinballState {
     pub main_state: MainState,
@@ -50,6 +51,7 @@ pub struct PbGameState {
     pub time_now: f32,
     pub quick_flag: bool,
     pub game_mode: GameModes,
+    pub record_table: Option<Arc<DatFile>>,
 }
 
 impl PbGameState {
@@ -69,6 +71,7 @@ impl PbGameState {
             time_now: 0.0,
             quick_flag: false,
             game_mode: GameModes::GameOver,
+            record_table: None,
         }
     }
 }
