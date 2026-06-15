@@ -1,7 +1,7 @@
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
 use crate::translations::Msg;
 use crate::utils::clamp;
-use crate::{fullscrn, midi, render, restart_func, translations};
+use crate::{fullscrn, midi, render, translations};
 use dear_imgui_rs::sys::{
     ImGuiContext, ImGuiSettingsHandler, ImGuiTextBuffer, ImGuiTextBuffer_append,
     ImGuiTextBuffer_appendf, igAddSettingsHandler, igGetCurrentContext, igImHashStr,
@@ -168,8 +168,6 @@ pub static OPTIONS: LazyLock<Mutex<OptionsStruct>> = LazyLock::new(|| {
     })
 });
 static SHOW_DIALOG: AtomicBool = AtomicBool::new(false);
-
-pub static CONTROL_WAITING_FOR_INPUT: Mutex<Option<GameInput>> = Mutex::new(Option::None);
 
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
 
@@ -801,7 +799,7 @@ pub fn toggle(u_id_check_item: Menu) {
             }
 
             if restart {
-                restart_func();
+                //TODO: restart_func();
             }
         }
         Menu::WindowUniformScale => {
@@ -823,23 +821,23 @@ pub fn toggle(u_id_check_item: Menu) {
     }
 }
 
-pub fn input_down(input: GameInput) {
-    let mut wait_flag = CONTROL_WAITING_FOR_INPUT.lock().unwrap();
-    *wait_flag = Some(input);
-}
+// pub fn input_down(input: GameInput) {
+//     let mut wait_flag = CONTROL_WAITING_FOR_INPUT.lock().unwrap();
+//     *wait_flag = Some(input);
+// }
 
-pub fn show_control_dialog() {
-    let dialog_check = SHOW_DIALOG.load(SeqCst);
-    if !dialog_check {
-        let mut wait_flag = CONTROL_WAITING_FOR_INPUT.lock().unwrap();
-        *wait_flag = Option::None;
-        SHOW_DIALOG.store(true, SeqCst);
-        let mut options = OPTIONS.lock().unwrap();
-        for option in &mut options.control_options {
-            option.save();
-        }
-    }
-}
+// pub fn show_control_dialog() {
+//     let dialog_check = SHOW_DIALOG.load(SeqCst);
+//     if !dialog_check {
+//         let mut wait_flag = CONTROL_WAITING_FOR_INPUT.lock().unwrap();
+//         *wait_flag = Option::None;
+//         SHOW_DIALOG.store(true, SeqCst);
+//         let mut options = OPTIONS.lock().unwrap();
+//         for option in &mut options.control_options {
+//             option.save();
+//         }
+//     }
+// }
 
 pub fn render_control_dialog() {
     let dialog_check = SHOW_DIALOG.load(SeqCst);

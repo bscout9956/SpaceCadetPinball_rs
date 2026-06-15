@@ -5,6 +5,7 @@ extern crate core;
 use crate::embedded_data::load_controller_db;
 use crate::fullscrn::RESOLUTION_ARRAY;
 use crate::options::{CONTROL_WAITING_FOR_INPUT, GameBindings, OptionsStruct};
+use crate::pinball_state::{OptionsState, PinballState};
 use crate::translations::Msg;
 use dear_imgui_rs::sys::ImGuiIO;
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig};
@@ -59,6 +60,7 @@ pub mod message_code;
 mod midi;
 mod partman;
 mod pb;
+mod pinball_state;
 pub mod proj;
 mod render;
 pub mod t_demo;
@@ -300,7 +302,10 @@ pub enum MainLoopError {
     NullWindow,
 }
 
-fn main_loop(imgui_context: &mut Context) -> Result<(), MainLoopError> {
+fn main_loop(
+    imgui_context: &mut Context,
+    pb_state: &mut PinballState,
+) -> Result<(), MainLoopError> {
     B_QUIT.store(false, Relaxed);
 
     let mut update_count: usize = 0;
@@ -473,6 +478,7 @@ fn process_window_messages(imgui_context: &mut Context) -> Result<bool, MainLoop
 unsafe fn event_handler(
     event: *mut SDL_Event,
     imgui_context: &mut Context,
+    options_state: &mut OptionsState,
 ) -> Result<i32, MainLoopError> {
     let mut input_down = false;
 
@@ -486,11 +492,7 @@ unsafe fn event_handler(
         }
     }
 
-    let waiting_input = CONTROL_WAITING_FOR_INPUT
-        .lock()
-        .map_err(|_| MainLoopError::MutexLock)?;
-
-    if (*waiting_input).is_none() || !input_down {
+    if options_state.control_waiting_for_input.is_none() || !input_down {
         imgui_sdl::impl_sdl2_process_event(imgui_context, event);
     }
 
@@ -510,11 +512,8 @@ unsafe fn event_handler(
     }
 
     let io = imgui_context.io_mut();
-    let waiting_for_input_grd = CONTROL_WAITING_FOR_INPUT
-        .lock()
-        .map_err(|_| MainLoopError::MutexLock)?;
 
-    if io.want_capture_mouse() && waiting_for_input_grd.is_none() {
+    if io.want_capture_mouse() && options_state.control_waiting_for_input.is_none() {
         if MOUSE_DOWN.load(SeqCst) == true {
             MOUSE_DOWN.store(false, SeqCst);
             let main_window_grd = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
@@ -530,7 +529,7 @@ unsafe fn event_handler(
         }
     }
 
-    if io.want_capture_keyboard() && waiting_for_input_grd.is_none() {
+    if io.want_capture_keyboard() && options_state.control_waiting_for_input.is_none() {
         unsafe {
             if (*event).type_ == SDL_KEYUP as u32
                 || (*event).type_ == SDL_KEYDOWN as u32
@@ -564,6 +563,8 @@ fn end_pause() {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let mut pinball_state = PinballState::new();
+
     println!("Game version: {}", VERSION);
     let args: Vec<String> = env::args().collect();
     println!("Command line: {:?}", args);
@@ -897,7 +898,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 pb::replay_level(false);
             }
 
-            main_loop();
+            main_loop(&mut imgui_context, &mut pinball_state);
 
             options::uninit();
             midi::music_shutdown();
