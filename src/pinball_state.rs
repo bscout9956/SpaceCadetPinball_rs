@@ -52,6 +52,7 @@ pub struct PbGameState {
     pub quick_flag: bool,
     pub game_mode: GameModes,
     pub record_table: Option<Arc<DatFile>>,
+    pub dat_file_name: String,
 }
 
 impl PbGameState {
@@ -72,6 +73,7 @@ impl PbGameState {
             quick_flag: false,
             game_mode: GameModes::GameOver,
             record_table: None,
+            dat_file_name: String::new(),
         }
     }
 }

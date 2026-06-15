@@ -24,7 +24,6 @@ use std::sync::{Arc, LazyLock, Mutex};
 
 pub static IDLE_TIMER_MS: Mutex<f32> = Mutex::new(0.0);
 
-pub static DAT_FILE_NAME: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
 pub static BASE_PATH: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
 
 pub static MISS_TEXT_BOX: Mutex<Option<TTextBox>> = Mutex::new(None);
@@ -96,7 +95,7 @@ pub fn select_dat_file(
     options_state: &mut OptionsState,
     pb_game_state: &mut PbGameState,
 ) {
-    clear_dat_file_name();
+    pb_game_state.dat_file_name.clear();
     pb_game_state.full_tilt_mode = false;
     pb_game_state.full_tilt_demo_mode = false;
 
@@ -125,33 +124,11 @@ pub fn select_dat_file(
                     println!("Error opening dat_file {}: {}", &dat_file_path, e);
                     continue;
                 }
-                set_dat_file_name(&file_name);
+                pb_game_state.dat_file_name = file_name;
 
                 update_full_tilt_mode(dat_file_name, pb_game_state);
                 return;
             }
-        }
-    }
-}
-
-fn clear_dat_file_name() {
-    match DAT_FILE_NAME.lock() {
-        Ok(mut file_name) => {
-            file_name.clear();
-        }
-        Err(e) => {
-            println!("Error locking DAT_FILE_NAME: {}", e);
-        }
-    }
-}
-
-fn set_dat_file_name(file_name: &str) {
-    match DAT_FILE_NAME.lock() {
-        Ok(mut dat_name) => {
-            *dat_name = String::from(file_name);
-        }
-        Err(e) => {
-            println!("Error locking DAT_FILE_NAME: {}", e);
         }
     }
 }
@@ -198,18 +175,11 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
 
     let mut data_file_path = String::new();
 
-    match DAT_FILE_NAME.lock() {
-        Ok(mut file_name) => {
-            if file_name.is_empty() {
-                return Ok(false);
-            }
-            data_file_path = make_path_name(&file_name);
-        }
-        Err(e) => {
-            println!("Error locking DAT_FILE_NAME: {}", e);
-            return Ok(false);
-        }
+    if state.pb_game_state.dat_file_name.is_empty() {
+        return Ok(false);
     }
+    data_file_path = make_path_name(&state.pb_game_state.dat_file_name);
+        
 
     let dat = partman::load_records(data_file_path, state.pb_game_state.full_tilt_mode)?;
     let shared_dat = Arc::new(dat);
