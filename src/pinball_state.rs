@@ -54,6 +54,7 @@ pub struct PbGameState {
     pub record_table: Option<Arc<DatFile>>,
     pub dat_file_name: String,
     pub base_path: String,
+    pub idle_timer_ms: f32,
 }
 
 impl PbGameState {
@@ -76,6 +77,7 @@ impl PbGameState {
             record_table: None,
             dat_file_name: String::new(),
             base_path: String::new(),
+            idle_timer_ms: 0.0f32,
         }
     }
 }

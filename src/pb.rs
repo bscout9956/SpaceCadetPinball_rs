@@ -22,8 +22,6 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::{Arc, LazyLock, Mutex};
 
-pub static IDLE_TIMER_MS: Mutex<f32> = Mutex::new(0.0);
-
 pub static MISS_TEXT_BOX: Mutex<Option<TTextBox>> = Mutex::new(None);
 
 #[derive(PartialEq, Eq, Ord, PartialOrd)]
@@ -336,14 +334,13 @@ fn mode_change(
 ) -> Result<(), PbError> {
     let box_guard = MISS_TEXT_BOX.lock().map_err(|_| PbError::LockGeneric)?;
     let miss_text_box = box_guard.as_ref();
-    let mut idle_guard = IDLE_TIMER_MS.lock().map_err(|_| PbError::LockGeneric)?;
 
     if pb_game_state.credits_active && miss_text_box.is_some() {
         miss_text_box.unwrap().clear(true);
     }
     pb_game_state.credits_active = false;
     pb_game_state.credits_active = pb_game_state.credits_active;
-    *idle_guard = 0.0;
+    pb_game_state.idle_timer_ms = 0.0;
 
     match mode {
         GameModes::InGame => {
@@ -433,9 +430,8 @@ pub(crate) fn frame(mut dt_milli_sec: f32, pb_game_state: &mut PbGameState) -> R
     }
 
     if pb_game_state.full_tilt_mode && !pb_game_state.demo_mode {
-        let mut timer = IDLE_TIMER_MS.lock().unwrap();
-        *timer += dt_milli_sec;
-        if *timer >= 60000.0 && !pb_game_state.credits_active {
+        pb_game_state.idle_timer_ms += dt_milli_sec;
+        if pb_game_state.idle_timer_ms >= 60000.0 && !pb_game_state.credits_active {
             push_cheat("credits");
         }
     }
