@@ -1,24 +1,30 @@
-use dear_imgui_rs::sys::{ImGuiIO, ImGuiMouseCursor_COUNT, igGetCurrentContext, igGetMainViewport};
-use dear_imgui_rs::{BackendFlags, Io, MouseButton};
+use crate::options::InputTypes::Keyboard;
+use dear_imgui_rs::sys::{ImGuiMouseCursor_COUNT, igGetFrameCount, igGetMainViewport};
+use dear_imgui_rs::{BackendFlags, Io, Key, MouseButton};
 use dear_imgui_rs::{Context, TextureId};
+use sdl2::keyboard::Keycode;
 use sdl2::render::RenderTarget;
 use sdl2::sys::SDL_EventType::{
     SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEMOTION,
-    SDL_MOUSEWHEEL, SDL_TEXTINPUT,
+    SDL_MOUSEWHEEL, SDL_TEXTINPUT, SDL_WINDOWEVENT,
 };
+use sdl2::sys::SDL_Keymod::{KMOD_ALT, KMOD_CTRL, KMOD_GUI, KMOD_SHIFT};
 use sdl2::sys::SDL_SystemCursor::{
     SDL_SYSTEM_CURSOR_ARROW, SDL_SYSTEM_CURSOR_HAND, SDL_SYSTEM_CURSOR_IBEAM, SDL_SYSTEM_CURSOR_NO,
     SDL_SYSTEM_CURSOR_SIZEALL, SDL_SYSTEM_CURSOR_SIZENESW, SDL_SYSTEM_CURSOR_SIZENS,
     SDL_SYSTEM_CURSOR_SIZENWSE, SDL_SYSTEM_CURSOR_SIZEWE, SDL_SYSTEM_CURSOR_WAIT,
     SDL_SYSTEM_CURSOR_WAITARROW,
 };
+use sdl2::sys::SDL_WindowEventID::{
+    SDL_WINDOWEVENT_ENTER, SDL_WINDOWEVENT_FOCUS_GAINED, SDL_WINDOWEVENT_LEAVE,
+};
 use sdl2::sys::{
-    SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2,
+    KeyCode, SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2,
     SDL_CreateRGBSurfaceFrom, SDL_CreateSystemCursor, SDL_CreateTextureFromSurface, SDL_Cursor,
     SDL_DestroyTexture, SDL_Event, SDL_FreeSurface, SDL_GetCurrentVideoDriver, SDL_GetVersion,
     SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE, SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH,
-    SDL_Renderer, SDL_SYSWM_TYPE, SDL_SetHint, SDL_Surface, SDL_SysWMinfo, SDL_Texture, SDL_Window,
-    SDL_bool, SDL_version,
+    SDL_Keycode, SDL_Keymod, SDL_Renderer, SDL_SYSWM_TYPE, SDL_SetHint, SDL_Surface, SDL_SysWMinfo,
+    SDL_Texture, SDL_Window, SDL_bool, SDL_version,
 };
 use std::ffi::{CStr, c_char, c_void};
 use std::ops::{Add, Mul};
