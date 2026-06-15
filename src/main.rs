@@ -478,15 +478,15 @@ unsafe fn event_handler(
 
     unsafe {
         // Evaluate the cast in an if-statement instead of a pattern match
-        if (*event).type_ == SDL_EventType::SDL_KEYDOWN as u32
+        if (*event).type_ == SDL_KEYDOWN as u32
             || (*event).type_ == SDL_EventType::SDL_MOUSEBUTTONDOWN as u32
-            || (*event).type_ == SDL_EventType::SDL_CONTROLLERBUTTONDOWN as u32
+            || (*event).type_ == SDL_CONTROLLERBUTTONDOWN as u32
         {
             input_down = true;
         }
     }
 
-    let waiting_input = options::CONTROL_WAITING_FOR_INPUT
+    let waiting_input = CONTROL_WAITING_FOR_INPUT
         .lock()
         .map_err(|_| MainLoopError::MutexLock)?;
 
