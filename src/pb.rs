@@ -655,4 +655,9 @@ fn push_cheat(name: &str) {
 
 pub(crate) fn pause_continue(main_state: &mut MainState) {
     main_state.single_step ^= true;
+    //TODO continue
+}
+
+pub(crate) fn input_up() {
+    todo!()
 }
