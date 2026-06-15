@@ -42,6 +42,8 @@ pub struct MainState {
     pub last_mouse_y: i32,
     pub no_time_loss: bool,
     pub demo_active: bool,
+    pub launch_ball_enabled: bool,
+    pub high_scores_enabled: bool,
 }
 
 impl MainState {
@@ -59,6 +61,8 @@ impl MainState {
             last_mouse_y: 0,
             no_time_loss: false,
             demo_active: false,
+            launch_ball_enabled: true,
+            high_scores_enabled: true,
         }
     }
 

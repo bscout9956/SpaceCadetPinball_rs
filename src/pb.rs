@@ -10,8 +10,8 @@ use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
 use crate::translations::{Msg, TranslationError};
 use crate::{
-    HIGH_SCORES_ENABLED, LAUNCH_BALL_ENABLED, MAIN_WINDOW, control, fullscrn, gdrv, loader, maths,
-    midi, partman, proj, render, score, timer, translations,
+    MAIN_WINDOW, control, fullscrn, gdrv, loader, maths, midi, partman, proj, render, score, timer,
+    translations,
 };
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
@@ -434,8 +434,8 @@ fn mode_change(mode: GameModes, main_state: &mut MainState) -> Result<(), PbErro
     match mode {
         GameModes::InGame => {
             if (DEMO_MODE.load(Relaxed) == true) {
-                LAUNCH_BALL_ENABLED.store(false, Relaxed);
-                HIGH_SCORES_ENABLED.store(false, Relaxed);
+                main_state.launch_ball_enabled = false;
+                main_state.high_scores_enabled = false;
                 main_state.demo_active = true;
                 let mut main_table = MAIN_TABLE.lock()?;
                 match main_table.as_mut() {
@@ -447,8 +447,8 @@ fn mode_change(mode: GameModes, main_state: &mut MainState) -> Result<(), PbErro
                     None => {}
                 }
             } else {
-                LAUNCH_BALL_ENABLED.store(true, Relaxed);
-                HIGH_SCORES_ENABLED.store(true, Relaxed);
+                main_state.launch_ball_enabled = true;
+                main_state.high_scores_enabled = false;
                 main_state.demo_active = false;
                 let mut main_table = MAIN_TABLE.lock()?;
                 match main_table.as_mut() {
@@ -463,9 +463,9 @@ fn mode_change(mode: GameModes, main_state: &mut MainState) -> Result<(), PbErro
             }
         }
         GameModes::GameOver => {
-            LAUNCH_BALL_ENABLED.store(false, Relaxed);
+            main_state.launch_ball_enabled = false;
             if DEMO_MODE.load(Relaxed) == false {
-                HIGH_SCORES_ENABLED.store(true, Relaxed);
+                main_state.high_scores_enabled = true;
                 main_state.demo_active = false;
             }
             let main_table = MAIN_TABLE.lock()?;

@@ -198,8 +198,7 @@ unsafe impl Send for SdlRendererPtr {}
 unsafe impl Sync for SdlRendererPtr {}
 
 pub const VERSION: &str = "1.0 DEV";
-pub static LAUNCH_BALL_ENABLED: AtomicBool = AtomicBool::new(true);
-pub static HIGH_SCORES_ENABLED: AtomicBool = AtomicBool::new(true);
+
 pub static MAIN_MENU_HEIGHT: AtomicI32 = AtomicI32::new(0);
 
 static ACTIVATED: AtomicBool = AtomicBool::new(false);
