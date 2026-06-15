@@ -29,6 +29,7 @@ use sdl2::sys::SDL_KeyCode::{
 use sdl2::sys::{SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2};
 use std::sync::{Arc, Mutex};
 use crate::fullscrn::ResolutionInfo;
+use crate::gdrv::GdrvBitmap8;
 
 pub struct PinballState {
     pub main_state: MainState,
@@ -89,6 +90,7 @@ impl PbGameState {
 pub struct RenderState {
     pub sprite_list: Vec<RenderSprite>,
     pub ball_list: Vec<RenderSprite>,
+    pub v_screen: Option<GdrvBitmap8>,
 }
 
 impl RenderState {
@@ -96,6 +98,7 @@ impl RenderState {
         Self {
             sprite_list: Vec::new(),
             ball_list: Vec::new(),
+            v_screen: None,
         }
     }
 }

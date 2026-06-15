@@ -233,12 +233,12 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
         None,
         res_info.table_width,
         res_info.table_height,
+        &mut state.main_state,
         &mut state.options_state,
-        &state.main_state.renderer,
+        &mut state.render_state,
     );
 
-    let mut v_guard = render::V_SCREEN.lock().unwrap();
-    if let Some(ref mut dst) = *v_guard {
+    if let Some(dst) = state.render_state.v_screen.as_mut() {
         gdrv::copy_bitmap(
             dst,
             background_bmp.width,

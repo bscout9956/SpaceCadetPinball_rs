@@ -1,12 +1,11 @@
 use crate::gdrv::GdrvBitmap8;
 use crate::maths::RectangleType;
-use crate::pinball_state::{OptionsState, RenderState};
+use crate::pinball_state::{MainState, OptionsState, RenderState};
 use crate::zdrv::ZMapHeaderType;
-use crate::{SdlRendererPtr, gdrv, maths, zdrv};
+use crate::{gdrv, maths, zdrv};
 use sdl2::sys::SDL_Rect;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
 use std::cmp::PartialEq;
-use std::rc::Rc;
 use std::sync::{Arc, LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
@@ -165,7 +164,6 @@ impl PartialEq for RenderSprite {
     }
 }
 
-pub static V_SCREEN: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
 pub static BACKGROUND_BITMAP: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
 pub static BACKGROUND_ZMAP: Mutex<Option<Arc<ZMapHeaderType>>> = Mutex::new(None);
 
@@ -273,21 +271,21 @@ pub fn init(
 }
 
 pub fn recreate_screen_texture(
+    main_state: &mut MainState,
     options_state: &mut OptionsState,
-    renderer: &Option<SdlRendererPtr>,
+    render_state: &mut RenderState,
 ) {
-    let mut vscreen = V_SCREEN.lock().unwrap();
     let filtering = if *options_state.options.linear_filtering {
         c"linear"
     } else {
         c"nearest"
     };
-    let v_screen_def = (*vscreen).as_mut().unwrap();
+    let v_screen_def = render_state.v_screen.as_mut().unwrap();
 
     v_screen_def.create_texture(
         filtering.as_ptr(),
         SDL_TEXTUREACCESS_STREAMING as i32,
-        renderer,
+        &main_state.renderer,
     );
 }
 
@@ -297,10 +295,9 @@ fn repaint(sprite: &RenderSprite) {
 
 fn paint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> {
     let v_screen_rect = V_SCREEN_RECT.lock()?;
-    let mut v_screen_guard = V_SCREEN.lock()?;
     let z_screen_guard = Z_SCREEN.lock()?;
 
-    let v_screen = (*v_screen_guard).as_mut().unwrap();
+    let v_screen = render_state.v_screen.as_mut().unwrap();
     let z_screen = (*z_screen_guard).as_ref().unwrap();
 
     // Sort ball sprites by ascending depth
@@ -356,9 +353,6 @@ fn unpaint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> 
     // Restore portions of v_screen saved during previous paint_balls call.
     let ball_list_size = render_state.ball_list.len();
 
-    let mut v_screen_guard = V_SCREEN.lock()?;
-    let vscreen = (*v_screen_guard).as_mut().unwrap();
-
     for index in (0..ball_list_size).rev() {
         let cur_ball = &mut render_state.ball_list[index];
 
@@ -367,7 +361,7 @@ fn unpaint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> 
 
         if cur_ball.dirty_rect.width > 0 {
             gdrv::copy_bitmap(
-                vscreen,
+                render_state.v_screen.as_mut().unwrap(),
                 cur_ball.dirty_rect.width,
                 cur_ball.dirty_rect.height,
                 cur_ball.dirty_rect.x_position,
@@ -439,10 +433,8 @@ pub fn update(render_state: &mut RenderState) {
             let background_bmp = BACKGROUND_BITMAP.lock().unwrap();
             if background_bmp.is_some() {
                 let mut bg_bmp = background_bmp.clone().unwrap();
-                let mut v_screen_guard = V_SCREEN.lock().unwrap();
-                let v_screen = v_screen_guard.as_mut().unwrap();
                 gdrv::copy_bitmap(
-                    v_screen,
+                    render_state.v_screen.as_mut().unwrap(),
                     width,
                     height,
                     x_pos,
@@ -452,9 +444,14 @@ pub fn update(render_state: &mut RenderState) {
                     y_pos,
                 );
             } else {
-                let mut v_screen_guard = V_SCREEN.lock().unwrap();
-                let v_screen = v_screen_guard.as_mut().unwrap();
-                gdrv::fill_bitmap(v_screen, width, height, x_pos, y_pos, 0);
+                gdrv::fill_bitmap(
+                    render_state.v_screen.as_mut().unwrap(),
+                    width,
+                    height,
+                    x_pos,
+                    y_pos,
+                    0,
+                );
             }
         }
     }
