@@ -4,7 +4,7 @@ extern crate core;
 
 use crate::embedded_data::load_controller_db;
 use crate::options::GameBindings;
-use crate::pinball_state::{MainState, OptionsState, PinballState};
+use crate::pinball_state::{FullscrnState, MainState, OptionsState, PinballState};
 use crate::translations::Msg;
 use dear_imgui_rs::sys::{
     ImGuiCol_MenuBarBg, ImGuiIO, ImGuiMouseCursor_None, ImVec4, igNewFrame, igPushStyleColor_Vec4,
@@ -203,15 +203,7 @@ unsafe impl Sync for SdlRendererPtr {}
 
 pub const VERSION: &str = "1.0 DEV";
 
-pub static MAIN_MENU_HEIGHT: AtomicI32 = AtomicI32::new(0);
-
-static ACTIVATED: AtomicBool = AtomicBool::new(false);
-static DISP_GR_HISTORY: AtomicBool = AtomicBool::new(false);
-static DISP_FRAME_RATE: AtomicBool = AtomicBool::new(false);
-
 pub type DurationMs = f64;
-
-static UPDATE_TO_FRAME_RATIO: Mutex<f64> = Mutex::new(0.0);
 
 static SPIN_THRESHOLD: LazyLock<Mutex<Duration<1_000_000_000>>> =
     LazyLock::new(|| Mutex::new(Duration(0)));
@@ -222,10 +214,6 @@ static PREV_SDL_ERROR_COUNT: AtomicU32 = AtomicU32::new(0);
 static GFR_OFFSET: AtomicU32 = AtomicU32::new(0);
 
 pub static MAIN_WINDOW: Mutex<Option<SdlWindowPtr>> = Mutex::new(Option::None);
-
-pub fn get_main_menu_height() -> i32 {
-    MAIN_MENU_HEIGHT.load(SeqCst)
-}
 
 #[derive(Debug, Error)]
 pub enum MainError {
@@ -294,8 +282,7 @@ fn main_loop(
     let _frame_duration = pb_state.main_state.target_frametime;
 
     loop {
-        let mut main_state = &mut pb_state.main_state;
-        if DISP_FRAME_RATE.load(SeqCst) == true {
+        if (&mut pb_state.main_state).disp_frame_rate == true {
             let cur_time = unsafe { SdlPerformanceClock::now() };
 
             if (cur_time - prev_time) > Duration(1_000_000_000) {
@@ -317,21 +304,25 @@ fn main_loop(
                     return Err(MainLoopError::NullWindow);
                 }
 
-                main_state.update_fps_details(&title);
+                (&mut pb_state.main_state).update_fps_details(&title);
                 update_count = 0;
                 frame_counter = update_count;
                 prev_time = cur_time;
             }
         }
 
-        if !process_window_messages(imgui_context, &mut main_state, &mut pb_state.options_state)?
-            || main_state.b_quit == false
+        if !process_window_messages(
+            imgui_context,
+            &mut pb_state.main_state,
+            &mut pb_state.options_state,
+            &mut pb_state.fullscrn_state,
+        )? || (&mut pb_state.main_state).b_quit == false
         {
             break;
         }
 
-        if main_state.has_focus {
-            if main_state.mouse_down {
+        if (&mut pb_state.main_state).has_focus {
+            if (&mut pb_state.main_state).mouse_down {
                 let mut x = 0;
                 let mut y = 0;
                 let mut w = 0;
@@ -347,8 +338,8 @@ fn main_loop(
                         return Err(MainLoopError::NullWindow);
                     }
                 }
-                let dx = (main_state.last_mouse_x - x) as f32 / w as f32;
-                let dy = (y - main_state.last_mouse_y) as f32 / h as f32;
+                let dx = ((&mut pb_state.main_state).last_mouse_x - x) as f32 / w as f32;
+                let dy = (y - (&mut pb_state.main_state).last_mouse_y) as f32 / h as f32;
                 pb::ball_set(dx, dy, &mut pb_state.pb_game_state);
 
                 // Original creates continuous mouse movement with mouse capture.
@@ -374,25 +365,25 @@ fn main_loop(
                     }
                 }
 
-                main_state.update_mouse_xy(x, y);
+                (&mut pb_state.main_state).update_mouse_xy(x, y);
             }
         }
-        if main_state.single_step == false && main_state.no_time_loss == false {
+        if (&mut pb_state.main_state).single_step == false
+            && (&mut pb_state.main_state).no_time_loss == false
+        {
             let dt = _frame_duration.count() as f32;
             pb::frame(dt, &mut pb_state.pb_game_state);
-            if DISP_GR_HISTORY.load(SeqCst) == true {
+            if (&mut pb_state.main_state).disp_gr_history == true {
                 // TODO: Continue from L360 in winmain.cpp
             }
         }
 
-        main_state.no_time_loss = false;
+        (&mut pb_state.main_state).no_time_loss = false;
 
-        let update_to_frame_ratio = UPDATE_TO_FRAME_RATIO
-            .lock()
-            .map_err(|_| MainLoopError::MutexLock)?;
-
-        if _update_to_frame_counter >= *update_to_frame_ratio {
-            if *pb_state.options_state.options.hide_cursor && main_state.cursor_idle_counter <= 0 {
+        if _update_to_frame_counter >= (&mut pb_state.main_state).update_to_frame_ratio {
+            if *pb_state.options_state.options.hide_cursor
+                && (&mut pb_state.main_state).cursor_idle_counter <= 0
+            {
                 // TODO: ImGUiSetCursor l376
                 unsafe { igSetMouseCursor(ImGuiMouseCursor_None) };
                 // imgui_sdl::impl_sdl2_new_frame(); TODO
@@ -401,7 +392,7 @@ fn main_loop(
                     igNewFrame();
                     render_ui();
 
-                    SDL_RenderClear(main_state.renderer.as_ref().unwrap().0) // TODO: If let Some here
+                    SDL_RenderClear((&mut pb_state.main_state).renderer.as_ref().unwrap().0) // TODO: If let Some here
                 };
             }
             // TODO TODO TODO TODO, do all the todos above before continuing
@@ -422,6 +413,7 @@ fn process_window_messages(
     imgui_context: &mut Context,
     main_state: &mut MainState,
     options_state: &mut OptionsState,
+    fullscrn_state: &mut FullscrnState,
 ) -> Result<bool, MainLoopError> {
     let mut idle_wait = 0i64;
     let mut event = MaybeUninit::<SDL_Event>::uninit();
@@ -430,8 +422,13 @@ fn process_window_messages(
         idle_wait = main_state.target_frametime.count();
         unsafe {
             while SDL_PollEvent(event.as_mut_ptr()) > 0 {
-                if event_handler(event.as_mut_ptr(), imgui_context, main_state, options_state)?
-                    == false
+                if event_handler(
+                    event.as_mut_ptr(),
+                    imgui_context,
+                    main_state,
+                    options_state,
+                    fullscrn_state,
+                )? == false
                 {
                     return Ok(false);
                 }
@@ -446,7 +443,13 @@ fn process_window_messages(
     unsafe {
         if SDL_WaitEventTimeout(event.as_mut_ptr(), idle_wait as c_int) > 0 {
             idle_wait = main_state.target_frametime.count();
-            return event_handler(event.as_mut_ptr(), imgui_context, main_state, options_state);
+            return event_handler(
+                event.as_mut_ptr(),
+                imgui_context,
+                main_state,
+                options_state,
+                fullscrn_state,
+            );
         }
     }
     Ok(true)
@@ -457,6 +460,7 @@ unsafe fn event_handler(
     imgui_context: &mut Context,
     main_state: &mut MainState,
     options_state: &mut OptionsState,
+    fullscrn_state: &mut FullscrnState,
 ) -> Result<bool, MainLoopError> {
     let mut input_down = false;
 
@@ -524,7 +528,7 @@ unsafe fn event_handler(
             end_pause(main_state);
 
             main_state.b_quit = true;
-            fullscrn::shutdown();
+            fullscrn::shutdown(fullscrn_state);
             main_state.return_value = 0;
             return Ok(false);
         }
@@ -849,7 +853,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
             }
             SDL_ShowWindow(window);
-            fullscrn::set_screen_mode(*(&mut state.options_state).options.full_screen);
+            fullscrn::set_screen_mode(
+                *(&mut state.options_state).options.full_screen,
+                &mut state.fullscrn_state,
+            );
 
             let is_demo = env::args().any(|arg| arg == "-demo");
             if is_demo {

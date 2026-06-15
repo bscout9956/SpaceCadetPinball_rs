@@ -4,6 +4,8 @@
 // This change will be done over the course of multiple commits iteratively.
 // Until this notice is removed, it may not hold all possible states.
 
+use crate::fullscrn::ResolutionInfo;
+use crate::gdrv::GdrvBitmap8;
 use crate::group_data::DatFile;
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
 use crate::options::{
@@ -28,8 +30,6 @@ use sdl2::sys::SDL_KeyCode::{
 };
 use sdl2::sys::{SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2};
 use std::sync::{Arc, Mutex};
-use crate::fullscrn::ResolutionInfo;
-use crate::gdrv::GdrvBitmap8;
 
 pub struct PinballState {
     pub main_state: MainState,
@@ -127,6 +127,11 @@ pub struct MainState {
     pub show_sprite_viewer: bool,
     pub show_exit_popup: bool,
     pub renderer: Option<SdlRendererPtr>,
+    pub update_to_frame_ratio: f64,
+    pub disp_frame_rate: bool,
+    pub disp_gr_history: bool,
+    pub activated: bool,
+    pub main_menu_height: i32,
 }
 
 impl MainState {
@@ -154,6 +159,11 @@ impl MainState {
             show_sprite_viewer: false,
             show_exit_popup: false,
             renderer: None,
+            update_to_frame_ratio: 0.0,
+            disp_frame_rate: false,
+            disp_gr_history: false,
+            activated: false,
+            main_menu_height: 0,
         }
     }
 
@@ -201,6 +211,8 @@ pub struct FullscrnState {
     pub offset_x: f32,
     pub offset_y: f32,
     pub resolution_array: [ResolutionInfo; 3],
+    pub screen_mode: bool,
+    pub display_changed: bool,
 }
 impl FullscrnState {
     pub fn new() -> FullscrnState {
@@ -231,7 +243,9 @@ impl FullscrnState {
                     table_height: 666,
                     resolution_menu_id: 503,
                 },
-            ]
+            ],
+            screen_mode: false,
+            display_changed: false,
         }
     }
 }
