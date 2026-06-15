@@ -660,3 +660,9 @@ fn push_cheat(name: &str) {
         control::pbctrl_bdoor_controller(ch);
     }
 }
+
+pub(crate) fn pause_continue() {
+    let mut val = SINGLE_STEP.load(SeqCst);
+    val ^= true;
+    SINGLE_STEP.store(val, SeqCst);
+}
