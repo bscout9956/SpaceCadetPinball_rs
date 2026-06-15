@@ -25,6 +25,7 @@ use std::cell::RefCell;
 use std::env;
 use std::error::Error;
 use std::ffi::{CStr, CString, NulError, c_int};
+use std::mem::MaybeUninit;
 use std::ops::{Index, Sub};
 use std::path::PathBuf;
 use std::process::exit;
@@ -415,13 +416,15 @@ fn process_window_messages(
     options_state: &mut OptionsState,
 ) -> Result<bool, MainLoopError> {
     let mut idle_wait = 0i64;
-    let event: *mut SDL_Event = unsafe { std::mem::zeroed() };
+    let mut event = MaybeUninit::<SDL_Event>::uninit();
 
-    if main_state.has_focus == true {
+    if main_state.has_focus {
         idle_wait = main_state.target_frametime.count();
         unsafe {
-            while SDL_PollEvent(event) > 0 {
-                if event_handler(event, imgui_context, main_state, options_state)? == false {
+            while SDL_PollEvent(event.as_mut_ptr()) > 0 {
+                if event_handler(event.as_mut_ptr(), imgui_context, main_state, options_state)?
+                    == false
+                {
                     return Ok(false);
                 }
             }
@@ -433,9 +436,9 @@ fn process_window_messages(
     // Progressively wait longer when transitioning to idle
     idle_wait = i64::min(idle_wait + main_state.target_frametime.0, 500);
     unsafe {
-        if SDL_WaitEventTimeout(event, idle_wait as c_int) > 0 {
+        if SDL_WaitEventTimeout(event.as_mut_ptr(), idle_wait as c_int) > 0 {
             idle_wait = main_state.target_frametime.count();
-            return event_handler(event, imgui_context, main_state, options_state);
+            return event_handler(event.as_mut_ptr(), imgui_context, main_state, options_state);
         }
     }
     Ok(true)
