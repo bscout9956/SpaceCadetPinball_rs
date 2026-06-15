@@ -28,7 +28,7 @@ jobs:
               run: |
                   git clone https://github.com/microsoft/vcpkg.git vcpkg
                   .\vcpkg\bootstrap-vcpkg.bat
-                  .\vcpkg\vcpkg install sdl2:x64-windows sdl2-mixer:x64-windows
+                  .\vcpkg\vcpkg install sdl2:x64-windows-static-md sdl2-mixer:x64-windows-static-md
 
             - name: Rust cache
               uses: Swatinem/rust-cache@v2
