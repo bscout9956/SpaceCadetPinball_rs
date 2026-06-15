@@ -54,10 +54,16 @@ jobs:
             #   run: cargo clippy -- -D warnings
 
             - name: Build
-              env:
-                  LIB: ${{ github.workspace }}\vcpkg\installed\x64-windows-static-md\lib
-                  INCLUDE: ${{ github.workspace }}\vcpkg\installed\x64-windows-static-md\include
-              run: cargo build --release
+              run: |
+                  $VcpkgPath = Join-Path "${{ github.workspace }}" "vcpkg\installed\x64-windows-static-md"
+
+                  $env:RUSTFLAGS = "-L native=$VcpkgPath\lib"
+
+                  $env:INCLUDE = "$VcpkgPath\include;" + $env:INCLUDE
+                  $env:LIB = "$VcpkgPath\lib;" + $env:LIB
+
+                  # 4. Run the build
+                  cargo build --release
 
             # - name: Run tests
             #   run: cargo test --release
