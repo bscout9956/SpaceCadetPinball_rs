@@ -1,6 +1,6 @@
 use crate::MainError::NoneRendererError;
 use crate::errors::FullscreenError;
-use crate::options::OPTIONS;
+use crate::pinball_state::OptionsState;
 use crate::{MAIN_WINDOW, RENDERER, get_main_menu_height, pb, render};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
@@ -108,7 +108,7 @@ fn reset_offset(offset: &Mutex<f32>) -> Result<(), FullscreenError> {
     Ok(())
 }
 
-pub fn window_size_changed() -> Result<(), FullscreenError> {
+pub fn window_size_changed(option_state: &mut OptionsState) -> Result<(), FullscreenError> {
     let (mut width, mut height): (i32, i32) = (0, 0);
     let renderer_guard = RENDERER.lock().map_err(|_| FullscreenError::LockGeneric)?;
     if let Some(renderer) = renderer_guard.as_ref() {
@@ -119,8 +119,7 @@ pub fn window_size_changed() -> Result<(), FullscreenError> {
         return Err(FullscreenError::MissingRenderer);
     }
 
-    let options = OPTIONS.lock()?;
-    let menu_height = if *options.show_menu {
+    let menu_height = if *option_state.options.show_menu {
         get_main_menu_height()
     } else {
         0
@@ -145,7 +144,7 @@ pub fn window_size_changed() -> Result<(), FullscreenError> {
     let mut offset2x = 0;
     let mut offset2y = 0;
 
-    if *options.integer_scaling {
+    if *option_state.options.integer_scaling {
         let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
         let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
 
@@ -162,7 +161,7 @@ pub fn window_size_changed() -> Result<(), FullscreenError> {
         };
     }
 
-    if *options.uniform_scaling {
+    if *option_state.options.uniform_scaling {
         let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
         let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
         *scale_x = f32::min(*scale_x, *scale_y);
@@ -280,6 +279,6 @@ fn disable_fullscreen() -> Result<bool, FullscreenError> {
     Ok(false)
 }
 
-pub fn init() {
-    window_size_changed();
+pub fn init(options_state: &mut OptionsState) {
+    window_size_changed(options_state);
 }

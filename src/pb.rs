@@ -4,14 +4,14 @@ use crate::gdrv::ColorRgba;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
 use crate::message_code::MessageCode;
-use crate::options::OPTIONS;
+use crate::pinball_state::{MainState, OptionsState};
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
 use crate::translations::{Msg, TranslationError};
 use crate::{
-    DEMO_ACTIVE, HIGH_SCORES_ENABLED, LAUNCH_BALL_ENABLED, MAIN_WINDOW, SINGLE_STEP, control,
-    fullscrn, gdrv, loader, maths, midi, partman, proj, render, score, timer, translations,
+    DEMO_ACTIVE, HIGH_SCORES_ENABLED, LAUNCH_BALL_ENABLED, MAIN_WINDOW, control, fullscrn, gdrv,
+    loader, maths, midi, partman, proj, render, score, timer, translations,
 };
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
@@ -117,22 +117,15 @@ pub fn show_message_box_cstr_message(
     show_message_box(flags, title, message_str);
 }
 
-pub fn select_dat_file(data_search_paths: &[&str]) {
+pub fn select_dat_file(data_search_paths: &[&str], options_state: &mut OptionsState) {
     clear_dat_file_name();
     FULL_TILT_MODE.store(false, Relaxed);
     FULL_TILT_DEMO_MODE.store(false, Relaxed);
 
     let mut dat_file_names: [&str; 3] = ["CADET.DAT", "PINBALL.DAT", "DEMO.DAT"];
 
-    match OPTIONS.lock() {
-        Ok(mut options) => {
-            if options.prefer_3dpb_game_data.value {
-                dat_file_names.swap(0, 1);
-            }
-        }
-        Err(e) => {
-            println!("Error locking OPTIONS: {}", e);
-        }
+    if *options_state.options.prefer_3dpb_game_data {
+        dat_file_names.swap(0, 1);
     }
 
     for path in data_search_paths {
@@ -401,16 +394,15 @@ pub(crate) fn toggle_demo() {
     todo!()
 }
 
-pub fn replay_level(demo_mode: bool) -> Result<(), PbError> {
+pub fn replay_level(demo_mode: bool, options_state: &mut OptionsState) -> Result<(), PbError> {
     DEMO_MODE.store(demo_mode, Relaxed);
     mode_change(GameModes::InGame)?;
-    let options = OPTIONS.lock().map_err(|_| PbError::LockGeneric)?;
-    if *options.music == true {
+    if *options_state.options.music == true {
         midi::music_play();
     }
     let mut main_table = MAIN_TABLE.lock().map_err(|_| PbError::LockGeneric)?;
     let table = (*main_table).as_mut().unwrap();
-    table.message(MessageCode::NEW_GAME, *options.players as f32);
+    table.message(MessageCode::NEW_GAME, *options_state.options.players as f32);
     Ok(())
 }
 
@@ -661,8 +653,6 @@ fn push_cheat(name: &str) {
     }
 }
 
-pub(crate) fn pause_continue() {
-    let mut val = SINGLE_STEP.load(SeqCst);
-    val ^= true;
-    SINGLE_STEP.store(val, SeqCst);
+pub(crate) fn pause_continue(main_state: &mut MainState) {
+    main_state.single_step ^= true;
 }

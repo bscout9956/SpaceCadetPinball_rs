@@ -231,7 +231,6 @@ static SPIN_THRESHOLD: LazyLock<Mutex<Duration<1_000_000_000>>> =
 static SLEEP_STATE: LazyLock<Mutex<WelfordState>> =
     LazyLock::new(|| Mutex::new(WelfordState::new()));
 
-static OPTIONS: &LazyLock<Mutex<OptionsStruct>> = &options::OPTIONS;
 static PREV_SDL_ERROR_COUNT: AtomicU32 = AtomicU32::new(0);
 static GFR_OFFSET: AtomicU32 = AtomicU32::new(0);
 static CURSOR_IDLE_COUNTER: AtomicI32 = AtomicI32::new(0);
@@ -350,8 +349,11 @@ fn main_loop(
             }
         }
 
-        if !process_window_messages(imgui_context, &mut pb_state.main_state)?
-            || pb_state.main_state.b_quit == false
+        if !process_window_messages(
+            imgui_context,
+            &mut pb_state.main_state,
+            &mut pb_state.options_state,
+        )? || pb_state.main_state.b_quit == false
         {
             break;
         }
@@ -419,8 +421,8 @@ fn main_loop(
             .map_err(|_| MainLoopError::MutexLock)?;
 
         if _update_to_frame_counter >= *update_to_frame_ratio {
-            let options = OPTIONS.lock().map_err(|_| MainLoopError::MutexLock)?;
-            if *options.hide_cursor && CURSOR_IDLE_COUNTER.load(SeqCst) <= 0 {
+            if *pb_state.options_state.options.hide_cursor && CURSOR_IDLE_COUNTER.load(SeqCst) <= 0
+            {
                 // TODO: ImGUiSetCursor l376
             }
             // TODO TODO TODO TODO, do all the todos above before continuing
@@ -433,6 +435,7 @@ fn main_loop(
 fn process_window_messages(
     imgui_context: &mut Context,
     main_state: &mut MainState,
+    options_state: &mut OptionsState,
 ) -> Result<bool, MainLoopError> {
     static IDLE_WAIT: Mutex<i64> = Mutex::new(0);
     let event: *mut SDL_Event = unsafe { std::mem::zeroed() };
@@ -772,41 +775,34 @@ fn main() -> Result<(), Box<dyn Error>> {
             imgui_context.set_ini_filename(Some(ini_path));
 
             // First option initialization step: just load settings from .ini. Needs ImGui context.
-            options::init_primary();
+            options::init_primary(&mut pb_state.options_state);
             if reset_all_options {
                 reset_all_options = false;
-                options::reset_all_options();
+                options::reset_all_options(&mut pb_state.options_state);
             }
 
-            match OPTIONS.lock() {
-                Ok(options) => {
-                    let font_file_name = &options.font_file_name.value;
+            let font_file_name = &pb_state.options_state.options.font_file_name.value;
 
-                    if !font_file_name.is_empty() {
-                        let mut fonts = imgui_context.fonts();
-                        let ranges = fonts.get_glyph_ranges_default().to_vec();
+            if !font_file_name.is_empty() {
+                let mut fonts = imgui_context.fonts();
+                let ranges = fonts.get_glyph_ranges_default().to_vec();
 
-                        let custom_font = fonts.add_font_from_file_ttf(
-                            font_file_name,
-                            13.0,
-                            Some(&font_cfg),
-                            Some(&ranges),
-                        );
+                let custom_font = fonts.add_font_from_file_ttf(
+                    font_file_name,
+                    13.0,
+                    Some(&font_cfg),
+                    Some(&ranges),
+                );
 
-                        if custom_font.is_none() {
-                            println!("Could not load font {}", font_file_name);
-                            imgui_context.fonts().add_font_default(Some(&font_cfg));
-                        }
-                    } else {
-                        imgui_context.fonts().add_font_default(Some(&font_cfg));
-                    }
-
-                    imgui_context.fonts().build();
+                if custom_font.is_none() {
+                    println!("Could not load font {}", font_file_name);
+                    imgui_context.fonts().add_font_default(Some(&font_cfg));
                 }
-                Err(err) => {
-                    println!("Failed to lock options: {}", err);
-                }
+            } else {
+                imgui_context.fonts().add_font_default(Some(&font_cfg));
             }
+
+            imgui_context.fonts().build();
 
             match RENDERER.lock() {
                 Ok(renderer_ptr) => {
@@ -833,10 +829,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             #[cfg(not(target_os = "windows"))]
             search_paths.extend_from_slice(&PLATFORM_DATA_PATHS);
-            pb::select_dat_file(&search_paths);
+            pb::select_dat_file(&search_paths, &mut pb_state.options_state);
 
             // Second step: run updates that depend on .DAT file selection
-            options::init_secondary();
+            options::init_secondary(&mut pb_state.options_state);
 
             // TODO: Implement sound, we're skipping for now to focus on PB:INIT();
             // match OPTIONS.lock() {
@@ -865,43 +861,39 @@ fn main() -> Result<(), Box<dyn Error>> {
                 exit(1);
             }
 
-            fullscrn::init();
+            fullscrn::init(&mut pb_state.options_state);
 
             pb::reset_table();
             pb::first_time_setup();
 
             let fullscreen = env::args().any(|arg| arg == "-fullscreen");
             if fullscreen {
-                let mut options = OPTIONS.lock()?;
-                *options.full_screen = true;
+                *pb_state.options_state.options.full_screen = true;
             }
 
-            {
-                let options = OPTIONS.lock()?;
-                if *options.full_screen == false {
-                    let resolution_array = RESOLUTION_ARRAY.lock()?;
-                    let res_info = &resolution_array[fullscrn::get_resolution() as usize];
-                    SDL_SetWindowSize(
-                        window,
-                        res_info.table_width as c_int,
-                        res_info.table_height as c_int,
-                    );
-                }
-                SDL_ShowWindow(window);
-                fullscrn::set_screen_mode(*options.full_screen);
+            if *pb_state.options_state.options.full_screen == false {
+                let resolution_array = RESOLUTION_ARRAY.lock()?;
+                let res_info = &resolution_array[fullscrn::get_resolution() as usize];
+                SDL_SetWindowSize(
+                    window,
+                    res_info.table_width as c_int,
+                    res_info.table_height as c_int,
+                );
             }
+            SDL_ShowWindow(window);
+            fullscrn::set_screen_mode(*pb_state.options_state.options.full_screen);
 
             let is_demo = env::args().any(|arg| arg == "-demo");
             if is_demo {
                 // TODO LOWPRIO: Implement me
                 pb::toggle_demo();
             } else {
-                pb::replay_level(false);
+                pb::replay_level(false, &mut pb_state.options_state);
             }
 
-            main_loop(&mut imgui_context, &mut pinball_state);
+            main_loop(&mut imgui_context, &mut pb_state);
 
-            options::uninit();
+            options::uninit(&mut pb_state.options_state);
             midi::music_shutdown();
             // TODO: Implement sound stuff
             //sound::close();

@@ -1,4 +1,5 @@
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
+use crate::pinball_state::OptionsState;
 use crate::translations::Msg;
 use crate::utils::clamp;
 use crate::{fullscrn, midi, render, translations};
@@ -25,148 +26,6 @@ use std::sync::{LazyLock, Mutex};
 static SETTINGS: LazyLock<Mutex<HashMap<String, String>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-pub static OPTIONS: LazyLock<Mutex<OptionsStruct>> = LazyLock::new(|| {
-    Mutex::new(OptionsStruct {
-        control_options: [
-            ControlOption::new(
-                "Left Flipper key",
-                Msg::KeymapperFlipperL,
-                GameInput::new(Keyboard, SDLK_z as i32),
-                GameInput::new(Mouse, SDL_BUTTON_LEFT as i32),
-                GameInput::new(GameController, SDL_CONTROLLER_BUTTON_LEFTSHOULDER as i32),
-            ),
-            ControlOption::new(
-                "Right Flipper key",
-                Msg::KeymapperFlipperR,
-                GameInput::new(Keyboard, SDLK_SLASH as i32),
-                GameInput::new(Mouse, SDL_BUTTON_RIGHT as i32),
-                GameInput::new(GameController, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER as i32),
-            ),
-            ControlOption::new(
-                "Plunger key",
-                Msg::KeymapperPlunger,
-                GameInput::new(Keyboard, SDLK_SPACE as i32),
-                GameInput::new(Mouse, SDL_BUTTON_LEFT as i32),
-                GameInput::new(GameController, SDL_CONTROLLER_BUTTON_A as i32),
-            ),
-            ControlOption::new(
-                "Left Table Bump key",
-                Msg::KeymapperBumpLeft,
-                GameInput::new(Keyboard, SDLK_x as i32),
-                GameInput::new(Mouse, SDL_BUTTON_X1 as i32),
-                GameInput::new(GameController, SDL_CONTROLLER_BUTTON_DPAD_LEFT as i32),
-            ),
-            ControlOption::new(
-                "Right Table Bump key",
-                Msg::KeymapperBumpRight,
-                GameInput::new(Keyboard, SDLK_PERIOD as i32),
-                GameInput::new(Mouse, SDL_BUTTON_X2 as i32),
-                GameInput::new(GameController, SDL_CONTROLLER_BUTTON_DPAD_RIGHT as i32),
-            ),
-            ControlOption::new(
-                "Bottom Table Bump key",
-                Msg::KeymapperBumpBottom,
-                GameInput::new(Keyboard, SDLK_UP as i32),
-                GameInput::new(Mouse, SDL_BUTTON_X2 as i32 + 1),
-                GameInput::new(GameController, SDL_CONTROLLER_BUTTON_DPAD_UP as i32),
-            ),
-            ControlOption::new(
-                "New Game",
-                Msg::Menu1NewGame,
-                GameInput::new(Keyboard, SDLK_F2 as i32),
-                GameInput::default(),
-                GameInput::default(),
-            ),
-            ControlOption::new(
-                "Toggle Pause",
-                Msg::Menu1PauseResumeGame,
-                GameInput::new(Keyboard, SDLK_F3 as i32),
-                GameInput::default(),
-                GameInput::new(GameController, SDL_CONTROLLER_BUTTON_START as i32),
-            ),
-            ControlOption::new(
-                "Toggle FullScreen",
-                Msg::Menu1FullScreen,
-                GameInput::new(Keyboard, SDLK_F4 as i32),
-                GameInput::default(),
-                GameInput::default(),
-            ),
-            ControlOption::new(
-                "Toggle Sounds",
-                Msg::Menu1Sounds,
-                GameInput::new(Keyboard, SDLK_F5 as i32),
-                GameInput::default(),
-                GameInput::default(),
-            ),
-            ControlOption::new(
-                "Toggle Music",
-                Msg::Menu1Music,
-                GameInput::new(Keyboard, SDLK_F6 as i32),
-                GameInput::default(),
-                GameInput::default(),
-            ),
-            ControlOption::new(
-                "Show Control Dialog",
-                Msg::Menu1PlayerControls,
-                GameInput::new(Keyboard, SDLK_F8 as i32),
-                GameInput::default(),
-                GameInput::default(),
-            ),
-            ControlOption::new(
-                "Toggle Menu Display",
-                Msg::Menu1ToggleShowMenu,
-                GameInput::new(Keyboard, SDLK_F9 as i32),
-                GameInput::default(),
-                GameInput::default(),
-            ),
-            ControlOption::new(
-                "Exit",
-                Msg::Menu1Exit,
-                GameInput::new(Keyboard, SDLK_ESCAPE as i32),
-                GameInput::default(),
-                GameInput::new(GameController, SDL_CONTROLLER_BUTTON_BACK as i32),
-            ),
-        ],
-        sounds: Setting::new("Sounds", true),
-        music: Setting::new("Music", false),
-        full_screen: Setting::new("FullScreen", false),
-        players: Setting::new("Players", 1),
-        resolution: Setting::new("Screen Resolution", -1),
-        ui_scale: Setting::new("UI Scale", 1.0),
-        uniform_scaling: Setting::new("Uniform scaling", true),
-        linear_filtering: Setting::new("Linear Filtering", true),
-        frames_per_second: Setting::new("Frames per Second", DEF_FPS),
-        updates_per_second: Setting::new("Updates per Second", DEF_UPS),
-        show_menu: Setting::new("ShowMenu", true),
-        uncapped_updates_per_second: Setting::new("Uncapped Updates Per Second", false),
-        sound_channels: Setting::new("Sound Channels", DEF_SOUND_CHANNELS),
-        hybrid_sleep: Setting::new("HybridSleep", false),
-        prefer_3dpb_game_data: Setting::new("Prefer 3DPB Game Data", false),
-        integer_scaling: Setting::new("Integer Scaling", false),
-        sound_volume: Setting::new("Sound Volume", DEF_VOLUME),
-        music_volume: Setting::new("Music Volume", DEF_VOLUME),
-        sound_stereo: Setting::new("Stereo Sound Effects", false),
-        debug_overlay: Setting::new("Debug Overlay", false),
-        debug_overlay_grid: Setting::new("Debug Overlay Grid", true),
-        debug_overlay_all_edges: Setting::new("Debug Overlay All Edges", true),
-        debug_overlay_ball_position: Setting::new("Debug Overlay Ball Position", true),
-        debug_overlay_ball_edges: Setting::new("Debug Overlay Ball Edges", true),
-        debug_overlay_collision_mask: Setting::new("Debug Overlay Collision Mask", true),
-        debug_overlay_sprites: Setting::new("Debug Overlay Sprites", true),
-        debug_overlay_sounds: Setting::new("Debug Overlay Sounds", true),
-        debug_overlay_ball_depth_grid: Setting::new("Debug Overlay Ball Depth Grid", true),
-        debug_overlay_aabb: Setting::new("Debug Overlay AABB", true),
-        font_file_name: Setting::new("FontFileName", "".to_string()),
-        language: Setting::new(
-            "Language",
-            translations::get_current_language()
-                .unwrap()
-                .short_name
-                .to_string(),
-        ),
-        hide_cursor: Setting::new("Hide Cursor", false),
-    })
-});
 static SHOW_DIALOG: AtomicBool = AtomicBool::new(false);
 
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
@@ -499,7 +358,7 @@ impl<T: SettingValue> DerefMut for Setting<T> {
     }
 }
 
-struct ControlOption {
+pub struct ControlOption {
     name: &'static str,
     description: Msg,
     defaults: [GameInput; 3],
@@ -663,7 +522,7 @@ impl OptionsStruct {
 // I am not going to bother (for now) to spend the time to implement this properly
 // So this should be a 1:1 (esque) translation of the original code
 // The code below IS UNSAFE!
-pub unsafe fn init_primary() {
+pub unsafe fn init_primary(options_state: &mut OptionsState) {
     unsafe {
         let im_context = igGetCurrentContext();
         let mut ini_handler: ImGuiSettingsHandler = std::mem::zeroed();
@@ -682,35 +541,30 @@ pub unsafe fn init_primary() {
             (*im_context).SettingsLoaded = true;
         }
 
-        if let Ok(mut options) = OPTIONS.lock() {
-            options.load_all();
-        }
-        post_process_options();
+        options_state.options.load_all();
+        post_process_options(options_state);
     }
 }
 
-pub fn init_secondary() {
+pub fn init_secondary(options_state: &mut OptionsState) {
     let max_res = fullscrn::get_max_resolution();
-    let Ok(mut options) = OPTIONS.lock() else {
-        panic!("Unable to lock and unwrap OPTIONS")
-    };
-    if (options.resolution.value >= 0 && options.resolution.value > max_res) {
-        *options.resolution = max_res;
+
+    if (options_state.options.resolution.value >= 0
+        && options_state.options.resolution.value > max_res)
+    {
+        *options_state.options.resolution = max_res;
     }
-    if (options.resolution.value == -1) {
+    if (options_state.options.resolution.value == -1) {
         fullscrn::set_resolution(max_res);
     } else {
-        fullscrn::set_resolution(options.resolution.value);
+        fullscrn::set_resolution(options_state.options.resolution.value);
     }
 }
 
-pub fn uninit() {
-    let Ok(mut options) = OPTIONS.lock() else {
-        panic!("Unable to lock and unwrap OPTIONS")
-    };
+pub fn uninit(options_state: &mut OptionsState) {
     if let Some(cur_lang) = translations::get_current_language() {
-        options.language.value = cur_lang.short_name.to_string();
-        options.save_all();
+        options_state.options.language.value = cur_lang.short_name.to_string();
+        options_state.options.save_all();
     } else {
         println!("Unable to obtain current language info...");
     }
@@ -738,24 +592,19 @@ pub fn set_input(row_name: &str, mut values: [GameInput; 3]) {
 }
 
 // TODO: Implement all the unimplemented stuff
-pub fn toggle(u_id_check_item: Menu) {
-    // TODO: The fuck is it complaining about
-    let Ok(mut options) = OPTIONS.lock() else {
-        todo!()
-    };
-
+pub fn toggle(u_id_check_item: Menu, options_state: &mut OptionsState) {
     match u_id_check_item {
         Menu::NewGame => {}
         Menu::AboutPinball => {}
         Menu::HighScores => {}
         Menu::Exit => {}
         Menu::Sounds => {
-            *options.sounds = !(*options.sounds);
+            *options_state.options.sounds = !(*options_state.options.sounds);
             return;
         }
         Menu::Music => {
-            *options.music = !(*options.music);
-            if (*options.music) == false {
+            *options_state.options.music = !(*options_state.options.music);
+            if (*options_state.options.music) == false {
                 midi::music_stop();
             } else {
                 midi::music_play();
@@ -763,33 +612,33 @@ pub fn toggle(u_id_check_item: Menu) {
             return;
         }
         Menu::SoundStereo => {
-            *options.sound_stereo = !(*options.sound_stereo);
+            *options_state.options.sound_stereo = !(*options_state.options.sound_stereo);
             return;
         }
         Menu::HelpTopics => {}
         Menu::LaunchBall => {}
         Menu::PauseResumeGame => {}
         Menu::FullScreen => {
-            *options.full_screen = !(*options.full_screen);
-            fullscrn::set_screen_mode(*options.full_screen);
+            *options_state.options.full_screen = !(*options_state.options.full_screen);
+            fullscrn::set_screen_mode(*options_state.options.full_screen);
         }
         Menu::Demo => {}
         Menu::SelectTable => {}
         Menu::PlayerControls => {}
         Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {}
         Menu::ShowMenu => {
-            *options.show_menu = !(*options.show_menu);
-            fullscrn::window_size_changed();
+            *options_state.options.show_menu = !(*options_state.options.show_menu);
+            fullscrn::window_size_changed(options_state);
         }
         Menu::MaximumResolution | Menu::R640x480 | Menu::R800x600 | Menu::R1024x768 => {
             let mut restart = false;
             let new_resolution = u_id_check_item as i32 - Menu::R640x480 as i32;
             if u_id_check_item == Menu::MaximumResolution {
                 restart = fullscrn::get_resolution() != fullscrn::get_max_resolution();
-                *options.resolution = -1;
+                *options_state.options.resolution = -1;
             } else if new_resolution <= fullscrn::get_max_resolution() {
                 let mut current_resolution: i32;
-                if (*options.resolution == -1) {
+                if (*options_state.options.resolution == -1) {
                     current_resolution = fullscrn::get_max_resolution();
                 } else {
                     current_resolution = fullscrn::get_resolution();
@@ -803,20 +652,20 @@ pub fn toggle(u_id_check_item: Menu) {
             }
         }
         Menu::WindowUniformScale => {
-            *options.uniform_scaling = !(*options.uniform_scaling);
-            fullscrn::window_size_changed();
+            *options_state.options.uniform_scaling = !(*options_state.options.uniform_scaling);
+            fullscrn::window_size_changed(options_state);
         }
         Menu::WindowLinearFilter => {
-            *options.linear_filtering = !(*options.linear_filtering);
+            *options_state.options.linear_filtering = !(*options_state.options.linear_filtering);
             render::recreate_screen_texture();
         }
         Menu::WindowIntegerScale => {
-            *options.integer_scaling = !(*options.integer_scaling);
-            fullscrn::window_size_changed();
+            *options_state.options.integer_scaling = !(*options_state.options.integer_scaling);
+            fullscrn::window_size_changed(options_state);
         }
         Menu::Prefer3DPBGameData => {
-            *options.prefer_3dpb_game_data = !(*options.prefer_3dpb_game_data);
-            fullscrn::window_size_changed();
+            *options_state.options.prefer_3dpb_game_data = !(*options_state.options.prefer_3dpb_game_data);
+            fullscrn::window_size_changed(options_state);
         }
     }
 }
@@ -851,12 +700,11 @@ pub fn render_control_dialog() {
     if !dialog_check {}
 }
 
-pub fn map_game_input(key: GameInput) -> Vec<GameBindings> {
+pub fn map_game_input(key: GameInput, options_state: &mut OptionsState) -> Vec<GameBindings> {
     let mut result: Vec<GameBindings> = Vec::new();
-    let mut options = OPTIONS.lock().unwrap();
 
     for input_id in GameBindings::Min as i32..GameBindings::Max as i32 {
-        for input_value in options.control_options[input_id as usize].inputs {
+        for input_value in options_state.options.control_options[input_id as usize].inputs {
             if key == input_value {
                 result.push(GameBindings::from_i32(input_id).unwrap());
                 break;
@@ -867,10 +715,9 @@ pub fn map_game_input(key: GameInput) -> Vec<GameBindings> {
     result
 }
 
-pub fn reset_all_options() {
-    let mut options = OPTIONS.lock().unwrap();
-    options.reset_all();
-    post_process_options();
+pub fn reset_all_options(options_state: &mut OptionsState) {
+    options_state.options.reset_all();
+    post_process_options(options_state);
 }
 
 #[allow(non_snake_case)]
@@ -924,24 +771,39 @@ pub unsafe extern "C" fn MyUserData_WriteAll(
 }
 
 // TODO Implement all the trash
-pub fn post_process_options() {
-    let mut options = OPTIONS.lock().unwrap();
+pub fn post_process_options(options_state: &mut OptionsState) {
     // TODO: Pull this
-    //main::ImIO.FontGlobalScale = options.ui_scale;
-    options.frames_per_second.value = clamp(&options.frames_per_second.value, &MIN_FPS, &MAX_FPS);
-    options.updates_per_second.value = clamp(&options.updates_per_second.value, &MIN_UPS, &MAX_UPS);
-    options.updates_per_second.value = max(
-        options.updates_per_second.value,
-        options.frames_per_second.value,
+    //main::ImIO.FontGlobalScale = *options_state.options.ui_scale;
+    *options_state.options.frames_per_second = clamp(
+        &options_state.options.frames_per_second.value,
+        &MIN_FPS,
+        &MAX_FPS,
     );
-    options.sound_channels.value = clamp(
-        &options.sound_channels.value,
+    *options_state.options.updates_per_second = clamp(
+        &options_state.options.updates_per_second.value,
+        &MIN_UPS,
+        &MAX_UPS,
+    );
+    *options_state.options.updates_per_second = max(
+        options_state.options.updates_per_second.value,
+        options_state.options.frames_per_second.value,
+    );
+    *options_state.options.sound_channels = clamp(
+        &options_state.options.sound_channels.value,
         &MIN_SOUND_CHANNELS,
         &MAX_SOUND_CHANNELS,
     );
-    options.sound_volume.value = clamp(&options.sound_volume.value, &MIN_VOLUME, &MAX_VOLUME);
-    options.music_volume.value = clamp(&options.music_volume.value, &MIN_VOLUME, &MAX_VOLUME);
-    translations::set_current_language(&options.language.value);
+    *options_state.options.sound_volume = clamp(
+        &options_state.options.sound_volume.value,
+        &MIN_VOLUME,
+        &MAX_VOLUME,
+    );
+    *options_state.options.music_volume = clamp(
+        &options_state.options.music_volume.value,
+        &MIN_VOLUME,
+        &MAX_VOLUME,
+    );
+    translations::set_current_language(&options_state.options.language.value);
     // TODO: Implement meee
-    //main::UpdateFrameRate();
+    // crate::main::UpdateFrameRate();
 }
