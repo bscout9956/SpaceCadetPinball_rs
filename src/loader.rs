@@ -297,7 +297,11 @@ pub fn unload() -> Result<(), LoaderError> {
     Ok(())
 }
 
-pub fn get_sound_id(group_index: i32, full_tilt_mode: bool) -> Result<i32, LoaderError> {
+pub fn get_sound_id(
+    group_index: i32,
+    full_tilt_mode: bool,
+    quick_flag: bool,
+) -> Result<i32, LoaderError> {
     let mut sound_list = SOUND_LIST.lock()?;
 
     let mut sound_index: i16 = 1;
@@ -323,11 +327,10 @@ pub fn get_sound_id(group_index: i32, full_tilt_mode: bool) -> Result<i32, Loade
         let sound_group_id = sound_list[sound_index as usize].group_index;
         sound_list[sound_index as usize].duration = 0.0;
 
-        let quick_flag_val = pb::QUICK_FLAG.load(Relaxed);
         let table_guard = LOADER_TABLE.lock()?;
         let loader_table = table_guard.as_ref().unwrap();
         if sound_group_id != 0
-            && !quick_flag_val
+            && !quick_flag
             && let Some(EntryBuffer::Raw(value_data)) =
                 loader_table.field(sound_group_id, FieldTypes::ShortValue)
         {
@@ -583,6 +586,7 @@ pub fn material(
     group_index: i32,
     visual: *mut VisualStruct,
     full_tilt_mode: bool,
+    quick_flag: bool,
 ) -> Result<i32, LoaderError> {
     if group_index < 0 {
         error(0, 21);
@@ -628,7 +632,7 @@ pub fn material(
             301 => unsafe { (*visual).smoothness = value },
             302 => unsafe { (*visual).elasticity = value },
             304 => unsafe {
-                let sound_id = get_sound_id(value.floor() as i32, full_tilt_mode)?;
+                let sound_id = get_sound_id(value.floor() as i32, full_tilt_mode, quick_flag)?;
                 unsafe { (*visual).soft_hit_sound_id = sound_id }
             },
             _ => return Ok(error(9, 21)),
@@ -702,6 +706,7 @@ pub fn kicker(
     group_index: i32,
     kicker: *mut VisualKickerStruct,
     full_tilt_mode: bool,
+    quick_flag: bool,
 ) -> Result<i32, LoaderError> {
     if group_index < 0 {
         error(0, 20);
@@ -763,7 +768,8 @@ pub fn kicker(
             },
             406 => unsafe {
                 let val = read_float(&float_array_data, &mut index).unwrap();
-                (*kicker).hard_hit_sound_id = get_sound_id(val.floor() as i32, full_tilt_mode)?;
+                (*kicker).hard_hit_sound_id =
+                    get_sound_id(val.floor() as i32, full_tilt_mode, quick_flag)?;
             },
 
             _ => return Ok(error(10, 20)),
@@ -828,6 +834,7 @@ pub fn query_visual(
                         material_value as i32,
                         visual as *mut _,
                         pb_game_state.full_tilt_mode,
+                        pb_game_state.quick_flag,
                     )? != 0
                     {
                         return Ok(error(15, 18));
@@ -840,8 +847,11 @@ pub fn query_visual(
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.soft_hit_sound_id =
-                        get_sound_id(sound_id as i32, pb_game_state.full_tilt_mode)?;
+                    visual.soft_hit_sound_id = get_sound_id(
+                        sound_id as i32,
+                        pb_game_state.full_tilt_mode,
+                        pb_game_state.quick_flag,
+                    )?;
                 }
                 400 => {
                     if i + 1 >= short_arr_size {
@@ -851,7 +861,13 @@ pub fn query_visual(
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
                     // VERIFY: Is the 0 check correct? Should it be not 0?
-                    if kicker(kicker_val as i32, &mut visual.kicker, pb_game_state.full_tilt_mode)? != 0 {
+                    if kicker(
+                        kicker_val as i32,
+                        &mut visual.kicker,
+                        pb_game_state.full_tilt_mode,
+                        pb_game_state.quick_flag,
+                    )? != 0
+                    {
                         return Ok(error(14, 18));
                     }
                 }
@@ -863,8 +879,11 @@ pub fn query_visual(
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.kicker.hard_hit_sound_id =
-                        get_sound_id(sound_id as i32, pb_game_state.full_tilt_mode)?;
+                    visual.kicker.hard_hit_sound_id = get_sound_id(
+                        sound_id as i32,
+                        pb_game_state.full_tilt_mode,
+                        pb_game_state.quick_flag,
+                    )?;
                 }
                 602 => {
                     if i + 1 >= short_arr_size {
@@ -881,8 +900,11 @@ pub fn query_visual(
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.sound_index_4 =
-                        get_sound_id(sound_id as i32, pb_game_state.full_tilt_mode)?;
+                    visual.sound_index_4 = get_sound_id(
+                        sound_id as i32,
+                        pb_game_state.full_tilt_mode,
+                        pb_game_state.quick_flag,
+                    )?;
                 }
                 1101 => {
                     if i + 1 >= short_arr_size {
@@ -891,8 +913,11 @@ pub fn query_visual(
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.sound_index_3 =
-                        get_sound_id(sound_id as i32, pb_game_state.full_tilt_mode)?;
+                    visual.sound_index_3 = get_sound_id(
+                        sound_id as i32,
+                        pb_game_state.full_tilt_mode,
+                        pb_game_state.quick_flag,
+                    )?;
                 }
                 1500 => {
                     // Skipping 7 shorts or 14 bytes

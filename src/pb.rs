@@ -22,10 +22,6 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::{Arc, LazyLock, Mutex};
 
-pub static QUICK_FLAG: AtomicBool = AtomicBool::new(false);
-
-pub static CREDITS_ACTIVE: AtomicBool = AtomicBool::new(false);
-
 pub static IDLE_TIMER_MS: Mutex<f32> = Mutex::new(0.0);
 
 pub static DAT_FILE_NAME: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
@@ -401,16 +397,15 @@ fn mode_change(
     main_state: &mut MainState,
     pb_game_state: &mut PbGameState,
 ) -> Result<(), PbError> {
-    let mut credits_active = CREDITS_ACTIVE.load(Relaxed);
     let box_guard = MISS_TEXT_BOX.lock().map_err(|_| PbError::LockGeneric)?;
     let miss_text_box = box_guard.as_ref();
     let mut idle_guard = IDLE_TIMER_MS.lock().map_err(|_| PbError::LockGeneric)?;
 
-    if credits_active && miss_text_box.is_some() {
+    if pb_game_state.credits_active && miss_text_box.is_some() {
         miss_text_box.unwrap().clear(true);
     }
-    credits_active = false;
-    CREDITS_ACTIVE.store(credits_active, Relaxed);
+    pb_game_state.credits_active = false;
+    pb_game_state.credits_active = pb_game_state.credits_active;
     *idle_guard = 0.0;
 
     match mode {
@@ -501,10 +496,10 @@ pub(crate) fn frame(mut dt_milli_sec: f32, pb_game_state: &mut PbGameState) -> R
         return Ok(());
     }
 
-    if pb_game_state.full_tilt_mode == true && pb_game_state.demo_mode == false {
+    if pb_game_state.full_tilt_mode && !pb_game_state.demo_mode {
         let mut timer = IDLE_TIMER_MS.lock().unwrap();
         *timer += dt_milli_sec;
-        if *timer >= 60000.0 && CREDITS_ACTIVE.load(Relaxed) == false {
+        if *timer >= 60000.0 && !pb_game_state.credits_active {
             push_cheat("credits");
         }
     }

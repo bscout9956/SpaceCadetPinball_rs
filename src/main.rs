@@ -573,7 +573,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let quick_flag = args.iter().any(|arg| arg.contains("-quick"));
-    pb::QUICK_FLAG.store(quick_flag, Relaxed);
+    pb_state.pb_game_state.quick_flag = quick_flag;
 
     unsafe {
         println!("Creating window");
