@@ -18,8 +18,8 @@ use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
 use std::ffi::{CStr, CString, c_char};
 use std::fs::File;
 use std::io::Write;
-use std::sync::atomic::Ordering::{Relaxed, SeqCst};
-use std::sync::atomic::{AtomicBool, AtomicUsize};
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering::Relaxed;
 use std::sync::{Arc, LazyLock, Mutex};
 
 pub static QUICK_FLAG: AtomicBool = AtomicBool::new(false);
@@ -39,10 +39,6 @@ pub static GAME_MODE: Mutex<GameModes> = Mutex::new(GameModes::GameOver);
 static TIME_NEXT: Mutex<f32> = Mutex::new(0.0);
 
 static TIME_NOW: Mutex<f32> = Mutex::new(0.0);
-
-static BALL_MAX_SPEED: Mutex<f32> = Mutex::new(0.0);
-static BALL_HALF_RADIUS: Mutex<f32> = Mutex::new(0.0);
-static BALL_TO_BALL_COLLISION_DISTANCE: Mutex<f32> = Mutex::new(0.0);
 
 #[derive(PartialEq, Eq, Ord, PartialOrd)]
 pub enum GameModes {
@@ -351,15 +347,10 @@ pub fn init(
     let table = pb_game_state.main_table.as_ref().unwrap();
     let ball = &table.ball_list[0].borrow();
 
-    let mut ball_max_speed = BALL_MAX_SPEED.lock().map_err(|_| PbError::LockGeneric)?;
-    let mut ball_half_radius = BALL_HALF_RADIUS.lock().map_err(|_| PbError::LockGeneric)?;
-    let mut ball_to_ball_col_dist = BALL_TO_BALL_COLLISION_DISTANCE
-        .lock()
-        .map_err(|_| PbError::LockGeneric)?;
-
-    (*ball_max_speed) = ball.radius * 200.0f32;
-    (*ball_half_radius) = ball.radius * 0.5f32;
-    (*ball_to_ball_col_dist) = ball.radius + *ball_half_radius * 2.0f32;
+    pb_game_state.ball_max_speed = ball.radius * 200.0f32;
+    pb_game_state.ball_half_radius = ball.radius * 0.5f32;
+    pb_game_state.ball_to_ball_collision_distance =
+        ball.radius + pb_game_state.ball_half_radius * 2.0f32;
 
     Ok(true)
 }
@@ -589,22 +580,21 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
                 collision_comp.field_effect(ball, &mut vec_dst);
             } else {
                 // TODO: Implement this edge manager ig
-                //t_table_layer::edge_manager.field_effects(ball, &mut vec_dst);
+                // t_table_layer::edge_manager.field_effects(ball, &mut vec_dst);
                 vec_dst.x = ball.time_delta;
                 vec_dst.y = ball.time_delta;
                 ball.direction.x *= ball.speed;
                 ball.direction.y *= ball.speed;
                 maths::vector_add_vec2_to_vec3(&mut ball.direction, &vec_dst);
                 ball.speed = maths::normalize_3d(&mut ball.direction);
-                if ball.speed > *BALL_MAX_SPEED.lock().unwrap() {
-                    ball.speed = *BALL_MAX_SPEED.lock().unwrap();
+                if ball.speed > pb_game_state.ball_max_speed {
+                    ball.speed = pb_game_state.ball_max_speed;
                 }
 
                 ball_steps_distance[index] = ball.speed * ball.time_delta;
-                // TODO: Ball half radius static
                 let ball_step =
-                    (f32::ceil(ball_steps_distance[index] / *BALL_HALF_RADIUS.lock().unwrap())
-                        - 1.0) as i32;
+                    (f32::ceil(ball_steps_distance[index] / pb_game_state.ball_half_radius) - 1.0)
+                        as i32;
                 ball_steps[index] = ball_step;
                 if ball_step > max_step {
                     max_step = ball_step;

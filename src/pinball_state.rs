@@ -23,7 +23,6 @@ use sdl2::sys::SDL_KeyCode::{
     SDLK_SLASH, SDLK_SPACE, SDLK_UP, SDLK_x, SDLK_z,
 };
 use sdl2::sys::{SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2};
-use std::sync::atomic::AtomicBool;
 
 pub struct PinballState {
     pub main_state: MainState,
@@ -38,6 +37,9 @@ pub struct PbGameState {
     pub demo_mode: bool,
     pub main_table: Option<TPinballTable>,
     pub time_ticks: usize,
+    pub ball_max_speed: f32,
+    pub ball_half_radius: f32,
+    pub ball_to_ball_collision_distance: f32,
 }
 
 impl PbGameState {
@@ -49,6 +51,9 @@ impl PbGameState {
             demo_mode: false,
             main_table: None,
             time_ticks: 0,
+            ball_max_speed: 0.0,
+            ball_half_radius: 0.0,
+            ball_to_ball_collision_distance: 0.0,
         }
     }
 }
