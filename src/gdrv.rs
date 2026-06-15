@@ -287,7 +287,7 @@ pub fn display_palette(plt: Option<&[ColorRgba]>) {
 }
 
 pub fn copy_bitmap(
-    mut dst_bmp: &mut GdrvBitmap8,
+    dst_bmp: &mut GdrvBitmap8,
     width: i32,
     height: i32,
     x_off: i32,

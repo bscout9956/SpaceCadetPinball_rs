@@ -593,23 +593,20 @@ pub fn set_input(row_name: &str, mut values: [GameInput; 3]) {
 
 // TODO: Implement all the unimplemented stuff
 pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
-    let options_state = &mut state.options_state;
-    let fullscrn_state = &mut state.fullscrn_state;
-    let pb_game_state = &mut state.pb_game_state;
-    let main_state = &mut state.main_state;
-
     match u_id_check_item {
         Menu::NewGame => {}
         Menu::AboutPinball => {}
         Menu::HighScores => {}
         Menu::Exit => {}
         Menu::Sounds => {
-            *options_state.options.sounds = !(*options_state.options.sounds);
+            *(&mut state.options_state).options.sounds =
+                !(*(&mut state.options_state).options.sounds);
             return;
         }
         Menu::Music => {
-            *options_state.options.music = !(*options_state.options.music);
-            if (*options_state.options.music) == false {
+            *(&mut state.options_state).options.music =
+                !(*(&mut state.options_state).options.music);
+            if (*(&mut state.options_state).options.music) == false {
                 midi::music_stop();
             } else {
                 midi::music_play();
@@ -617,34 +614,42 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             return;
         }
         Menu::SoundStereo => {
-            *options_state.options.sound_stereo = !(*options_state.options.sound_stereo);
+            *(&mut state.options_state).options.sound_stereo =
+                !(*(&mut state.options_state).options.sound_stereo);
             return;
         }
         Menu::HelpTopics => {}
         Menu::LaunchBall => {}
         Menu::PauseResumeGame => {}
         Menu::FullScreen => {
-            *options_state.options.full_screen = !(*options_state.options.full_screen);
-            fullscrn::set_screen_mode(*options_state.options.full_screen);
+            *(&mut state.options_state).options.full_screen =
+                !(*(&mut state.options_state).options.full_screen);
+            fullscrn::set_screen_mode(*(&mut state.options_state).options.full_screen);
         }
         Menu::Demo => {}
         Menu::SelectTable => {}
         Menu::PlayerControls => {}
         Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {}
         Menu::ShowMenu => {
-            *options_state.options.show_menu = !(*options_state.options.show_menu);
-            fullscrn::window_size_changed(fullscrn_state, main_state, options_state);
+            *(&mut state.options_state).options.show_menu =
+                !(*(&mut state.options_state).options.show_menu);
+            fullscrn::window_size_changed(
+                &mut state.fullscrn_state,
+                &mut state.main_state,
+                &mut state.options_state,
+            );
         }
         Menu::MaximumResolution | Menu::R640x480 | Menu::R800x600 | Menu::R1024x768 => {
             let mut restart = false;
             let new_resolution = u_id_check_item as i32 - Menu::R640x480 as i32;
             if u_id_check_item == Menu::MaximumResolution {
-                restart = fullscrn::get_resolution() != fullscrn::get_max_resolution(pb_game_state);
-                *options_state.options.resolution = -1;
-            } else if new_resolution <= fullscrn::get_max_resolution(pb_game_state) {
+                restart = fullscrn::get_resolution()
+                    != fullscrn::get_max_resolution(&mut state.pb_game_state);
+                *(&mut state.options_state).options.resolution = -1;
+            } else if new_resolution <= fullscrn::get_max_resolution(&mut state.pb_game_state) {
                 let mut current_resolution: i32;
-                if (*options_state.options.resolution == -1) {
-                    current_resolution = fullscrn::get_max_resolution(pb_game_state);
+                if (*(&mut state.options_state).options.resolution == -1) {
+                    current_resolution = fullscrn::get_max_resolution(&mut state.pb_game_state);
                 } else {
                     current_resolution = fullscrn::get_resolution();
                 }
@@ -657,21 +662,40 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             }
         }
         Menu::WindowUniformScale => {
-            *options_state.options.uniform_scaling = !(*options_state.options.uniform_scaling);
-            fullscrn::window_size_changed(fullscrn_state, main_state, options_state);
+            *(&mut state.options_state).options.uniform_scaling =
+                !(*(&mut state.options_state).options.uniform_scaling);
+            fullscrn::window_size_changed(
+                &mut state.fullscrn_state,
+                &mut state.main_state,
+                &mut state.options_state,
+            );
         }
         Menu::WindowLinearFilter => {
-            *options_state.options.linear_filtering = !(*options_state.options.linear_filtering);
-            render::recreate_screen_texture(options_state, &main_state.renderer);
+            *(&mut state.options_state).options.linear_filtering =
+                !(*(&mut state.options_state).options.linear_filtering);
+            render::recreate_screen_texture(
+                &mut state.main_state,
+                &mut state.options_state,
+                &mut state.render_state,
+            );
         }
         Menu::WindowIntegerScale => {
-            *options_state.options.integer_scaling = !(*options_state.options.integer_scaling);
-            fullscrn::window_size_changed(fullscrn_state, main_state, options_state);
+            *(&mut state.options_state).options.integer_scaling =
+                !(*(&mut state.options_state).options.integer_scaling);
+            fullscrn::window_size_changed(
+                &mut state.fullscrn_state,
+                &mut state.main_state,
+                &mut state.options_state,
+            );
         }
         Menu::Prefer3DPBGameData => {
-            *options_state.options.prefer_3dpb_game_data =
-                !(*options_state.options.prefer_3dpb_game_data);
-            fullscrn::window_size_changed(fullscrn_state, main_state, options_state);
+            *(&mut state.options_state).options.prefer_3dpb_game_data =
+                !(*(&mut state.options_state).options.prefer_3dpb_game_data);
+            fullscrn::window_size_changed(
+                &mut state.fullscrn_state,
+                &mut state.main_state,
+                &mut state.options_state,
+            );
         }
     }
 }

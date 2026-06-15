@@ -208,69 +208,66 @@ pub fn init(
     bmp: Option<GdrvBitmap8>,
     width: i16,
     height: i16,
+    main_state: &mut MainState,
     options_state: &mut OptionsState,
-    renderer: &Option<SdlRendererPtr>,
+    render_state: &mut RenderState,
 ) -> Result<(), RenderLockError> {
-    {
-        // This block prevents the locks from holding on the next call to recreate_screen_texture();
-        let mut v_screen = V_SCREEN.lock()?;
-        *v_screen = Some(GdrvBitmap8::new_dims_indexed(
-            width as i32,
-            height as i32,
-            false,
-        ));
+    render_state.v_screen = Some(GdrvBitmap8::new_dims_indexed(
+        width as i32,
+        height as i32,
+        false,
+    ));
 
-        let mut z_screen = Z_SCREEN.lock()?;
-        *z_screen = Some(ZMapHeaderType::new(
-            width as i32,
-            height as i32,
-            width as i32,
-        ));
+    let mut z_screen = Z_SCREEN.lock()?;
+    *z_screen = Some(ZMapHeaderType::new(
+        width as i32,
+        height as i32,
+        width as i32,
+    ));
 
-        let mut z_unwrap = (*z_screen).as_mut().unwrap();
-        let z_width = z_unwrap.width;
-        let z_height = z_unwrap.height;
+    let mut z_unwrap = (*z_screen).as_mut().unwrap();
+    let z_width = z_unwrap.width;
+    let z_height = z_unwrap.height;
 
-        zdrv::fill(z_unwrap, z_width, z_height, 0, 0, 0xFFFF);
+    zdrv::fill(z_unwrap, z_width, z_height, 0, 0, 0xFFFF);
 
-        let mut v_screen_rect = V_SCREEN_RECT.lock()?;
-        v_screen_rect.x_position = 0;
-        v_screen_rect.y_position = 0;
-        v_screen_rect.width = width as i32;
-        v_screen_rect.height = height as i32;
+    let mut v_screen_rect = V_SCREEN_RECT.lock()?;
+    v_screen_rect.x_position = 0;
+    v_screen_rect.y_position = 0;
+    v_screen_rect.width = width as i32;
+    v_screen_rect.height = height as i32;
 
-        let mut v_screen_unwrap = (*v_screen).to_owned().unwrap();
-        v_screen_unwrap.y_position = 0;
-        v_screen_unwrap.x_position = 0;
+    let mut v_screen_unwrap = render_state.v_screen.to_owned().unwrap();
+    v_screen_unwrap.y_position = 0;
+    v_screen_unwrap.x_position = 0;
 
-        let mut ball_bitmap_guard = BALL_BITMAP.lock()?;
-        let mut ball_array = ball_bitmap_guard.get_or_insert_with(|| {
-            std::array::from_fn(|_| GdrvBitmap8::new_dims_indexed(64, 64, false))
-        });
+    let mut ball_bitmap_guard = BALL_BITMAP.lock()?;
+    let mut ball_array = ball_bitmap_guard.get_or_insert_with(|| {
+        std::array::from_fn(|_| GdrvBitmap8::new_dims_indexed(64, 64, false))
+    });
 
-        *BACKGROUND_BITMAP.lock()? = bmp.clone();
-        match bmp.is_some() {
-            true => {
-                gdrv::copy_bitmap(
-                    &mut v_screen_unwrap,
-                    width as i32,
-                    height as i32,
-                    0,
-                    0,
-                    &mut bmp.unwrap(),
-                    0,
-                    0,
-                );
-            }
-            false => {
-                let v_width = v_screen_unwrap.width;
-                let v_height = v_screen_unwrap.height;
-                gdrv::fill_bitmap(&mut v_screen_unwrap, v_width, v_height, 0, 0, 0);
-            }
+    *BACKGROUND_BITMAP.lock()? = bmp.clone();
+    match bmp.is_some() {
+        true => {
+            gdrv::copy_bitmap(
+                &mut v_screen_unwrap,
+                width as i32,
+                height as i32,
+                0,
+                0,
+                &mut bmp.unwrap(),
+                0,
+                0,
+            );
+        }
+        false => {
+            let v_width = v_screen_unwrap.width;
+            let v_height = v_screen_unwrap.height;
+            gdrv::fill_bitmap(&mut v_screen_unwrap, v_width, v_height, 0, 0, 0);
         }
     }
 
-    recreate_screen_texture(options_state, renderer);
+    recreate_screen_texture(main_state, options_state, render_state);
 
     Ok(())
 }
