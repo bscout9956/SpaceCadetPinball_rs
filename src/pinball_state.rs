@@ -37,6 +37,7 @@ pub struct MainState {
     pub single_step: bool,
     pub target_frametime: Duration<1_000_000_000>,
     pub cursor_idle_counter: i32,
+    pub fps_details: String,
 }
 
 impl MainState {
@@ -49,6 +50,7 @@ impl MainState {
             single_step: false,
             target_frametime: Duration(0),
             cursor_idle_counter: 0,
+            fps_details: String::new(),
         }
     }
 
@@ -74,6 +76,10 @@ impl MainState {
 
     pub fn update_cursor_count(&mut self, value: i32) {
         self.cursor_idle_counter = value;
+    }
+    
+    pub fn update_fps_details(&mut self, value: &str) {
+        self.fps_details = value.to_string();
     }
 }
 

@@ -212,7 +212,6 @@ static DISP_FRAME_RATE: AtomicBool = AtomicBool::new(false);
 // TODO: CHECK DEFAULTS
 
 static GFR_DISPLAY: Mutex<Vec<f32>> = Mutex::new(Vec::new());
-static FPS_DETAILS: Mutex<String> = Mutex::new(String::new());
 static PREV_SDL_ERROR: Mutex<String> = Mutex::new(String::new());
 static RESTART: AtomicBool = AtomicBool::new(false);
 static SHOW_ABOUT_DIALOG: AtomicBool = AtomicBool::new(false);
@@ -334,8 +333,7 @@ fn main_loop(
                     return Err(MainLoopError::NullWindow);
                 }
 
-                let mut fps_det = FPS_DETAILS.lock().map_err(|_| MainLoopError::MutexLock)?;
-                *fps_det = String::from(&title);
+                pb_state.main_state.update_fps_details(&title);
                 update_count = 0;
                 frame_counter = update_count;
                 prev_time = cur_time;
