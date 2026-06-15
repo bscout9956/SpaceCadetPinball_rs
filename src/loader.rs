@@ -633,20 +633,20 @@ pub fn material(group_index: i32, visual: *mut VisualStruct) -> Result<i32, Load
     Ok(0)
 }
 
-pub fn play_sound(sound_index: i32, sound_source: TPinballComponent, info: &[u8]) -> f32 {
-    if sound_index < 0 {
-        return 0.0;
-    }
-
-    let sound_list = SOUND_LIST.lock().unwrap();
-    sound::play_sound(
-        sound_list[sound_index as usize].wave_ptr,
-        pb::TIME_TICKS.load(SeqCst),
-        sound_source,
-        info,
-    );
-    sound_list[sound_index as usize].duration
-}
+// pub fn play_sound(sound_index: i32, sound_source: TPinballComponent, info: &[u8]) -> f32 {
+//     if sound_index < 0 {
+//         return 0.0;
+//     }
+//
+//     let sound_list = SOUND_LIST.lock().unwrap();
+//     sound::play_sound(
+//         sound_list[sound_index as usize].wave_ptr,
+//         pb::TIME_TICKS.load(SeqCst),
+//         sound_source,
+//         info,
+//     );
+//     sound_list[sound_index as usize].duration
+// }
 
 fn state_id(mut group_index: i32, group_index_offset: i32) -> Result<i32, LoaderError> {
     let visual_state = query_visual_states(group_index)?;

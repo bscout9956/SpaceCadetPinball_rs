@@ -107,7 +107,7 @@ unsafe impl Sync for TPinballTable {}
 unsafe impl Send for TPinballTable {}
 
 impl TPinballTable {
-    pub fn new() -> Self {
+    pub fn new(time_ticks: usize) -> Self {
         let short_arr_length: usize;
         let base = TPinballComponent::new(None, -1, false);
 
@@ -170,7 +170,7 @@ impl TPinballTable {
             score_multipliers: vec![],
         };
 
-        let ball = instance.add_ball(Vector2::default());
+        let ball = instance.add_ball(Vector2::default(), time_ticks);
         match ball {
             Some(b) => {
                 b.borrow_mut().disable();
@@ -227,7 +227,7 @@ impl TPinballTable {
         0
     }
 
-    fn add_ball(&mut self, position: Vector2) -> Option<Rc<RefCell<TBall>>> {
+    fn add_ball(&mut self, position: Vector2, time_ticks: usize) -> Option<Rc<RefCell<TBall>>> {
         let mut target_ball_rc: Option<Rc<RefCell<TBall>>> = None;
 
         for rc_ball in &self.ball_list {
@@ -273,7 +273,7 @@ impl TPinballTable {
             ball.position.y = position.y;
             ball.prev_position = ball.position;
             ball.stuck_count = 0;
-            ball.last_active_time = pb::TIME_TICKS.load(SeqCst);
+            ball.last_active_time = time_ticks;
         }
 
         Some(ball_rc)

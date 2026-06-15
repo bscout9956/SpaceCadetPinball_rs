@@ -35,8 +35,6 @@ pub static CREDITS_ACTIVE: AtomicBool = AtomicBool::new(false);
 
 pub static IDLE_TIMER_MS: Mutex<f32> = Mutex::new(0.0);
 
-pub static TIME_TICKS: AtomicUsize = AtomicUsize::new(0);
-
 pub static DAT_FILE_NAME: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
 pub static BASE_PATH: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
 pub static RECORD_TABLE: LazyLock<Mutex<Option<Arc<DatFile>>>> = LazyLock::new(|| Mutex::new(None));
@@ -348,11 +346,11 @@ pub fn init(
 
     mode_change(GameModes::InGame, main_state, pb_game_state);
 
-    TIME_TICKS.store(0, Relaxed);
+    pb_game_state.time_ticks = 0;
     timer::init(150);
     score::init();
 
-    pb_game_state.main_table = Some(TPinballTable::new());
+    pb_game_state.main_table = Some(TPinballTable::new(pb_game_state.time_ticks));
     let table = pb_game_state.main_table.as_ref().unwrap();
     let ball = &table.ball_list[0].borrow();
 
@@ -506,7 +504,7 @@ pub fn ball_set(dx: f32, dy: f32, pb_game_state: &mut PbGameState) {
                 y: ball_dir.y,
                 z: ball.direction.z,
             };
-            ball.last_active_time = TIME_TICKS.load(SeqCst);
+            ball.last_active_time = pb_game_state.time_ticks;
         }
     }
 }
@@ -555,8 +553,8 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
                     ball.stuck_count = 0;
                 }
             }
-            ball.last_active_time = TIME_TICKS.load(SeqCst);
-        } else if (TIME_TICKS.load(SeqCst) - ball.last_active_time > 500) {
+            ball.last_active_time = pb_game_state.time_ticks;
+        } else if (pb_game_state.time_ticks - ball.last_active_time > 500) {
             let dist: Vector2 = Vector2 {
                 x: ball.position.x - ball.prev_position.x,
                 y: ball.position.y - ball.prev_position.y,
@@ -570,7 +568,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
             }
             control::unstuck_ball(
                 &mut *ball_rc.borrow_mut(),
-                TIME_TICKS.load(SeqCst) - ball.last_active_time,
+                pb_game_state.time_ticks - ball.last_active_time,
             );
         }
     }

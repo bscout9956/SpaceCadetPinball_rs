@@ -73,11 +73,16 @@ pub fn uninit() {
     MAX_COUNT.store(0, Relaxed);
 }
 
-fn get_time_ticks() -> usize {
-    pb::TIME_TICKS.load(Relaxed)
-}
+// fn get_time_ticks(time_ticks: usize) -> usize {
+//     pb::TIME_TICKS.load(Relaxed)
+// }
 
-pub fn set(time: f32, caller: *mut c_void, callback: extern "C" fn(i32, *mut c_void)) -> i32 {
+pub fn set(
+    time: f32,
+    caller: *mut c_void,
+    callback: extern "C" fn(i32, *mut c_void),
+    time_ticks: usize,
+) -> i32 {
     let current_count = COUNT.load(Relaxed);
     let max_count = MAX_COUNT.load(Relaxed);
 
@@ -95,7 +100,7 @@ pub fn set(time: f32, caller: *mut c_void, callback: extern "C" fn(i32, *mut c_v
     let next_free = buffer[timer_idx as usize].next_timer;
     FREE_HEAD.store(next_free, Relaxed);
 
-    let target_time = (get_time_ticks() + (time * 1000.0) as usize) as i32;
+    let target_time = (time_ticks + (time * 1000.0) as usize) as i32;
 
     let mut prev = -1;
     let mut current = ACTIVE_HEAD.load(Relaxed);
@@ -230,16 +235,15 @@ pub fn kill_id(timer_id: i32) -> i32 {
     timer_id
 }
 
-pub fn check() -> i32 {
+pub fn check(time_ticks: usize) -> i32 {
     let mut buffer = TIMER_BUFFER.lock().unwrap();
     let mut count = COUNT.load(Relaxed);
-    let time_ticks = get_time_ticks() as i32;
     let mut index = 0;
 
     let mut current = ACTIVE_HEAD.load(Relaxed);
 
     if current != -1 {
-        while current != -1 && time_ticks >= buffer[current as usize].target_time {
+        while current != -1 && time_ticks as i32 >= buffer[current as usize].target_time {
             count -= 1;
 
             ACTIVE_HEAD.store(buffer[current as usize].next_timer, Relaxed);
@@ -266,7 +270,7 @@ pub fn check() -> i32 {
             }
         }
 
-        while current != -1 && time_ticks >= buffer[current as usize].target_time + 100 {
+        while current != -1 && time_ticks as i32 >= buffer[current as usize].target_time + 100 {
             count -= 1;
 
             ACTIVE_HEAD.store(buffer[current as usize].next_timer, Relaxed);
