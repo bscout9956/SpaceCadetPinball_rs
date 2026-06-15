@@ -198,7 +198,6 @@ unsafe impl Send for SdlRendererPtr {}
 unsafe impl Sync for SdlRendererPtr {}
 
 pub const VERSION: &str = "1.0 DEV";
-pub static SINGLE_STEP: AtomicBool = AtomicBool::new(false); // VERIFY default value
 pub static LAUNCH_BALL_ENABLED: AtomicBool = AtomicBool::new(true);
 pub static HIGH_SCORES_ENABLED: AtomicBool = AtomicBool::new(true);
 pub static DEMO_ACTIVE: AtomicBool = AtomicBool::new(false);
@@ -224,8 +223,7 @@ static SHOW_EXIT_POPUP: AtomicBool = AtomicBool::new(false);
 pub type DurationMs = f64;
 
 static UPDATE_TO_FRAME_RATIO: Mutex<f64> = Mutex::new(0.0);
-static TARGET_FRAMETIME: LazyLock<Mutex<Duration<1_000_000_000>>> =
-    LazyLock::new(|| Mutex::new(Duration(0)));
+
 static SPIN_THRESHOLD: LazyLock<Mutex<Duration<1_000_000_000>>> =
     LazyLock::new(|| Mutex::new(Duration(0)));
 static SLEEP_STATE: LazyLock<Mutex<WelfordState>> =
@@ -312,11 +310,7 @@ fn main_loop(
     let _update_to_frame_counter = 0.0;
     let _sleep_remainder: Duration<1_000_000_000> = Duration(0);
 
-    let target_frametime = TARGET_FRAMETIME
-        .lock()
-        .map_err(|e| MainLoopError::MutexLock)?;
-
-    let _frame_duration = *target_frametime;
+    let _frame_duration = pb_state.main_state.target_frametime;
 
     loop {
         if DISP_FRAME_RATE.load(SeqCst) == true {
@@ -406,7 +400,7 @@ fn main_loop(
                 LAST_MOUSE_Y.store(y, SeqCst);
             }
         }
-        if SINGLE_STEP.load(SeqCst) == false && NO_TIME_LOSS.load(SeqCst) == false {
+        if pb_state.main_state.single_step == false && NO_TIME_LOSS.load(SeqCst) == false {
             let dt = _frame_duration.count() as f32;
             pb::frame(dt);
             if DISP_GR_HISTORY.load(SeqCst) == true {
@@ -437,19 +431,14 @@ fn process_window_messages(
     main_state: &mut MainState,
     options_state: &mut OptionsState,
 ) -> Result<bool, MainLoopError> {
-    static IDLE_WAIT: Mutex<i64> = Mutex::new(0);
+    let mut idle_wait = 0i64;
     let event: *mut SDL_Event = unsafe { std::mem::zeroed() };
 
     if main_state.has_focus == true {
-        let guard = IDLE_WAIT.lock().map_err(|_| MainLoopError::MutexLock)?;
-        let frame_time_g = TARGET_FRAMETIME
-            .lock()
-            .map_err(|_| MainLoopError::MutexLock)?;
-
-        *guard = (*frame_time_g).count();
+        idle_wait = main_state.target_frametime.count();
         unsafe {
             while SDL_PollEvent(event) > 0 {
-                if event_handler(event, imgui_context)? == 0 {
+                if event_handler(event, imgui_context, main_state, options_state)? == false {
                     return Ok(false);
                 }
             }
@@ -458,24 +447,15 @@ fn process_window_messages(
         return Ok(true);
     }
 
-    match IDLE_WAIT.lock().map_err(|_| MainLoopError::MutexLock) {
-        Ok(mut idle_wait) => {
-            let frame_time_g = TARGET_FRAMETIME
-                .lock()
-                .map_err(|_| MainLoopError::MutexLock)?;
-
-            // Progressively wait longer when transitioning to idle
-            *idle_wait = i64::min(*idle_wait + (*frame_time_g).0, 500);
-            unsafe {
-                if SDL_WaitEventTimeout(event, (*idle_wait) as c_int) > 0 {
-                    *idle_wait = (*frame_time_g).count();
-                    return event_handler(event);
-                }
-            }
-            Ok(true)
+    // Progressively wait longer when transitioning to idle
+    idle_wait = i64::min(idle_wait + main_state.target_frametime.0, 500);
+    unsafe {
+        if SDL_WaitEventTimeout(event, idle_wait as c_int) > 0 {
+            idle_wait = main_state.target_frametime.count();
+            return event_handler(event, imgui_context, main_state, options_state);
         }
-        Err(_) => Err(MainLoopError::MutexLock),
     }
+    Ok(true)
 }
 
 unsafe fn event_handler(
@@ -483,7 +463,7 @@ unsafe fn event_handler(
     imgui_context: &mut Context,
     main_state: &mut MainState,
     options_state: &mut OptionsState,
-) -> Result<i32, MainLoopError> {
+) -> Result<bool, MainLoopError> {
     let mut input_down = false;
 
     unsafe {
@@ -529,7 +509,7 @@ unsafe fn event_handler(
         }
 
         if mouse_event {
-            return Ok(1);
+            return Ok(true);
         }
     }
 
@@ -540,35 +520,35 @@ unsafe fn event_handler(
                 || (*event).type_ == SDL_CONTROLLERBUTTONDOWN as u32
                 || (*event).type_ == SDL_CONTROLLERBUTTONUP as u32
             {
-                return Ok(1);
+                return Ok(true);
             }
         }
     }
 
     if (*event).type_ == SDL_QUIT as u32 {
-        end_pause();
+        end_pause(main_state);
 
         main_state.update_b_quit(true);
         fullscrn::shutdown();
         main_state.return_value = 0;
-        return Ok(0);
+        return Ok(false);
     }
     if (*event).type_ == SDL_KEYUP as u32 {
         pb::input_up()
     }
 
-    Ok(1)
+    Ok(true)
 }
 
-fn end_pause() {
-    if SINGLE_STEP.load(SeqCst) == true {
-        pb::pause_continue();
+fn end_pause(main_state: &mut MainState) {
+    if main_state.single_step == true {
+        pb::pause_continue(main_state);
         NO_TIME_LOSS.store(true, SeqCst);
     }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut pinball_state = PinballState::new();
+    let mut pb_state = PinballState::new();
 
     println!("Game version: {}", VERSION);
     let args: Vec<String> = env::args().collect();

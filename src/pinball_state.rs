@@ -9,6 +9,19 @@ use crate::options::{
     ControlOption, DEF_FPS, DEF_SOUND_CHANNELS, DEF_UPS, DEF_VOLUME, GameInput, OptionsStruct,
     Setting,
 };
+use crate::{translations, Duration};
+use crate::translations::Msg;
+use sdl2::sys::SDL_GameControllerButton::{
+    SDL_CONTROLLER_BUTTON_A, SDL_CONTROLLER_BUTTON_BACK, SDL_CONTROLLER_BUTTON_DPAD_LEFT,
+    SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_DPAD_UP,
+    SDL_CONTROLLER_BUTTON_LEFTSHOULDER, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,
+    SDL_CONTROLLER_BUTTON_START,
+};
+use sdl2::sys::SDL_KeyCode::{
+    SDLK_ESCAPE, SDLK_F2, SDLK_F3, SDLK_F4, SDLK_F5, SDLK_F6, SDLK_F8, SDLK_F9, SDLK_PERIOD,
+    SDLK_SLASH, SDLK_SPACE, SDLK_UP, SDLK_x, SDLK_z,
+};
+use sdl2::sys::{SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2};
 
 pub struct PinballState {
     pub main_state: MainState,
@@ -20,6 +33,8 @@ pub struct MainState {
     pub mouse_down: bool,
     pub has_focus: bool,
     pub return_value: i32,
+    pub single_step: bool,
+    pub target_frametime: Duration<1_000_000_000>,
 }
 
 impl MainState {
@@ -29,6 +44,8 @@ impl MainState {
             mouse_down: false,
             has_focus: true,
             return_value: 0,
+            single_step: false,
+            target_frametime: Duration(0)
         }
     }
 
@@ -46,6 +63,10 @@ impl MainState {
 
     pub fn update_return(&mut self, value: i32) {
         self.return_value = value;
+    }
+
+    pub fn update_single_step(&mut self, value: bool) {
+        self.single_step = value;
     }
 }
 
