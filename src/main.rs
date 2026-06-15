@@ -4,13 +4,17 @@ extern crate core;
 
 use crate::embedded_data::load_controller_db;
 use crate::fullscrn::RESOLUTION_ARRAY;
-use crate::options::{GameBindings, OptionsStruct};
+use crate::options::{CONTROL_WAITING_FOR_INPUT, GameBindings, OptionsStruct};
 use crate::translations::Msg;
 use dear_imgui_rs::sys::ImGuiIO;
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig};
+use sdl2::sys::SDL_EventType::{
+    SDL_CONTROLLERBUTTONDOWN, SDL_CONTROLLERBUTTONUP, SDL_KEYDOWN, SDL_KEYUP, SDL_QUIT,
+};
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::SDL_RendererFlags::{SDL_RENDERER_ACCELERATED, SDL_RENDERER_SOFTWARE};
 use sdl2::sys::SDL_WindowFlags::{SDL_WINDOW_HIDDEN, SDL_WINDOW_RESIZABLE};
+use sdl2::sys::SDL_bool::SDL_FALSE;
 use sdl2::sys::mixer::{
     MIX_DEFAULT_FORMAT, MIX_DEFAULT_FREQUENCY, MIX_InitFlags_MIX_INIT_MID, MIX_MAJOR_VERSION,
     MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_Init, Mix_OpenAudio,
@@ -199,8 +203,7 @@ pub static DEMO_ACTIVE: AtomicBool = AtomicBool::new(false);
 pub static MAIN_MENU_HEIGHT: AtomicI32 = AtomicI32::new(0);
 
 static RETURN_VALUE: AtomicI32 = AtomicI32::new(0);
-// VERIFY: Switch to bool?
-static MOUSE_DOWN: AtomicI32 = AtomicI32::new(0);
+static MOUSE_DOWN: AtomicBool = AtomicBool::new(false);
 static LAST_MOUSE_X: AtomicI32 = AtomicI32::new(0);
 static LAST_MOUSE_Y: AtomicI32 = AtomicI32::new(0);
 static NO_TIME_LOSS: AtomicBool = AtomicBool::new(false);
