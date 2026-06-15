@@ -204,15 +204,6 @@ pub static MAIN_MENU_HEIGHT: AtomicI32 = AtomicI32::new(0);
 static ACTIVATED: AtomicBool = AtomicBool::new(false);
 static DISP_GR_HISTORY: AtomicBool = AtomicBool::new(false);
 static DISP_FRAME_RATE: AtomicBool = AtomicBool::new(false);
-// TODO: CHECK DEFAULTS
-
-static GFR_DISPLAY: Mutex<Vec<f32>> = Mutex::new(Vec::new());
-static PREV_SDL_ERROR: Mutex<String> = Mutex::new(String::new());
-static RESTART: AtomicBool = AtomicBool::new(false);
-static SHOW_ABOUT_DIALOG: AtomicBool = AtomicBool::new(false);
-static SHOW_IMGUI_DEMO: AtomicBool = AtomicBool::new(false);
-static SHOW_SPRITE_VIEWER: AtomicBool = AtomicBool::new(false);
-static SHOW_EXIT_POPUP: AtomicBool = AtomicBool::new(false);
 
 pub type DurationMs = f64;
 
@@ -732,7 +723,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         println!("Entering loop");
         loop {
-            RESTART.store(false, Relaxed);
+            pb_state.main_state.restart = false;
 
             // ImGUi Init
             let mut imgui_context = Context::create();
@@ -885,8 +876,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             //sound::close();
             pb::uninit();
 
-            let do_restart = RESTART.load(Relaxed);
-            if do_restart {
+            if pb_state.main_state.restart {
                 ()
             }
         }

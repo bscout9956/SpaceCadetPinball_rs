@@ -74,6 +74,13 @@ pub struct MainState {
     pub demo_active: bool,
     pub launch_ball_enabled: bool,
     pub high_scores_enabled: bool,
+    pub gfr_display: Vec<f32>,
+    pub prev_sdl_error: String,
+    pub restart: bool,
+    pub show_about_dialog: bool,
+    pub show_imgui_demo: bool,
+    pub show_sprite_viewer: bool,
+    pub show_exit_popup: bool,
 }
 
 impl MainState {
@@ -93,6 +100,13 @@ impl MainState {
             demo_active: false,
             launch_ball_enabled: true,
             high_scores_enabled: true,
+            gfr_display: Vec::new(),
+            prev_sdl_error: String::new(),
+            restart: false,
+            show_about_dialog: false,
+            show_imgui_demo: false,
+            show_sprite_viewer: false,
+            show_exit_popup: false,
         }
     }
 
