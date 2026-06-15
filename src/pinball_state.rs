@@ -9,8 +9,8 @@ use crate::options::{
     ControlOption, DEF_FPS, DEF_SOUND_CHANNELS, DEF_UPS, DEF_VOLUME, GameInput, OptionsStruct,
     Setting,
 };
-use crate::{translations, Duration};
 use crate::translations::Msg;
+use crate::{Duration, translations};
 use sdl2::sys::SDL_GameControllerButton::{
     SDL_CONTROLLER_BUTTON_A, SDL_CONTROLLER_BUTTON_BACK, SDL_CONTROLLER_BUTTON_DPAD_LEFT,
     SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_DPAD_UP,
@@ -28,6 +28,7 @@ pub struct PinballState {
     pub options_state: OptionsState,
 }
 
+#[allow(clippy::struct_excessive_bools)]
 pub struct MainState {
     pub b_quit: bool,
     pub mouse_down: bool,
@@ -35,6 +36,7 @@ pub struct MainState {
     pub return_value: i32,
     pub single_step: bool,
     pub target_frametime: Duration<1_000_000_000>,
+    pub cursor_idle_counter: i32,
 }
 
 impl MainState {
@@ -45,7 +47,8 @@ impl MainState {
             has_focus: true,
             return_value: 0,
             single_step: false,
-            target_frametime: Duration(0)
+            target_frametime: Duration(0),
+            cursor_idle_counter: 0,
         }
     }
 
@@ -67,6 +70,10 @@ impl MainState {
 
     pub fn update_single_step(&mut self, value: bool) {
         self.single_step = value;
+    }
+
+    pub fn update_cursor_count(&mut self, value: i32) {
+        self.cursor_idle_counter = value;
     }
 }
 

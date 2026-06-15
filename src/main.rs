@@ -231,7 +231,6 @@ static SLEEP_STATE: LazyLock<Mutex<WelfordState>> =
 
 static PREV_SDL_ERROR_COUNT: AtomicU32 = AtomicU32::new(0);
 static GFR_OFFSET: AtomicU32 = AtomicU32::new(0);
-static CURSOR_IDLE_COUNTER: AtomicI32 = AtomicI32::new(0);
 
 pub static MAIN_WINDOW: Mutex<Option<SdlWindowPtr>> = Mutex::new(Option::None);
 
@@ -415,7 +414,8 @@ fn main_loop(
             .map_err(|_| MainLoopError::MutexLock)?;
 
         if _update_to_frame_counter >= *update_to_frame_ratio {
-            if *pb_state.options_state.options.hide_cursor && CURSOR_IDLE_COUNTER.load(SeqCst) <= 0
+            if *pb_state.options_state.options.hide_cursor
+                && pb_state.main_state.cursor_idle_counter <= 0
             {
                 // TODO: ImGUiSetCursor l376
             }
@@ -488,7 +488,7 @@ unsafe fn event_handler(
             || (*event).type_ == SDL_EventType::SDL_MOUSEBUTTONUP as u32
             || (*event).type_ == SDL_EventType::SDL_MOUSEWHEEL as u32
         {
-            CURSOR_IDLE_COUNTER.store(1000, SeqCst);
+            main_state.cursor_idle_counter = 1000;
             mouse_event = true;
         } else {
             mouse_event = false;
