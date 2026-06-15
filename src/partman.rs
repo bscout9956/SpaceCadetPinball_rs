@@ -1,6 +1,7 @@
 use crate::errors::RecordLoadError;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, EntryData, FieldTypes, GroupData};
+use crate::pinball_state::FullscrnState;
 use crate::utils;
 use crate::zdrv::ZMapHeaderType;
 use num_traits::FromPrimitive;
@@ -130,7 +131,11 @@ pub fn validate_bmp_8_header(
     Ok(())
 }
 
-pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, RecordLoadError> {
+pub fn load_records(
+    file_name: String,
+    full_tilt_mode: bool,
+    fullscrn_state: &mut FullscrnState,
+) -> Result<DatFile, RecordLoadError> {
     let mut header: DatFileHeader = Default::default();
     let mut bmp_header: Dat8BitBmpHeader = Default::default();
     let mut zmap_header: Dat16BitBmpHeader = Default::default();
@@ -247,13 +252,13 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
 
             let entry_data = EntryData::new(field_type, field_size as i32, buff_enum);
 
-            group_data.add_entry(entry_data);
+            group_data.add_entry(entry_data, fullscrn_state);
         }
         dat_file.groups.push(group_data);
     }
 
     if dat_file.groups.len() == header.number_of_groups as usize {
-        dat_file.finalize(full_tilt_mode);
+        dat_file.finalize(full_tilt_mode, fullscrn_state);
         return Ok(dat_file);
     }
     Err(RecordLoadError::Unknown)

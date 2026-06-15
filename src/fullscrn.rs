@@ -12,38 +12,15 @@ static RESOLUTION: AtomicI32 = AtomicI32::new(0);
 
 #[derive(Clone)]
 pub struct ResolutionInfo {
-    screen_width: i16,
-    screen_height: i16,
+    pub(crate) screen_width: i16,
+    pub(crate) screen_height: i16,
     pub table_width: i16,
     pub table_height: i16,
-    resolution_menu_id: i16,
+    pub(crate) resolution_menu_id: i16,
 }
 
 pub static SCREEN_MODE: AtomicBool = AtomicBool::new(false);
 pub static DISPLAY_CHANGED: AtomicBool = AtomicBool::new(false);
-pub static RESOLUTION_ARRAY: Mutex<[ResolutionInfo; 3]> = Mutex::new([
-    ResolutionInfo {
-        screen_width: 640,
-        screen_height: 480,
-        table_width: 600,
-        table_height: 416,
-        resolution_menu_id: 501,
-    },
-    ResolutionInfo {
-        screen_width: 800,
-        screen_height: 600,
-        table_width: 752,
-        table_height: 520,
-        resolution_menu_id: 502,
-    },
-    ResolutionInfo {
-        screen_width: 1024,
-        screen_height: 768,
-        table_width: 960,
-        table_height: 666,
-        resolution_menu_id: 503,
-    },
-]);
 
 pub fn set_resolution(
     mut value: i32,
@@ -122,18 +99,11 @@ pub fn window_size_changed(
         0
     };
     height -= menu_height;
-    let res = match RESOLUTION_ARRAY.lock() {
-        Ok(resolution_array) => {
-            let idx = RESOLUTION.load(Relaxed) as usize;
-            resolution_array[idx].clone()
-        }
-        Err(e) => {
-            return Err(FullscreenError::ResolutionArrayLock(e));
-        }
-    };
 
-    update_x_scale(&mut width, &res, fullscrn_state.scale_x);
-    update_y_scale(&mut height, &res, fullscrn_state.scale_y);
+    let res = &fullscrn_state.resolution_array[RESOLUTION.load(Relaxed) as usize];
+
+    update_x_scale(&mut width, res, fullscrn_state.scale_x);
+    update_y_scale(&mut height, res, fullscrn_state.scale_y);
 
     reset_offset(fullscrn_state.offset_x);
     reset_offset(fullscrn_state.offset_y);
@@ -263,6 +233,10 @@ fn disable_fullscreen() -> Result<bool, FullscreenError> {
     Ok(false)
 }
 
-pub fn init(fullscrn_state: &mut FullscrnState,main_state: &mut MainState, options_state: &mut OptionsState) {
+pub fn init(
+    fullscrn_state: &mut FullscrnState,
+    main_state: &mut MainState,
+    options_state: &mut OptionsState,
+) {
     window_size_changed(fullscrn_state, main_state, options_state);
 }

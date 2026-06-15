@@ -1,13 +1,13 @@
 use crate::errors::PbError;
-use crate::fullscrn::RESOLUTION_ARRAY;
 use crate::gdrv::ColorRgba;
-use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
+use crate::group_data::{EntryBuffer, FieldTypes};
 use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
 use crate::message_code::MessageCode;
-use crate::pinball_state::{MainState, OptionsState, PbGameState, PinballState, RenderState};
+use crate::pinball_state::{
+    FullscrnState, MainState, OptionsState, PbGameState, PinballState, RenderState,
+};
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_pinball_table::TPinballTable;
-use crate::t_textbox::TTextBox;
 use crate::translations::{Msg, TranslationError};
 use crate::{
     MAIN_WINDOW, control, fullscrn, gdrv, high_score, loader, maths, midi, partman, proj, render,
@@ -18,9 +18,7 @@ use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
 use std::ffi::{CStr, CString, c_char};
 use std::fs::File;
 use std::io::Write;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering::Relaxed;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::Arc;
 
 #[derive(PartialEq, Eq, Ord, PartialOrd)]
 pub enum GameModes {
@@ -146,33 +144,33 @@ fn read_camera_floats(float_data: &[u8]) -> Vec<f32> {
 }
 
 pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
+    let fullscrn_state = &mut state.fullscrn_state;
+    let pb_game_state = &mut state.pb_game_state;
+
     let mut projection_matrix: [f32; 12] = [0.0; 12];
 
     let mut data_file_path = String::new();
 
-    if state.pb_game_state.dat_file_name.is_empty() {
+    if pb_game_state.dat_file_name.is_empty() {
         return Ok(false);
     }
-    data_file_path = make_path_name(
-        &state.pb_game_state.dat_file_name,
-        &state.pb_game_state.base_path,
-    );
+    data_file_path = make_path_name(&pb_game_state.dat_file_name, &pb_game_state.base_path);
 
-    let dat = partman::load_records(data_file_path, state.pb_game_state.full_tilt_mode)?;
+    let dat = partman::load_records(data_file_path, pb_game_state.full_tilt_mode, fullscrn_state)?;
     let shared_dat = Arc::new(dat);
 
-    state.pb_game_state.record_table = Some(Arc::clone(&shared_dat));
+    pb_game_state.record_table = Some(Arc::clone(&shared_dat));
 
     let use_bmp_font: i32 = get_rc_int(Msg::TextBoxUseBitmapFont)?;
     if use_bmp_font == 1 {
-        score::load_msg_font("pbmsg_ft", &mut state.pb_game_state.record_table);
+        score::load_msg_font("pbmsg_ft", &mut pb_game_state.record_table);
     }
 
-    if state.pb_game_state.record_table.is_none() {
+    if pb_game_state.record_table.is_none() {
         return Ok(true);
     }
 
-    let table = state.pb_game_state.record_table.as_mut().unwrap();
+    let table = pb_game_state.record_table.as_mut().unwrap();
     let plt = table.field_labeled("background", FieldTypes::Palette);
     let plt_data = plt.unwrap();
     match plt_data {
@@ -211,8 +209,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
         }
         _ => {}
     }
-    let res_array = RESOLUTION_ARRAY.lock().unwrap();
-    let res_info = &(*res_array)[fullscrn::get_resolution() as usize];
+    let res_info = &fullscrn_state.resolution_array[fullscrn::get_resolution() as usize];
 
     if !camera_info.is_empty() {
         projection_matrix.copy_from_slice(&camera_info);
@@ -256,27 +253,20 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
 
     loader::load_from(shared_dat)?;
 
-    mode_change(
-        GameModes::InGame,
-        &mut state.main_state,
-        &mut state.pb_game_state,
-    );
+    mode_change(GameModes::InGame, &mut state.main_state, pb_game_state);
 
-    state.pb_game_state.time_ticks = 0;
+    pb_game_state.time_ticks = 0;
     timer::init(150);
     score::init();
 
-    state.pb_game_state.main_table = Some(TPinballTable::new(
-        &mut state.pb_game_state,
-        &mut state.render_state,
-    ));
-    let table = state.pb_game_state.main_table.as_ref().unwrap();
+    pb_game_state.main_table = Some(TPinballTable::new(pb_game_state, &mut state.render_state));
+    let table = pb_game_state.main_table.as_ref().unwrap();
     let ball = &table.ball_list[0].borrow();
 
-    state.pb_game_state.ball_max_speed = ball.radius * 200.0f32;
-    state.pb_game_state.ball_half_radius = ball.radius * 0.5f32;
-    state.pb_game_state.ball_to_ball_collision_distance =
-        ball.radius + state.pb_game_state.ball_half_radius * 2.0f32;
+    pb_game_state.ball_max_speed = ball.radius * 200.0f32;
+    pb_game_state.ball_half_radius = ball.radius * 0.5f32;
+    pb_game_state.ball_to_ball_collision_distance =
+        ball.radius + pb_game_state.ball_half_radius * 2.0f32;
 
     Ok(true)
 }

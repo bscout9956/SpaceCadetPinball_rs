@@ -3,11 +3,9 @@
 extern crate core;
 
 use crate::embedded_data::load_controller_db;
-use crate::fullscrn::RESOLUTION_ARRAY;
 use crate::options::GameBindings;
 use crate::pinball_state::{MainState, OptionsState, PinballState};
 use crate::translations::Msg;
-use dear_imgui_rs::StyleColor::MenuBarBg;
 use dear_imgui_rs::sys::{
     ImGuiCol_MenuBarBg, ImGuiIO, ImGuiMouseCursor_None, ImVec4, igNewFrame, igPushStyleColor_Vec4,
     igSetMouseCursor,
@@ -545,7 +543,7 @@ fn end_pause(main_state: &mut MainState) {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut pb_state = PinballState::new();
+    let mut state = PinballState::new();
 
     println!("Game version: {}", VERSION);
     let args: Vec<String> = env::args().collect();
@@ -583,7 +581,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let quick_flag = args.iter().any(|arg| arg.contains("-quick"));
-    pb_state.pb_game_state.quick_flag = quick_flag;
+    (&mut state.pb_game_state).quick_flag = quick_flag;
 
     unsafe {
         println!("Creating window");
@@ -639,13 +637,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             let renderer: *mut SDL_Renderer = SDL_CreateRenderer(window, -1, flags as u32);
 
             if !renderer.is_null() {
-                pb_state.main_state.renderer = Some(SdlRendererPtr(renderer));
+                (&mut state.main_state).renderer = Some(SdlRendererPtr(renderer));
                 println!("Renderer successfully created and assigned.");
                 break;
             }
         }
 
-        if pb_state.main_state.renderer.is_none() {
+        if (&mut state.main_state).renderer.is_none() {
             pb::show_message_box_cstr_message(
                 SDL_MESSAGEBOX_ERROR,
                 "Could not create renderer",
@@ -657,7 +655,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let mut renderer_info: SDL_RendererInfo = std::mem::zeroed();
 
-        if let Some(renderer_ptr) = pb_state.main_state.renderer.as_ref() {
+        if let Some(renderer_ptr) = (&mut state.main_state).renderer.as_ref() {
             let result = SDL_GetRendererInfo(renderer_ptr.0, &mut renderer_info);
 
             if result != 0 {
@@ -728,7 +726,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         println!("Entering loop");
         loop {
-            pb_state.main_state.restart = false;
+            (&mut state.main_state).restart = false;
 
             // ImGUi Init
             let mut imgui_context = Context::create();
@@ -744,13 +742,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             imgui_context.set_ini_filename(Some(ini_path));
 
             // First option initialization step: just load settings from .ini. Needs ImGui context.
-            options::init_primary(&mut pb_state.options_state);
+            options::init_primary(&mut state.options_state);
             if reset_all_options {
                 reset_all_options = false;
-                options::reset_all_options(&mut pb_state.options_state);
+                options::reset_all_options(&mut state.options_state);
             }
 
-            let font_file_name = &pb_state.options_state.options.font_file_name.value;
+            let font_file_name = &(&mut state.options_state).options.font_file_name.value;
 
             if !font_file_name.is_empty() {
                 let mut fonts = imgui_context.fonts();
@@ -773,7 +771,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             imgui_context.fonts().build();
 
-            if let Some(renderer) = pb_state.main_state.renderer.as_ref() {
+            if let Some(renderer) = (&mut state.main_state).renderer.as_ref() {
                 println!("Initializing IMGUI_SDL");
                 imgui_sdl::initialize(&mut imgui_context, renderer.0, 0, 0);
                 imgui_sdl::init_for_sdl_renderer(&mut imgui_context, window, renderer.0);
@@ -793,12 +791,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             search_paths.extend_from_slice(&PLATFORM_DATA_PATHS);
             pb::select_dat_file(
                 &search_paths,
-                &mut pb_state.options_state,
-                &mut pb_state.pb_game_state,
+                &mut state.options_state,
+                &mut state.pb_game_state,
             );
 
             // Second step: run updates that depend on .DAT file selection
-            options::init_secondary(&mut pb_state.options_state, &mut pb_state.pb_game_state);
+            options::init_secondary(&mut state.options_state, &mut state.pb_game_state);
 
             // TODO: Implement sound, we're skipping for now to focus on PB:INIT();
             // match OPTIONS.lock() {
@@ -810,7 +808,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             //     }
             // }
 
-            if !pb::init(&mut pb_state)? {
+            if !pb::init(&mut state)? {
                 let mut message = String::from(
                     "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
                 );
@@ -828,22 +826,22 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             fullscrn::init(
-                &mut pb_state.fullscrn_state,
-                &mut pb_state.main_state,
-                &mut pb_state.options_state,
+                &mut state.fullscrn_state,
+                &mut state.main_state,
+                &mut state.options_state,
             );
 
-            pb::reset_table(&mut pb_state.pb_game_state);
-            pb::first_time_setup(&mut pb_state.render_state);
+            pb::reset_table(&mut state.pb_game_state);
+            pb::first_time_setup(&mut state.render_state);
 
             let fullscreen = env::args().any(|arg| arg == "-fullscreen");
             if fullscreen {
-                *pb_state.options_state.options.full_screen = true;
+                *(&mut state.options_state).options.full_screen = true;
             }
 
-            if *pb_state.options_state.options.full_screen == false {
-                let resolution_array = RESOLUTION_ARRAY.lock()?;
-                let res_info = &resolution_array[fullscrn::get_resolution() as usize];
+            if *(&mut state.options_state).options.full_screen == false {
+                let res_info = &(&mut state.fullscrn_state).resolution_array
+                    [fullscrn::get_resolution() as usize];
                 SDL_SetWindowSize(
                     window,
                     res_info.table_width as c_int,
@@ -851,7 +849,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
             }
             SDL_ShowWindow(window);
-            fullscrn::set_screen_mode(*pb_state.options_state.options.full_screen);
+            fullscrn::set_screen_mode(*(&mut state.options_state).options.full_screen);
 
             let is_demo = env::args().any(|arg| arg == "-demo");
             if is_demo {
@@ -860,21 +858,21 @@ fn main() -> Result<(), Box<dyn Error>> {
             } else {
                 pb::replay_level(
                     false,
-                    &mut pb_state.main_state,
-                    &mut pb_state.options_state,
-                    &mut pb_state.pb_game_state,
+                    &mut state.main_state,
+                    &mut state.options_state,
+                    &mut state.pb_game_state,
                 )?;
             }
 
-            main_loop(&mut imgui_context, &mut pb_state);
+            main_loop(&mut imgui_context, &mut state);
 
-            options::uninit(&mut pb_state.options_state);
+            options::uninit(&mut state.options_state);
             // TODO: Implement sound midi::music_shutdown();
             // TODO: Implement sound stuff
             //sound::close();
-            pb::uninit(&mut pb_state.pb_game_state);
+            pb::uninit(&mut state.pb_game_state);
 
-            if pb_state.main_state.restart {
+            if (&mut state.main_state).restart {
                 ()
             }
         }

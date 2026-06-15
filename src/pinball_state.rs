@@ -27,7 +27,8 @@ use sdl2::sys::SDL_KeyCode::{
     SDLK_SLASH, SDLK_SPACE, SDLK_UP, SDLK_x, SDLK_z,
 };
 use sdl2::sys::{SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use crate::fullscrn::ResolutionInfo;
 
 pub struct PinballState {
     pub main_state: MainState,
@@ -196,6 +197,7 @@ pub struct FullscrnState {
     pub scale_y: f32,
     pub offset_x: f32,
     pub offset_y: f32,
+    pub resolution_array: [ResolutionInfo; 3],
 }
 impl FullscrnState {
     pub fn new() -> FullscrnState {
@@ -204,6 +206,29 @@ impl FullscrnState {
             scale_y: 1.0,
             offset_x: 0.0,
             offset_y: 0.0,
+            resolution_array: [
+                ResolutionInfo {
+                    screen_width: 640,
+                    screen_height: 480,
+                    table_width: 600,
+                    table_height: 416,
+                    resolution_menu_id: 501,
+                },
+                ResolutionInfo {
+                    screen_width: 800,
+                    screen_height: 600,
+                    table_width: 752,
+                    table_height: 520,
+                    resolution_menu_id: 502,
+                },
+                ResolutionInfo {
+                    screen_width: 1024,
+                    screen_height: 768,
+                    table_width: 960,
+                    table_height: 666,
+                    resolution_menu_id: 503,
+                },
+            ]
         }
     }
 }
