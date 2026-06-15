@@ -506,3 +506,7 @@ pub fn set_background_zmap(zmap: Option<Arc<ZMapHeaderType>>, offset_x: i32, off
     (*zmap_offset_x) = offset_x;
     (*zmap_offset_y) = offset_y;
 }
+
+pub(crate) fn uninit() {
+    todo!()
+}

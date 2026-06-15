@@ -10,8 +10,8 @@ use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
 use crate::translations::{Msg, TranslationError};
 use crate::{
-    MAIN_WINDOW, control, fullscrn, gdrv, loader, maths, midi, partman, proj, render, score, timer,
-    translations,
+    MAIN_WINDOW, control, fullscrn, gdrv, high_score, loader, maths, midi, partman, proj, render,
+    score, timer, translations,
 };
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
@@ -237,7 +237,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
         res_info.table_width,
         res_info.table_height,
         &mut state.options_state,
-        &state.main_state.renderer
+        &state.main_state.renderer,
     );
 
     let mut v_guard = render::V_SCREEN.lock().unwrap();
@@ -391,8 +391,15 @@ fn mode_change(
     Ok(())
 }
 
-pub(crate) fn uninit() {
-    todo!()
+pub(crate) fn uninit(pb_game_state: &mut PbGameState) -> i32 {
+    todo!();
+    score::unload_msg_font();
+    loader::unload();
+    high_score::write();
+    pb_game_state.main_table = None;
+    timer::uninit();
+    render::uninit();
+    return 0;
 }
 
 pub fn ball_set(dx: f32, dy: f32, pb_game_state: &mut PbGameState) {

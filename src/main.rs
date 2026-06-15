@@ -56,6 +56,7 @@ mod zdrv;
 pub mod control;
 mod embedded_data;
 mod errors;
+pub mod high_score;
 mod imgui_sdl;
 pub mod message_code;
 mod midi;
@@ -855,7 +856,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             // TODO: Implement sound midi::music_shutdown();
             // TODO: Implement sound stuff
             //sound::close();
-            pb::uninit();
+            pb::uninit(&mut pb_state.pb_game_state);
 
             if pb_state.main_state.restart {
                 ()
