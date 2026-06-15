@@ -70,14 +70,6 @@ impl MainState {
         self.last_mouse_x = x;
         self.last_mouse_y = y;
     }
-
-    pub fn update_mouse_x(&mut self, x: i32) {
-        self.last_mouse_x = x;
-    }
-
-    pub fn update_mouse_y(&mut self, y: i32) {
-        self.last_mouse_y = y;
-    }
 }
 
 impl PinballState {
@@ -102,14 +94,6 @@ impl OptionsState {
             control_waiting_for_input: None,
             options: get_default_options(),
         }
-    }
-
-    pub fn update_show_dialog(&mut self, value: bool) {
-        self.show_dialog = value;
-    }
-
-    pub fn update_control_waiting_for_input(&mut self, value: Option<GameInput>) {
-        self.control_waiting_for_input = value;
     }
 }
 

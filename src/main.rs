@@ -293,7 +293,7 @@ fn main_loop(
     imgui_context: &mut Context,
     pb_state: &mut PinballState,
 ) -> Result<(), MainLoopError> {
-    pb_state.main_state.update_b_quit(false);
+    pb_state.main_state.b_quit = false;
 
     let mut update_count: usize = 0;
     let mut frame_counter: usize = 0;
@@ -392,7 +392,7 @@ fn main_loop(
                 pb_state.main_state.update_mouse_xy(x, y);
             }
         }
-        if pb_state.main_state.single_step == false && NO_TIME_LOSS.load(SeqCst) == false {
+        if pb_state.main_state.single_step == false && pb_state.main_state.no_time_loss == false {
             let dt = _frame_duration.count() as f32;
             pb::frame(dt);
             if DISP_GR_HISTORY.load(SeqCst) == true {
@@ -400,7 +400,7 @@ fn main_loop(
             }
         }
 
-        NO_TIME_LOSS.store(false, SeqCst);
+        pb_state.main_state.no_time_loss = false;
 
         let update_to_frame_ratio = UPDATE_TO_FRAME_RATIO
             .lock()
@@ -518,25 +518,26 @@ unsafe fn event_handler(
         }
     }
 
-    if (*event).type_ == SDL_QUIT as u32 {
-        end_pause(main_state);
+    unsafe {
+        if (*event).type_ == SDL_QUIT as u32 {
+            end_pause(main_state);
 
-        main_state.update_b_quit(true);
-        fullscrn::shutdown();
-        main_state.return_value = 0;
-        return Ok(false);
+            main_state.b_quit = true;
+            fullscrn::shutdown();
+            main_state.return_value = 0;
+            return Ok(false);
+        }
+        if (*event).type_ == SDL_KEYUP as u32 {
+            pb::input_up()
+        }
     }
-    if (*event).type_ == SDL_KEYUP as u32 {
-        pb::input_up()
-    }
-
     Ok(true)
 }
 
 fn end_pause(main_state: &mut MainState) {
     if main_state.single_step == true {
         pb::pause_continue(main_state);
-        NO_TIME_LOSS.store(true, SeqCst);
+        main_state.no_time_loss = true;
     }
 }
 
@@ -817,7 +818,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             //     }
             // }
 
-            if !pb::init(&mut pb_state.options_state)? {
+            if !pb::init(&mut pb_state.main_state, &mut pb_state.options_state)? {
                 let mut message = String::from(
                     "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
                 );
@@ -861,7 +862,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // TODO LOWPRIO: Implement me
                 pb::toggle_demo();
             } else {
-                pb::replay_level(false, &mut pb_state.options_state);
+                pb::replay_level(false, &mut pb_state.main_state, &mut pb_state.options_state);
             }
 
             main_loop(&mut imgui_context, &mut pb_state);
