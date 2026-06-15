@@ -155,24 +155,22 @@ impl GameInput {
                     mouse_buttons[self.value as usize]
                 } else {
                     // VERIFY: Maybe we could just return string, we just need to make sure nothing else calls this necessarily
-                    // TODO: Dangling pointer
-                    CString::from_str(format!("MButton {}", self.value).as_str())
-                        .unwrap_or_default()
-                        .as_ptr()
+                    let c_str = CString::from_str(format!("MButton {}", self.value).as_str())
+                        .unwrap_or_default();
+                    c_str.as_ptr()
                 }
             }
             GameController => {
                 if self.value >= SDL_CONTROLLER_BUTTON_A as i32
-                    && self.value < std::cmp::min(SDL_CONTROLLER_BUTTON_MAX as i32, 21)
+                    && self.value < i32::min(SDL_CONTROLLER_BUTTON_MAX as i32, 21)
                 {
                     controller_buttons[self.value as usize]
                 } else {
                     // VERIFY: Maybe we could just return string?
                     // We just need to make sure nothing else calls this necessarily
-                    // TODO: Dangling pointer
-                    CString::from_str(format!("CButton {}", self.value).as_str())
-                        .unwrap_or_default()
-                        .as_ptr()
+                    let c_str = CString::from_str(format!("CButton {}", self.value).as_str())
+                        .unwrap_or_default();
+                    c_str.as_ptr()
                 }
             }
         }
@@ -624,7 +622,10 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
         Menu::FullScreen => {
             *(&mut state.options_state).options.full_screen =
                 !(*(&mut state.options_state).options.full_screen);
-            fullscrn::set_screen_mode(*(&mut state.options_state).options.full_screen);
+            fullscrn::set_screen_mode(
+                *(&mut state.options_state).options.full_screen,
+                &mut state.fullscrn_state,
+            );
         }
         Menu::Demo => {}
         Menu::SelectTable => {}
