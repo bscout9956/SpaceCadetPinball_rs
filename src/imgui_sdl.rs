@@ -364,6 +364,11 @@ struct SdlSysWminfoWindows {
     pub hdc: *mut c_void,
 }
 
+// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
+// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
+// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
+// Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
+// If you have multiple SDL events and some of them are not meant to be used by dear imgui, you may need to filter events based on their windowID field.
 pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Event) -> bool {
     let io = context.io_mut();
     let bd = match impl_sdl2_get_backend_data(io) {
