@@ -200,10 +200,8 @@ unsafe impl Sync for SdlRendererPtr {}
 pub const VERSION: &str = "1.0 DEV";
 pub static LAUNCH_BALL_ENABLED: AtomicBool = AtomicBool::new(true);
 pub static HIGH_SCORES_ENABLED: AtomicBool = AtomicBool::new(true);
-pub static DEMO_ACTIVE: AtomicBool = AtomicBool::new(false);
 pub static MAIN_MENU_HEIGHT: AtomicI32 = AtomicI32::new(0);
 
-static NO_TIME_LOSS: AtomicBool = AtomicBool::new(false);
 static ACTIVATED: AtomicBool = AtomicBool::new(false);
 static DISP_GR_HISTORY: AtomicBool = AtomicBool::new(false);
 static DISP_FRAME_RATE: AtomicBool = AtomicBool::new(false);

@@ -40,6 +40,8 @@ pub struct MainState {
     pub fps_details: String,
     pub last_mouse_x: i32,
     pub last_mouse_y: i32,
+    pub no_time_loss: bool,
+    pub demo_active: bool,
 }
 
 impl MainState {
@@ -55,31 +57,9 @@ impl MainState {
             fps_details: String::new(),
             last_mouse_x: 0,
             last_mouse_y: 0,
+            no_time_loss: false,
+            demo_active: false,
         }
-    }
-
-    pub fn update_b_quit(&mut self, value: bool) {
-        self.b_quit = value;
-    }
-
-    pub fn update_mouse_down(&mut self, value: bool) {
-        self.mouse_down = value;
-    }
-
-    pub fn update_has_focus(&mut self, value: bool) {
-        self.has_focus = value;
-    }
-
-    pub fn update_return(&mut self, value: i32) {
-        self.return_value = value;
-    }
-
-    pub fn update_single_step(&mut self, value: bool) {
-        self.single_step = value;
-    }
-
-    pub fn update_cursor_count(&mut self, value: i32) {
-        self.cursor_idle_counter = value;
     }
 
     pub fn update_fps_details(&mut self, value: &str) {

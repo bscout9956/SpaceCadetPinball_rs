@@ -10,8 +10,8 @@ use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
 use crate::translations::{Msg, TranslationError};
 use crate::{
-    DEMO_ACTIVE, HIGH_SCORES_ENABLED, LAUNCH_BALL_ENABLED, MAIN_WINDOW, control, fullscrn, gdrv,
-    loader, maths, midi, partman, proj, render, score, timer, translations,
+    HIGH_SCORES_ENABLED, LAUNCH_BALL_ENABLED, MAIN_WINDOW, control, fullscrn, gdrv, loader, maths,
+    midi, partman, proj, render, score, timer, translations,
 };
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
@@ -215,7 +215,10 @@ fn read_camera_floats(float_data: &[u8]) -> Vec<f32> {
     data
 }
 
-pub fn init(options_state: &mut OptionsState) -> Result<(bool), PbError> {
+pub fn init(
+    main_state: &mut MainState,
+    options_state: &mut OptionsState,
+) -> Result<(bool), PbError> {
     let mut projection_matrix: [f32; 12] = [0.0; 12];
 
     let mut data_file_path = String::new();
@@ -344,7 +347,7 @@ pub fn init(options_state: &mut OptionsState) -> Result<(bool), PbError> {
         }
     }
 
-    mode_change(GameModes::InGame);
+    mode_change(GameModes::InGame, main_state);
 
     TIME_TICKS.store(0, Relaxed);
     timer::init(150);
@@ -399,9 +402,13 @@ pub(crate) fn toggle_demo() {
     todo!()
 }
 
-pub fn replay_level(demo_mode: bool, options_state: &mut OptionsState) -> Result<(), PbError> {
+pub fn replay_level(
+    demo_mode: bool,
+    main_state: &mut MainState,
+    options_state: &mut OptionsState,
+) -> Result<(), PbError> {
     DEMO_MODE.store(demo_mode, Relaxed);
-    mode_change(GameModes::InGame)?;
+    mode_change(GameModes::InGame, main_state)?;
     if *options_state.options.music == true {
         midi::music_play();
     }
@@ -411,7 +418,7 @@ pub fn replay_level(demo_mode: bool, options_state: &mut OptionsState) -> Result
     Ok(())
 }
 
-fn mode_change(mode: GameModes) -> Result<(), PbError> {
+fn mode_change(mode: GameModes, main_state: &mut MainState) -> Result<(), PbError> {
     let mut credits_active = CREDITS_ACTIVE.load(Relaxed);
     let box_guard = MISS_TEXT_BOX.lock().map_err(|_| PbError::LockGeneric)?;
     let miss_text_box = box_guard.as_ref();
@@ -429,7 +436,7 @@ fn mode_change(mode: GameModes) -> Result<(), PbError> {
             if (DEMO_MODE.load(Relaxed) == true) {
                 LAUNCH_BALL_ENABLED.store(false, Relaxed);
                 HIGH_SCORES_ENABLED.store(false, Relaxed);
-                DEMO_ACTIVE.store(true, Relaxed);
+                main_state.demo_active = true;
                 let mut main_table = MAIN_TABLE.lock()?;
                 match main_table.as_mut() {
                     Some(table) => {
@@ -442,7 +449,7 @@ fn mode_change(mode: GameModes) -> Result<(), PbError> {
             } else {
                 LAUNCH_BALL_ENABLED.store(true, Relaxed);
                 HIGH_SCORES_ENABLED.store(true, Relaxed);
-                DEMO_ACTIVE.store(false, Relaxed);
+                main_state.demo_active = false;
                 let mut main_table = MAIN_TABLE.lock()?;
                 match main_table.as_mut() {
                     Some(mut table) => {
@@ -459,7 +466,7 @@ fn mode_change(mode: GameModes) -> Result<(), PbError> {
             LAUNCH_BALL_ENABLED.store(false, Relaxed);
             if DEMO_MODE.load(Relaxed) == false {
                 HIGH_SCORES_ENABLED.store(true, Relaxed);
-                DEMO_ACTIVE.store(false, Relaxed);
+                main_state.demo_active = false;
             }
             let main_table = MAIN_TABLE.lock()?;
             match (main_table.as_ref()) {
