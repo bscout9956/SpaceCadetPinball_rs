@@ -253,7 +253,7 @@ pub fn load_records(file_name: String, full_tilt_mode: bool) -> Result<DatFile, 
     }
 
     if dat_file.groups.len() == header.number_of_groups as usize {
-        dat_file.finalize();
+        dat_file.finalize(full_tilt_mode);
         return Ok(dat_file);
     }
     Err(RecordLoadError::Unknown)

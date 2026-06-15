@@ -23,13 +23,6 @@ use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, LazyLock, Mutex};
 
 pub static QUICK_FLAG: AtomicBool = AtomicBool::new(false);
-pub static FULL_TILT_MODE: AtomicBool = AtomicBool::new(false);
-
-pub static FULL_TILT_DEMO_MODE: AtomicBool = AtomicBool::new(false);
-
-pub static CHEAT_MODE: AtomicBool = AtomicBool::new(false);
-
-pub static DEMO_MODE: AtomicBool = AtomicBool::new(false);
 
 pub static CREDITS_ACTIVE: AtomicBool = AtomicBool::new(false);
 
@@ -113,10 +106,14 @@ pub fn show_message_box_cstr_message(
     show_message_box(flags, title, message_str);
 }
 
-pub fn select_dat_file(data_search_paths: &[&str], options_state: &mut OptionsState) {
+pub fn select_dat_file(
+    data_search_paths: &[&str],
+    options_state: &mut OptionsState,
+    pb_game_state: &mut PbGameState,
+) {
     clear_dat_file_name();
-    FULL_TILT_MODE.store(false, Relaxed);
-    FULL_TILT_DEMO_MODE.store(false, Relaxed);
+    pb_game_state.full_tilt_mode = false;
+    pb_game_state.full_tilt_demo_mode = false;
 
     let mut dat_file_names: [&str; 3] = ["CADET.DAT", "PINBALL.DAT", "DEMO.DAT"];
 
@@ -145,7 +142,7 @@ pub fn select_dat_file(data_search_paths: &[&str], options_state: &mut OptionsSt
                 }
                 set_dat_file_name(&file_name);
 
-                update_full_tilt_mode(dat_file_name);
+                update_full_tilt_mode(dat_file_name, pb_game_state);
                 return;
             }
         }
@@ -174,13 +171,13 @@ fn set_dat_file_name(file_name: &str) {
     }
 }
 
-fn update_full_tilt_mode(dat_file_name: &str) {
+fn update_full_tilt_mode(dat_file_name: &str, pb_game_state: &mut PbGameState) {
     if dat_file_name == "CADET.DAT" {
-        FULL_TILT_MODE.store(true, Relaxed);
+        pb_game_state.full_tilt_mode = true;
     }
     if dat_file_name == "DEMO.DAT" {
-        FULL_TILT_MODE.store(true, Relaxed);
-        FULL_TILT_DEMO_MODE.store(true, Relaxed);
+        pb_game_state.full_tilt_mode = true;
+        pb_game_state.full_tilt_demo_mode = true;
     }
 }
 
@@ -233,7 +230,7 @@ pub fn init(
         }
     }
 
-    let dat = partman::load_records(data_file_path, FULL_TILT_MODE.load(Relaxed))?;
+    let dat = partman::load_records(data_file_path, pb_game_state.full_tilt_mode)?;
     let shared_dat = Arc::new(dat);
 
     match RECORD_TABLE.lock() {
@@ -350,7 +347,7 @@ pub fn init(
     timer::init(150);
     score::init();
 
-    pb_game_state.main_table = Some(TPinballTable::new(pb_game_state.time_ticks));
+    pb_game_state.main_table = Some(TPinballTable::new(pb_game_state));
     let table = pb_game_state.main_table.as_ref().unwrap();
     let ball = &table.ball_list[0].borrow();
 
@@ -402,7 +399,7 @@ pub fn replay_level(
     options_state: &mut OptionsState,
     pb_game_state: &mut PbGameState,
 ) -> Result<(), PbError> {
-    DEMO_MODE.store(demo_mode, Relaxed);
+    pb_game_state.demo_mode = demo_mode;
     mode_change(GameModes::InGame, main_state, pb_game_state)?;
     if *options_state.options.music == true {
         midi::music_play();
@@ -431,7 +428,7 @@ fn mode_change(
 
     match mode {
         GameModes::InGame => {
-            if (DEMO_MODE.load(Relaxed) == true) {
+            if (pb_game_state.demo_mode == true) {
                 main_state.launch_ball_enabled = false;
                 main_state.high_scores_enabled = false;
                 main_state.demo_active = true;
@@ -460,7 +457,7 @@ fn mode_change(
         }
         GameModes::GameOver => {
             main_state.launch_ball_enabled = false;
-            if DEMO_MODE.load(Relaxed) == false {
+            if pb_game_state.demo_mode == false {
                 main_state.high_scores_enabled = true;
                 main_state.demo_active = false;
             }
@@ -517,7 +514,7 @@ pub(crate) fn frame(mut dt_milli_sec: f32, pb_game_state: &mut PbGameState) -> R
         return Ok(());
     }
 
-    if FULL_TILT_MODE.load(Relaxed) == true && DEMO_MODE.load(Relaxed) == false {
+    if pb_game_state.full_tilt_mode == true && pb_game_state.demo_mode == false {
         let mut timer = IDLE_TIMER_MS.lock().unwrap();
         *timer += dt_milli_sec;
         if *timer >= 60000.0 && CREDITS_ACTIVE.load(Relaxed) == false {

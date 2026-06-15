@@ -1,6 +1,6 @@
 use crate::MainError::NoneRendererError;
 use crate::errors::FullscreenError;
-use crate::pinball_state::OptionsState;
+use crate::pinball_state::{OptionsState, PbGameState};
 use crate::{MAIN_WINDOW, RENDERER, get_main_menu_height, pb, render};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
@@ -50,8 +50,8 @@ pub static SCALE_Y: Mutex<f32> = Mutex::new(1.0);
 pub static OFFSET_X: Mutex<f32> = Mutex::new(0.0);
 pub static OFFSET_Y: Mutex<f32> = Mutex::new(0.0);
 
-pub fn set_resolution(mut value: i32) -> Result<(), FullscreenError> {
-    if pb::FULL_TILT_MODE.load(Relaxed) && !pb::FULL_TILT_DEMO_MODE.load(Relaxed) {
+pub fn set_resolution(mut value: i32, pb_game_state: &mut PbGameState) -> Result<(), FullscreenError> {
+    if pb_game_state.full_tilt_mode && !pb_game_state.full_tilt_demo_mode {
         value = 0;
     }
     if !(0..=2).contains(&value) {
@@ -61,8 +61,8 @@ pub fn set_resolution(mut value: i32) -> Result<(), FullscreenError> {
     Ok(())
 }
 
-pub fn get_max_resolution() -> i32 {
-    if pb::FULL_TILT_MODE.load(Relaxed) && !pb::FULL_TILT_DEMO_MODE.load(Relaxed) {
+pub fn get_max_resolution(pb_game_state: &mut PbGameState) -> i32 {
+    if pb_game_state.full_tilt_mode && !pb_game_state.full_tilt_demo_mode {
         2
     } else {
         0

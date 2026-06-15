@@ -2,6 +2,7 @@ use crate::errors::LoaderError;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::maths::*;
+use crate::pinball_state::PbGameState;
 use crate::t_pinball_component::TPinballComponent;
 use crate::utils::PATH_SEPARATOR;
 use crate::zdrv::ZMapHeaderType;
@@ -296,7 +297,7 @@ pub fn unload() -> Result<(), LoaderError> {
     Ok(())
 }
 
-pub fn get_sound_id(group_index: i32) -> Result<i32, LoaderError> {
+pub fn get_sound_id(group_index: i32, full_tilt_mode: bool) -> Result<i32, LoaderError> {
     let mut sound_list = SOUND_LIST.lock()?;
 
     let mut sound_index: i16 = 1;
@@ -339,7 +340,7 @@ pub fn get_sound_id(group_index: i32) -> Result<i32, LoaderError> {
                         .trim_end_matches('\0')
                         .to_string();
 
-                    if pb::FULL_TILT_MODE.load(Relaxed) {
+                    if full_tilt_mode {
                         file_name.insert_str(0, &format!("{}sound", PATH_SEPARATOR));
                     }
 
@@ -578,7 +579,11 @@ pub fn query_float_attribute(
     Ok(f32::nan())
 }
 
-pub fn material(group_index: i32, visual: *mut VisualStruct) -> Result<i32, LoaderError> {
+pub fn material(
+    group_index: i32,
+    visual: *mut VisualStruct,
+    full_tilt_mode: bool,
+) -> Result<i32, LoaderError> {
     if group_index < 0 {
         error(0, 21);
     }
@@ -623,7 +628,7 @@ pub fn material(group_index: i32, visual: *mut VisualStruct) -> Result<i32, Load
             301 => unsafe { (*visual).smoothness = value },
             302 => unsafe { (*visual).elasticity = value },
             304 => unsafe {
-                let sound_id = get_sound_id(value.floor() as i32)?;
+                let sound_id = get_sound_id(value.floor() as i32, full_tilt_mode)?;
                 unsafe { (*visual).soft_hit_sound_id = sound_id }
             },
             _ => return Ok(error(9, 21)),
@@ -693,7 +698,11 @@ fn read_float(data: &[u8], index: &mut usize) -> Result<f32, ()> {
     Ok(f32::from_le_bytes(bytes))
 }
 
-pub fn kicker(group_index: i32, kicker: *mut VisualKickerStruct) -> Result<i32, LoaderError> {
+pub fn kicker(
+    group_index: i32,
+    kicker: *mut VisualKickerStruct,
+    full_tilt_mode: bool,
+) -> Result<i32, LoaderError> {
     if group_index < 0 {
         error(0, 20);
     }
@@ -754,7 +763,7 @@ pub fn kicker(group_index: i32, kicker: *mut VisualKickerStruct) -> Result<i32, 
             },
             406 => unsafe {
                 let val = read_float(&float_array_data, &mut index).unwrap();
-                (*kicker).hard_hit_sound_id = get_sound_id(val.floor() as i32)?;
+                (*kicker).hard_hit_sound_id = get_sound_id(val.floor() as i32, full_tilt_mode)?;
             },
 
             _ => return Ok(error(10, 20)),
@@ -768,6 +777,7 @@ pub fn query_visual(
     group_index: i32,
     group_index_offset: i32,
     visual: &mut VisualStruct,
+    pb_game_state: &mut PbGameState,
 ) -> Result<i32, LoaderError> {
     default_vsi(visual);
     if group_index < 0 {
@@ -814,7 +824,12 @@ pub fn query_visual(
                     let material_value =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    if material(material_value as i32, visual as *mut _)? != 0 {
+                    if material(
+                        material_value as i32,
+                        visual as *mut _,
+                        pb_game_state.full_tilt_mode,
+                    )? != 0
+                    {
                         return Ok(error(15, 18));
                     }
                 }
@@ -825,7 +840,8 @@ pub fn query_visual(
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.soft_hit_sound_id = get_sound_id(sound_id as i32)?;
+                    visual.soft_hit_sound_id =
+                        get_sound_id(sound_id as i32, pb_game_state.full_tilt_mode)?;
                 }
                 400 => {
                     if i + 1 >= short_arr_size {
@@ -835,7 +851,7 @@ pub fn query_visual(
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
                     // VERIFY: Is the 0 check correct? Should it be not 0?
-                    if kicker(kicker_val as i32, &mut visual.kicker)? != 0 {
+                    if kicker(kicker_val as i32, &mut visual.kicker, pb_game_state.full_tilt_mode)? != 0 {
                         return Ok(error(14, 18));
                     }
                 }
@@ -847,7 +863,8 @@ pub fn query_visual(
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.kicker.hard_hit_sound_id = get_sound_id(sound_id as i32)?;
+                    visual.kicker.hard_hit_sound_id =
+                        get_sound_id(sound_id as i32, pb_game_state.full_tilt_mode)?;
                 }
                 602 => {
                     if i + 1 >= short_arr_size {
@@ -864,7 +881,8 @@ pub fn query_visual(
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.sound_index_4 = get_sound_id(sound_id as i32)?;
+                    visual.sound_index_4 =
+                        get_sound_id(sound_id as i32, pb_game_state.full_tilt_mode)?;
                 }
                 1101 => {
                     if i + 1 >= short_arr_size {
@@ -873,7 +891,8 @@ pub fn query_visual(
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.sound_index_3 = get_sound_id(sound_id as i32)?;
+                    visual.sound_index_3 =
+                        get_sound_id(sound_id as i32, pb_game_state.full_tilt_mode)?;
                 }
                 1500 => {
                     // Skipping 7 shorts or 14 bytes

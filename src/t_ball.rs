@@ -1,5 +1,6 @@
 use crate::loader::VisualStruct;
 use crate::maths::*;
+use crate::pinball_state::PbGameState;
 use crate::render::{RenderSprite, VisualTypes};
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
@@ -41,6 +42,7 @@ impl TBall {
     pub fn new(
         table_weak: Option<Weak<RefCell<TPinballTable>>>,
         mut group_index: i32,
+        pb_game_state: &mut PbGameState,
     ) -> Rc<RefCell<Self>> {
         let base_component = TPinballComponent::new(table_weak, group_index, false);
 
@@ -83,7 +85,7 @@ impl TBall {
             instance_data.collision_mask = 1;
         } else {
             instance_data.has_group_flag = true;
-            loader::query_visual(group_index, 0, &mut visual);
+            loader::query_visual(group_index, 0, &mut visual, pb_game_state);
             instance_data.collision_mask = visual.collision_group;
             let float_arr_ptr = loader::query_float_attribute_ptr(group_index, 0, 408).unwrap();
             let float_slice = slice_from_raw_parts(float_arr_ptr, 4);
@@ -119,7 +121,7 @@ impl TBall {
         let visual_count = loader::query_visual_states(group_index).unwrap();
 
         for index in 0..visual_count {
-            loader::query_visual(group_index, index as i32, &mut visual);
+            loader::query_visual(group_index, index as i32, &mut visual, pb_game_state);
             instance_data
                 .base_component
                 .list_bitmap

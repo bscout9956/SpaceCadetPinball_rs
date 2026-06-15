@@ -6,12 +6,12 @@
 
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
 use crate::options::{
-    ControlOption, GameInput, OptionsStruct, Setting, DEF_FPS, DEF_SOUND_CHANNELS, DEF_UPS,
-    DEF_VOLUME,
+    ControlOption, DEF_FPS, DEF_SOUND_CHANNELS, DEF_UPS, DEF_VOLUME, GameInput, OptionsStruct,
+    Setting,
 };
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::Msg;
-use crate::{translations, Duration};
+use crate::{Duration, translations};
 use sdl2::sys::SDL_GameControllerButton::{
     SDL_CONTROLLER_BUTTON_A, SDL_CONTROLLER_BUTTON_BACK, SDL_CONTROLLER_BUTTON_DPAD_LEFT,
     SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_DPAD_UP,
@@ -19,10 +19,11 @@ use sdl2::sys::SDL_GameControllerButton::{
     SDL_CONTROLLER_BUTTON_START,
 };
 use sdl2::sys::SDL_KeyCode::{
-    SDLK_x, SDLK_z, SDLK_ESCAPE, SDLK_F2, SDLK_F3, SDLK_F4, SDLK_F5, SDLK_F6, SDLK_F8,
-    SDLK_F9, SDLK_PERIOD, SDLK_SLASH, SDLK_SPACE, SDLK_UP,
+    SDLK_ESCAPE, SDLK_F2, SDLK_F3, SDLK_F4, SDLK_F5, SDLK_F6, SDLK_F8, SDLK_F9, SDLK_PERIOD,
+    SDLK_SLASH, SDLK_SPACE, SDLK_UP, SDLK_x, SDLK_z,
 };
 use sdl2::sys::{SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2};
+use std::sync::atomic::AtomicBool;
 
 pub struct PinballState {
     pub main_state: MainState,
@@ -31,13 +32,24 @@ pub struct PinballState {
 }
 
 pub struct PbGameState {
+    pub full_tilt_mode: bool,
+    pub full_tilt_demo_mode: bool,
+    pub cheat_mode: bool,
+    pub demo_mode: bool,
     pub main_table: Option<TPinballTable>,
     pub time_ticks: usize,
 }
 
 impl PbGameState {
     fn new() -> Self {
-        Self { main_table: None, time_ticks: 0 }
+        Self {
+            full_tilt_mode: false,
+            full_tilt_demo_mode: false,
+            cheat_mode: false,
+            demo_mode: false,
+            main_table: None,
+            time_ticks: 0,
+        }
     }
 }
 

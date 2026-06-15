@@ -16,6 +16,7 @@ use std::slice::from_raw_parts;
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{Arc, Mutex};
 use thiserror::Error;
+use crate::pinball_state::PbGameState;
 
 pub struct TTableLayer {
     pub base_component: TCollisionComponent,
@@ -47,12 +48,12 @@ impl TTableLayer {
         todo!("I am never finished omg");
     }
 
-    pub fn new(table: Option<Weak<RefCell<TPinballTable>>>) -> Result<Self, TTableLayerError> {
+    pub fn new(table: Option<Weak<RefCell<TPinballTable>>>, pb_game_state: &mut PbGameState) -> Result<Self, TTableLayerError> {
         let mut visual = VisualStruct::default();
         let mut rect = RectangleType::default();
 
         let group_index = loader::query_handle(c"table".as_ptr())?;
-        loader::query_visual(group_index, 0, &mut visual)?;
+        loader::query_visual(group_index, 0, &mut visual, pb_game_state)?;
         let sprite_data = visual.bitmap;
 
         /*Full tilt: proj center first value is offset by resolution*/
@@ -120,7 +121,7 @@ impl TTableLayer {
         }
 
         let gravity_mult: f32;
-        if pb::FULL_TILT_MODE.load(SeqCst) == false && pb::FULL_TILT_DEMO_MODE.load(SeqCst) == false
+        if pb_game_state.full_tilt_mode == false && pb_game_state.full_tilt_demo_mode == false
         {
             let angle_mult = loader::query_float_attribute_ptr(group_index, 0, 701)?;
             gravity_mult = unsafe { *angle_mult };
@@ -128,7 +129,7 @@ impl TTableLayer {
             gravity_mult = 0.2f32;
         }
 
-        let mut base = TCollisionComponent::new(table.clone(), -1, false);
+        let mut base = TCollisionComponent::new(table.clone(), -1, false, pb_game_state);
         base.borrow_mut().threshold = visual.kicker.threshold;
         base.borrow_mut().boost = 15.0f32;
 
@@ -178,7 +179,7 @@ impl TTableLayer {
             // line.place_in_grid(&instance.base_component.AABB);
         }
 
-        Ok(TTableLayer::new(table)?) // TODO: I'm unfinished, just so rustc can stfu
+        Ok(TTableLayer::new(table, pb_game_state)?) // TODO: I'm unfinished, just so rustc can stfu
     }
 }
 

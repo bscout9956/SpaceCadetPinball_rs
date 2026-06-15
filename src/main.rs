@@ -802,10 +802,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             #[cfg(not(target_os = "windows"))]
             search_paths.extend_from_slice(&PLATFORM_DATA_PATHS);
-            pb::select_dat_file(&search_paths, &mut pb_state.options_state);
+            pb::select_dat_file(
+                &search_paths,
+                &mut pb_state.options_state,
+                &mut pb_state.pb_game_state,
+            );
 
             // Second step: run updates that depend on .DAT file selection
-            options::init_secondary(&mut pb_state.options_state);
+            options::init_secondary(&mut pb_state.options_state, &mut pb_state.pb_game_state);
 
             // TODO: Implement sound, we're skipping for now to focus on PB:INIT();
             // match OPTIONS.lock() {

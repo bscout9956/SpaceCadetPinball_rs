@@ -1,5 +1,5 @@
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
-use crate::pinball_state::OptionsState;
+use crate::pinball_state::{OptionsState, PbGameState};
 use crate::translations::Msg;
 use crate::utils::clamp;
 use crate::{fullscrn, midi, render, translations};
@@ -546,8 +546,8 @@ pub unsafe fn init_primary(options_state: &mut OptionsState) {
     }
 }
 
-pub fn init_secondary(options_state: &mut OptionsState) {
-    let max_res = fullscrn::get_max_resolution();
+pub fn init_secondary(options_state: &mut OptionsState, pb_game_state: &mut PbGameState) {
+    let max_res = fullscrn::get_max_resolution(pb_game_state);
 
     if (options_state.options.resolution.value >= 0
         && options_state.options.resolution.value > max_res)
@@ -555,9 +555,9 @@ pub fn init_secondary(options_state: &mut OptionsState) {
         *options_state.options.resolution = max_res;
     }
     if (options_state.options.resolution.value == -1) {
-        fullscrn::set_resolution(max_res);
+        fullscrn::set_resolution(max_res, pb_game_state);
     } else {
-        fullscrn::set_resolution(options_state.options.resolution.value);
+        fullscrn::set_resolution(*options_state.options.resolution, pb_game_state);
     }
 }
 
@@ -592,7 +592,7 @@ pub fn set_input(row_name: &str, mut values: [GameInput; 3]) {
 }
 
 // TODO: Implement all the unimplemented stuff
-pub fn toggle(u_id_check_item: Menu, options_state: &mut OptionsState) {
+pub fn toggle(u_id_check_item: Menu, options_state: &mut OptionsState, pb_game_state: &mut PbGameState) {
     match u_id_check_item {
         Menu::NewGame => {}
         Menu::AboutPinball => {}
@@ -634,12 +634,12 @@ pub fn toggle(u_id_check_item: Menu, options_state: &mut OptionsState) {
             let mut restart = false;
             let new_resolution = u_id_check_item as i32 - Menu::R640x480 as i32;
             if u_id_check_item == Menu::MaximumResolution {
-                restart = fullscrn::get_resolution() != fullscrn::get_max_resolution();
+                restart = fullscrn::get_resolution() != fullscrn::get_max_resolution(pb_game_state);
                 *options_state.options.resolution = -1;
-            } else if new_resolution <= fullscrn::get_max_resolution() {
+            } else if new_resolution <= fullscrn::get_max_resolution(pb_game_state) {
                 let mut current_resolution: i32;
                 if (*options_state.options.resolution == -1) {
-                    current_resolution = fullscrn::get_max_resolution();
+                    current_resolution = fullscrn::get_max_resolution(pb_game_state);
                 } else {
                     current_resolution = fullscrn::get_resolution();
                 }

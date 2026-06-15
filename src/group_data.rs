@@ -379,10 +379,8 @@ impl DatFile {
         }
     }
 
-    pub fn finalize(&mut self) -> Result<(), DatFileError> {
-        let is_full_tilt = pb::FULL_TILT_MODE.load(Relaxed);
-
-        if !is_full_tilt {
+    pub fn finalize(&mut self, full_tilt: bool) -> Result<(), DatFileError> {
+        if !full_tilt {
             let group_index = self.record_labeled("pbmsg_ft");
             assert!(group_index < 0, "DatFile: pbmsg_ft is already in .dat");
         }

@@ -1,5 +1,6 @@
 use crate::maths::{Vector2, Vector3};
 use crate::message_code::MessageCode;
+use crate::pinball_state::PbGameState;
 use crate::score::ScoreStruct;
 use crate::t_ball::TBall;
 use crate::t_demo::TDemo;
@@ -107,7 +108,7 @@ unsafe impl Sync for TPinballTable {}
 unsafe impl Send for TPinballTable {}
 
 impl TPinballTable {
-    pub fn new(time_ticks: usize) -> Self {
+    pub fn new(pb_game_state: &mut PbGameState) -> Self {
         let short_arr_length: usize;
         let base = TPinballComponent::new(None, -1, false);
 
@@ -170,7 +171,7 @@ impl TPinballTable {
             score_multipliers: vec![],
         };
 
-        let ball = instance.add_ball(Vector2::default(), time_ticks);
+        let ball = instance.add_ball(Vector2::default(), pb_game_state);
         match ball {
             Some(b) => {
                 b.borrow_mut().disable();
@@ -227,7 +228,11 @@ impl TPinballTable {
         0
     }
 
-    fn add_ball(&mut self, position: Vector2, time_ticks: usize) -> Option<Rc<RefCell<TBall>>> {
+    fn add_ball(
+        &mut self,
+        position: Vector2,
+        pb_game_state: &mut PbGameState,
+    ) -> Option<Rc<RefCell<TBall>>> {
         let mut target_ball_rc: Option<Rc<RefCell<TBall>>> = None;
 
         for rc_ball in &self.ball_list {
@@ -250,7 +255,7 @@ impl TPinballTable {
 
             let table_weak = self.base.pinball_table.clone();
 
-            let new_ball_rc = TBall::new(table_weak, -1);
+            let new_ball_rc = TBall::new(table_weak, -1, pb_game_state);
 
             self.ball_list.push(Rc::clone(&new_ball_rc));
             new_ball_rc
@@ -273,7 +278,7 @@ impl TPinballTable {
             ball.position.y = position.y;
             ball.prev_position = ball.position;
             ball.stuck_count = 0;
-            ball.last_active_time = time_ticks;
+            ball.last_active_time = pb_game_state.time_ticks;
         }
 
         Some(ball_rc)
