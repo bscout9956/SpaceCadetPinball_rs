@@ -363,7 +363,7 @@ fn main_loop(
                 }
                 let dx = (pb_state.main_state.last_mouse_x - x) as f32 / w as f32;
                 let dy = (y - pb_state.main_state.last_mouse_y) as f32 / h as f32;
-                pb::ball_set(dx, dy);
+                pb::ball_set(dx, dy, &mut pb_state.pb_game_state);
 
                 // Original creates continuous mouse movement with mouse capture.
                 // Alternative solution: mouse warp at window edges.
@@ -393,7 +393,7 @@ fn main_loop(
         }
         if pb_state.main_state.single_step == false && pb_state.main_state.no_time_loss == false {
             let dt = _frame_duration.count() as f32;
-            pb::frame(dt);
+            pb::frame(dt, &mut pb_state.pb_game_state);
             if DISP_GR_HISTORY.load(SeqCst) == true {
                 // TODO: Continue from L360 in winmain.cpp
             }
@@ -817,7 +817,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             //     }
             // }
 
-            if !pb::init(&mut pb_state.main_state, &mut pb_state.options_state)? {
+            if !pb::init(
+                &mut pb_state.main_state,
+                &mut pb_state.options_state,
+                &mut pb_state.pb_game_state,
+            )? {
                 let mut message = String::from(
                     "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
                 );
@@ -836,7 +840,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             fullscrn::init(&mut pb_state.options_state);
 
-            pb::reset_table();
+            pb::reset_table(&mut pb_state.pb_game_state);
             pb::first_time_setup();
 
             let fullscreen = env::args().any(|arg| arg == "-fullscreen");
@@ -861,7 +865,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // TODO LOWPRIO: Implement me
                 pb::toggle_demo();
             } else {
-                pb::replay_level(false, &mut pb_state.main_state, &mut pb_state.options_state);
+                pb::replay_level(
+                    false,
+                    &mut pb_state.main_state,
+                    &mut pb_state.options_state,
+                    &mut pb_state.pb_game_state,
+                )?;
             }
 
             main_loop(&mut imgui_context, &mut pb_state);

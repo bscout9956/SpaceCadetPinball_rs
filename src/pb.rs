@@ -4,7 +4,7 @@ use crate::gdrv::ColorRgba;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
 use crate::message_code::MessageCode;
-use crate::pinball_state::{MainState, OptionsState};
+use crate::pinball_state::{MainState, OptionsState, PbGameState};
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
@@ -40,8 +40,6 @@ pub static TIME_TICKS: AtomicUsize = AtomicUsize::new(0);
 pub static DAT_FILE_NAME: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
 pub static BASE_PATH: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
 pub static RECORD_TABLE: LazyLock<Mutex<Option<Arc<DatFile>>>> = LazyLock::new(|| Mutex::new(None));
-
-pub static MAIN_TABLE: LazyLock<Mutex<Option<TPinballTable>>> = LazyLock::new(|| Mutex::new(None));
 
 pub static MISS_TEXT_BOX: Mutex<Option<TTextBox>> = Mutex::new(None);
 
@@ -218,6 +216,7 @@ fn read_camera_floats(float_data: &[u8]) -> Vec<f32> {
 pub fn init(
     main_state: &mut MainState,
     options_state: &mut OptionsState,
+    pb_game_state: &mut PbGameState,
 ) -> Result<(bool), PbError> {
     let mut projection_matrix: [f32; 12] = [0.0; 12];
 
@@ -347,16 +346,14 @@ pub fn init(
         }
     }
 
-    mode_change(GameModes::InGame, main_state);
+    mode_change(GameModes::InGame, main_state, pb_game_state);
 
     TIME_TICKS.store(0, Relaxed);
     timer::init(150);
     score::init();
 
-    let mut pinball_table_grd = MAIN_TABLE.lock()?;
-    (*pinball_table_grd) = Some(TPinballTable::new());
-
-    let table = pinball_table_grd.as_ref().unwrap();
+    pb_game_state.main_table = Some(TPinballTable::new());
+    let table = pb_game_state.main_table.as_ref().unwrap();
     let ball = &table.ball_list[0].borrow();
 
     let mut ball_max_speed = BALL_MAX_SPEED.lock().map_err(|_| PbError::LockGeneric)?;
@@ -383,9 +380,8 @@ pub fn get_rc_int(u_id: Msg) -> Result<i32, TranslationError> {
     Ok(first_char.parse::<i32>().unwrap_or(0))
 }
 
-pub fn reset_table() -> Result<(), PbError> {
-    let mut table_opt = MAIN_TABLE.lock()?;
-    match table_opt.as_mut() {
+pub fn reset_table(pb_game_state: &mut PbGameState) -> Result<(), PbError> {
+    match pb_game_state.main_table.as_mut() {
         Some(mut main_table) => {
             main_table.message(MessageCode::RESET, 0.0);
             Ok(())
@@ -406,19 +402,23 @@ pub fn replay_level(
     demo_mode: bool,
     main_state: &mut MainState,
     options_state: &mut OptionsState,
+    pb_game_state: &mut PbGameState,
 ) -> Result<(), PbError> {
     DEMO_MODE.store(demo_mode, Relaxed);
-    mode_change(GameModes::InGame, main_state)?;
+    mode_change(GameModes::InGame, main_state, pb_game_state)?;
     if *options_state.options.music == true {
         midi::music_play();
     }
-    let mut main_table = MAIN_TABLE.lock().map_err(|_| PbError::LockGeneric)?;
-    let table = (*main_table).as_mut().unwrap();
+    let table = pb_game_state.main_table.as_mut().unwrap();
     table.message(MessageCode::NEW_GAME, *options_state.options.players as f32);
     Ok(())
 }
 
-fn mode_change(mode: GameModes, main_state: &mut MainState) -> Result<(), PbError> {
+fn mode_change(
+    mode: GameModes,
+    main_state: &mut MainState,
+    pb_game_state: &mut PbGameState,
+) -> Result<(), PbError> {
     let mut credits_active = CREDITS_ACTIVE.load(Relaxed);
     let box_guard = MISS_TEXT_BOX.lock().map_err(|_| PbError::LockGeneric)?;
     let miss_text_box = box_guard.as_ref();
@@ -437,8 +437,7 @@ fn mode_change(mode: GameModes, main_state: &mut MainState) -> Result<(), PbErro
                 main_state.launch_ball_enabled = false;
                 main_state.high_scores_enabled = false;
                 main_state.demo_active = true;
-                let mut main_table = MAIN_TABLE.lock()?;
-                match main_table.as_mut() {
+                match pb_game_state.main_table.as_mut() {
                     Some(table) => {
                         if table.demo.is_some() {
                             table.demo.as_mut().unwrap().active_flag = true;
@@ -450,8 +449,7 @@ fn mode_change(mode: GameModes, main_state: &mut MainState) -> Result<(), PbErro
                 main_state.launch_ball_enabled = true;
                 main_state.high_scores_enabled = false;
                 main_state.demo_active = false;
-                let mut main_table = MAIN_TABLE.lock()?;
-                match main_table.as_mut() {
+                match pb_game_state.main_table.as_mut() {
                     Some(mut table) => {
                         if table.demo.is_some() {
                             let table_demo = table.demo.as_mut().unwrap();
@@ -468,8 +466,7 @@ fn mode_change(mode: GameModes, main_state: &mut MainState) -> Result<(), PbErro
                 main_state.high_scores_enabled = true;
                 main_state.demo_active = false;
             }
-            let main_table = MAIN_TABLE.lock()?;
-            match (main_table.as_ref()) {
+            match (pb_game_state.main_table.as_ref()) {
                 Some(table) => {
                     if table.light_group.is_some() {
                         let light_group = table.light_group.as_ref().unwrap();
@@ -490,14 +487,13 @@ pub(crate) fn uninit() {
     todo!()
 }
 
-pub fn ball_set(dx: f32, dy: f32) -> Result<(), PbError> {
+pub fn ball_set(dx: f32, dy: f32, pb_game_state: &mut PbGameState) {
     // dx and dy are normalized to window, ideally in [-1, 1]
     const SENSITIVITY: f32 = 7000.0;
-    let mut table = MAIN_TABLE.lock()?;
-    let table = (*table).as_mut().unwrap();
+    let table = pb_game_state.main_table.as_mut().unwrap();
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
-        if ball.base_component.active_flag.take() == true {
+        if ball.base_component.active_flag.get() == true {
             ball.direction.x = dx * SENSITIVITY;
             ball.direction.y = dy * SENSITIVITY;
 
@@ -513,11 +509,9 @@ pub fn ball_set(dx: f32, dy: f32) -> Result<(), PbError> {
             ball.last_active_time = TIME_TICKS.load(SeqCst);
         }
     }
-
-    Ok(())
 }
 
-pub(crate) fn frame(mut dt_milli_sec: f32) -> Result<(), PbError> {
+pub(crate) fn frame(mut dt_milli_sec: f32, pb_game_state: &mut PbGameState) -> Result<(), PbError> {
     if dt_milli_sec > 100.0 {
         dt_milli_sec = 100.0;
     }
@@ -537,14 +531,13 @@ pub(crate) fn frame(mut dt_milli_sec: f32) -> Result<(), PbError> {
     let mut time_next = *TIME_NEXT.lock().map_err(|_| PbError::LockGeneric)?;
     let mut time_now = *TIME_NOW.lock().map_err(|_| PbError::LockGeneric)?;
     time_next = time_now + dt_sec;
-    timed_frame(dt_sec)?;
+    timed_frame(dt_sec, pb_game_state)?;
 
     Ok(())
 }
 
-fn timed_frame(time_delta: f32) -> Result<(), PbError> {
-    let mut main_table = MAIN_TABLE.lock()?;
-    let mut table = (*main_table).as_mut().unwrap();
+fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), PbError> {
+    let mut table = pb_game_state.main_table.as_mut().unwrap();
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
         if ball.base_component.active_flag.take() == false

@@ -9,6 +9,7 @@ use crate::options::{
     ControlOption, DEF_FPS, DEF_SOUND_CHANNELS, DEF_UPS, DEF_VOLUME, GameInput, OptionsStruct,
     Setting,
 };
+use crate::t_pinball_table::TPinballTable;
 use crate::translations::Msg;
 use crate::{Duration, translations};
 use sdl2::sys::SDL_GameControllerButton::{
@@ -25,7 +26,18 @@ use sdl2::sys::{SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2}
 
 pub struct PinballState {
     pub main_state: MainState,
+    pub pb_game_state: PbGameState,
     pub options_state: OptionsState,
+}
+
+pub struct PbGameState {
+    pub main_table: Option<TPinballTable>,
+}
+
+impl PbGameState {
+    fn new() -> Self {
+        Self { main_table: None }
+    }
 }
 
 #[allow(clippy::struct_excessive_bools)]
@@ -80,6 +92,7 @@ impl PinballState {
     pub fn new() -> PinballState {
         Self {
             main_state: MainState::new(),
+            pb_game_state: PbGameState::new(),
             options_state: OptionsState::new(),
         }
     }
