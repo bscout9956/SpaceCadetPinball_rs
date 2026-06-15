@@ -496,6 +496,63 @@ unsafe fn event_handler(
 
     let mouse_event: bool;
 
+    unsafe {
+        if (*event).type_ == SDL_EventType::SDL_MOUSEMOTION as u32
+            || (*event).type_ == SDL_EventType::SDL_MOUSEBUTTONDOWN as u32
+            || (*event).type_ == SDL_EventType::SDL_MOUSEBUTTONUP as u32
+            || (*event).type_ == SDL_EventType::SDL_MOUSEWHEEL as u32
+        {
+            CURSOR_IDLE_COUNTER.store(1000, SeqCst);
+            mouse_event = true;
+        } else {
+            mouse_event = false;
+        }
+    }
+
+    let io = imgui_context.io_mut();
+    let waiting_for_input_grd = CONTROL_WAITING_FOR_INPUT
+        .lock()
+        .map_err(|_| MainLoopError::MutexLock)?;
+
+    if io.want_capture_mouse() && waiting_for_input_grd.is_none() {
+        if MOUSE_DOWN.load(SeqCst) == true {
+            MOUSE_DOWN.store(false, SeqCst);
+            let main_window_grd = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
+            if let Some(window) = main_window_grd.as_ref() {
+                unsafe {
+                    SDL_SetWindowGrab(window.0, SDL_FALSE);
+                }
+            }
+        }
+
+        if mouse_event {
+            return Ok(1);
+        }
+    }
+
+    if io.want_capture_keyboard() && waiting_for_input_grd.is_none() {
+        unsafe {
+            if (*event).type_ == SDL_KEYUP as u32
+                || (*event).type_ == SDL_KEYDOWN as u32
+                || (*event).type_ == SDL_CONTROLLERBUTTONDOWN as u32
+                || (*event).type_ == SDL_CONTROLLERBUTTONUP as u32
+            {
+                return Ok(1);
+            }
+        }
+    }
+
+    if (*event).type_ == SDL_QUIT as u32 {
+        end_pause();
+        B_QUIT.store(true, SeqCst);
+        fullscrn::shutdown();
+        return_value = 0;
+        return Ok(0);
+    }
+    if (*event).type_ == SDL_KEYUP as u32 {
+        pb::input_up()
+    }
+
     Ok(1)
 }
 
