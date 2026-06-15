@@ -203,8 +203,6 @@ pub static HIGH_SCORES_ENABLED: AtomicBool = AtomicBool::new(true);
 pub static DEMO_ACTIVE: AtomicBool = AtomicBool::new(false);
 pub static MAIN_MENU_HEIGHT: AtomicI32 = AtomicI32::new(0);
 
-static LAST_MOUSE_X: AtomicI32 = AtomicI32::new(0);
-static LAST_MOUSE_Y: AtomicI32 = AtomicI32::new(0);
 static NO_TIME_LOSS: AtomicBool = AtomicBool::new(false);
 static ACTIVATED: AtomicBool = AtomicBool::new(false);
 static DISP_GR_HISTORY: AtomicBool = AtomicBool::new(false);
@@ -366,8 +364,8 @@ fn main_loop(
                         return Err(MainLoopError::NullWindow);
                     }
                 }
-                let dx = (LAST_MOUSE_X.load(SeqCst) - x) as f32 / w as f32;
-                let dy = (y - LAST_MOUSE_Y.load(SeqCst)) as f32 / h as f32;
+                let dx = (pb_state.main_state.last_mouse_x - x) as f32 / w as f32;
+                let dy = (y - pb_state.main_state.last_mouse_y) as f32 / h as f32;
                 pb::ball_set(dx, dy);
 
                 // Original creates continuous mouse movement with mouse capture.
@@ -393,8 +391,7 @@ fn main_loop(
                     }
                 }
 
-                LAST_MOUSE_X.store(x, SeqCst);
-                LAST_MOUSE_Y.store(y, SeqCst);
+                pb_state.main_state.update_mouse_xy(x, y);
             }
         }
         if pb_state.main_state.single_step == false && NO_TIME_LOSS.load(SeqCst) == false {

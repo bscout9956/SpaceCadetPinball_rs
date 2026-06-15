@@ -38,6 +38,8 @@ pub struct MainState {
     pub target_frametime: Duration<1_000_000_000>,
     pub cursor_idle_counter: i32,
     pub fps_details: String,
+    pub last_mouse_x: i32,
+    pub last_mouse_y: i32,
 }
 
 impl MainState {
@@ -51,6 +53,8 @@ impl MainState {
             target_frametime: Duration(0),
             cursor_idle_counter: 0,
             fps_details: String::new(),
+            last_mouse_x: 0,
+            last_mouse_y: 0,
         }
     }
 
@@ -77,9 +81,22 @@ impl MainState {
     pub fn update_cursor_count(&mut self, value: i32) {
         self.cursor_idle_counter = value;
     }
-    
+
     pub fn update_fps_details(&mut self, value: &str) {
         self.fps_details = value.to_string();
+    }
+
+    pub fn update_mouse_xy(&mut self, x: i32, y: i32) {
+        self.last_mouse_x = x;
+        self.last_mouse_y = y;
+    }
+
+    pub fn update_mouse_x(&mut self, x: i32) {
+        self.last_mouse_x = x;
+    }
+
+    pub fn update_mouse_y(&mut self, y: i32) {
+        self.last_mouse_y = y;
     }
 }
 
