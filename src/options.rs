@@ -1,5 +1,5 @@
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
-use crate::pinball_state::{FullscrnState, OptionsState, PbGameState};
+use crate::pinball_state::{FullscrnState, OptionsState, PbGameState, PinballState};
 use crate::translations::Msg;
 use crate::utils::clamp;
 use crate::{fullscrn, midi, render, translations};
@@ -592,12 +592,12 @@ pub fn set_input(row_name: &str, mut values: [GameInput; 3]) {
 }
 
 // TODO: Implement all the unimplemented stuff
-pub fn toggle(
-    u_id_check_item: Menu,
-    options_state: &mut OptionsState,
-    pb_game_state: &mut PbGameState,
-    fullscrn_state: &mut FullscrnState,
-) {
+pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
+    let options_state = &mut state.options_state;
+    let fullscrn_state = &mut state.fullscrn_state;
+    let pb_game_state = &mut state.pb_game_state;
+    let main_state = &mut state.main_state;
+
     match u_id_check_item {
         Menu::NewGame => {}
         Menu::AboutPinball => {}
@@ -633,7 +633,7 @@ pub fn toggle(
         Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {}
         Menu::ShowMenu => {
             *options_state.options.show_menu = !(*options_state.options.show_menu);
-            fullscrn::window_size_changed(fullscrn_state, options_state);
+            fullscrn::window_size_changed(fullscrn_state, main_state, options_state);
         }
         Menu::MaximumResolution | Menu::R640x480 | Menu::R800x600 | Menu::R1024x768 => {
             let mut restart = false;
@@ -658,20 +658,20 @@ pub fn toggle(
         }
         Menu::WindowUniformScale => {
             *options_state.options.uniform_scaling = !(*options_state.options.uniform_scaling);
-            fullscrn::window_size_changed(fullscrn_state, options_state);
+            fullscrn::window_size_changed(fullscrn_state, main_state, options_state);
         }
         Menu::WindowLinearFilter => {
             *options_state.options.linear_filtering = !(*options_state.options.linear_filtering);
-            render::recreate_screen_texture(options_state);
+            render::recreate_screen_texture(options_state, &main_state.renderer);
         }
         Menu::WindowIntegerScale => {
             *options_state.options.integer_scaling = !(*options_state.options.integer_scaling);
-            fullscrn::window_size_changed(fullscrn_state, options_state);
+            fullscrn::window_size_changed(fullscrn_state, main_state, options_state);
         }
         Menu::Prefer3DPBGameData => {
             *options_state.options.prefer_3dpb_game_data =
                 !(*options_state.options.prefer_3dpb_game_data);
-            fullscrn::window_size_changed(fullscrn_state, options_state);
+            fullscrn::window_size_changed(fullscrn_state, main_state, options_state);
         }
     }
 }

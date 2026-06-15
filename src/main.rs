@@ -224,9 +224,6 @@ pub fn get_main_menu_height() -> i32 {
     MAIN_MENU_HEIGHT.load(SeqCst)
 }
 
-pub static RENDERER: LazyLock<Mutex<Option<SdlRendererPtr>>> =
-    LazyLock::new(|| Mutex::new(Option::None));
-
 #[derive(Debug, Error)]
 pub enum MainError {
     #[error("Renderer hasn't been assigned, is none")]
@@ -629,14 +626,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             let renderer: *mut SDL_Renderer = SDL_CreateRenderer(window, -1, flags as u32);
 
             if !renderer.is_null() {
-                let mut static_renderer = RENDERER.lock()?;
-                *static_renderer = Some(SdlRendererPtr(renderer));
+                pb_state.main_state.renderer = Some(SdlRendererPtr(renderer));
                 println!("Renderer successfully created and assigned.");
                 break;
             }
         }
 
-        if RENDERER.lock()?.is_none() {
+        if pb_state.main_state.renderer.is_none() {
             pb::show_message_box_cstr_message(
                 SDL_MESSAGEBOX_ERROR,
                 "Could not create renderer",
@@ -646,28 +642,21 @@ fn main() -> Result<(), Box<dyn Error>> {
             exit(1);
         }
 
-        match RENDERER.lock() {
-            Ok(guard) => {
-                let mut renderer_info: SDL_RendererInfo = std::mem::zeroed();
+        let mut renderer_info: SDL_RendererInfo = std::mem::zeroed();
 
-                if let Some(renderer_ptr) = guard.as_ref() {
-                    let result = SDL_GetRendererInfo(renderer_ptr.0, &mut renderer_info);
+        if let Some(renderer_ptr) = pb_state.main_state.renderer.as_ref() {
+            let result = SDL_GetRendererInfo(renderer_ptr.0, &mut renderer_info);
 
-                    if result != 0 {
-                        println!("Error getting renderer information");
-                    } else {
-                        println!(
-                            "Using SDL Renderer: {}",
-                            CStr::from_ptr(renderer_info.name).to_str()?
-                        );
-                    }
-
-                    SDL_SetRenderDrawColor(renderer_ptr.0, 0, 0, 0, 255);
-                }
+            if result != 0 {
+                println!("Error getting renderer information");
+            } else {
+                println!(
+                    "Using SDL Renderer: {}",
+                    CStr::from_ptr(renderer_info.name).to_str()?
+                );
             }
-            Err(e) => {
-                println!("Error locking renderer: {}", e);
-            }
+
+            SDL_SetRenderDrawColor(renderer_ptr.0, 0, 0, 0, 255);
         }
 
         SDL_SetHint(
@@ -771,19 +760,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             imgui_context.fonts().build();
 
-            match RENDERER.lock() {
-                Ok(renderer_ptr) => {
-                    if let Some(renderer) = renderer_ptr.as_ref() {
-                        println!("Initializing IMGUI_SDL");
-                        imgui_sdl::initialize(&mut imgui_context, renderer.0, 0, 0);
-                        imgui_sdl::init_for_sdl_renderer(&mut imgui_context, window, renderer.0);
-                    } else {
-                        panic!("No renderer found to initialize IMGUI!");
-                    }
-                }
-                Err(e) => {
-                    println!("Failed to lock renderer: {}", e)
-                }
+            if let Some(renderer) = pb_state.main_state.renderer.as_ref() {
+                println!("Initializing IMGUI_SDL");
+                imgui_sdl::initialize(&mut imgui_context, renderer.0, 0, 0);
+                imgui_sdl::init_for_sdl_renderer(&mut imgui_context, window, renderer.0);
+            } else {
+                panic!("No renderer found to initialize IMGUI!");
             }
 
             cfg_flags |= ConfigFlags::NAV_ENABLE_KEYBOARD | ConfigFlags::NAV_ENABLE_GAMEPAD;
@@ -832,7 +814,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 exit(1);
             }
 
-            fullscrn::init(&mut pb_state.fullscrn_state, &mut pb_state.options_state);
+            fullscrn::init(
+                &mut pb_state.fullscrn_state,
+                &mut pb_state.main_state,
+                &mut pb_state.options_state,
+            );
 
             pb::reset_table(&mut pb_state.pb_game_state);
             pb::first_time_setup(&mut pb_state.render_state);

@@ -1,4 +1,4 @@
-use crate::RENDERER;
+use crate::SdlRendererPtr;
 use crate::partman::{Bmp8Flags, Dat8BitBmpHeader};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::sys::{
@@ -208,12 +208,16 @@ impl GdrvBitmap8 {
         }
     }
 
-    pub fn create_texture(&mut self, scale_hint: *const c_char, access: i32) {
+    pub fn create_texture(
+        &mut self,
+        scale_hint: *const c_char,
+        access: i32,
+        renderer: &Option<SdlRendererPtr>,
+    ) {
         if self.texture.is_some() {
             let text_ref = self.texture.as_mut().unwrap();
             unsafe { SDL_DestroyTexture(text_ref) };
         }
-        let renderer_guard = RENDERER.lock().unwrap();
         unsafe {
             SDL_SetHint(
                 SDL_HINT_RENDER_SCALE_QUALITY.as_ptr() as *const i8,
@@ -221,7 +225,7 @@ impl GdrvBitmap8 {
             );
         }
 
-        match (renderer_guard.as_ref()) {
+        match (renderer.as_ref()) {
             Some(renderer) => {
                 unsafe {
                     SDL_CreateTexture(

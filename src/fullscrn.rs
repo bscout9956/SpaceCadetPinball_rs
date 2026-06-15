@@ -1,7 +1,7 @@
 use crate::MainError::NoneRendererError;
 use crate::errors::FullscreenError;
-use crate::pinball_state::{FullscrnState, OptionsState, PbGameState};
-use crate::{MAIN_WINDOW, RENDERER, get_main_menu_height, pb, render};
+use crate::pinball_state::{FullscrnState, MainState, OptionsState, PbGameState};
+use crate::{MAIN_WINDOW, get_main_menu_height, pb, render};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
 use std::sync::atomic::Ordering::Relaxed;
@@ -104,11 +104,11 @@ fn reset_offset(mut offset: f32) {
 
 pub fn window_size_changed(
     fullscrn_state: &mut FullscrnState,
+    main_state: &mut MainState,
     option_state: &mut OptionsState,
 ) -> Result<(), FullscreenError> {
     let (mut width, mut height): (i32, i32) = (0, 0);
-    let renderer_guard = RENDERER.lock().map_err(|_| FullscreenError::LockGeneric)?;
-    if let Some(renderer) = renderer_guard.as_ref() {
+    if let Some(renderer) = main_state.renderer.as_ref() {
         unsafe {
             SDL_GetRendererOutputSize(renderer.0, &mut width, &mut height);
         }
@@ -263,6 +263,6 @@ fn disable_fullscreen() -> Result<bool, FullscreenError> {
     Ok(false)
 }
 
-pub fn init(fullscrn_state: &mut FullscrnState, options_state: &mut OptionsState) {
-    window_size_changed(fullscrn_state, options_state);
+pub fn init(fullscrn_state: &mut FullscrnState,main_state: &mut MainState, options_state: &mut OptionsState) {
+    window_size_changed(fullscrn_state, main_state, options_state);
 }

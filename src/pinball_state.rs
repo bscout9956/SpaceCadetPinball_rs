@@ -15,7 +15,7 @@ use crate::render::RenderSprite;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
 use crate::translations::Msg;
-use crate::{Duration, translations};
+use crate::{Duration, SdlRendererPtr, translations};
 use sdl2::sys::SDL_GameControllerButton::{
     SDL_CONTROLLER_BUTTON_A, SDL_CONTROLLER_BUTTON_BACK, SDL_CONTROLLER_BUTTON_DPAD_LEFT,
     SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_DPAD_UP,
@@ -122,6 +122,7 @@ pub struct MainState {
     pub show_imgui_demo: bool,
     pub show_sprite_viewer: bool,
     pub show_exit_popup: bool,
+    pub renderer: Option<SdlRendererPtr>,
 }
 
 impl MainState {
@@ -148,6 +149,7 @@ impl MainState {
             show_imgui_demo: false,
             show_sprite_viewer: false,
             show_exit_popup: false,
+            renderer: None,
         }
     }
 

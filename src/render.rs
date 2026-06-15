@@ -2,7 +2,7 @@ use crate::gdrv::GdrvBitmap8;
 use crate::maths::RectangleType;
 use crate::pinball_state::{OptionsState, RenderState};
 use crate::zdrv::ZMapHeaderType;
-use crate::{gdrv, maths, zdrv};
+use crate::{SdlRendererPtr, gdrv, maths, zdrv};
 use sdl2::sys::SDL_Rect;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
 use std::cmp::PartialEq;
@@ -209,6 +209,7 @@ pub fn init(
     width: i16,
     height: i16,
     options_state: &mut OptionsState,
+    renderer: &Option<SdlRendererPtr>,
 ) -> Result<(), RenderLockError> {
     {
         // This block prevents the locks from holding on the next call to recreate_screen_texture();
@@ -269,12 +270,15 @@ pub fn init(
         }
     }
 
-    recreate_screen_texture(options_state);
+    recreate_screen_texture(options_state, renderer);
 
     Ok(())
 }
 
-pub fn recreate_screen_texture(options_state: &mut OptionsState) {
+pub fn recreate_screen_texture(
+    options_state: &mut OptionsState,
+    renderer: &Option<SdlRendererPtr>,
+) {
     let mut vscreen = V_SCREEN.lock().unwrap();
     let filtering = if *options_state.options.linear_filtering {
         c"linear"
@@ -283,7 +287,11 @@ pub fn recreate_screen_texture(options_state: &mut OptionsState) {
     };
     let v_screen_def = (*vscreen).as_mut().unwrap();
 
-    v_screen_def.create_texture(filtering.as_ptr(), SDL_TEXTUREACCESS_STREAMING as i32);
+    v_screen_def.create_texture(
+        filtering.as_ptr(),
+        SDL_TEXTUREACCESS_STREAMING as i32,
+        renderer,
+    );
 }
 
 fn repaint(sprite: &RenderSprite) {

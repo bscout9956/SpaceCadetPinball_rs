@@ -237,6 +237,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
         res_info.table_width,
         res_info.table_height,
         &mut state.options_state,
+        &state.main_state.renderer
     );
 
     let mut v_guard = render::V_SCREEN.lock().unwrap();
