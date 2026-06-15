@@ -437,7 +437,33 @@ pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Eve
 
         if (*event).type_ as u32 == SDL_KEYDOWN as u32 || (*event).type_ as u32 == SDL_KEYUP as u32
         {
-            // TODO: continue at L293
+            impl_sdl2_update_key_modifiers(io, (*event).key.keysym.mod_ as u32);
+            let key = impl_sdl2_keycode_to_imgui_key(
+                Keycode::from_i32((*event).key.keysym.sym as i32).unwrap(),
+            );
+            io.add_key_event(key, (*event).type_ == SDL_KEYDOWN as u32);
+            return true;
+        }
+
+        if (*event).type_ as u32 == SDL_WINDOWEVENT as u32 {
+            // - When capturing mouse, SDL will send a bunch of conflicting LEAVE/ENTER event on every mouse move, but the final ENTER tends to be right.
+            // - However we won't get a correct LEAVE event for a captured window.
+            // - In some cases, when detaching a window from main viewport SDL may send SDL_WINDOWEVENT_ENTER one frame too late,
+            //   causing SDL_WINDOWEVENT_LEAVE on previous frame to interrupt drag operation by clear mouse position. This is why
+            //   we delay process the SDL_WINDOWEVENT_LEAVE events by one frame. See issue #5012 for details.
+            let window_event = (*event).window.event;
+            if window_event == SDL_WINDOWEVENT_ENTER as u8 {
+                bd.pending_mouse_leave_frame = 0;
+            }
+            if window_event == SDL_WINDOWEVENT_LEAVE as u8 {
+                bd.pending_mouse_leave_frame += igGetFrameCount() + 1;
+            }
+            if window_event == SDL_WINDOWEVENT_FOCUS_GAINED as u8 {
+                io.add_focus_event(true);
+            } else if (*event).window.event == SDL_WINDOWEVENT_FOCUS_GAINED as u8 {
+                io.add_focus_event(false);
+            }
+            return true;
         }
     }
     false
