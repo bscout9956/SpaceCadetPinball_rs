@@ -2,6 +2,7 @@ use crate::options::InputTypes::Keyboard;
 use dear_imgui_rs::sys::{ImGuiMouseCursor_COUNT, igGetFrameCount, igGetMainViewport};
 use dear_imgui_rs::{BackendFlags, Io, Key, MouseButton};
 use dear_imgui_rs::{Context, TextureId};
+use num_traits::ToPrimitive;
 use sdl2::keyboard::Keycode;
 use sdl2::render::RenderTarget;
 use sdl2::sys::SDL_EventType::{
@@ -26,7 +27,7 @@ use sdl2::sys::{
     SDL_Keycode, SDL_Keymod, SDL_Renderer, SDL_SYSWM_TYPE, SDL_SetHint, SDL_Surface, SDL_SysWMinfo,
     SDL_Texture, SDL_Window, SDL_bool, SDL_version,
 };
-use std::ffi::{CStr, c_char, c_void};
+use std::ffi::{CStr, CString, c_char, c_void};
 use std::ops::{Add, Mul};
 use std::ptr::{addr_of_mut, null_mut};
 use std::sync::{LazyLock, Mutex};
@@ -437,7 +438,13 @@ pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Eve
         }
 
         if (*event).type_ as u32 == SDL_TEXTINPUT as u32 {
-            io.add_input_character((*event).text.text); //expected char, found [char; 32]??
+            let c_str = unsafe { CStr::from_ptr((*event).text.text.as_ptr()) };
+
+            if let Ok(text) = c_str.to_str() {
+                for c in text.chars() {
+                    io.add_input_character(c);
+                }
+            }
             return true;
         }
 
