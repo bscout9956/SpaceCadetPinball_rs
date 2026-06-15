@@ -1,6 +1,6 @@
 use crate::MainError::NoneRendererError;
 use crate::errors::FullscreenError;
-use crate::pinball_state::{OptionsState, PbGameState};
+use crate::pinball_state::{FullscrnState, OptionsState, PbGameState};
 use crate::{MAIN_WINDOW, RENDERER, get_main_menu_height, pb, render};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
@@ -45,12 +45,10 @@ pub static RESOLUTION_ARRAY: Mutex<[ResolutionInfo; 3]> = Mutex::new([
     },
 ]);
 
-pub static SCALE_X: Mutex<f32> = Mutex::new(1.0);
-pub static SCALE_Y: Mutex<f32> = Mutex::new(1.0);
-pub static OFFSET_X: Mutex<f32> = Mutex::new(0.0);
-pub static OFFSET_Y: Mutex<f32> = Mutex::new(0.0);
-
-pub fn set_resolution(mut value: i32, pb_game_state: &mut PbGameState) -> Result<(), FullscreenError> {
+pub fn set_resolution(
+    mut value: i32,
+    pb_game_state: &mut PbGameState,
+) -> Result<(), FullscreenError> {
     if pb_game_state.full_tilt_mode && !pb_game_state.full_tilt_demo_mode {
         value = 0;
     }
@@ -100,15 +98,14 @@ pub fn get_resolution() -> i32 {
     RESOLUTION.load(atomic::Ordering::Acquire)
 }
 
-fn reset_offset(offset: &Mutex<f32>) -> Result<(), FullscreenError> {
-    let mut offset = offset
-        .lock()
-        .map_err(|_| FullscreenError::MainWindowMissing)?;
-    *offset = 0.0f32;
-    Ok(())
+fn reset_offset(mut offset: f32) {
+    offset = 0.0f32;
 }
 
-pub fn window_size_changed(option_state: &mut OptionsState) -> Result<(), FullscreenError> {
+pub fn window_size_changed(
+    fullscrn_state: &mut FullscrnState,
+    option_state: &mut OptionsState,
+) -> Result<(), FullscreenError> {
     let (mut width, mut height): (i32, i32) = (0, 0);
     let renderer_guard = RENDERER.lock().map_err(|_| FullscreenError::LockGeneric)?;
     if let Some(renderer) = renderer_guard.as_ref() {
@@ -135,73 +132,60 @@ pub fn window_size_changed(option_state: &mut OptionsState) -> Result<(), Fullsc
         }
     };
 
-    update_x_scale(&mut width, &res)?;
-    update_y_scale(&mut height, &res)?;
+    update_x_scale(&mut width, &res, fullscrn_state.scale_x);
+    update_y_scale(&mut height, &res, fullscrn_state.scale_y);
 
-    reset_offset(&OFFSET_X)?;
-    reset_offset(&OFFSET_Y)?;
+    reset_offset(fullscrn_state.offset_x);
+    reset_offset(fullscrn_state.offset_y);
 
-    let mut offset2x = 0;
-    let mut offset2y = 0;
+    let mut offset_2x = 0;
+    let mut offset_2y = 0;
 
     if *option_state.options.integer_scaling {
-        let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
-        let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
-
-        *scale_x = if *scale_x < 1.0 {
-            *scale_x
+        fullscrn_state.scale_x = if fullscrn_state.scale_x < 1.0 {
+            fullscrn_state.scale_x
         } else {
-            (*scale_x).floor()
+            fullscrn_state.scale_x.floor()
         };
 
-        *scale_y = if *scale_y < 1.0 {
-            *scale_y
+        fullscrn_state.scale_y = if fullscrn_state.scale_y < 1.0 {
+            fullscrn_state.scale_y
         } else {
-            (*scale_y).floor()
+            fullscrn_state.scale_y.floor()
         };
     }
 
     if *option_state.options.uniform_scaling {
-        let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
-        let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
-        *scale_x = f32::min(*scale_x, *scale_y);
-        *scale_y = *scale_x;
+        fullscrn_state.scale_x = f32::min(fullscrn_state.scale_x, fullscrn_state.scale_y);
+        fullscrn_state.scale_y = fullscrn_state.scale_x;
     }
 
-    let scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
-    let scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
-    offset2x = (width as f32 - res.table_width as f32 * *scale_x).floor() as i32;
-    offset2y = (height as f32 - res.table_height as f32 * *scale_y).floor() as i32;
+    offset_2x = (width as f32 - res.table_width as f32 * fullscrn_state.scale_x).floor() as i32;
+    offset_2y = (height as f32 - res.table_height as f32 * fullscrn_state.scale_y).floor() as i32;
 
-    let mut offset_x = OFFSET_X.lock().map_err(FullscreenError::FloatLock)?;
-    let mut offset_y = OFFSET_Y.lock().map_err(FullscreenError::FloatLock)?;
-    *offset_x = offset2x as f32 / 2.0f32;
-    *offset_y = offset2y as f32 / 2.0f32;
+    fullscrn_state.offset_x = offset_2x as f32 / 2.0f32;
+    fullscrn_state.offset_y = offset_2y as f32 / 2.0f32;
 
     let mut dest_rect = render::DESTINATION_RECT
         .lock()
         .map_err(|_| FullscreenError::LockGeneric)?;
 
     *dest_rect = SDL_Rect {
-        x: *offset_x as i32,
-        y: *offset_y as i32 + menu_height,
-        w: width - offset2x,
-        h: height - offset2y,
+        x: fullscrn_state.offset_x as i32,
+        y: fullscrn_state.offset_y as i32 + menu_height,
+        w: width - offset_2x,
+        h: height - offset_2y,
     };
 
     Ok(())
 }
 
-fn update_y_scale(height: &mut i32, res: &ResolutionInfo) -> Result<(), FullscreenError> {
-    let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
-    *scale_y = *height as f32 / res.screen_height as f32;
-    Ok(())
+fn update_y_scale(height: &mut i32, res: &ResolutionInfo, mut scale_y: f32) {
+    scale_y = *height as f32 / res.screen_height as f32;
 }
 
-fn update_x_scale(width: &mut i32, res: &ResolutionInfo) -> Result<(), FullscreenError> {
-    let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
-    *scale_x = *width as f32 / res.screen_width as f32;
-    Ok(())
+fn update_x_scale(width: &mut i32, res: &ResolutionInfo, mut scale_x: f32) {
+    scale_x = *width as f32 / res.screen_width as f32;
 }
 
 pub fn activate(flag: bool) {
@@ -279,6 +263,6 @@ fn disable_fullscreen() -> Result<bool, FullscreenError> {
     Ok(false)
 }
 
-pub fn init(options_state: &mut OptionsState) {
-    window_size_changed(options_state);
+pub fn init(fullscrn_state: &mut FullscrnState, options_state: &mut OptionsState) {
+    window_size_changed(fullscrn_state, options_state);
 }

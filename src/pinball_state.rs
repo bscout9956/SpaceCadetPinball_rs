@@ -28,6 +28,7 @@ pub struct PinballState {
     pub main_state: MainState,
     pub pb_game_state: PbGameState,
     pub options_state: OptionsState,
+    pub fullscrn_state: FullscrnState,
 }
 
 pub struct PbGameState {
@@ -126,6 +127,7 @@ impl PinballState {
             main_state: MainState::new(),
             pb_game_state: PbGameState::new(),
             options_state: OptionsState::new(),
+            fullscrn_state: FullscrnState::new(),
         }
     }
 }
@@ -142,6 +144,23 @@ impl OptionsState {
             show_dialog: false,
             control_waiting_for_input: None,
             options: get_default_options(),
+        }
+    }
+}
+
+pub struct FullscrnState {
+    pub scale_x: f32,
+    pub scale_y: f32,
+    pub offset_x: f32,
+    pub offset_y: f32,
+}
+impl FullscrnState {
+    pub fn new() -> FullscrnState {
+        Self {
+            scale_x: 1.0,
+            scale_y: 1.0,
+            offset_x: 0.0,
+            offset_y: 0.0,
         }
     }
 }

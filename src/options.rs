@@ -1,5 +1,5 @@
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
-use crate::pinball_state::{OptionsState, PbGameState};
+use crate::pinball_state::{FullscrnState, OptionsState, PbGameState};
 use crate::translations::Msg;
 use crate::utils::clamp;
 use crate::{fullscrn, midi, render, translations};
@@ -592,7 +592,12 @@ pub fn set_input(row_name: &str, mut values: [GameInput; 3]) {
 }
 
 // TODO: Implement all the unimplemented stuff
-pub fn toggle(u_id_check_item: Menu, options_state: &mut OptionsState, pb_game_state: &mut PbGameState) {
+pub fn toggle(
+    u_id_check_item: Menu,
+    options_state: &mut OptionsState,
+    pb_game_state: &mut PbGameState,
+    fullscrn_state: &mut FullscrnState,
+) {
     match u_id_check_item {
         Menu::NewGame => {}
         Menu::AboutPinball => {}
@@ -628,7 +633,7 @@ pub fn toggle(u_id_check_item: Menu, options_state: &mut OptionsState, pb_game_s
         Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {}
         Menu::ShowMenu => {
             *options_state.options.show_menu = !(*options_state.options.show_menu);
-            fullscrn::window_size_changed(options_state);
+            fullscrn::window_size_changed(fullscrn_state, options_state);
         }
         Menu::MaximumResolution | Menu::R640x480 | Menu::R800x600 | Menu::R1024x768 => {
             let mut restart = false;
@@ -653,7 +658,7 @@ pub fn toggle(u_id_check_item: Menu, options_state: &mut OptionsState, pb_game_s
         }
         Menu::WindowUniformScale => {
             *options_state.options.uniform_scaling = !(*options_state.options.uniform_scaling);
-            fullscrn::window_size_changed(options_state);
+            fullscrn::window_size_changed(fullscrn_state, options_state);
         }
         Menu::WindowLinearFilter => {
             *options_state.options.linear_filtering = !(*options_state.options.linear_filtering);
@@ -661,12 +666,12 @@ pub fn toggle(u_id_check_item: Menu, options_state: &mut OptionsState, pb_game_s
         }
         Menu::WindowIntegerScale => {
             *options_state.options.integer_scaling = !(*options_state.options.integer_scaling);
-            fullscrn::window_size_changed(options_state);
+            fullscrn::window_size_changed(fullscrn_state, options_state);
         }
         Menu::Prefer3DPBGameData => {
             *options_state.options.prefer_3dpb_game_data =
                 !(*options_state.options.prefer_3dpb_game_data);
-            fullscrn::window_size_changed(options_state);
+            fullscrn::window_size_changed(fullscrn_state, options_state);
         }
     }
 }
