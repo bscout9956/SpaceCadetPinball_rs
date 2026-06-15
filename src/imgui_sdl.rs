@@ -228,7 +228,7 @@ pub fn initialize(
         let amask = 0xff00_0000;
 
         let surface = SDL_CreateRGBSurfaceFrom(
-            pixels as *mut c_void,
+            pixels.cast::<c_void>(),
             width,
             height,
             32,
@@ -258,7 +258,7 @@ pub fn init_for_sdl_renderer(
     unsafe { impl_sdl2_init(context, window, renderer) }
 }
 
-struct ImplSdl2Data {
+pub struct ImplSdl2Data {
     window: *mut SDL_Window,
     renderer: *mut SDL_Renderer,
     time: u64,
@@ -321,7 +321,7 @@ unsafe fn impl_sdl2_init(
 
     let bd_ptr = Box::into_raw(bd);
 
-    io.set_backend_platform_user_data(bd_ptr as *mut c_void);
+    io.set_backend_platform_user_data(bd_ptr.cast::<c_void>());
     let current_flags = io.backend_flags();
     io.set_backend_flags(
         BackendFlags::HAS_MOUSE_CURSORS | current_flags | BackendFlags::HAS_SET_MOUSE_POS,
@@ -332,7 +332,7 @@ unsafe fn impl_sdl2_init(
     #[cfg(target_os = "windows")]
     {
         let mut info: SDL_SysWMinfo = unsafe { std::mem::zeroed() };
-        unsafe { SDL_GetVersion(&mut info.version) };
+        unsafe { SDL_GetVersion(&raw mut info.version) };
         let info_ptr = addr_of_mut!(info);
 
         if unsafe { SDL_GetWindowWMInfo(window, info_ptr) } == SDL_bool::SDL_TRUE {
@@ -348,11 +348,11 @@ unsafe fn impl_sdl2_init(
     }
     unsafe {
         SDL_SetHint(
-            SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH.as_ptr() as *const c_char,
+            SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH.as_ptr().cast::<c_char>(),
             c"1".as_ptr(),
         );
         SDL_SetHint(
-            SDL_HINT_MOUSE_AUTO_CAPTURE.as_ptr() as *const c_char,
+            SDL_HINT_MOUSE_AUTO_CAPTURE.as_ptr().cast::<c_char>(),
             c"0".as_ptr(),
         );
     }
@@ -378,44 +378,45 @@ struct SdlSysWminfoWindows {
 // If you have multiple SDL events and some of them are not meant to be used by dear imgui, you may need to filter events based on their windowID field.
 pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Event) -> bool {
     let io = context.io_mut();
-    let bd = match impl_sdl2_get_backend_data(io) {
-        Some(data) => data,
-        None => return false,
-    };
+    let bd_ptr = io.backend_platform_user_data();
+
+    let mut bd: *mut ImplSdl2Data = std::ptr::null_mut();
+
+    if bd_ptr.is_null() {
+        return false;
+    }
+
+    bd = unsafe { &raw mut *bd_ptr.cast::<ImplSdl2Data>() };
 
     unsafe {
-        if (*event).type_ as u32 == SDL_MOUSEMOTION as u32 {
+        if (*event).type_ == SDL_MOUSEMOTION as u32 {
             io.add_mouse_pos_event([(*event).motion.x as f32, (*event).motion.y as f32]);
             return true;
         }
-        if (*event).type_ as u32 == SDL_MOUSEWHEEL as u32 {
+        if (*event).type_ == SDL_MOUSEWHEEL as u32 {
             let wheel_x = if (*event).wheel.x > 0 {
                 1.0f32
+            } else if (*event).wheel.x < 0 {
+                -1.0f32
             } else {
-                if (*event).wheel.x < 0 {
-                    -1.0f32
-                } else {
-                    0.0f32
-                }
+                0.0f32
             };
 
             let wheel_y = if (*event).wheel.y > 0 {
                 1.0f32
+            } else if (*event).wheel.y < 0 {
+                -1.0f32
             } else {
-                if (*event).wheel.y < 0 {
-                    -1.0f32
-                } else {
-                    0.0f32
-                }
+                0.0f32
             };
 
             io.add_mouse_wheel_event([wheel_x, wheel_y]);
             return true;
         }
-        if (*event).type_ as u32 == SDL_MOUSEBUTTONDOWN as u32
-            || (*event).type_ as u32 == SDL_MOUSEBUTTONUP as u32
+        if (*event).type_ == SDL_MOUSEBUTTONDOWN as u32
+            || (*event).type_ == SDL_MOUSEBUTTONUP as u32
         {
-            let (mouse_button, button_index) = match (*event).button.button as u32 {
+            let (mouse_button, button_index) = match u32::from((*event).button.button) {
                 SDL_BUTTON_LEFT => (MouseButton::Left, 0),
                 SDL_BUTTON_RIGHT => (MouseButton::Right, 1),
                 SDL_BUTTON_MIDDLE => (MouseButton::Middle, 2),
@@ -424,20 +425,20 @@ pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Eve
                 _ => return false,
             };
 
-            let is_down = (*event).type_ as u32 == SDL_MOUSEBUTTONDOWN as u32;
+            let is_down = (*event).type_ == SDL_MOUSEBUTTONDOWN as u32;
 
             io.add_mouse_button_event(mouse_button, (*event).type_ == SDL_MOUSEBUTTONDOWN as u32);
 
             if is_down {
-                bd.mouse_buttons_down |= 1 << button_index;
+                (*bd).mouse_buttons_down |= 1 << button_index;
             } else {
-                bd.mouse_buttons_down &= !(1 << button_index);
+                (*bd).mouse_buttons_down &= !(1 << button_index);
             }
 
             return true;
         }
 
-        if (*event).type_ as u32 == SDL_TEXTINPUT as u32 {
+        if (*event).type_ == SDL_TEXTINPUT as u32 {
             let c_str = unsafe { CStr::from_ptr((*event).text.text.as_ptr()) };
 
             if let Ok(text) = c_str.to_str() {
@@ -448,17 +449,15 @@ pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Eve
             return true;
         }
 
-        if (*event).type_ as u32 == SDL_KEYDOWN as u32 || (*event).type_ as u32 == SDL_KEYUP as u32
-        {
-            impl_sdl2_update_key_modifiers(io, (*event).key.keysym.mod_ as u32);
-            let key = impl_sdl2_keycode_to_imgui_key(
-                Keycode::from_i32((*event).key.keysym.sym as i32).unwrap(),
-            );
+        if (*event).type_ == SDL_KEYDOWN as u32 || (*event).type_ == SDL_KEYUP as u32 {
+            impl_sdl2_update_key_modifiers(io, u32::from((*event).key.keysym.mod_));
+            let key =
+                impl_sdl2_keycode_to_imgui_key(Keycode::from_i32((*event).key.keysym.sym).unwrap());
             io.add_key_event(key, (*event).type_ == SDL_KEYDOWN as u32);
             return true;
         }
 
-        if (*event).type_ as u32 == SDL_WINDOWEVENT as u32 {
+        if (*event).type_ == SDL_WINDOWEVENT as u32 {
             // - When capturing mouse, SDL will send a bunch of conflicting LEAVE/ENTER event on every mouse move, but the final ENTER tends to be right.
             // - However we won't get a correct LEAVE event for a captured window.
             // - In some cases, when detaching a window from main viewport SDL may send SDL_WINDOWEVENT_ENTER one frame too late,
@@ -466,10 +465,10 @@ pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Eve
             //   we delay process the SDL_WINDOWEVENT_LEAVE events by one frame. See issue #5012 for details.
             let window_event = (*event).window.event;
             if window_event == SDL_WINDOWEVENT_ENTER as u8 {
-                bd.pending_mouse_leave_frame = 0;
+                (*bd).pending_mouse_leave_frame = 0;
             }
             if window_event == SDL_WINDOWEVENT_LEAVE as u8 {
-                bd.pending_mouse_leave_frame += igGetFrameCount() + 1;
+                (*bd).pending_mouse_leave_frame += igGetFrameCount() + 1;
             }
             if window_event == SDL_WINDOWEVENT_FOCUS_GAINED as u8 {
                 io.add_focus_event(true);
@@ -606,6 +605,6 @@ pub fn impl_sdl2_get_backend_data(io: &mut Io) -> Option<&mut ImplSdl2Data> {
     if ptr.is_null() {
         None
     } else {
-        Some(unsafe { &mut *(ptr as *mut ImplSdl2Data) })
+        Some(unsafe { &mut *ptr.cast::<ImplSdl2Data>() })
     }
 }
