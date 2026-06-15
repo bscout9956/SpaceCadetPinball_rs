@@ -10,8 +10,8 @@ use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
 use crate::translations::{Msg, TranslationError};
 use crate::{
-    DEMO_ACTIVE, HIGH_SCORES_ENABLED, LAUNCH_BALL_ENABLED, MAIN_WINDOW, control, fullscrn, gdrv,
-    loader, maths, midi, partman, proj, render, score, timer, translations,
+    DEMO_ACTIVE, HIGH_SCORES_ENABLED, LAUNCH_BALL_ENABLED, MAIN_WINDOW, SINGLE_STEP, control,
+    fullscrn, gdrv, loader, maths, midi, partman, proj, render, score, timer, translations,
 };
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
