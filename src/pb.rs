@@ -215,7 +215,7 @@ fn read_camera_floats(float_data: &[u8]) -> Vec<f32> {
     data
 }
 
-pub fn init() -> Result<(bool), PbError> {
+pub fn init(options_state: &mut OptionsState) -> Result<(bool), PbError> {
     let mut projection_matrix: [f32; 12] = [0.0; 12];
 
     let mut data_file_path = String::new();
@@ -316,7 +316,12 @@ pub fn init() -> Result<(bool), PbError> {
                 );
             }
 
-            render::init(None, res_info.table_width, res_info.table_height);
+            render::init(
+                None,
+                res_info.table_width,
+                res_info.table_height,
+                options_state,
+            );
 
             let mut v_guard = render::V_SCREEN.lock().unwrap();
             if let Some(ref mut dst) = *v_guard {

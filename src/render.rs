@@ -1,6 +1,6 @@
 use crate::gdrv::GdrvBitmap8;
 use crate::maths::RectangleType;
-use crate::options::OPTIONS;
+use crate::pinball_state::OptionsState;
 use crate::zdrv::ZMapHeaderType;
 use crate::{gdrv, maths, zdrv};
 use sdl2::sys::SDL_Rect;
@@ -206,7 +206,12 @@ pub enum RenderLockError {
     BallList(#[from] PoisonError<MutexGuard<'static, Vec<RenderSprite>>>),
 }
 
-pub fn init(bmp: Option<GdrvBitmap8>, width: i16, height: i16) -> Result<(), RenderLockError> {
+pub fn init(
+    bmp: Option<GdrvBitmap8>,
+    width: i16,
+    height: i16,
+    options_state: &mut OptionsState,
+) -> Result<(), RenderLockError> {
     {
         // This block prevents the locks from holding on the next call to recreate_screen_texture();
         let mut v_screen = V_SCREEN.lock()?;
@@ -266,15 +271,14 @@ pub fn init(bmp: Option<GdrvBitmap8>, width: i16, height: i16) -> Result<(), Ren
         }
     }
 
-    recreate_screen_texture();
+    recreate_screen_texture(options_state);
 
     Ok(())
 }
 
-pub fn recreate_screen_texture() {
+pub fn recreate_screen_texture(options_state: &mut OptionsState) {
     let mut vscreen = V_SCREEN.lock().unwrap();
-    let options = OPTIONS.lock().unwrap();
-    let filtering = if *options.linear_filtering {
+    let filtering = if *options_state.options.linear_filtering {
         c"linear"
     } else {
         c"nearest"
@@ -413,7 +417,7 @@ pub fn update() {
                 let dirty_rect = sprite.dirty_rect;
                 let mut clipped_rect = dirty_rect;
                 let v_screen_rect = V_SCREEN_RECT.lock().unwrap();
-                
+
                 let rec_clip =
                     maths::rectangle_clip(&dirty_rect, &v_screen_rect, &mut clipped_rect);
 

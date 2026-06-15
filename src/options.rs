@@ -657,14 +657,15 @@ pub fn toggle(u_id_check_item: Menu, options_state: &mut OptionsState) {
         }
         Menu::WindowLinearFilter => {
             *options_state.options.linear_filtering = !(*options_state.options.linear_filtering);
-            render::recreate_screen_texture();
+            render::recreate_screen_texture(options_state);
         }
         Menu::WindowIntegerScale => {
             *options_state.options.integer_scaling = !(*options_state.options.integer_scaling);
             fullscrn::window_size_changed(options_state);
         }
         Menu::Prefer3DPBGameData => {
-            *options_state.options.prefer_3dpb_game_data = !(*options_state.options.prefer_3dpb_game_data);
+            *options_state.options.prefer_3dpb_game_data =
+                !(*options_state.options.prefer_3dpb_game_data);
             fullscrn::window_size_changed(options_state);
         }
     }

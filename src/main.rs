@@ -824,7 +824,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             //     }
             // }
 
-            if !pb::init()? {
+            if !pb::init(&mut pb_state.options_state)? {
                 let mut message = String::from(
                     "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
                 );
