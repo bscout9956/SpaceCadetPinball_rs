@@ -580,6 +580,12 @@ fn impl_sdl2_keycode_to_imgui_key(key: Keycode) -> Key {
     }
 }
 
+pub fn impl_sdl2_update_key_modifiers(io: &mut Io, sdl_key_mods: u32) {
+    io.add_key_event(Key::ModCtrl, (sdl_key_mods & KMOD_CTRL as u32) != 0);
+    io.add_key_event(Key::ModShift, (sdl_key_mods & KMOD_SHIFT as u32) != 0);
+    io.add_key_event(Key::ModAlt, (sdl_key_mods & KMOD_ALT as u32) != 0);
+    io.add_key_event(Key::ModSuper, (sdl_key_mods & KMOD_GUI as u32) != 0);
+}
 
 pub fn impl_sdl2_get_backend_data(io: &mut Io) -> Option<&mut ImplSdl2Data> {
     let ptr = io.backend_platform_user_data();
