@@ -7,7 +7,11 @@ use crate::fullscrn::RESOLUTION_ARRAY;
 use crate::options::GameBindings;
 use crate::pinball_state::{MainState, OptionsState, PinballState};
 use crate::translations::Msg;
-use dear_imgui_rs::sys::ImGuiIO;
+use dear_imgui_rs::StyleColor::MenuBarBg;
+use dear_imgui_rs::sys::{
+    ImGuiCol_MenuBarBg, ImGuiIO, ImGuiMouseCursor_None, ImVec4, igNewFrame, igPushStyleColor_Vec4,
+    igSetMouseCursor,
+};
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig};
 use sdl2::sys::SDL_EventType::{
     SDL_CONTROLLERBUTTONDOWN, SDL_CONTROLLERBUTTONUP, SDL_KEYDOWN, SDL_KEYUP, SDL_QUIT,
@@ -252,10 +256,6 @@ pub fn get_imgui_io() -> Option<NonNull<ImGuiIO>> {
     IMGUI_IO.with(|cell| *cell.borrow())
 }
 
-fn render_ui() {
-    todo!()
-}
-
 fn render_frame_time_dialog() {
     todo!()
 }
@@ -396,12 +396,28 @@ fn main_loop(
         if _update_to_frame_counter >= *update_to_frame_ratio {
             if *pb_state.options_state.options.hide_cursor && main_state.cursor_idle_counter <= 0 {
                 // TODO: ImGUiSetCursor l376
+                unsafe { igSetMouseCursor(ImGuiMouseCursor_None) };
+                // imgui_sdl::impl_sdl2_new_frame(); TODO
+                // imgui_sdl::render_new_frame(); TODO
+                unsafe {
+                    igNewFrame();
+                    render_ui();
+
+                    SDL_RenderClear(main_state.renderer.as_ref().unwrap().0) // TODO: If let Some here
+                };
             }
             // TODO TODO TODO TODO, do all the todos above before continuing
         }
     }
 
     Ok(())
+}
+
+unsafe fn render_ui() {
+    let vec4 = ImVec4::new(0.0, 0.0, 0.0, 1.0);
+    unsafe {
+        igPushStyleColor_Vec4(ImGuiCol_MenuBarBg, vec4);
+    }
 }
 
 fn process_window_messages(
