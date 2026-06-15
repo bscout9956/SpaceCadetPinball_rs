@@ -25,6 +25,7 @@ use sdl2::sys::SDL_KeyCode::{
 };
 use sdl2::sys::{SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2};
 use std::sync::Mutex;
+use crate::pb::GameModes;
 
 pub struct PinballState {
     pub main_state: MainState,
@@ -48,6 +49,7 @@ pub struct PbGameState {
     pub time_next: f32,
     pub time_now: f32,
     pub quick_flag: bool,
+    pub game_mode: GameModes,
 }
 
 impl PbGameState {
@@ -66,6 +68,7 @@ impl PbGameState {
             time_next: 0.0,
             time_now: 0.0,
             quick_flag: false,
+            game_mode: GameModes::GameOver,
         }
     }
 }

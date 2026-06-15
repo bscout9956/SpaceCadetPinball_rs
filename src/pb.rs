@@ -30,8 +30,6 @@ pub static RECORD_TABLE: LazyLock<Mutex<Option<Arc<DatFile>>>> = LazyLock::new(|
 
 pub static MISS_TEXT_BOX: Mutex<Option<TTextBox>> = Mutex::new(None);
 
-pub static GAME_MODE: Mutex<GameModes> = Mutex::new(GameModes::GameOver);
-
 #[derive(PartialEq, Eq, Ord, PartialOrd)]
 pub enum GameModes {
     InGame = 1,
@@ -457,8 +455,7 @@ fn mode_change(
             }
         }
     }
-    let mut game_mode_grd = GAME_MODE.lock().map_err(|_| PbError::LockGeneric)?;
-    *game_mode_grd = mode;
+    pb_game_state.game_mode = mode;
 
     Ok(())
 }
