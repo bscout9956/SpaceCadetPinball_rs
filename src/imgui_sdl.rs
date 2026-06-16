@@ -338,7 +338,7 @@ pub mod renderer {
 
             let clip_off = (*draw_data).DisplayPos;
             let clip_scale = render_scale;
-            
+
             //l141
         }
     }
@@ -795,9 +795,9 @@ pub(crate) unsafe fn impl_sdl2_new_frame(io: &mut Io, state: &mut PinballState) 
                 w = 0;
             }
             if !(*bd).renderer.is_null() {
-                println!("No renderer in BD!!!!!");
                 SDL_GetRendererOutputSize((*bd).renderer, &raw mut display_w, &raw mut display_h);
             } else {
+                println!("No renderer in BD!!!!!");
                 SDL_GL_GetDrawableSize(window.0, &raw mut display_w, &raw mut display_h);
             }
             println!("Setting display size");
