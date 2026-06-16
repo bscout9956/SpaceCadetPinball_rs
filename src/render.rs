@@ -5,9 +5,10 @@ use crate::state::options_state::OptionsState;
 use crate::state::render_state::RenderState;
 use crate::zdrv::ZMapHeaderType;
 use crate::{gdrv, maths, zdrv};
-use sdl2::sys::SDL_Rect;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
+use sdl2::sys::{SDL_Rect, SDL_RenderCopy};
 use std::cmp::PartialEq;
+use std::ptr::null;
 use std::sync::{Arc, LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
@@ -474,6 +475,19 @@ pub fn set_background_zmap(
     render_state.z_map_offset_y = offset_y;
 }
 
-pub(crate) fn uninit() {
-    todo!()
+pub(crate) fn present_v_screen(main_state: &mut MainState, render_state: &mut RenderState) {
+    if let Some(v_screen) = render_state.v_screen.as_mut() {
+        unsafe {
+            v_screen.blit_to_texture();
+
+            if render_state.offset_x == 0 && render_state.offset_y == 0 {
+                if let Some(renderer) = main_state.renderer.as_ref()
+                    && let Some(tex) = v_screen.texture.as_mut()
+                        && let Some(dest_rect) = render_state.destination_rect.as_ref() {
+                            SDL_RenderCopy(renderer.0, tex, null(), dest_rect);
+                        }
+                }e {odo!() // L465 of render.cpp
+            }
+        }
+    }
 }
