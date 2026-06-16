@@ -35,13 +35,14 @@ use std::env;
 use std::error::Error;
 use std::ffi::{CStr, CString, NulError, c_int};
 use std::mem::MaybeUninit;
-use std::ops::{Index, Sub};
+use std::ops::{Index, Mul, Neg, Sub};
 use std::path::PathBuf;
 use std::process::exit;
 use std::ptr::{NonNull, null};
 use std::str::FromStr;
 use std::sync::atomic::AtomicU32;
 use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
+use std::thread::sleep;
 use thiserror::Error;
 
 mod fullscrn;
@@ -160,6 +161,14 @@ impl Sub for Duration<1000000000> {
 
     fn sub(self, rhs: Self) -> Self::Output {
         Duration(self.0 - rhs.0)
+    }
+}
+
+impl Neg for Duration<1000000000> {
+    type Output = Duration<1000000000>;
+
+    fn neg(self) -> Self::Output {
+        Duration(-self.0)
     }
 }
 
@@ -386,7 +395,7 @@ fn main_loop(
         {
             let main_state = &mut pb_state.main_state;
             if main_state.single_step == false && main_state.no_time_loss == false {
-                let dt = _frame_duration.count() as f32;
+                let dt = frame_duration.count() as f32;
                 pb::frame(dt, &mut pb_state.pb_game_state);
 
                 if main_state.disp_gr_history == true {
