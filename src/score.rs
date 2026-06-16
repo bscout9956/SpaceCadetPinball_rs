@@ -3,6 +3,7 @@ use crate::fullscrn;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::state::fullscrn_state::FullscrnState;
+use crate::state::score_state::ScoreState;
 use std::sync::{Arc, Mutex};
 
 pub struct ScoreStruct {
@@ -50,12 +51,11 @@ impl ScoreMessageFontType {
     }
 }
 
-pub static MSG_FONTP: Mutex<Option<ScoreMessageFontType>> = Mutex::new(None);
-
 pub fn load_msg_font(
     font_name: &str,
     record_table: &mut Option<Arc<DatFile>>,
     fullscrn_state: &mut FullscrnState,
+    score_state: &mut ScoreState,
 ) -> Result<(), ScoreError> {
     let record_table = match &*record_table {
         Some(record_table) => record_table,
@@ -67,10 +67,7 @@ pub fn load_msg_font(
         return Ok(());
     }
 
-    let mut msg_fontp = MSG_FONTP.lock().map_err(ScoreError::MsgFontLock)?;
-
-    *msg_fontp = Some(ScoreMessageFontType::new());
-    let font = msg_fontp.as_mut().unwrap();
+    let font = score_state.MSG_FONTP.as_mut().unwrap();
 
     // FT font has multiple resolutions
     let gap_array = record_table.field(group_index, FieldTypes::ShortArray);
