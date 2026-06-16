@@ -208,8 +208,6 @@ pub const VERSION: &str = "1.0 DEV";
 
 pub type DurationMs = f64;
 
-pub static MAIN_WINDOW: Mutex<Option<SdlWindowPtr>> = Mutex::new(Option::None);
-
 #[derive(Debug, Error)]
 pub enum MainError {
     #[error("Renderer hasn't been assigned, is none")]
@@ -274,8 +272,7 @@ fn main_loop(
                 );
                 let c_str_title = CString::new(title.clone())?;
 
-                let window_guard = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
-                if let Some(window) = window_guard.as_ref() {
+                if let Some(window) = pb_state.main_state.main_window.as_ref() {
                     unsafe {
                         SDL_SetWindowTitle(window.0, c_str_title.as_ptr());
                     };
@@ -309,9 +306,7 @@ fn main_loop(
                 unsafe {
                     SDL_GetMouseState(&mut x, &mut y);
 
-                    let window_guard = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
-
-                    if let Some(window) = window_guard.as_ref() {
+                    if let Some(window) = pb_state.main_state.main_window.as_ref() {
                         SDL_GetWindowSize(window.0, &mut w, &mut h);
                     } else {
                         return Err(MainLoopError::NullWindow);
@@ -334,11 +329,10 @@ fn main_loop(
                 }
 
                 unsafe {
-                    let window_guard = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
                     if (x_mod != 0 || y_mod != 0) {
                         x = i32::abs(x as i32 - x_mod);
                         y = i32::abs(y as i32 - y_mod);
-                        if let Some(window) = window_guard.as_ref() {
+                        if let Some(window) = pb_state.main_state.main_window.as_ref() {
                             SDL_WarpMouseInWindow(window.0, x, y);
                         }
                     }
@@ -477,8 +471,7 @@ unsafe fn event_handler(
     if io.want_capture_mouse() && options_state.control_waiting_for_input.is_none() {
         if main_state.mouse_down == true {
             main_state.mouse_down = false;
-            let main_window_grd = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
-            if let Some(window) = main_window_grd.as_ref() {
+            if let Some(window) = main_state.main_window.as_ref() {
                 unsafe {
                     SDL_SetWindowGrab(window.0, SDL_FALSE);
                 }
@@ -507,7 +500,7 @@ unsafe fn event_handler(
             end_pause(main_state);
 
             main_state.b_quit = true;
-            fullscrn::shutdown(fullscrn_state);
+            fullscrn::shutdown(fullscrn_state, &mut main_state.main_window);
             main_state.return_value = 0;
             return Ok(false);
         }
@@ -557,6 +550,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 SDL_MESSAGEBOX_ERROR,
                 "Could not initialize SDL2",
                 SDL_GetError(),
+                &state.main_state.main_window,
             );
             println!("OOPS!! No init, closing");
             exit(1);
@@ -585,23 +579,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             main_window = Some(SdlWindowPtr(window));
         }
 
-        match MAIN_WINDOW.try_lock() {
-            Ok(mut main_window_grd) => {
-                *main_window_grd = main_window;
-            }
-            Err(std::sync::TryLockError::Poisoned(_)) => {
-                println!("Poisoned lock because a thread panicked.");
-            }
-            Err(std::sync::TryLockError::WouldBlock) => {
-                println!("Another thread is locking MAIN_WINDOW");
-            }
-        }
+        state.main_state.main_window = main_window;
 
-        if MAIN_WINDOW.lock()?.is_none() {
+        if state.main_state.main_window.is_none() {
             pb::show_message_box_cstr_message(
                 SDL_MESSAGEBOX_ERROR,
                 "Could not create window",
                 SDL_GetError(),
+                &state.main_state.main_window,
             );
             println!("Could not create window");
             exit(1);
@@ -631,6 +616,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 SDL_MESSAGEBOX_ERROR,
                 "Could not create renderer",
                 SDL_GetError(),
+                &state.main_state.main_window,
             );
             println!("Could not create renderer, is null");
             exit(1);
@@ -808,7 +794,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                     message += str_push;
                 }
                 println!("Could not load game data");
-                pb::show_message_box(SDL_MESSAGEBOX_ERROR, "Could not load game data", &message);
+                pb::show_message_box(
+                    SDL_MESSAGEBOX_ERROR,
+                    "Could not load game data",
+                    &message,
+                    &state.main_state.main_window,
+                );
                 exit(1);
             }
 
@@ -839,6 +830,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             fullscrn::set_screen_mode(
                 *(&mut state.options_state).options.full_screen,
                 &mut state.fullscrn_state,
+                &mut state.main_state.main_window,
             );
 
             let is_demo = env::args().any(|arg| arg == "-demo");

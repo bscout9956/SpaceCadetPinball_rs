@@ -5,7 +5,7 @@ use crate::maths::*;
 use crate::state::pb_game_state::PbGameState;
 use crate::utils::PATH_SEPARATOR;
 use crate::zdrv::ZMapHeaderType;
-use crate::{pb, sound};
+use crate::{SdlWindowPtr, pb, sound};
 use num_traits::Float;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::mixer::Mix_Chunk;
@@ -227,8 +227,11 @@ pub fn error(error_code: i32, caption_code: i32) -> i32 {
         .find(|e| e.code == caption_code)
         .map(|e| e.message)
         .unwrap_or("Unknown Error");
-
-    pb::show_message_box(SDL_MESSAGEBOX_ERROR, error_caption, error_text);
+    
+    // HACK: I am passing no window here because this would mean error 
+    // would need to know the window resulting in multiple calls being affected by it
+    let none_window: &Option<SdlWindowPtr> = &Option::None;
+    pb::show_message_box(SDL_MESSAGEBOX_ERROR, error_caption, error_text, none_window);
     -1
 }
 

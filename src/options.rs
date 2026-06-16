@@ -630,6 +630,7 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             fullscrn::set_screen_mode(
                 *state.options_state.options.full_screen,
                 &mut state.fullscrn_state,
+                &mut state.main_state.main_window,
             );
         }
         Menu::Demo => {}

@@ -3,7 +3,7 @@ use crate::state::fullscrn_state::FullscrnState;
 use crate::state::main_state::MainState;
 use crate::state::options_state::OptionsState;
 use crate::state::pb_game_state::PbGameState;
-use crate::{MAIN_WINDOW, render};
+use crate::{SdlWindowPtr, render};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
 
@@ -39,7 +39,11 @@ pub fn get_max_resolution(pb_game_state: &mut PbGameState) -> i32 {
     }
 }
 
-pub fn set_screen_mode(is_fullscreen: bool, fullscrn_state: &mut FullscrnState) -> bool {
+pub fn set_screen_mode(
+    is_fullscreen: bool,
+    fullscrn_state: &mut FullscrnState,
+    main_window: &mut Option<SdlWindowPtr>,
+) -> bool {
     let mut result = is_fullscreen;
 
     if is_fullscreen == fullscrn_state.screen_mode {
@@ -49,7 +53,7 @@ pub fn set_screen_mode(is_fullscreen: bool, fullscrn_state: &mut FullscrnState) 
 
     if is_fullscreen {
         unsafe {
-            match enable_fullscreen(fullscrn_state) {
+            match enable_fullscreen(main_window, fullscrn_state) {
                 Ok(enabled) => enabled,
                 Err(e) => {
                     println!("Failed to enable fullscreen: {}", e);
@@ -60,7 +64,7 @@ pub fn set_screen_mode(is_fullscreen: bool, fullscrn_state: &mut FullscrnState) 
         return true;
     }
 
-    disable_fullscreen(fullscrn_state);
+    disable_fullscreen(main_window, fullscrn_state);
     result
 }
 
@@ -147,15 +151,19 @@ fn update_x_scale(width: &mut i32, res: &ResolutionInfo, mut scale_x: f32) {
     scale_x = *width as f32 / res.screen_width as f32;
 }
 
-pub fn activate(flag: bool, fullscrn_state: &mut FullscrnState) {
+pub fn activate(
+    flag: bool,
+    fullscrn_state: &mut FullscrnState,
+    main_window: &mut Option<SdlWindowPtr>,
+) {
     if fullscrn_state.screen_mode && (!flag) {
-        set_screen_mode(false, fullscrn_state);
+        set_screen_mode(false, fullscrn_state, main_window);
     }
 }
 
-pub fn shutdown(fullscrn_state: &mut FullscrnState) {
+pub fn shutdown(fullscrn_state: &mut FullscrnState, main_window: &mut Option<SdlWindowPtr>) {
     if fullscrn_state.display_changed {
-        set_screen_mode(false, fullscrn_state);
+        set_screen_mode(false, fullscrn_state, main_window);
     }
 }
 
@@ -173,17 +181,14 @@ pub fn get_screen_to_pinball_ratio() -> f32 {
     0.0
 }
 
-unsafe fn enable_fullscreen(fullscrn_state: &mut FullscrnState) -> Result<bool, FullscreenError> {
+unsafe fn enable_fullscreen(
+    main_window: &Option<SdlWindowPtr>,
+    fullscrn_state: &mut FullscrnState,
+) -> Result<bool, FullscreenError> {
     if !fullscrn_state.display_changed {
-        if let Some(main_window) = MAIN_WINDOW
-            .lock()
-            .map_err(|_| FullscreenError::LockGeneric)?
-            .as_ref()
-        {
+        if let Some(window) = main_window {
             unsafe {
-                if (SDL_SetWindowFullscreen(main_window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32)
-                    == 0)
-                {
+                if (SDL_SetWindowFullscreen(window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32) == 0) {
                     fullscrn_state.display_changed = true;
                     return Ok(true);
                 }
@@ -195,17 +200,14 @@ unsafe fn enable_fullscreen(fullscrn_state: &mut FullscrnState) -> Result<bool, 
     Ok(false)
 }
 
-fn disable_fullscreen(fullscrn_state: &mut FullscrnState) -> Result<bool, FullscreenError> {
+fn disable_fullscreen(
+    main_window: &mut Option<SdlWindowPtr>,
+    fullscrn_state: &mut FullscrnState,
+) -> Result<bool, FullscreenError> {
     if fullscrn_state.display_changed {
-        if let Some(mut main_window) = MAIN_WINDOW
-            .lock()
-            .map_err(|_| FullscreenError::LockGeneric)?
-            .as_ref()
-        {
+        if let Some(mut window) = main_window.as_mut() {
             unsafe {
-                if (SDL_SetWindowFullscreen(main_window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32)
-                    == 0)
-                {
+                if (SDL_SetWindowFullscreen(window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32) == 0) {
                     fullscrn_state.display_changed = false;
                 }
             }

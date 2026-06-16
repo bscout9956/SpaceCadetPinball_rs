@@ -12,7 +12,7 @@ use crate::t_collision_component::ICollisionComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::{Msg, TranslationError};
 use crate::{
-    MAIN_WINDOW, control, gdrv, high_score, loader, maths, midi, partman, proj, render, score,
+    SdlWindowPtr, control, gdrv, high_score, loader, maths, midi, partman, proj, render, score,
     timer, translations,
 };
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
@@ -40,6 +40,7 @@ pub fn show_message_box(
     flags: SDL_MessageBoxFlags,
     title: &str,
     message: &str,
+    main_window: &Option<SdlWindowPtr>,
 ) -> Result<(), PbError> {
     if flags == SDL_MESSAGEBOX_ERROR {
         write!(std::io::stderr(), "BL error {}\n{}\n", title, message).unwrap();
@@ -52,7 +53,6 @@ pub fn show_message_box(
     let message = CString::new(message)?;
     let message_cstr = message.as_c_str();
 
-    let main_window = MAIN_WINDOW.lock().map_err(|_| PbError::LockGeneric)?;
     if let Some(window) = main_window.as_ref() {
         unsafe {
             SDL_ShowSimpleMessageBox(
@@ -71,9 +71,10 @@ pub fn show_message_box_cstr_message(
     flags: SDL_MessageBoxFlags,
     title: &str,
     message: *const c_char,
+    main_window: &Option<SdlWindowPtr>,
 ) {
     let message_str = unsafe { CStr::from_ptr(message).to_str().unwrap() };
-    show_message_box(flags, title, message_str);
+    show_message_box(flags, title, message_str, main_window);
 }
 
 pub fn select_dat_file(

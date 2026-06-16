@@ -1,4 +1,4 @@
-use crate::{Duration, SdlRendererPtr, WelfordState};
+use crate::{Duration, SdlRendererPtr, SdlWindowPtr, WelfordState};
 use dear_imgui_rs::Io;
 use dear_imgui_rs::sys::ImGuiIO;
 use std::ptr::NonNull;
@@ -36,6 +36,7 @@ pub struct MainState {
     pub sleep_state: WelfordState,
     pub gfr_offset: u32,
     pub prev_sdl_error_count: u32,
+    pub main_window: Option<SdlWindowPtr>,
 }
 
 impl MainState {
@@ -72,6 +73,7 @@ impl MainState {
             sleep_state: WelfordState::new(),
             gfr_offset: 0,
             prev_sdl_error_count: 0,
+            main_window: None,
         }
     }
 
