@@ -5,9 +5,10 @@
 // Until this notice is removed, it may not hold all possible states.
 
 pub mod fullscrn_state;
+pub mod high_score_state;
+pub mod loader_state;
 pub mod main_state;
 pub mod options_state;
 pub mod pb_game_state;
 pub mod pinball_state;
 pub mod render_state;
-pub mod loader_state;
