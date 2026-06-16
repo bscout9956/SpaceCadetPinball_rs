@@ -439,6 +439,87 @@ fn main_loop(
                 update_to_frame_counter -= pb_state.main_state.update_to_frame_ratio;
             }
         }
+
+        unsafe {
+            let sdl_error = SDL_GetError();
+            if !sdl_error.is_null() || !pb_state.main_state.prev_sdl_error.is_empty() {
+                if !sdl_error.is_null() {
+                    SDL_ClearError();
+                }
+
+                let sdl_error_str = CStr::from_ptr(sdl_error);
+                let sdl_error_string = sdl_error_str.to_string_lossy().to_string();
+                if sdl_error_string != pb_state.main_state.prev_sdl_error {
+                    println!("SDL error: {}", sdl_error_string);
+                    println!(
+                        "SDL error (main_state): {}",
+                        pb_state.main_state.prev_sdl_error
+                    );
+
+                    pb_state.main_state.prev_sdl_error = String::from(&sdl_error_string);
+                    if pb_state.main_state.prev_sdl_error_count > 0 {
+                        println!(
+                            "SDL Error: ^ Previous error repeated {} times",
+                            pb_state.main_state.prev_sdl_error_count + 1
+                        );
+                        pb_state.main_state.prev_sdl_error_count = 0;
+                    }
+
+                    if !sdl_error.is_null() {
+                        println!("SDL error: {}", &sdl_error_string);
+                    }
+                } else {
+                    pb_state.main_state.prev_sdl_error_count += 1;
+                }
+            }
+
+            let update_end = SdlPerformanceClock::now();
+            let target_time_delta =
+                pb_state.main_state.target_frametime - (update_end - frame_start) - sleep_remainder;
+
+            let frame_end;
+
+            if target_time_delta.count() > 0
+                && !*pb_state.options_state.options.uncapped_updates_per_second
+            {
+                if *pb_state.options_state.options.hybrid_sleep {
+                    hybrid_sleep(target_time_delta, &mut pb_state.main_state);
+                } else {
+                    let ns = target_time_delta.count().max(0) as u64;
+                    let secs = ns / 1_000_000_000;
+                    let nanos = (ns % 1_000_000_000) as u32;
+                    std::thread::sleep(std::time::Duration::new(secs, nanos));
+                }
+                frame_end = SdlPerformanceClock::now();
+            } else {
+                frame_end = update_end;
+            }
+
+            // Limit duration to 2 * target time
+            sleep_remainder = utils::clamp(
+                &((frame_end - update_end) - target_time_delta),
+                &(-pb_state.main_state.target_frametime),
+                &pb_state.main_state.target_frametime,
+            );
+            frame_duration = std::cmp::min(
+                frame_end - frame_start,
+                2 * pb_state.main_state.target_frametime,
+            );
+            frame_start = frame_end;
+            update_to_frame_counter += 1.0;
+
+            pb_state.main_state.cursor_idle_counter = std::cmp::max(
+                pb_state.main_state.cursor_idle_counter - frame_duration.count(),
+                0,
+            );
+        }
+    }
+
+    if pb_state.main_state.prev_sdl_error_count > 0 {
+        println!(
+            "SDL Error: ^ Previous error repeated {} times",
+            pb_state.main_state.prev_sdl_error_count
+        );
     }
 
     Ok(())
