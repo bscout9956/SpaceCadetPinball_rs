@@ -170,7 +170,7 @@ impl Clock for SdlTickClock {
     }
 }
 
-struct WelfordState {
+pub struct WelfordState {
     pub mean: f64,
     pub m2: f64,
     pub count: i64,
@@ -208,14 +208,6 @@ pub const VERSION: &str = "1.0 DEV";
 
 pub type DurationMs = f64;
 
-static SPIN_THRESHOLD: LazyLock<Mutex<Duration<1_000_000_000>>> =
-    LazyLock::new(|| Mutex::new(Duration(0)));
-static SLEEP_STATE: LazyLock<Mutex<WelfordState>> =
-    LazyLock::new(|| Mutex::new(WelfordState::new()));
-
-static PREV_SDL_ERROR_COUNT: AtomicU32 = AtomicU32::new(0);
-static GFR_OFFSET: AtomicU32 = AtomicU32::new(0);
-
 pub static MAIN_WINDOW: Mutex<Option<SdlWindowPtr>> = Mutex::new(Option::None);
 
 #[derive(Debug, Error)]
@@ -227,22 +219,6 @@ pub enum MainError {
     MutexError(#[from] PoisonError<MutexGuard<'static, Option<SdlRendererPtr>>>),
     #[error("Failed to lock Mutex")]
     LockGeneric,
-}
-
-// TODO: Likewise
-thread_local! {
-    static IMGUI_IO: RefCell<Option<NonNull<ImGuiIO>>> = RefCell::new(Option::None);
-}
-
-pub fn set_imgui_io(io: *mut ImGuiIO) {
-    IMGUI_IO.with(|cell| {
-        let ptr = NonNull::new(io).expect("imgui io is null");
-        *cell.borrow_mut() = Some(ptr);
-    })
-}
-
-pub fn get_imgui_io() -> Option<NonNull<ImGuiIO>> {
-    IMGUI_IO.with(|cell| *cell.borrow())
 }
 
 fn render_frame_time_dialog() {

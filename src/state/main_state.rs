@@ -1,4 +1,7 @@
-use crate::{Duration, SdlRendererPtr};
+use crate::{Duration, SdlRendererPtr, WelfordState};
+use dear_imgui_rs::Io;
+use dear_imgui_rs::sys::ImGuiIO;
+use std::ptr::NonNull;
 
 #[allow(clippy::struct_excessive_bools)]
 pub struct MainState {
@@ -29,6 +32,10 @@ pub struct MainState {
     pub disp_gr_history: bool,
     pub activated: bool,
     pub main_menu_height: i32,
+    pub spin_threshold: Duration<1_000_000_000>,
+    pub sleep_state: WelfordState,
+    pub gfr_offset: u32,
+    pub prev_sdl_error_count: u32,
 }
 
 impl MainState {
@@ -61,6 +68,10 @@ impl MainState {
             disp_gr_history: false,
             activated: false,
             main_menu_height: 0,
+            spin_threshold: Duration(0),
+            sleep_state: WelfordState::new(),
+            gfr_offset: 0,
+            prev_sdl_error_count: 0,
         }
     }
 
