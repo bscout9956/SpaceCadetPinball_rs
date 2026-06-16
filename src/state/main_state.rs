@@ -37,6 +37,7 @@ pub struct MainState {
     pub gfr_offset: u32,
     pub prev_sdl_error_count: u32,
     pub main_window: Option<SdlWindowPtr>,
+    pub gfr_window: f32,
 }
 
 impl MainState {
@@ -74,6 +75,7 @@ impl MainState {
             gfr_offset: 0,
             prev_sdl_error_count: 0,
             main_window: None,
+            gfr_window: 5.0,
         }
     }
 
