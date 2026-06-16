@@ -1,11 +1,12 @@
 use crate::maths::Vector2;
 use crate::options::Setting;
+use crate::state::sound_state::SoundState;
 use crate::t_pinball_component::TPinballComponent;
+use sdl2::sys::SDL_RWFromFile;
 use sdl2::sys::mixer::{
     Mix_AllocateChannels, Mix_Chunk, Mix_FreeChunk, Mix_HaltChannel, Mix_LoadWAV_RW, Mix_Pause,
     Mix_PlayChannelTimed, Mix_Playing, Mix_Resume, Mix_Volume,
 };
-use sdl2::sys::SDL_RWFromFile;
 use std::ffi::CString;
 use std::path::Path;
 
@@ -150,8 +151,10 @@ impl Sound {
     }
 }
 
-pub(crate) fn freesound(p0: *const Mix_Chunk) {
-    todo!()
+pub fn free_sound(wave: *mut Mix_Chunk, sound_state: &mut SoundState) {
+    if sound_state.mix_open && !wave.is_null() {
+        unsafe { Mix_FreeChunk(wave) };
+    }
 }
 
 pub(crate) fn load_wave_file(p0: String) -> *const Mix_Chunk {
