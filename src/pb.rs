@@ -3,15 +3,17 @@ use crate::gdrv::ColorRgba;
 use crate::group_data::{EntryBuffer, FieldTypes};
 use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
 use crate::message_code::MessageCode;
-use crate::pinball_state::{
-    FullscrnState, MainState, OptionsState, PbGameState, PinballState, RenderState,
-};
+use crate::state::main_state::MainState;
+use crate::state::options_state::OptionsState;
+use crate::state::pb_game_state::PbGameState;
+use crate::state::pinball_state::PinballState;
+use crate::state::render_state::RenderState;
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::{Msg, TranslationError};
 use crate::{
-    MAIN_WINDOW, control, fullscrn, gdrv, high_score, loader, maths, midi, partman, proj, render,
-    score, timer, translations,
+    MAIN_WINDOW, control, gdrv, high_score, loader, maths, midi, partman, proj, render, score,
+    timer, translations,
 };
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};

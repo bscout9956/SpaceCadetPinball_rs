@@ -1,6 +1,8 @@
 use crate::gdrv::GdrvBitmap8;
 use crate::maths::RectangleType;
-use crate::pinball_state::{MainState, OptionsState, RenderState};
+use crate::state::main_state::MainState;
+use crate::state::options_state::OptionsState;
+use crate::state::render_state::RenderState;
 use crate::zdrv::ZMapHeaderType;
 use crate::{gdrv, maths, zdrv};
 use sdl2::sys::SDL_Rect;

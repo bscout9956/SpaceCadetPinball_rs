@@ -1,7 +1,7 @@
 use crate::embedded_data::PB_MSGFT_BIN_COMPRESSED_DATA_BASE85;
 use crate::errors::GroupDataError;
 use crate::gdrv::{BitmapTypes, GdrvBitmap8};
-use crate::pinball_state::FullscrnState;
+use crate::state::fullscrn_state::FullscrnState;
 use crate::zdrv::ZMapHeaderType;
 use crate::{fullscrn, pb, zdrv};
 use base85::Error;

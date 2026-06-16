@@ -1,12 +1,11 @@
-use crate::MainError::NoneRendererError;
 use crate::errors::FullscreenError;
-use crate::pinball_state::{FullscrnState, MainState, OptionsState, PbGameState};
-use crate::{MAIN_WINDOW, pb, render};
+use crate::state::fullscrn_state::FullscrnState;
+use crate::state::main_state::MainState;
+use crate::state::options_state::OptionsState;
+use crate::state::pb_game_state::PbGameState;
+use crate::{MAIN_WINDOW, render};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
-use std::sync::atomic::Ordering::Relaxed;
-use std::sync::atomic::{AtomicBool, AtomicI32};
-use std::sync::{Mutex, atomic};
 
 #[derive(Clone)]
 pub struct ResolutionInfo {

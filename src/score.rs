@@ -2,7 +2,7 @@ use crate::errors::ScoreError;
 use crate::fullscrn;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
-use crate::pinball_state::FullscrnState;
+use crate::state::fullscrn_state::FullscrnState;
 use std::sync::{Arc, Mutex};
 
 pub struct ScoreStruct {

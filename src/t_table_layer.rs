@@ -2,19 +2,19 @@ use crate::errors::LoaderError;
 use crate::gdrv::GdrvBitmap8;
 use crate::loader::{VisualStruct, query_float_attribute_ptr};
 use crate::maths::{MathsError, RectangleType, Vector2, f32_vec_to_vec3};
-use crate::pinball_state::{PbGameState, RenderState};
 use crate::render::{RenderSprite, VisualTypes};
+use crate::state::pb_game_state::PbGameState;
+use crate::state::render_state::RenderState;
 use crate::t_ball::TBall;
 use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_manager::{FieldEffectType, TEdgeManager};
 use crate::t_pinball_table::TPinballTable;
-use crate::{fullscrn, loader, pb, proj, render};
+use crate::{loader, proj, render};
 use std::cell::RefCell;
 use std::f32::consts::FRAC_PI_2;
 use std::ptr::slice_from_raw_parts;
-use std::rc::{Rc, Weak};
+use std::rc::Weak;
 use std::slice::from_raw_parts;
-use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{Arc, Mutex};
 use thiserror::Error;
 
@@ -184,7 +184,12 @@ impl TTableLayer {
             // line.place_in_grid(&instance.base_component.AABB);
         }
 
-        Ok(TTableLayer::new(table, pb_game_state, render_state, resolution)?) // TODO: I'm unfinished, just so rustc can stfu
+        Ok(TTableLayer::new(
+            table,
+            pb_game_state,
+            render_state,
+            resolution,
+        )?) // TODO: I'm unfinished, just so rustc can stfu
     }
 }
 

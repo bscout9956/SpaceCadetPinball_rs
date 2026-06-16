@@ -1,15 +1,16 @@
 use crate::loader::VisualStruct;
 use crate::maths::*;
-use crate::pinball_state::{FullscrnState, PbGameState, RenderState};
 use crate::render::{RenderSprite, VisualTypes};
+use crate::state::pb_game_state::PbGameState;
+use crate::state::render_state::RenderState;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_line::EdgeSegmentError;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
-use crate::{fullscrn, loader, proj};
+use crate::{loader, proj};
 use std::cell::{Cell, RefCell};
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::ptr::slice_from_raw_parts;
 use std::rc::{Rc, Weak};
 

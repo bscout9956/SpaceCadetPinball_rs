@@ -1,7 +1,7 @@
 use crate::errors::RecordLoadError;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, EntryData, FieldTypes, GroupData};
-use crate::pinball_state::FullscrnState;
+use crate::state::fullscrn_state::FullscrnState;
 use crate::utils;
 use crate::zdrv::ZMapHeaderType;
 use num_traits::FromPrimitive;

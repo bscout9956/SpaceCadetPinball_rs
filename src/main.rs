@@ -4,7 +4,6 @@ extern crate core;
 
 use crate::embedded_data::load_controller_db;
 use crate::options::GameBindings;
-use crate::pinball_state::{FullscrnState, MainState, OptionsState, PinballState};
 use crate::translations::Msg;
 use dear_imgui_rs::sys::{
     ImGuiCol_MenuBarBg, ImGuiIO, ImGuiMouseCursor_None, ImVec4, igNewFrame, igPushStyleColor_Vec4,
@@ -23,6 +22,10 @@ use sdl2::sys::mixer::{
     MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_Init, Mix_OpenAudio,
 };
 use sdl2::sys::*;
+use state::fullscrn_state::FullscrnState;
+use state::main_state::MainState;
+use state::options_state::OptionsState;
+use state::pinball_state::PinballState;
 use std::cell::RefCell;
 use std::env;
 use std::error::Error;
@@ -33,8 +36,7 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::ptr::NonNull;
 use std::str::FromStr;
-use std::sync::atomic::Ordering::SeqCst;
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
+use std::sync::atomic::AtomicU32;
 use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
@@ -67,6 +69,7 @@ mod pb;
 mod pinball_state;
 pub mod proj;
 mod render;
+pub mod state;
 pub mod t_demo;
 mod t_edge_box;
 mod t_edge_manager;
@@ -849,8 +852,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             let res_val = state.fullscrn_state.resolution;
             if *(&mut state.options_state).options.full_screen == false {
-                let res_info = &(&mut state.fullscrn_state).resolution_array
-                    [res_val as usize];
+                let res_info = &(&mut state.fullscrn_state).resolution_array[res_val as usize];
                 SDL_SetWindowSize(
                     window,
                     res_info.table_width as c_int,

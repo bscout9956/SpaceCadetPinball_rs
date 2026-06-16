@@ -1,15 +1,16 @@
 use crate::maths::{Vector2, Vector3};
 use crate::message_code::MessageCode;
-use crate::pinball_state::{FullscrnState, PbGameState, RenderState};
 use crate::score::ScoreStruct;
+use crate::state::fullscrn_state::FullscrnState;
+use crate::state::pb_game_state::PbGameState;
+use crate::state::render_state::RenderState;
 use crate::t_ball::TBall;
 use crate::t_demo::TDemo;
 use crate::t_light_group::TLightGroup;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
-use crate::{pb, timer};
+use crate::timer;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::atomic::Ordering::SeqCst;
 
 pub struct ScoreStructSuper {
     pub score_struct: ScoreStruct,

@@ -40,7 +40,7 @@ pub trait ICollisionComponent {
 }
 
 use crate::message_code::MessageCode;
-use crate::pinball_state::{FullscrnState, PbGameState};
+use crate::state::pb_game_state::PbGameState;
 use std::ops::{Deref, DerefMut};
 use std::rc::Weak;
 

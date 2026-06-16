@@ -1,5 +1,8 @@
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
-use crate::pinball_state::{FullscrnState, OptionsState, PbGameState, PinballState};
+use crate::state::fullscrn_state::FullscrnState;
+use crate::state::options_state::OptionsState;
+use crate::state::pb_game_state::PbGameState;
+use crate::state::pinball_state::PinballState;
 use crate::translations::Msg;
 use crate::utils::clamp;
 use crate::{fullscrn, midi, render, translations};
