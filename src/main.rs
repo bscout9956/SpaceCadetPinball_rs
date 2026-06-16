@@ -3,13 +3,16 @@
 extern crate core;
 
 use crate::embedded_data::load_controller_db;
+use crate::maths::Vector2;
 use crate::options::GameBindings;
+use crate::options::Menu::ShowMenu;
 use crate::translations::Msg;
 use dear_imgui_rs::sys::{
-    ImGuiCol_MenuBarBg, ImGuiIO, ImGuiMouseCursor_None, ImVec4, igNewFrame, igPushStyleColor_Vec4,
-    igSetMouseCursor,
+    ImGuiCol_MenuBarBg, ImGuiIO, ImGuiMouseCursor_None, ImGuiStyleVar_WindowMinSize, ImVec2_c,
+    ImVec4, igBeginMainMenuBar, igEnd, igEndMainMenuBar, igFocusWindow, igMenuItem_Bool,
+    igNewFrame, igPopStyleVar, igPushStyleColor_Vec4, igPushStyleVar_Vec2, igSetMouseCursor,
 };
-use dear_imgui_rs::{ConfigFlags, Context, FontConfig};
+use dear_imgui_rs::{ConfigFlags, Context, FontConfig, StyleColor, StyleVar, Ui};
 use sdl2::sys::SDL_EventType::{
     SDL_CONTROLLERBUTTONDOWN, SDL_CONTROLLERBUTTONUP, SDL_KEYDOWN, SDL_KEYUP, SDL_QUIT,
 };
@@ -34,7 +37,7 @@ use std::mem::MaybeUninit;
 use std::ops::{Index, Sub};
 use std::path::PathBuf;
 use std::process::exit;
-use std::ptr::NonNull;
+use std::ptr::{NonNull, null};
 use std::str::FromStr;
 use std::sync::atomic::AtomicU32;
 use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
@@ -263,6 +266,7 @@ fn main_loop(
 
     let _frame_duration = pb_state.main_state.target_frametime;
 
+    println!("Entering main loop, loop");
     loop {
         if (&mut pb_state.main_state).disp_frame_rate == true {
             let cur_time = unsafe { SdlPerformanceClock::now() };
@@ -297,54 +301,52 @@ fn main_loop(
             &mut pb_state.main_state,
             &mut pb_state.options_state,
             &mut pb_state.fullscrn_state,
-        )? || (&mut pb_state.main_state).b_quit == false
+        )? || pb_state.main_state.b_quit
         {
             break;
         }
 
-        if (&mut pb_state.main_state).has_focus {
-            if (&mut pb_state.main_state).mouse_down {
-                let mut x = 0;
-                let mut y = 0;
-                let mut w = 0;
-                let mut h = 0;
-                unsafe {
-                    SDL_GetMouseState(&mut x, &mut y);
+        if pb_state.main_state.has_focus && pb_state.main_state.mouse_down {
+            let mut x = 0;
+            let mut y = 0;
+            let mut w = 0;
+            let mut h = 0;
+            unsafe {
+                SDL_GetMouseState(&mut x, &mut y);
 
-                    if let Some(window) = pb_state.main_state.main_window.as_ref() {
-                        SDL_GetWindowSize(window.0, &mut w, &mut h);
-                    } else {
-                        return Err(MainLoopError::NullWindow);
-                    }
+                if let Some(window) = pb_state.main_state.main_window.as_ref() {
+                    SDL_GetWindowSize(window.0, &mut w, &mut h);
+                } else {
+                    return Err(MainLoopError::NullWindow);
                 }
-                let dx = ((&mut pb_state.main_state).last_mouse_x - x) as f32 / w as f32;
-                let dy = (y - (&mut pb_state.main_state).last_mouse_y) as f32 / h as f32;
-                pb::ball_set(dx, dy, &mut pb_state.pb_game_state);
-
-                // Original creates continuous mouse movement with mouse capture.
-                // Alternative solution: mouse warp at window edges.
-                let mut x_mod: i32 = 0;
-                let mut y_mod: i32 = 0;
-
-                if (x as i32 == 0 || x as i32 >= (w as i32 - 1)) {
-                    x_mod = w as i32 - 2;
-                }
-                if (y as i32 == 0 || y as i32 >= (h as i32 - 1)) {
-                    y_mod = h as i32 - 2;
-                }
-
-                unsafe {
-                    if (x_mod != 0 || y_mod != 0) {
-                        x = i32::abs(x as i32 - x_mod);
-                        y = i32::abs(y as i32 - y_mod);
-                        if let Some(window) = pb_state.main_state.main_window.as_ref() {
-                            SDL_WarpMouseInWindow(window.0, x, y);
-                        }
-                    }
-                }
-
-                (&mut pb_state.main_state).update_mouse_xy(x, y);
             }
+            let dx = ((&mut pb_state.main_state).last_mouse_x - x) as f32 / w as f32;
+            let dy = (y - (&mut pb_state.main_state).last_mouse_y) as f32 / h as f32;
+            pb::ball_set(dx, dy, &mut pb_state.pb_game_state);
+
+            // Original creates continuous mouse movement with mouse capture.
+            // Alternative solution: mouse warp at window edges.
+            let mut x_mod: i32 = 0;
+            let mut y_mod: i32 = 0;
+
+            if (x as i32 == 0 || x as i32 >= (w as i32 - 1)) {
+                x_mod = w as i32 - 2;
+            }
+            if (y as i32 == 0 || y as i32 >= (h as i32 - 1)) {
+                y_mod = h as i32 - 2;
+            }
+
+            unsafe {
+                if (x_mod != 0 || y_mod != 0) {
+                    x = i32::abs(x as i32 - x_mod);
+                    y = i32::abs(y as i32 - y_mod);
+                    if let Some(window) = pb_state.main_state.main_window.as_ref() {
+                        SDL_WarpMouseInWindow(window.0, x, y);
+                    }
+                }
+            }
+
+            (&mut pb_state.main_state).update_mouse_xy(x, y);
         }
         if (&mut pb_state.main_state).single_step == false
             && (&mut pb_state.main_state).no_time_loss == false
@@ -362,27 +364,48 @@ fn main_loop(
             if *pb_state.options_state.options.hide_cursor
                 && (&mut pb_state.main_state).cursor_idle_counter <= 0
             {
-                // TODO: ImGUiSetCursor l376
-                unsafe { igSetMouseCursor(ImGuiMouseCursor_None) };
-                // imgui_sdl::impl_sdl2_new_frame(); TODO
-                // imgui_sdl::render_new_frame(); TODO
                 unsafe {
-                    igNewFrame();
-                    render_ui();
-
-                    SDL_RenderClear((&mut pb_state.main_state).renderer.as_ref().unwrap().0) // TODO: If let Some here
+                    igSetMouseCursor(ImGuiMouseCursor_None);
                 };
             }
-            // TODO TODO TODO TODO, do all the todos above before continuing
+
+            unsafe {
+                println!("Setting new sdl2 frame");
+                imgui_sdl::impl_sdl2_new_frame(imgui_context.io_mut(), pb_state);
+                println!("Rendering it??");
+                imgui_sdl::impl_sdl2_renderer_new_frame(imgui_context);
+                let ui = imgui_context.frame();
+                render_ui(ui, pb_state);
+                if let Some(renderer) = pb_state.main_state.renderer.as_ref() {
+                    SDL_RenderClear(renderer.0);
+                    SDL_RenderFillRect(renderer.0, null());
+                }
+                render::present_v_screen(&mut pb_state.main_state, &mut pb_state.render_state);
+            }
         }
     }
 
     Ok(())
 }
 
-unsafe fn render_ui() {
-    let vec4 = ImVec4::new(0.0, 0.0, 0.0, 1.0);
+unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) {
     unsafe {
+        let menu_bar_bg_color =
+            ui.push_style_color(StyleColor::MenuBarBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
+        let window_bg_color =
+            ui.push_style_color(StyleColor::WindowBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
+        let border_var = ui.push_style_var(StyleVar::WindowBorderSize(0.0));
+
+        if !(*state.options_state.options.show_menu) && igBeginMainMenuBar() {
+            if igMenuItem_Bool(c"Menu".as_ptr(), null(), false, false) {
+                options::toggle(ShowMenu, state);
+                // TODO: Focus
+            }
+            igEndMainMenuBar();
+        }
+    }
+}
+
 pub fn restart(main_state: &mut MainState) {
     main_state.restart = true;
     unsafe {
@@ -752,12 +775,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             imgui_context.fonts().build();
 
-            if let Some(renderer) = (&mut state.main_state).renderer.as_ref() {
-                println!("Initializing IMGUI_SDL");
-                imgui_sdl::initialize(&mut imgui_context, renderer.0, 0, 0);
+            println!("Initializing IMGUI_SDL");
+            // TODO: Should I instead keep the ptr? Is this broken?
+            if let Some(renderer) = state.main_state.renderer.as_ref() {
+                imgui_sdl::renderer::init(&mut imgui_context, renderer.0);
+                // TODO: Styles color dark
                 imgui_sdl::init_for_sdl_renderer(&mut imgui_context, window, renderer.0);
-            } else {
-                panic!("No renderer found to initialize IMGUI!");
             }
 
             cfg_flags |= ConfigFlags::NAV_ENABLE_KEYBOARD | ConfigFlags::NAV_ENABLE_GAMEPAD;
@@ -862,7 +885,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             //sound::close();
             pb::uninit(&mut state);
 
-            if (&mut state.main_state).restart {}
+            if state.main_state.restart {}
         }
     }
 }
