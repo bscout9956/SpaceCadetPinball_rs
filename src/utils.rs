@@ -1,7 +1,7 @@
 // Equivalent to pch.h with some additions
 
 use std::io::Read;
-use sdl2::sys::{SDL_Renderer, SDL_Texture, SDL_Window};
+use sdl2::sys::{SDL_DestroyTexture, SDL_Renderer, SDL_Texture, SDL_Window};
 
 pub struct SdlWindowPtr(pub *mut SDL_Window);
 unsafe impl Sync for SdlWindowPtr {}
@@ -12,6 +12,14 @@ unsafe impl Sync for SdlRendererPtr {}
 
 #[derive(Clone)]
 pub struct SdlTexturePtr(pub *mut SDL_Texture);
+
+impl Drop for SdlTexturePtr {
+    fn drop(&mut self) {
+        unsafe {
+            SDL_DestroyTexture(self.0);
+        }
+    }
+}
 
 pub fn clamp<T: std::cmp::Ord + Copy>(n: &T, lower: &T, upper: &T) -> T {
     std::cmp::max(*lower, std::cmp::min(*n, *upper))
