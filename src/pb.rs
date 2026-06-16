@@ -388,14 +388,13 @@ fn mode_change(
 }
 
 pub(crate) fn uninit(state: &mut PinballState) -> i32 {
-    loader::unload(&mut state.loader_state);
+    loader::unload(&mut state.loader_state, &mut state.sound_state);
     high_score::write(
         &mut state.high_score_state,
         &mut state.options_state.settings,
     );
     state.pb_game_state.main_table = None;
     timer::uninit();
-    render::uninit();
     0
 }
 
