@@ -272,6 +272,45 @@ pub mod renderer {
 
         io.set_backend_renderer_user_data(null_mut());
     }
+
+    pub(crate) fn render_draw_data(io: &mut Io, draw_data: *mut ImDrawData) {
+        let bd = get_renderer_bd_from_io(io);
+
+        let mut rsx = 1.0f32;
+        let mut rsy = 1.0f32;
+        unsafe {
+            SDL_RenderGetScale((*bd).renderer, &raw mut rsx, &raw mut rsy);
+            let mut render_scale = ImVec2::new(rsx, rsy);
+
+            render_scale.x = if rsx == 1.0f32 {
+                (*draw_data).DisplaySize.x
+            } else {
+                1.0f32
+            };
+
+            render_scale.y = if rsy == 1.0f32 {
+                (*draw_data).DisplaySize.y
+            } else {
+                1.0f32
+            };
+
+            let fb_width = ((*draw_data).DisplaySize.x * render_scale.x) as i32;
+            let fb_height = ((*draw_data).DisplaySize.y * render_scale.y) as i32;
+            if fb_width == 0 || fb_height == 0 {
+                return;
+            }
+
+            let mut old = BackupSDLRendererState::new();
+            old.clip_enabled = SDL_RenderIsClipEnabled((*bd).renderer) == SDL_TRUE;
+            SDL_RenderGetViewport((*bd).renderer, &raw mut old.viewport);
+            SDL_RenderGetClipRect((*bd).renderer, &raw mut old.clip_rect);
+
+            let clip_off = (*draw_data).DisplayPos;
+            let clip_scale = render_scale;
+            
+            //l141
+        }
+    }
 }
 
 pub fn init_for_sdl_renderer(
