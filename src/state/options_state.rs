@@ -16,11 +16,13 @@ use sdl2::sys::SDL_KeyCode::{
     SDLK_SLASH, SDLK_SPACE, SDLK_UP, SDLK_x, SDLK_z,
 };
 use sdl2::sys::{SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2};
+use std::collections::HashMap;
 
 pub struct OptionsState {
     pub show_dialog: bool,
     pub control_waiting_for_input: Option<GameInput>,
     pub options: OptionsStruct,
+    pub settings: HashMap<String, String>,
 }
 
 impl OptionsState {
@@ -29,6 +31,7 @@ impl OptionsState {
             show_dialog: false,
             control_waiting_for_input: None,
             options: get_default_options(),
+            settings: HashMap::new(),
         }
     }
 }
