@@ -1,4 +1,4 @@
-struct TlightPlayerBackup {
+pub struct TlightPlayerBackup {
     message_field: i32,
     light_on_flag: bool,
     light_on_bmp_index: i32,

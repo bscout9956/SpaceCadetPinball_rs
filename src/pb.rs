@@ -44,9 +44,9 @@ pub fn show_message_box(
     main_window: &Option<SdlWindowPtr>,
 ) -> Result<(), PbError> {
     if flags == SDL_MESSAGEBOX_ERROR {
-        write!(std::io::stderr(), "BL error {}\n{}\n", title, message).unwrap();
+        eprint!("BL error {}\n{}\n", title, message);
     } else {
-        write!(std::io::stdout(), "BL error {}\n{}\n", title, message).unwrap();
+        print!("BL error {}\n{}\n", title, message);
     }
 
     let title = CString::new(title)?;
@@ -339,56 +339,46 @@ fn mode_change(
 ) -> Result<(), PbError> {
     let miss_text_box = pb_game_state.miss_text_box.as_ref();
 
-    if pb_game_state.credits_active && miss_text_box.is_some() {
-        miss_text_box.unwrap().clear(true);
+    if pb_game_state.credits_active
+        && let Some(text_box) = miss_text_box
+    {
+        text_box.clear(true);
     }
     pb_game_state.credits_active = false;
-    pb_game_state.credits_active = pb_game_state.credits_active;
     pb_game_state.idle_timer_ms = 0.0;
 
     match mode {
         GameModes::InGame => {
-            if (pb_game_state.demo_mode == true) {
+            if (pb_game_state.demo_mode) {
                 main_state.launch_ball_enabled = false;
                 main_state.high_scores_enabled = false;
                 main_state.demo_active = true;
-                match pb_game_state.main_table.as_mut() {
-                    Some(table) => {
-                        if table.demo.is_some() {
-                            table.demo.as_mut().unwrap().active_flag = true;
-                        }
-                    }
-                    None => {}
+                if let Some(table) = pb_game_state.main_table.as_mut()
+                    && let Some(table_demo) = table.demo.as_mut()
+                {
+                    table_demo.active_flag = true;
                 }
             } else {
                 main_state.launch_ball_enabled = true;
                 main_state.high_scores_enabled = false;
                 main_state.demo_active = false;
-                match pb_game_state.main_table.as_mut() {
-                    Some(mut table) => {
-                        if table.demo.is_some() {
-                            let table_demo = table.demo.as_mut().unwrap();
-                            table_demo.active_flag = true;
-                        }
-                    }
-                    None => {}
+                if let Some(mut table) = pb_game_state.main_table.as_mut()
+                    && let Some(table_demo) = table.demo.as_mut()
+                {
+                    table_demo.active_flag = true;
                 }
             }
         }
         GameModes::GameOver => {
             main_state.launch_ball_enabled = false;
-            if pb_game_state.demo_mode == false {
+            if !pb_game_state.demo_mode {
                 main_state.high_scores_enabled = true;
                 main_state.demo_active = false;
             }
-            match (pb_game_state.main_table.as_ref()) {
-                Some(table) => {
-                    if table.light_group.is_some() {
-                        let light_group = table.light_group.as_ref().unwrap();
-                        light_group.message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
-                    }
-                }
-                None => {}
+            if let Some(table) = pb_game_state.main_table.as_ref()
+                && let Some(light_group) = table.light_group.as_ref()
+            {
+                light_group.message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
             }
         }
     }

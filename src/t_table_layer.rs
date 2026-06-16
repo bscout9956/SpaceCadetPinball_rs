@@ -136,7 +136,7 @@ impl TTableLayer {
         }
 
         let gravity_mult: f32;
-        if pb_game_state.full_tilt_mode == false && pb_game_state.full_tilt_demo_mode == false {
+        if !pb_game_state.full_tilt_mode && !pb_game_state.full_tilt_demo_mode {
             let angle_mult = loader::query_float_attribute_ptr(group_index, 0, 701, loader_state)?;
             gravity_mult = unsafe { *angle_mult };
         } else {
@@ -200,13 +200,7 @@ impl TTableLayer {
             // line.place_in_grid(&instance.base_component.AABB);
         }
 
-        Ok(TTableLayer::new(
-            table,
-            pb_game_state,
-            render_state,
-            resolution,
-            loader_state,
-        )?) // TODO: I'm unfinished, just so rustc can stfu
+        TTableLayer::new(table, pb_game_state, render_state, resolution, loader_state) // TODO: I'm unfinished, just so rustc can stfu
     }
 }
 
