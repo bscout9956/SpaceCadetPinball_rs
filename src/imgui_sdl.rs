@@ -222,13 +222,44 @@ pub mod renderer {
     use crate::imgui_sdl::{
         CURRENT_DEVICE, Device, ImplSdl2RenderData, Texture, get_renderer_bd_from_io,
     };
-    use dear_imgui_rs::sys::ImGuiBackendFlags_RendererHasVtxOffset;
-    use dear_imgui_rs::{BackendFlags, Context, TextureId};
+    use dear_imgui_rs::sys::{
+        ImDrawData, ImGuiBackendFlags_RendererHasVtxOffset, ImVec2, ImVec2_c,
+    };
+    use dear_imgui_rs::{BackendFlags, Context, Io, TextureId};
+    use sdl2::sys::SDL_bool::SDL_TRUE;
     use sdl2::sys::{
-        SDL_CreateRGBSurfaceFrom, SDL_CreateTextureFromSurface, SDL_DestroyTexture, SDL_Renderer,
+        SDL_CreateRGBSurfaceFrom, SDL_CreateTextureFromSurface, SDL_DestroyTexture, SDL_Rect,
+        SDL_RenderGetClipRect, SDL_RenderGetScale, SDL_RenderGetViewport, SDL_RenderIsClipEnabled,
+        SDL_Renderer,
     };
     use std::ffi::c_void;
     use std::ptr::null_mut;
+
+    struct BackupSDLRendererState {
+        viewport: SDL_Rect,
+        clip_enabled: bool,
+        clip_rect: SDL_Rect,
+    }
+
+    impl BackupSDLRendererState {
+        fn new() -> Self {
+            Self {
+                viewport: SDL_Rect {
+                    x: 0,
+                    y: 0,
+                    w: 0,
+                    h: 0,
+                },
+                clip_enabled: false,
+                clip_rect: SDL_Rect {
+                    x: 0,
+                    y: 0,
+                    w: 0,
+                    h: 0,
+                },
+            }
+        }
+    }
 
     pub fn init(context: &mut Context, renderer: *mut SDL_Renderer) {
         let mut io = context.io_mut();
