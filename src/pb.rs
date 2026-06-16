@@ -3,6 +3,7 @@ use crate::gdrv::ColorRgba;
 use crate::group_data::{EntryBuffer, FieldTypes};
 use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
 use crate::message_code::MessageCode;
+use crate::state::loader_state::LoaderState;
 use crate::state::main_state::MainState;
 use crate::state::options_state::OptionsState;
 use crate::state::pb_game_state::PbGameState;
@@ -261,7 +262,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
         );
     }
 
-    loader::load_from(shared_dat)?;
+    loader::load_from(shared_dat, &mut state.loader_state)?;
 
     mode_change(GameModes::InGame, &mut state.main_state, pb_game_state);
 
@@ -395,10 +396,10 @@ fn mode_change(
     Ok(())
 }
 
-pub(crate) fn uninit(pb_game_state: &mut PbGameState) -> i32 {
+pub(crate) fn uninit(pb_game_state: &mut PbGameState, loader_state: &mut LoaderState) -> i32 {
     todo!();
     score::unload_msg_font();
-    loader::unload();
+    loader::unload(loader_state);
     high_score::write();
     pb_game_state.main_table = None;
     timer::uninit();
