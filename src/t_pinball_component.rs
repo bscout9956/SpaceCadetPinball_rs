@@ -106,20 +106,19 @@ impl IPinballComponent for TPinballComponent {
         let mut bmp = None;
         let mut zmap = None;
 
-        if index >= 0 {
-            if let Some(sprite_data) = self.list_bitmap.get(index as usize) {
-                bmp = sprite_data.bmp.clone();
-                zmap = sprite_data.zmap.clone();
+        if index >= 0
+            && let Some(sprite_data) = self.list_bitmap.get(index as usize)
+        {
+            bmp = sprite_data.bmp.clone();
+            zmap = sprite_data.zmap.clone();
 
-                if let Some(ref b) = bmp {
-                    if let Some(table_weak) = &self.pinball_table {
-                        if let Some(table_rc) = table_weak.upgrade() {
-                            let table_borrow = table_rc.borrow();
-                            x_pos = b.x_position - table_borrow.x_offset;
-                            y_pos = b.y_position - table_borrow.y_offset;
-                        }
-                    }
-                }
+            if let Some(ref b) = bmp
+                && let Some(table_weak) = &self.pinball_table
+                && let Some(table_rc) = table_weak.upgrade()
+            {
+                let table_borrow = table_rc.borrow();
+                x_pos = b.x_position - table_borrow.x_offset;
+                y_pos = b.y_position - table_borrow.y_offset;
             }
         }
         self.render_sprite.set(bmp, zmap, x_pos, y_pos);
