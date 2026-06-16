@@ -798,10 +798,8 @@ pub(crate) unsafe fn impl_sdl2_new_frame(io: &mut Io, state: &mut PinballState) 
                 println!("No renderer in BD!!!!!");
                 SDL_GL_GetDrawableSize(window.0, &raw mut display_w, &raw mut display_h);
             }
-            println!("Setting display size");
             io.set_display_size([w as f32, h as f32]);
             if w > 0 && h > 0 {
-                println!("Display sizes greater than 0");
                 io.set_display_framebuffer_scale([
                     display_w as f32 / w as f32,
                     display_h as f32 / h as f32,
