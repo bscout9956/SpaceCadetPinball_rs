@@ -105,7 +105,7 @@ pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenErr
     let mut offset_2x = 0;
     let mut offset_2y = 0;
 
-    if *(&mut state.options_state).options.integer_scaling {
+    if *state.options_state.options.integer_scaling {
         fullscrn_state.scale_x = if fullscrn_state.scale_x < 1.0 {
             fullscrn_state.scale_x
         } else {
@@ -119,7 +119,7 @@ pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenErr
         };
     }
 
-    if *(&mut state.options_state).options.uniform_scaling {
+    if *state.options_state.options.uniform_scaling {
         fullscrn_state.scale_x = f32::min(fullscrn_state.scale_x, fullscrn_state.scale_y);
         fullscrn_state.scale_y = fullscrn_state.scale_x;
     }

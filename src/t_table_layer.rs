@@ -3,6 +3,7 @@ use crate::gdrv::GdrvBitmap8;
 use crate::loader::{VisualStruct, query_float_attribute_ptr};
 use crate::maths::{MathsError, RectangleType, Vector2, f32_vec_to_vec3};
 use crate::render::{RenderSprite, VisualTypes};
+use crate::state::loader_state::LoaderState;
 use crate::state::pb_game_state::PbGameState;
 use crate::state::render_state::RenderState;
 use crate::t_ball::TBall;
@@ -53,16 +54,25 @@ impl TTableLayer {
         pb_game_state: &mut PbGameState,
         render_state: &mut RenderState,
         resolution: i32,
+        loader_state: &mut LoaderState,
     ) -> Result<Self, TTableLayerError> {
         let mut visual = VisualStruct::default();
         let mut rect = RectangleType::default();
 
-        let group_index = loader::query_handle(c"table".as_ptr())?;
-        loader::query_visual(group_index, 0, &mut visual, pb_game_state, resolution)?;
+        let group_index = loader::query_handle(c"table".as_ptr(), loader_state)?;
+        loader::query_visual(
+            group_index,
+            0,
+            &mut visual,
+            pb_game_state,
+            resolution,
+            loader_state,
+        )?;
         let sprite_data = visual.bitmap;
 
         /*Full tilt: proj center first value is offset by resolution*/
-        let float_ptr = loader::query_float_attribute_ptr(group_index, 0, 700 + resolution)?;
+        let float_ptr =
+            loader::query_float_attribute_ptr(group_index, 0, 700 + resolution, loader_state)?;
         let proj_center = slice_from_raw_parts(float_ptr, 2);
         unsafe {
             proj::recenter(&(*proj_center)[0], &(*proj_center)[1]);
@@ -89,7 +99,7 @@ impl TTableLayer {
             render_state,
         );
 
-        let table_angle_array = query_float_attribute_ptr(group_index, 0, 305)?;
+        let table_angle_array = query_float_attribute_ptr(group_index, 0, 305, loader_state)?;
         let table_slice = unsafe { from_raw_parts(table_angle_array, 3) };
         if !table_angle_array.is_null() {
             if let Some(t) = table.as_ref().unwrap().upgrade() {
@@ -127,14 +137,20 @@ impl TTableLayer {
 
         let gravity_mult: f32;
         if pb_game_state.full_tilt_mode == false && pb_game_state.full_tilt_demo_mode == false {
-            let angle_mult = loader::query_float_attribute_ptr(group_index, 0, 701)?;
+            let angle_mult = loader::query_float_attribute_ptr(group_index, 0, 701, loader_state)?;
             gravity_mult = unsafe { *angle_mult };
         } else {
             gravity_mult = 0.2f32;
         }
 
-        let mut base =
-            TCollisionComponent::new(table.clone(), -1, false, pb_game_state, resolution);
+        let mut base = TCollisionComponent::new(
+            table.clone(),
+            -1,
+            false,
+            pb_game_state,
+            resolution,
+            loader_state,
+        );
         base.borrow_mut().threshold = visual.kicker.threshold;
         base.borrow_mut().boost = 15.0f32;
 
@@ -189,6 +205,7 @@ impl TTableLayer {
             pb_game_state,
             render_state,
             resolution,
+            loader_state,
         )?) // TODO: I'm unfinished, just so rustc can stfu
     }
 }

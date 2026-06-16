@@ -1,4 +1,5 @@
 use crate::state::fullscrn_state::FullscrnState;
+use crate::state::loader_state::LoaderState;
 use crate::state::main_state::MainState;
 use crate::state::options_state::OptionsState;
 use crate::state::pb_game_state::PbGameState;
@@ -10,6 +11,7 @@ pub struct PinballState {
     pub options_state: OptionsState,
     pub fullscrn_state: FullscrnState,
     pub render_state: RenderState,
+    pub loader_state: LoaderState,
 }
 
 impl PinballState {
@@ -20,6 +22,7 @@ impl PinballState {
             options_state: OptionsState::default(),
             fullscrn_state: FullscrnState::default(),
             render_state: RenderState::default(),
+            loader_state: LoaderState::new(),
         }
     }
 }

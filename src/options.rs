@@ -769,11 +769,13 @@ pub unsafe extern "C" fn MyUserData_ReadOpen(
     handler: *mut ImGuiSettingsHandler,
     name: *const c_char,
 ) -> *mut c_void {
-    let name_str = CStr::from_ptr(name);
-    if name_str.to_bytes() == b"Settings" {
-        return (*handler).UserData;
+    unsafe {
+        let name_str = CStr::from_ptr(name);
+        if name_str.to_bytes() == b"Settings" {
+            return (*handler).UserData;
+        }
+        std::ptr::null_mut()
     }
-    std::ptr::null_mut()
 }
 
 #[allow(non_snake_case)]
