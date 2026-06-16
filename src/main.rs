@@ -848,7 +848,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             // TODO: Implement sound midi::music_shutdown();
             // TODO: Implement sound stuff
             //sound::close();
-            pb::uninit(&mut state.pb_game_state, &mut state.loader_state);
+            pb::uninit(&mut state);
 
             if (&mut state.main_state).restart {}
         }

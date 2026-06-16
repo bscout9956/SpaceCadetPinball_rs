@@ -387,15 +387,16 @@ fn mode_change(
     Ok(())
 }
 
-pub(crate) fn uninit(pb_game_state: &mut PbGameState, loader_state: &mut LoaderState) -> i32 {
-    todo!();
-    score::unload_msg_font();
-    loader::unload(loader_state);
-    high_score::write();
-    pb_game_state.main_table = None;
+pub(crate) fn uninit(state: &mut PinballState) -> i32 {
+    loader::unload(&mut state.loader_state);
+    high_score::write(
+        &mut state.high_score_state,
+        &mut state.options_state.settings,
+    );
+    state.pb_game_state.main_table = None;
     timer::uninit();
     render::uninit();
-    return 0;
+    0
 }
 
 pub fn ball_set(dx: f32, dy: f32, pb_game_state: &mut PbGameState) {
