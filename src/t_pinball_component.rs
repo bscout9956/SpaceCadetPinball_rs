@@ -67,8 +67,7 @@ impl TPinballComponent {
 
         if group_index >= 0 {
             let name = loader::query_name(group_index, loader_state).unwrap();
-            let name_string = unsafe { CStr::from_ptr(name).to_string_lossy().into_owned() };
-            instance.group_name = Some(Rc::new(RefCell::new(name_string)))
+            instance.group_name = Some(Rc::new(RefCell::new(name)))
         }
 
         if load_visuals && group_index >= 0 {

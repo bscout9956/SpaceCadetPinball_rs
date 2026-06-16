@@ -11,7 +11,7 @@ use crate::{SdlWindowPtr, pb, sound};
 use num_traits::Float;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::mixer::Mix_Chunk;
-use std::ffi::{CStr, c_char};
+use std::ffi::{CStr, CString, c_char};
 use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
@@ -415,23 +415,20 @@ pub fn query_visual_states(
     }
 }
 
-// TODO: Stop using pointers?
-pub fn query_name(
-    group_index: i32,
-    loader_state: &mut LoaderState,
-) -> Result<*const c_char, LoaderError> {
+pub fn query_name(group_index: i32, loader_state: &mut LoaderState) -> Result<String, LoaderError> {
     let loader_table = loader_state.loader_table.as_ref().unwrap();
     if group_index < 0 {
         error(0, 19);
-        return Ok(null());
+        return Ok("".to_string());
     }
 
     if let Some(EntryBuffer::Raw(result_data)) =
         loader_table.field(group_index, FieldTypes::GroupName)
     {
-        Ok(result_data.as_ptr() as *const c_char)
+        let c_str = CStr::from_bytes_with_nul(result_data)?; // Assuming we have a nul terminator there, should be ok?
+        Ok(c_str.to_string_lossy().into_owned())
     } else {
-        Ok(null())
+        Ok("".to_string())
     }
 }
 

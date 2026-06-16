@@ -1,4 +1,4 @@
-use std::ffi::{FromBytesUntilNulError, NulError};
+use std::ffi::{FromBytesUntilNulError, FromBytesWithNulError, NulError};
 use std::io::Error;
 use std::sync::{Arc, MutexGuard, PoisonError};
 use thiserror::Error;
@@ -46,6 +46,8 @@ pub enum LoaderError {
     SoundListLock(#[from] PoisonError<MutexGuard<'static, [SoundListStruct; 65]>>),
     #[error("Failed to lock SOUND_COUNT")]
     SoundCountLock(#[from] PoisonError<MutexGuard<'static, i32>>),
+    #[error(transparent)]
+    FromBytesWithNul(#[from] FromBytesWithNulError),
 }
 
 #[derive(Error, Debug)]
