@@ -608,3 +608,11 @@ pub fn impl_sdl2_get_backend_data(io: &mut Io) -> Option<&mut ImplSdl2Data> {
         Some(unsafe { &mut *ptr.cast::<ImplSdl2Data>() })
     }
 }
+
+pub(crate) fn render_new_frame() {
+    todo!()
+}
+
+pub(crate) fn impl_sdl2_new_frame() {
+    todo!()
+}

@@ -1,6 +1,7 @@
 use crate::errors::LoaderError;
 use crate::gdrv::GdrvBitmap8;
 use crate::score::ScoreMessageFontType;
+use crate::state::loader_state::LoaderState;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox_message::TTextBoxMessage;
 use crate::{fullscrn, loader, render, score};
@@ -39,10 +40,10 @@ impl TTextBox {
     pub fn new(
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
+        resolution: i32,
+        background_bitmap: Option<GdrvBitmap8>,
+        loader_state: &mut LoaderState,
     ) -> Result<TTextBox, TTextBoxError> {
-        let bg_bmp = render::BACKGROUND_BITMAP
-            .lock()
-            .map_err(|_| TTextBoxError::New)?;
         let font = score::MSG_FONTP.lock().map_err(|_| TTextBoxError::New)?;
 
         let mut instance = Self {
@@ -51,7 +52,7 @@ impl TTextBox {
             width: 0,
             height: 0,
             timer: 0,
-            bg_bmp: (*bg_bmp).clone(),
+            bg_bmp: background_bitmap.clone(),
             font: (*font).clone(),
             current_message: None,
             previous_message: None,
@@ -61,9 +62,10 @@ impl TTextBox {
             /*Full tilt: text box dimensions index is offset by resolution*/
             let mut arr_length: i32 = 0;
             let dimensions = loader::query_int_attribute(
-                group_index + fullscrn::get_resolution(),
+                group_index + resolution,
                 1500,
                 &mut arr_length,
+                loader_state,
             )?;
 
             let dim_array =

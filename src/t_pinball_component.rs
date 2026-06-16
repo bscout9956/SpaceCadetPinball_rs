@@ -2,6 +2,7 @@ use crate::gdrv::GdrvBitmap8;
 use crate::maths::*;
 use crate::message_code::MessageCode;
 use crate::render::RenderSprite;
+use crate::state::loader_state::LoaderState;
 use crate::zdrv::ZMapHeaderType;
 use crate::{control::ComponentControl, loader, loader::VisualStruct};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
@@ -41,6 +42,7 @@ impl TPinballComponent {
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         load_visuals: bool,
+        loader_state: &mut LoaderState,
     ) -> Self {
         let visual: VisualStruct;
 
@@ -64,7 +66,7 @@ impl TPinballComponent {
         }
 
         if group_index >= 0 {
-            let name = loader::query_name(group_index).unwrap();
+            let name = loader::query_name(group_index, loader_state).unwrap();
             let name_string = unsafe { CStr::from_ptr(name).to_string_lossy().into_owned() };
             instance.group_name = Some(Rc::new(RefCell::new(name_string)))
         }
@@ -104,20 +106,19 @@ impl IPinballComponent for TPinballComponent {
         let mut bmp = None;
         let mut zmap = None;
 
-        if index >= 0 {
-            if let Some(sprite_data) = self.list_bitmap.get(index as usize) {
-                bmp = sprite_data.bmp.clone();
-                zmap = sprite_data.zmap.clone();
+        if index >= 0
+            && let Some(sprite_data) = self.list_bitmap.get(index as usize)
+        {
+            bmp = sprite_data.bmp.clone();
+            zmap = sprite_data.zmap.clone();
 
-                if let Some(ref b) = bmp {
-                    if let Some(table_weak) = &self.pinball_table {
-                        if let Some(table_rc) = table_weak.upgrade() {
-                            let table_borrow = table_rc.borrow();
-                            x_pos = b.x_position - table_borrow.x_offset;
-                            y_pos = b.y_position - table_borrow.y_offset;
-                        }
-                    }
-                }
+            if let Some(ref b) = bmp
+                && let Some(table_weak) = &self.pinball_table
+                && let Some(table_rc) = table_weak.upgrade()
+            {
+                let table_borrow = table_rc.borrow();
+                x_pos = b.x_position - table_borrow.x_offset;
+                y_pos = b.y_position - table_borrow.y_offset;
             }
         }
         self.render_sprite.set(bmp, zmap, x_pos, y_pos);

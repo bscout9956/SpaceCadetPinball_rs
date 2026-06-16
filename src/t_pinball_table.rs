@@ -1,14 +1,17 @@
 use crate::maths::{Vector2, Vector3};
 use crate::message_code::MessageCode;
 use crate::score::ScoreStruct;
+use crate::state::fullscrn_state::FullscrnState;
+use crate::state::loader_state::LoaderState;
+use crate::state::pb_game_state::PbGameState;
+use crate::state::render_state::RenderState;
 use crate::t_ball::TBall;
 use crate::t_demo::TDemo;
 use crate::t_light_group::TLightGroup;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
-use crate::{pb, timer};
+use crate::timer;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::atomic::Ordering::SeqCst;
 
 pub struct ScoreStructSuper {
     pub score_struct: ScoreStruct,
@@ -107,9 +110,15 @@ unsafe impl Sync for TPinballTable {}
 unsafe impl Send for TPinballTable {}
 
 impl TPinballTable {
-    pub fn new() -> Self {
+    // TODO: Consider reducing to state
+    pub fn new(
+        pb_game_state: &mut PbGameState,
+        render_state: &mut RenderState,
+        fullscrn_state: &mut FullscrnState,
+        loader_state: &mut LoaderState,
+    ) -> Self {
         let short_arr_length: usize;
-        let base = TPinballComponent::new(None, -1, false);
+        let base = TPinballComponent::new(None, -1, false, loader_state);
 
         let mut instance = Self {
             base,
@@ -170,7 +179,13 @@ impl TPinballTable {
             score_multipliers: vec![],
         };
 
-        let ball = instance.add_ball(Vector2::default());
+        let ball = instance.add_ball(
+            Vector2::default(),
+            pb_game_state,
+            render_state,
+            fullscrn_state,
+            loader_state,
+        );
         match ball {
             Some(b) => {
                 b.borrow_mut().disable();
@@ -227,7 +242,15 @@ impl TPinballTable {
         0
     }
 
-    fn add_ball(&mut self, position: Vector2) -> Option<Rc<RefCell<TBall>>> {
+    // TODO: Consider reducing to state
+    fn add_ball(
+        &mut self,
+        position: Vector2,
+        pb_game_state: &mut PbGameState,
+        render_state: &mut RenderState,
+        fullscrn_state: &mut FullscrnState,
+        loader_state: &mut LoaderState,
+    ) -> Option<Rc<RefCell<TBall>>> {
         let mut target_ball_rc: Option<Rc<RefCell<TBall>>> = None;
 
         for rc_ball in &self.ball_list {
@@ -250,7 +273,14 @@ impl TPinballTable {
 
             let table_weak = self.base.pinball_table.clone();
 
-            let new_ball_rc = TBall::new(table_weak, -1);
+            let new_ball_rc = TBall::new(
+                table_weak,
+                -1,
+                pb_game_state,
+                render_state,
+                fullscrn_state.resolution,
+                loader_state,
+            );
 
             self.ball_list.push(Rc::clone(&new_ball_rc));
             new_ball_rc
@@ -273,7 +303,7 @@ impl TPinballTable {
             ball.position.y = position.y;
             ball.prev_position = ball.position;
             ball.stuck_count = 0;
-            ball.last_active_time = pb::TIME_TICKS.load(SeqCst);
+            ball.last_active_time = pb_game_state.time_ticks;
         }
 
         Some(ball_rc)

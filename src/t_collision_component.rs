@@ -1,6 +1,7 @@
 use crate::loader;
 use crate::loader::VisualStruct;
 use crate::maths::*;
+use crate::state::loader_state::LoaderState;
 use crate::t_ball::TBall;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
@@ -40,6 +41,7 @@ pub trait ICollisionComponent {
 }
 
 use crate::message_code::MessageCode;
+use crate::state::pb_game_state::PbGameState;
 use std::ops::{Deref, DerefMut};
 use std::rc::Weak;
 
@@ -62,15 +64,25 @@ impl TCollisionComponent {
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         create_wall: bool,
+        pb_game_state: &mut PbGameState,
+        resolution: i32,
+        loader_state: &mut LoaderState,
     ) -> Rc<RefCell<Self>> {
-        let base = TPinballComponent::new(table, group_index, true);
+        let base = TPinballComponent::new(table, group_index, true, loader_state);
 
         let mut visual = VisualStruct::default();
 
         if group_index <= 0 {
             loader::default_vsi(&mut visual);
         } else {
-            loader::query_visual(group_index, 0, &mut visual);
+            loader::query_visual(
+                group_index,
+                0,
+                &mut visual,
+                pb_game_state,
+                resolution,
+                loader_state,
+            );
         }
 
         let mut instance_data = Self {
@@ -99,7 +111,8 @@ impl TCollisionComponent {
         if create_wall && group_index > 0 {
             if let Some(tbl) = &instance.borrow().base.pinball_table {
                 let offset: f32 = tbl.upgrade().unwrap().borrow().collision_comp_offset;
-                let float_array = loader::query_float_attribute_ptr(group_index, 0, 600);
+                let float_array =
+                    loader::query_float_attribute_ptr(group_index, 0, 600, loader_state);
                 match float_array {
                     Ok(array_ptr) => {
                         let weak_comp =

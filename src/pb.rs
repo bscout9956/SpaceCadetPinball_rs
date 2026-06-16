@@ -1,59 +1,27 @@
 use crate::errors::PbError;
-use crate::fullscrn::RESOLUTION_ARRAY;
 use crate::gdrv::ColorRgba;
-use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
+use crate::group_data::{EntryBuffer, FieldTypes};
 use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
 use crate::message_code::MessageCode;
-use crate::pinball_state::{MainState, OptionsState};
+use crate::state::loader_state::LoaderState;
+use crate::state::main_state::MainState;
+use crate::state::options_state::OptionsState;
+use crate::state::pb_game_state::PbGameState;
+use crate::state::pinball_state::PinballState;
+use crate::state::render_state::RenderState;
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_pinball_table::TPinballTable;
-use crate::t_textbox::TTextBox;
 use crate::translations::{Msg, TranslationError};
 use crate::{
-    DEMO_ACTIVE, HIGH_SCORES_ENABLED, LAUNCH_BALL_ENABLED, MAIN_WINDOW, control, fullscrn, gdrv,
-    loader, maths, midi, partman, proj, render, score, timer, translations,
+    SdlWindowPtr, control, gdrv, high_score, loader, maths, midi, partman, proj, render, score,
+    timer, translations,
 };
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
 use std::ffi::{CStr, CString, c_char};
 use std::fs::File;
 use std::io::Write;
-use std::sync::atomic::Ordering::{Relaxed, SeqCst};
-use std::sync::atomic::{AtomicBool, AtomicUsize};
-use std::sync::{Arc, LazyLock, Mutex};
-
-pub static QUICK_FLAG: AtomicBool = AtomicBool::new(false);
-pub static FULL_TILT_MODE: AtomicBool = AtomicBool::new(false);
-
-pub static FULL_TILT_DEMO_MODE: AtomicBool = AtomicBool::new(false);
-
-pub static CHEAT_MODE: AtomicBool = AtomicBool::new(false);
-
-pub static DEMO_MODE: AtomicBool = AtomicBool::new(false);
-
-pub static CREDITS_ACTIVE: AtomicBool = AtomicBool::new(false);
-
-pub static IDLE_TIMER_MS: Mutex<f32> = Mutex::new(0.0);
-
-pub static TIME_TICKS: AtomicUsize = AtomicUsize::new(0);
-
-pub static DAT_FILE_NAME: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
-pub static BASE_PATH: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
-pub static RECORD_TABLE: LazyLock<Mutex<Option<Arc<DatFile>>>> = LazyLock::new(|| Mutex::new(None));
-
-pub static MAIN_TABLE: LazyLock<Mutex<Option<TPinballTable>>> = LazyLock::new(|| Mutex::new(None));
-
-pub static MISS_TEXT_BOX: Mutex<Option<TTextBox>> = Mutex::new(None);
-
-pub static GAME_MODE: Mutex<GameModes> = Mutex::new(GameModes::GameOver);
-
-static TIME_NEXT: Mutex<f32> = Mutex::new(0.0);
-
-static TIME_NOW: Mutex<f32> = Mutex::new(0.0);
-
-static BALL_MAX_SPEED: Mutex<f32> = Mutex::new(0.0);
-static BALL_HALF_RADIUS: Mutex<f32> = Mutex::new(0.0);
-static BALL_TO_BALL_COLLISION_DISTANCE: Mutex<f32> = Mutex::new(0.0);
+use std::sync::Arc;
 
 #[derive(PartialEq, Eq, Ord, PartialOrd)]
 pub enum GameModes {
@@ -61,16 +29,8 @@ pub enum GameModes {
     GameOver = 2,
 }
 
-pub fn make_path_name(file_name: &str) -> String {
-    match BASE_PATH.lock() {
-        Ok(path) => {
-            return format!("{}{}", *path, file_name);
-        }
-        Err(e) => {
-            println!("Failed to lock base_path {}", e);
-        }
-    }
-    String::new()
+pub fn make_path_name(file_name: &str, base_path: &str) -> String {
+    format!("{}{}", base_path, file_name)
 }
 
 pub fn get_rc_string(u_id: Msg) -> Result<&'static str, TranslationError> {
@@ -81,11 +41,12 @@ pub fn show_message_box(
     flags: SDL_MessageBoxFlags,
     title: &str,
     message: &str,
+    main_window: &Option<SdlWindowPtr>,
 ) -> Result<(), PbError> {
     if flags == SDL_MESSAGEBOX_ERROR {
-        write!(std::io::stderr(), "BL error {}\n{}\n", title, message).unwrap();
+        eprint!("BL error {}\n{}\n", title, message);
     } else {
-        write!(std::io::stdout(), "BL error {}\n{}\n", title, message).unwrap();
+        print!("BL error {}\n{}\n", title, message);
     }
 
     let title = CString::new(title)?;
@@ -93,7 +54,6 @@ pub fn show_message_box(
     let message = CString::new(message)?;
     let message_cstr = message.as_c_str();
 
-    let main_window = MAIN_WINDOW.lock().map_err(|_| PbError::LockGeneric)?;
     if let Some(window) = main_window.as_ref() {
         unsafe {
             SDL_ShowSimpleMessageBox(
@@ -112,15 +72,20 @@ pub fn show_message_box_cstr_message(
     flags: SDL_MessageBoxFlags,
     title: &str,
     message: *const c_char,
+    main_window: &Option<SdlWindowPtr>,
 ) {
     let message_str = unsafe { CStr::from_ptr(message).to_str().unwrap() };
-    show_message_box(flags, title, message_str);
+    show_message_box(flags, title, message_str, main_window);
 }
 
-pub fn select_dat_file(data_search_paths: &[&str], options_state: &mut OptionsState) {
-    clear_dat_file_name();
-    FULL_TILT_MODE.store(false, Relaxed);
-    FULL_TILT_DEMO_MODE.store(false, Relaxed);
+pub fn select_dat_file(
+    data_search_paths: &[&str],
+    options_state: &mut OptionsState,
+    pb_game_state: &mut PbGameState,
+) {
+    pb_game_state.dat_file_name.clear();
+    pb_game_state.full_tilt_mode = false;
+    pb_game_state.full_tilt_demo_mode = false;
 
     let mut dat_file_names: [&str; 3] = ["CADET.DAT", "PINBALL.DAT", "DEMO.DAT"];
 
@@ -133,7 +98,7 @@ pub fn select_dat_file(data_search_paths: &[&str], options_state: &mut OptionsSt
             continue;
         }
 
-        set_base_path(path);
+        pb_game_state.base_path = path.to_string();
 
         for dat_file_name in dat_file_names {
             let mut file_name = dat_file_name.to_string();
@@ -142,60 +107,27 @@ pub fn select_dat_file(data_search_paths: &[&str], options_state: &mut OptionsSt
                     file_name = file_name.to_lowercase();
                 }
 
-                let dat_file_path = make_path_name(&file_name);
+                let dat_file_path = make_path_name(&file_name, &pb_game_state.base_path);
                 if let Err(e) = File::open(&dat_file_path) {
                     println!("Error opening dat_file {}: {}", &dat_file_path, e);
                     continue;
                 }
-                set_dat_file_name(&file_name);
+                pb_game_state.dat_file_name = file_name;
 
-                update_full_tilt_mode(dat_file_name);
+                update_full_tilt_mode(dat_file_name, pb_game_state);
                 return;
             }
         }
     }
 }
 
-fn clear_dat_file_name() {
-    match DAT_FILE_NAME.lock() {
-        Ok(mut file_name) => {
-            file_name.clear();
-        }
-        Err(e) => {
-            println!("Error locking DAT_FILE_NAME: {}", e);
-        }
-    }
-}
-
-fn set_dat_file_name(file_name: &str) {
-    match DAT_FILE_NAME.lock() {
-        Ok(mut dat_name) => {
-            *dat_name = String::from(file_name);
-        }
-        Err(e) => {
-            println!("Error locking DAT_FILE_NAME: {}", e);
-        }
-    }
-}
-
-fn update_full_tilt_mode(dat_file_name: &str) {
+fn update_full_tilt_mode(dat_file_name: &str, pb_game_state: &mut PbGameState) {
     if dat_file_name == "CADET.DAT" {
-        FULL_TILT_MODE.store(true, Relaxed);
+        pb_game_state.full_tilt_mode = true;
     }
     if dat_file_name == "DEMO.DAT" {
-        FULL_TILT_MODE.store(true, Relaxed);
-        FULL_TILT_DEMO_MODE.store(true, Relaxed);
-    }
-}
-
-fn set_base_path(path: &str) {
-    match BASE_PATH.lock() {
-        Ok(mut base_path) => {
-            *base_path = String::from(path);
-        }
-        Err(e) => {
-            println!("Error locking BASE_PATH: {}", e);
-        }
+        pb_game_state.full_tilt_mode = true;
+        pb_game_state.full_tilt_demo_mode = true;
     }
 }
 
@@ -215,156 +147,142 @@ fn read_camera_floats(float_data: &[u8]) -> Vec<f32> {
     data
 }
 
-pub fn init(options_state: &mut OptionsState) -> Result<(bool), PbError> {
+pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
+    let fullscrn_state = &mut state.fullscrn_state;
+    let pb_game_state = &mut state.pb_game_state;
+
     let mut projection_matrix: [f32; 12] = [0.0; 12];
 
     let mut data_file_path = String::new();
 
-    match DAT_FILE_NAME.lock() {
-        Ok(mut file_name) => {
-            if file_name.is_empty() {
-                return Ok(false);
-            }
-            data_file_path = make_path_name(&file_name);
-        }
-        Err(e) => {
-            println!("Error locking DAT_FILE_NAME: {}", e);
-            return Ok(false);
-        }
+    if pb_game_state.dat_file_name.is_empty() {
+        return Ok(false);
     }
+    data_file_path = make_path_name(&pb_game_state.dat_file_name, &pb_game_state.base_path);
 
-    let dat = partman::load_records(data_file_path, FULL_TILT_MODE.load(Relaxed))?;
+    let dat = partman::load_records(data_file_path, pb_game_state.full_tilt_mode, fullscrn_state)?;
     let shared_dat = Arc::new(dat);
 
-    match RECORD_TABLE.lock() {
-        Ok(mut table_guard) => {
-            *table_guard = Some(Arc::clone(&shared_dat));
-        }
-        Err(_) => {
-            Err(PbError::LockGeneric)?;
-        }
-    }
+    pb_game_state.record_table = Some(Arc::clone(&shared_dat));
 
     let use_bmp_font: i32 = get_rc_int(Msg::TextBoxUseBitmapFont)?;
     if use_bmp_font == 1 {
-        score::load_msg_font("pbmsg_ft");
+        score::load_msg_font("pbmsg_ft", &mut pb_game_state.record_table, fullscrn_state);
     }
 
-    match RECORD_TABLE.lock() {
-        Ok(mut record_table_grd) => {
-            if (*record_table_grd).is_none() {
-                return Ok(true);
-            }
-
-            let table = record_table_grd.as_mut().unwrap();
-            let plt = table.field_labeled("background", FieldTypes::Palette);
-            let plt_data = plt.unwrap();
-            match plt_data {
-                EntryBuffer::Raw(data) => {
-                    let mut palette_colors = Vec::with_capacity(256);
-                    // extract method here
-                    for i in 0..256 {
-                        let offset = i * 4;
-                        if offset + 3 < data.len() {
-                            let color = u32::from_le_bytes([
-                                data[offset],
-                                data[offset + 1],
-                                data[offset + 2],
-                                data[offset + 3],
-                            ]);
-                            palette_colors.push(ColorRgba::color_rgba_u32(color));
-                        } else {
-                            palette_colors.push(ColorRgba::black());
-                        }
-                    }
-
-                    gdrv::display_palette(Some(&palette_colors));
-                }
-                _ => {}
-            }
-
-            let mut background_bmp = table
-                .get_bitmap(table.record_labeled("background"))
-                .to_owned();
-            let camera_info_id = table.record_labeled("camera_info") + fullscrn::get_resolution();
-            let camera_data = table.field(camera_info_id, FieldTypes::FloatArray).unwrap();
-            let mut camera_info: Vec<f32> = Vec::new();
-            match camera_data {
-                EntryBuffer::Raw(float_data) => {
-                    camera_info = read_camera_floats(float_data);
-                }
-                _ => {}
-            }
-            let res_array = RESOLUTION_ARRAY.lock().unwrap();
-            let res_info = &(*res_array)[fullscrn::get_resolution() as usize];
-
-            if !camera_info.is_empty() {
-                projection_matrix.copy_from_slice(&camera_info);
-
-                let proj_center_x = res_info.table_width as f32 * 0.5;
-                let proj_center_y = res_info.table_height as f32 * 0.5;
-                let proj_d = camera_info[0];
-                let z_min = camera_info[1];
-                let z_scaler = camera_info[2];
-                proj::init(
-                    projection_matrix,
-                    proj_d,
-                    proj_center_x,
-                    proj_center_y,
-                    z_min,
-                    z_scaler,
-                );
-            }
-
-            render::init(
-                None,
-                res_info.table_width,
-                res_info.table_height,
-                options_state,
-            );
-
-            let mut v_guard = render::V_SCREEN.lock().unwrap();
-            if let Some(ref mut dst) = *v_guard {
-                gdrv::copy_bitmap(
-                    dst,
-                    background_bmp.width,
-                    background_bmp.height,
-                    background_bmp.x_position,
-                    background_bmp.y_position,
-                    &mut background_bmp,
-                    0,
-                    0,
-                );
-            }
-
-            loader::load_from(shared_dat)?;
-        }
-        Err(e) => {
-            println!("Error locking RECORD_TABLE {}", e);
-        }
+    if pb_game_state.record_table.is_none() {
+        return Ok(true);
     }
 
-    mode_change(GameModes::InGame);
+    let table = pb_game_state.record_table.as_mut().unwrap();
+    let plt = table.field_labeled("background", FieldTypes::Palette);
+    let plt_data = plt.unwrap();
+    match plt_data {
+        EntryBuffer::Raw(data) => {
+            let mut palette_colors = Vec::with_capacity(256);
+            // extract method here
+            for i in 0..256 {
+                let offset = i * 4;
+                if offset + 3 < data.len() {
+                    let color = u32::from_le_bytes([
+                        data[offset],
+                        data[offset + 1],
+                        data[offset + 2],
+                        data[offset + 3],
+                    ]);
+                    palette_colors.push(ColorRgba::color_rgba_u32(color));
+                } else {
+                    palette_colors.push(ColorRgba::black());
+                }
+            }
 
-    TIME_TICKS.store(0, Relaxed);
+            gdrv::display_palette(Some(&palette_colors));
+        }
+        _ => {}
+    }
+
+    let mut background_bmp = table
+        .get_bitmap(
+            table.record_labeled("background"),
+            fullscrn_state.resolution,
+        )
+        .to_owned();
+
+    let camera_info_id = table.record_labeled("camera_info") + fullscrn_state.resolution;
+    let camera_data = table.field(camera_info_id, FieldTypes::FloatArray).unwrap();
+    let mut camera_info: Vec<f32> = Vec::new();
+
+    match camera_data {
+        EntryBuffer::Raw(float_data) => {
+            camera_info = read_camera_floats(float_data);
+        }
+        _ => {}
+    }
+
+    let res_val = fullscrn_state.resolution;
+    let res_info = &fullscrn_state.resolution_array[res_val as usize];
+
+    if !camera_info.is_empty() {
+        projection_matrix.copy_from_slice(&camera_info);
+
+        let proj_center_x = res_info.table_width as f32 * 0.5;
+        let proj_center_y = res_info.table_height as f32 * 0.5;
+        let proj_d = camera_info[0];
+        let z_min = camera_info[1];
+        let z_scaler = camera_info[2];
+        proj::init(
+            projection_matrix,
+            proj_d,
+            proj_center_x,
+            proj_center_y,
+            z_min,
+            z_scaler,
+        );
+    }
+
+    render::init(
+        None,
+        res_info.table_width,
+        res_info.table_height,
+        &mut state.main_state,
+        &mut state.options_state,
+        &mut state.render_state,
+    );
+
+    if let Some(dst) = state.render_state.v_screen.as_mut() {
+        gdrv::copy_bitmap(
+            dst,
+            background_bmp.width,
+            background_bmp.height,
+            background_bmp.x_position,
+            background_bmp.y_position,
+            &mut background_bmp,
+            0,
+            0,
+        );
+    }
+
+    loader::load_from(shared_dat, &mut state.loader_state)?;
+
+    mode_change(GameModes::InGame, &mut state.main_state, pb_game_state);
+
+    pb_game_state.time_ticks = 0;
     timer::init(150);
     score::init();
 
-    let mut pinball_table_grd = MAIN_TABLE.lock()?;
-    (*pinball_table_grd) = Some(TPinballTable::new());
-
-    let table = pinball_table_grd.as_ref().unwrap();
+    pb_game_state.main_table = Some(TPinballTable::new(
+        pb_game_state,
+        &mut state.render_state,
+        &mut state.fullscrn_state,
+        &mut state.loader_state,
+    ));
+    let table = pb_game_state.main_table.as_ref().unwrap();
     let ball = &table.ball_list[0].borrow();
 
-    let mut ball_max_speed = BALL_MAX_SPEED.lock().map_err(|_| PbError::LockGeneric)?;
-    let mut ball_half_radius = BALL_HALF_RADIUS.lock().map_err(|_| PbError::LockGeneric)?;
-    let mut ball_to_ball_col_dist = BALL_TO_BALL_COLLISION_DISTANCE
-        .lock()
-        .map_err(|_| PbError::LockGeneric)?;
-
-    (*ball_max_speed) = ball.radius * 200.0f32;
-    (*ball_half_radius) = ball.radius * 0.5f32;
-    (*ball_to_ball_col_dist) = ball.radius + *ball_half_radius * 2.0f32;
+    pb_game_state.ball_max_speed = ball.radius * 200.0f32;
+    pb_game_state.ball_half_radius = ball.radius * 0.5f32;
+    pb_game_state.ball_to_ball_collision_distance =
+        ball.radius + pb_game_state.ball_half_radius * 2.0f32;
 
     Ok(true)
 }
@@ -380,9 +298,8 @@ pub fn get_rc_int(u_id: Msg) -> Result<i32, TranslationError> {
     Ok(first_char.parse::<i32>().unwrap_or(0))
 }
 
-pub fn reset_table() -> Result<(), PbError> {
-    let mut table_opt = MAIN_TABLE.lock()?;
-    match table_opt.as_mut() {
+pub fn reset_table(pb_game_state: &mut PbGameState) -> Result<(), PbError> {
+    match pb_game_state.main_table.as_mut() {
         Some(mut main_table) => {
             main_table.message(MessageCode::RESET, 0.0);
             Ok(())
@@ -391,106 +308,103 @@ pub fn reset_table() -> Result<(), PbError> {
     }
 }
 
-pub fn first_time_setup() {
-    render::update();
+pub fn first_time_setup(render_state: &mut RenderState) {
+    render::update(render_state);
 }
 
 pub(crate) fn toggle_demo() {
     todo!()
 }
 
-pub fn replay_level(demo_mode: bool, options_state: &mut OptionsState) -> Result<(), PbError> {
-    DEMO_MODE.store(demo_mode, Relaxed);
-    mode_change(GameModes::InGame)?;
+pub fn replay_level(
+    demo_mode: bool,
+    main_state: &mut MainState,
+    options_state: &mut OptionsState,
+    pb_game_state: &mut PbGameState,
+) -> Result<(), PbError> {
+    pb_game_state.demo_mode = demo_mode;
+    mode_change(GameModes::InGame, main_state, pb_game_state)?;
     if *options_state.options.music == true {
         midi::music_play();
     }
-    let mut main_table = MAIN_TABLE.lock().map_err(|_| PbError::LockGeneric)?;
-    let table = (*main_table).as_mut().unwrap();
+    let table = pb_game_state.main_table.as_mut().unwrap();
     table.message(MessageCode::NEW_GAME, *options_state.options.players as f32);
     Ok(())
 }
 
-fn mode_change(mode: GameModes) -> Result<(), PbError> {
-    let mut credits_active = CREDITS_ACTIVE.load(Relaxed);
-    let box_guard = MISS_TEXT_BOX.lock().map_err(|_| PbError::LockGeneric)?;
-    let miss_text_box = box_guard.as_ref();
-    let mut idle_guard = IDLE_TIMER_MS.lock().map_err(|_| PbError::LockGeneric)?;
+fn mode_change(
+    mode: GameModes,
+    main_state: &mut MainState,
+    pb_game_state: &mut PbGameState,
+) -> Result<(), PbError> {
+    let miss_text_box = pb_game_state.miss_text_box.as_ref();
 
-    if credits_active && miss_text_box.is_some() {
-        miss_text_box.unwrap().clear(true);
+    if pb_game_state.credits_active
+        && let Some(text_box) = miss_text_box
+    {
+        text_box.clear(true);
     }
-    credits_active = false;
-    CREDITS_ACTIVE.store(credits_active, Relaxed);
-    *idle_guard = 0.0;
+    pb_game_state.credits_active = false;
+    pb_game_state.idle_timer_ms = 0.0;
 
     match mode {
         GameModes::InGame => {
-            if (DEMO_MODE.load(Relaxed) == true) {
-                LAUNCH_BALL_ENABLED.store(false, Relaxed);
-                HIGH_SCORES_ENABLED.store(false, Relaxed);
-                DEMO_ACTIVE.store(true, Relaxed);
-                let mut main_table = MAIN_TABLE.lock()?;
-                match main_table.as_mut() {
-                    Some(table) => {
-                        if table.demo.is_some() {
-                            table.demo.as_mut().unwrap().active_flag = true;
-                        }
-                    }
-                    None => {}
+            if (pb_game_state.demo_mode) {
+                main_state.launch_ball_enabled = false;
+                main_state.high_scores_enabled = false;
+                main_state.demo_active = true;
+                if let Some(table) = pb_game_state.main_table.as_mut()
+                    && let Some(table_demo) = table.demo.as_mut()
+                {
+                    table_demo.active_flag = true;
                 }
             } else {
-                LAUNCH_BALL_ENABLED.store(true, Relaxed);
-                HIGH_SCORES_ENABLED.store(true, Relaxed);
-                DEMO_ACTIVE.store(false, Relaxed);
-                let mut main_table = MAIN_TABLE.lock()?;
-                match main_table.as_mut() {
-                    Some(mut table) => {
-                        if table.demo.is_some() {
-                            let table_demo = table.demo.as_mut().unwrap();
-                            table_demo.active_flag = true;
-                        }
-                    }
-                    None => {}
+                main_state.launch_ball_enabled = true;
+                main_state.high_scores_enabled = false;
+                main_state.demo_active = false;
+                if let Some(mut table) = pb_game_state.main_table.as_mut()
+                    && let Some(table_demo) = table.demo.as_mut()
+                {
+                    table_demo.active_flag = true;
                 }
             }
         }
         GameModes::GameOver => {
-            LAUNCH_BALL_ENABLED.store(false, Relaxed);
-            if DEMO_MODE.load(Relaxed) == false {
-                HIGH_SCORES_ENABLED.store(true, Relaxed);
-                DEMO_ACTIVE.store(false, Relaxed);
+            main_state.launch_ball_enabled = false;
+            if !pb_game_state.demo_mode {
+                main_state.high_scores_enabled = true;
+                main_state.demo_active = false;
             }
-            let main_table = MAIN_TABLE.lock()?;
-            match (main_table.as_ref()) {
-                Some(table) => {
-                    if table.light_group.is_some() {
-                        let light_group = table.light_group.as_ref().unwrap();
-                        light_group.message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
-                    }
-                }
-                None => {}
+            if let Some(table) = pb_game_state.main_table.as_ref()
+                && let Some(light_group) = table.light_group.as_ref()
+            {
+                light_group.message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
             }
         }
     }
-    let mut game_mode_grd = GAME_MODE.lock().map_err(|_| PbError::LockGeneric)?;
-    *game_mode_grd = mode;
+    pb_game_state.game_mode = mode;
 
     Ok(())
 }
 
-pub(crate) fn uninit() {
-    todo!()
+pub(crate) fn uninit(pb_game_state: &mut PbGameState, loader_state: &mut LoaderState) -> i32 {
+    todo!();
+    score::unload_msg_font();
+    loader::unload(loader_state);
+    high_score::write();
+    pb_game_state.main_table = None;
+    timer::uninit();
+    render::uninit();
+    return 0;
 }
 
-pub fn ball_set(dx: f32, dy: f32) -> Result<(), PbError> {
+pub fn ball_set(dx: f32, dy: f32, pb_game_state: &mut PbGameState) {
     // dx and dy are normalized to window, ideally in [-1, 1]
     const SENSITIVITY: f32 = 7000.0;
-    let mut table = MAIN_TABLE.lock()?;
-    let table = (*table).as_mut().unwrap();
+    let table = pb_game_state.main_table.as_mut().unwrap();
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
-        if ball.base_component.active_flag.take() == true {
+        if ball.base_component.active_flag.get() == true {
             ball.direction.x = dx * SENSITIVITY;
             ball.direction.y = dy * SENSITIVITY;
 
@@ -503,14 +417,12 @@ pub fn ball_set(dx: f32, dy: f32) -> Result<(), PbError> {
                 y: ball_dir.y,
                 z: ball.direction.z,
             };
-            ball.last_active_time = TIME_TICKS.load(SeqCst);
+            ball.last_active_time = pb_game_state.time_ticks;
         }
     }
-
-    Ok(())
 }
 
-pub(crate) fn frame(mut dt_milli_sec: f32) -> Result<(), PbError> {
+pub(crate) fn frame(mut dt_milli_sec: f32, pb_game_state: &mut PbGameState) -> Result<(), PbError> {
     if dt_milli_sec > 100.0 {
         dt_milli_sec = 100.0;
     }
@@ -518,26 +430,22 @@ pub(crate) fn frame(mut dt_milli_sec: f32) -> Result<(), PbError> {
         return Ok(());
     }
 
-    if FULL_TILT_MODE.load(Relaxed) == true && DEMO_MODE.load(Relaxed) == false {
-        let mut timer = IDLE_TIMER_MS.lock().unwrap();
-        *timer += dt_milli_sec;
-        if *timer >= 60000.0 && CREDITS_ACTIVE.load(Relaxed) == false {
+    if pb_game_state.full_tilt_mode && !pb_game_state.demo_mode {
+        pb_game_state.idle_timer_ms += dt_milli_sec;
+        if pb_game_state.idle_timer_ms >= 60000.0 && !pb_game_state.credits_active {
             push_cheat("credits");
         }
     }
 
     let dt_sec = dt_milli_sec * 0.001f32;
-    let mut time_next = *TIME_NEXT.lock().map_err(|_| PbError::LockGeneric)?;
-    let mut time_now = *TIME_NOW.lock().map_err(|_| PbError::LockGeneric)?;
-    time_next = time_now + dt_sec;
-    timed_frame(dt_sec)?;
+    pb_game_state.time_next = pb_game_state.time_now + dt_sec;
+    timed_frame(dt_sec, pb_game_state)?;
 
     Ok(())
 }
 
-fn timed_frame(time_delta: f32) -> Result<(), PbError> {
-    let mut main_table = MAIN_TABLE.lock()?;
-    let mut table = (*main_table).as_mut().unwrap();
+fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), PbError> {
+    let mut table = pb_game_state.main_table.as_mut().unwrap();
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
         if ball.base_component.active_flag.take() == false
@@ -555,8 +463,8 @@ fn timed_frame(time_delta: f32) -> Result<(), PbError> {
                     ball.stuck_count = 0;
                 }
             }
-            ball.last_active_time = TIME_TICKS.load(SeqCst);
-        } else if (TIME_TICKS.load(SeqCst) - ball.last_active_time > 500) {
+            ball.last_active_time = pb_game_state.time_ticks;
+        } else if (pb_game_state.time_ticks - ball.last_active_time > 500) {
             let dist: Vector2 = Vector2 {
                 x: ball.position.x - ball.prev_position.x,
                 y: ball.position.y - ball.prev_position.y,
@@ -570,7 +478,7 @@ fn timed_frame(time_delta: f32) -> Result<(), PbError> {
             }
             control::unstuck_ball(
                 &mut *ball_rc.borrow_mut(),
-                TIME_TICKS.load(SeqCst) - ball.last_active_time,
+                pb_game_state.time_ticks - ball.last_active_time,
             );
         }
     }
@@ -594,22 +502,21 @@ fn timed_frame(time_delta: f32) -> Result<(), PbError> {
                 collision_comp.field_effect(ball, &mut vec_dst);
             } else {
                 // TODO: Implement this edge manager ig
-                //t_table_layer::edge_manager.field_effects(ball, &mut vec_dst);
+                // t_table_layer::edge_manager.field_effects(ball, &mut vec_dst);
                 vec_dst.x = ball.time_delta;
                 vec_dst.y = ball.time_delta;
                 ball.direction.x *= ball.speed;
                 ball.direction.y *= ball.speed;
                 maths::vector_add_vec2_to_vec3(&mut ball.direction, &vec_dst);
                 ball.speed = maths::normalize_3d(&mut ball.direction);
-                if ball.speed > *BALL_MAX_SPEED.lock().unwrap() {
-                    ball.speed = *BALL_MAX_SPEED.lock().unwrap();
+                if ball.speed > pb_game_state.ball_max_speed {
+                    ball.speed = pb_game_state.ball_max_speed;
                 }
 
                 ball_steps_distance[index] = ball.speed * ball.time_delta;
-                // TODO: Ball half radius static
                 let ball_step =
-                    (f32::ceil(ball_steps_distance[index] / *BALL_HALF_RADIUS.lock().unwrap())
-                        - 1.0) as i32;
+                    (f32::ceil(ball_steps_distance[index] / pb_game_state.ball_half_radius) - 1.0)
+                        as i32;
                 ball_steps[index] = ball_step;
                 if ball_step > max_step {
                     max_step = ball_step;

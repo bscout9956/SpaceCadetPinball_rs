@@ -3,11 +3,12 @@
 extern crate core;
 
 use crate::embedded_data::load_controller_db;
-use crate::fullscrn::RESOLUTION_ARRAY;
-use crate::options::{GameBindings, OptionsStruct};
-use crate::pinball_state::{MainState, OptionsState, PinballState};
+use crate::options::GameBindings;
 use crate::translations::Msg;
-use dear_imgui_rs::sys::ImGuiIO;
+use dear_imgui_rs::sys::{
+    ImGuiCol_MenuBarBg, ImGuiIO, ImGuiMouseCursor_None, ImVec4, igNewFrame, igPushStyleColor_Vec4,
+    igSetMouseCursor,
+};
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig};
 use sdl2::sys::SDL_EventType::{
     SDL_CONTROLLERBUTTONDOWN, SDL_CONTROLLERBUTTONUP, SDL_KEYDOWN, SDL_KEYUP, SDL_QUIT,
@@ -21,17 +22,21 @@ use sdl2::sys::mixer::{
     MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_Init, Mix_OpenAudio,
 };
 use sdl2::sys::*;
+use state::fullscrn_state::FullscrnState;
+use state::main_state::MainState;
+use state::options_state::OptionsState;
+use state::pinball_state::PinballState;
 use std::cell::RefCell;
 use std::env;
 use std::error::Error;
 use std::ffi::{CStr, CString, NulError, c_int};
+use std::mem::MaybeUninit;
 use std::ops::{Index, Sub};
 use std::path::PathBuf;
 use std::process::exit;
 use std::ptr::NonNull;
 use std::str::FromStr;
-use std::sync::atomic::Ordering::{Relaxed, SeqCst};
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
+use std::sync::atomic::AtomicU32;
 use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
@@ -55,6 +60,7 @@ mod zdrv;
 pub mod control;
 mod embedded_data;
 mod errors;
+pub mod high_score;
 mod imgui_sdl;
 pub mod message_code;
 mod midi;
@@ -63,6 +69,7 @@ mod pb;
 mod pinball_state;
 pub mod proj;
 mod render;
+pub mod state;
 pub mod t_demo;
 mod t_edge_box;
 mod t_edge_manager;
@@ -163,7 +170,7 @@ impl Clock for SdlTickClock {
     }
 }
 
-struct WelfordState {
+pub struct WelfordState {
     pub mean: f64,
     pub m2: f64,
     pub count: i64,
@@ -198,49 +205,8 @@ unsafe impl Send for SdlRendererPtr {}
 unsafe impl Sync for SdlRendererPtr {}
 
 pub const VERSION: &str = "1.0 DEV";
-pub static LAUNCH_BALL_ENABLED: AtomicBool = AtomicBool::new(true);
-pub static HIGH_SCORES_ENABLED: AtomicBool = AtomicBool::new(true);
-pub static DEMO_ACTIVE: AtomicBool = AtomicBool::new(false);
-pub static MAIN_MENU_HEIGHT: AtomicI32 = AtomicI32::new(0);
-
-static LAST_MOUSE_X: AtomicI32 = AtomicI32::new(0);
-static LAST_MOUSE_Y: AtomicI32 = AtomicI32::new(0);
-static NO_TIME_LOSS: AtomicBool = AtomicBool::new(false);
-static ACTIVATED: AtomicBool = AtomicBool::new(false);
-static DISP_GR_HISTORY: AtomicBool = AtomicBool::new(false);
-static DISP_FRAME_RATE: AtomicBool = AtomicBool::new(false);
-// TODO: CHECK DEFAULTS
-
-static GFR_DISPLAY: Mutex<Vec<f32>> = Mutex::new(Vec::new());
-static FPS_DETAILS: Mutex<String> = Mutex::new(String::new());
-static PREV_SDL_ERROR: Mutex<String> = Mutex::new(String::new());
-static RESTART: AtomicBool = AtomicBool::new(false);
-static SHOW_ABOUT_DIALOG: AtomicBool = AtomicBool::new(false);
-static SHOW_IMGUI_DEMO: AtomicBool = AtomicBool::new(false);
-static SHOW_SPRITE_VIEWER: AtomicBool = AtomicBool::new(false);
-static SHOW_EXIT_POPUP: AtomicBool = AtomicBool::new(false);
 
 pub type DurationMs = f64;
-
-static UPDATE_TO_FRAME_RATIO: Mutex<f64> = Mutex::new(0.0);
-
-static SPIN_THRESHOLD: LazyLock<Mutex<Duration<1_000_000_000>>> =
-    LazyLock::new(|| Mutex::new(Duration(0)));
-static SLEEP_STATE: LazyLock<Mutex<WelfordState>> =
-    LazyLock::new(|| Mutex::new(WelfordState::new()));
-
-static PREV_SDL_ERROR_COUNT: AtomicU32 = AtomicU32::new(0);
-static GFR_OFFSET: AtomicU32 = AtomicU32::new(0);
-static CURSOR_IDLE_COUNTER: AtomicI32 = AtomicI32::new(0);
-
-pub static MAIN_WINDOW: Mutex<Option<SdlWindowPtr>> = Mutex::new(Option::None);
-
-pub fn get_main_menu_height() -> i32 {
-    MAIN_MENU_HEIGHT.load(SeqCst)
-}
-
-pub static RENDERER: LazyLock<Mutex<Option<SdlRendererPtr>>> =
-    LazyLock::new(|| Mutex::new(Option::None));
 
 #[derive(Debug, Error)]
 pub enum MainError {
@@ -251,26 +217,6 @@ pub enum MainError {
     MutexError(#[from] PoisonError<MutexGuard<'static, Option<SdlRendererPtr>>>),
     #[error("Failed to lock Mutex")]
     LockGeneric,
-}
-
-// TODO: Likewise
-thread_local! {
-    static IMGUI_IO: RefCell<Option<NonNull<ImGuiIO>>> = RefCell::new(Option::None);
-}
-
-pub fn set_imgui_io(io: *mut ImGuiIO) {
-    IMGUI_IO.with(|cell| {
-        let ptr = NonNull::new(io).expect("imgui io is null");
-        *cell.borrow_mut() = Some(ptr);
-    })
-}
-
-pub fn get_imgui_io() -> Option<NonNull<ImGuiIO>> {
-    IMGUI_IO.with(|cell| *cell.borrow())
-}
-
-fn render_ui() {
-    todo!()
 }
 
 fn render_frame_time_dialog() {
@@ -299,7 +245,7 @@ fn main_loop(
     imgui_context: &mut Context,
     pb_state: &mut PinballState,
 ) -> Result<(), MainLoopError> {
-    pb_state.main_state.update_b_quit(false);
+    pb_state.main_state.b_quit = false;
 
     let mut update_count: usize = 0;
     let mut frame_counter: usize = 0;
@@ -313,7 +259,7 @@ fn main_loop(
     let _frame_duration = pb_state.main_state.target_frametime;
 
     loop {
-        if DISP_FRAME_RATE.load(SeqCst) == true {
+        if (&mut pb_state.main_state).disp_frame_rate == true {
             let cur_time = unsafe { SdlPerformanceClock::now() };
 
             if (cur_time - prev_time) > Duration(1_000_000_000) {
@@ -326,8 +272,7 @@ fn main_loop(
                 );
                 let c_str_title = CString::new(title.clone())?;
 
-                let window_guard = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
-                if let Some(window) = window_guard.as_ref() {
+                if let Some(window) = pb_state.main_state.main_window.as_ref() {
                     unsafe {
                         SDL_SetWindowTitle(window.0, c_str_title.as_ptr());
                     };
@@ -335,8 +280,7 @@ fn main_loop(
                     return Err(MainLoopError::NullWindow);
                 }
 
-                let mut fps_det = FPS_DETAILS.lock().map_err(|_| MainLoopError::MutexLock)?;
-                *fps_det = String::from(&title);
+                (&mut pb_state.main_state).update_fps_details(&title);
                 update_count = 0;
                 frame_counter = update_count;
                 prev_time = cur_time;
@@ -347,13 +291,14 @@ fn main_loop(
             imgui_context,
             &mut pb_state.main_state,
             &mut pb_state.options_state,
-        )? || pb_state.main_state.b_quit == false
+            &mut pb_state.fullscrn_state,
+        )? || (&mut pb_state.main_state).b_quit == false
         {
             break;
         }
 
-        if pb_state.main_state.has_focus == true {
-            if pb_state.main_state.mouse_down == true {
+        if (&mut pb_state.main_state).has_focus {
+            if (&mut pb_state.main_state).mouse_down {
                 let mut x = 0;
                 let mut y = 0;
                 let mut w = 0;
@@ -361,17 +306,15 @@ fn main_loop(
                 unsafe {
                     SDL_GetMouseState(&mut x, &mut y);
 
-                    let window_guard = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
-
-                    if let Some(window) = window_guard.as_ref() {
+                    if let Some(window) = pb_state.main_state.main_window.as_ref() {
                         SDL_GetWindowSize(window.0, &mut w, &mut h);
                     } else {
                         return Err(MainLoopError::NullWindow);
                     }
                 }
-                let dx = (LAST_MOUSE_X.load(SeqCst) - x) as f32 / w as f32;
-                let dy = (y - LAST_MOUSE_Y.load(SeqCst)) as f32 / h as f32;
-                pb::ball_set(dx, dy);
+                let dx = ((&mut pb_state.main_state).last_mouse_x - x) as f32 / w as f32;
+                let dy = (y - (&mut pb_state.main_state).last_mouse_y) as f32 / h as f32;
+                pb::ball_set(dx, dy, &mut pb_state.pb_game_state);
 
                 // Original creates continuous mouse movement with mouse capture.
                 // Alternative solution: mouse warp at window edges.
@@ -386,38 +329,44 @@ fn main_loop(
                 }
 
                 unsafe {
-                    let window_guard = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
                     if (x_mod != 0 || y_mod != 0) {
                         x = i32::abs(x as i32 - x_mod);
                         y = i32::abs(y as i32 - y_mod);
-                        if let Some(window) = window_guard.as_ref() {
+                        if let Some(window) = pb_state.main_state.main_window.as_ref() {
                             SDL_WarpMouseInWindow(window.0, x, y);
                         }
                     }
                 }
 
-                LAST_MOUSE_X.store(x, SeqCst);
-                LAST_MOUSE_Y.store(y, SeqCst);
+                (&mut pb_state.main_state).update_mouse_xy(x, y);
             }
         }
-        if pb_state.main_state.single_step == false && NO_TIME_LOSS.load(SeqCst) == false {
+        if (&mut pb_state.main_state).single_step == false
+            && (&mut pb_state.main_state).no_time_loss == false
+        {
             let dt = _frame_duration.count() as f32;
-            pb::frame(dt);
-            if DISP_GR_HISTORY.load(SeqCst) == true {
+            pb::frame(dt, &mut pb_state.pb_game_state);
+            if (&mut pb_state.main_state).disp_gr_history == true {
                 // TODO: Continue from L360 in winmain.cpp
             }
         }
 
-        NO_TIME_LOSS.store(false, SeqCst);
+        (&mut pb_state.main_state).no_time_loss = false;
 
-        let update_to_frame_ratio = UPDATE_TO_FRAME_RATIO
-            .lock()
-            .map_err(|_| MainLoopError::MutexLock)?;
-
-        if _update_to_frame_counter >= *update_to_frame_ratio {
-            if *pb_state.options_state.options.hide_cursor && CURSOR_IDLE_COUNTER.load(SeqCst) <= 0
+        if _update_to_frame_counter >= (&mut pb_state.main_state).update_to_frame_ratio {
+            if *pb_state.options_state.options.hide_cursor
+                && (&mut pb_state.main_state).cursor_idle_counter <= 0
             {
                 // TODO: ImGUiSetCursor l376
+                unsafe { igSetMouseCursor(ImGuiMouseCursor_None) };
+                // imgui_sdl::impl_sdl2_new_frame(); TODO
+                // imgui_sdl::render_new_frame(); TODO
+                unsafe {
+                    igNewFrame();
+                    render_ui();
+
+                    SDL_RenderClear((&mut pb_state.main_state).renderer.as_ref().unwrap().0) // TODO: If let Some here
+                };
             }
             // TODO TODO TODO TODO, do all the todos above before continuing
         }
@@ -426,19 +375,34 @@ fn main_loop(
     Ok(())
 }
 
+unsafe fn render_ui() {
+    let vec4 = ImVec4::new(0.0, 0.0, 0.0, 1.0);
+    unsafe {
+        igPushStyleColor_Vec4(ImGuiCol_MenuBarBg, vec4);
+    }
+}
+
 fn process_window_messages(
     imgui_context: &mut Context,
     main_state: &mut MainState,
     options_state: &mut OptionsState,
+    fullscrn_state: &mut FullscrnState,
 ) -> Result<bool, MainLoopError> {
     let mut idle_wait = 0i64;
-    let event: *mut SDL_Event = unsafe { std::mem::zeroed() };
+    let mut event = MaybeUninit::<SDL_Event>::uninit();
 
-    if main_state.has_focus == true {
+    if main_state.has_focus {
         idle_wait = main_state.target_frametime.count();
         unsafe {
-            while SDL_PollEvent(event) > 0 {
-                if event_handler(event, imgui_context, main_state, options_state)? == false {
+            while SDL_PollEvent(event.as_mut_ptr()) > 0 {
+                if event_handler(
+                    event.as_mut_ptr(),
+                    imgui_context,
+                    main_state,
+                    options_state,
+                    fullscrn_state,
+                )? == false
+                {
                     return Ok(false);
                 }
             }
@@ -450,9 +414,15 @@ fn process_window_messages(
     // Progressively wait longer when transitioning to idle
     idle_wait = i64::min(idle_wait + main_state.target_frametime.0, 500);
     unsafe {
-        if SDL_WaitEventTimeout(event, idle_wait as c_int) > 0 {
+        if SDL_WaitEventTimeout(event.as_mut_ptr(), idle_wait as c_int) > 0 {
             idle_wait = main_state.target_frametime.count();
-            return event_handler(event, imgui_context, main_state, options_state);
+            return event_handler(
+                event.as_mut_ptr(),
+                imgui_context,
+                main_state,
+                options_state,
+                fullscrn_state,
+            );
         }
     }
     Ok(true)
@@ -463,6 +433,7 @@ unsafe fn event_handler(
     imgui_context: &mut Context,
     main_state: &mut MainState,
     options_state: &mut OptionsState,
+    fullscrn_state: &mut FullscrnState,
 ) -> Result<bool, MainLoopError> {
     let mut input_down = false;
 
@@ -488,7 +459,7 @@ unsafe fn event_handler(
             || (*event).type_ == SDL_EventType::SDL_MOUSEBUTTONUP as u32
             || (*event).type_ == SDL_EventType::SDL_MOUSEWHEEL as u32
         {
-            CURSOR_IDLE_COUNTER.store(1000, SeqCst);
+            main_state.cursor_idle_counter = 1000;
             mouse_event = true;
         } else {
             mouse_event = false;
@@ -500,8 +471,7 @@ unsafe fn event_handler(
     if io.want_capture_mouse() && options_state.control_waiting_for_input.is_none() {
         if main_state.mouse_down == true {
             main_state.mouse_down = false;
-            let main_window_grd = MAIN_WINDOW.lock().map_err(|_| MainLoopError::MutexLock)?;
-            if let Some(window) = main_window_grd.as_ref() {
+            if let Some(window) = main_state.main_window.as_ref() {
                 unsafe {
                     SDL_SetWindowGrab(window.0, SDL_FALSE);
                 }
@@ -525,30 +495,31 @@ unsafe fn event_handler(
         }
     }
 
-    if (*event).type_ == SDL_QUIT as u32 {
-        end_pause(main_state);
+    unsafe {
+        if (*event).type_ == SDL_QUIT as u32 {
+            end_pause(main_state);
 
-        main_state.update_b_quit(true);
-        fullscrn::shutdown();
-        main_state.return_value = 0;
-        return Ok(false);
+            main_state.b_quit = true;
+            fullscrn::shutdown(fullscrn_state, &mut main_state.main_window);
+            main_state.return_value = 0;
+            return Ok(false);
+        }
+        if (*event).type_ == SDL_KEYUP as u32 {
+            pb::input_up()
+        }
     }
-    if (*event).type_ == SDL_KEYUP as u32 {
-        pb::input_up()
-    }
-
     Ok(true)
 }
 
 fn end_pause(main_state: &mut MainState) {
     if main_state.single_step == true {
         pb::pause_continue(main_state);
-        NO_TIME_LOSS.store(true, SeqCst);
+        main_state.no_time_loss = true;
     }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut pb_state = PinballState::new();
+    let mut state = PinballState::new();
 
     println!("Game version: {}", VERSION);
     let args: Vec<String> = env::args().collect();
@@ -579,6 +550,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 SDL_MESSAGEBOX_ERROR,
                 "Could not initialize SDL2",
                 SDL_GetError(),
+                &state.main_state.main_window,
             );
             println!("OOPS!! No init, closing");
             exit(1);
@@ -586,7 +558,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let quick_flag = args.iter().any(|arg| arg.contains("-quick"));
-    pb::QUICK_FLAG.store(quick_flag, Relaxed);
+    (&mut state.pb_game_state).quick_flag = quick_flag;
 
     unsafe {
         println!("Creating window");
@@ -607,23 +579,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             main_window = Some(SdlWindowPtr(window));
         }
 
-        match MAIN_WINDOW.try_lock() {
-            Ok(mut main_window_grd) => {
-                *main_window_grd = main_window;
-            }
-            Err(std::sync::TryLockError::Poisoned(_)) => {
-                println!("Poisoned lock because a thread panicked.");
-            }
-            Err(std::sync::TryLockError::WouldBlock) => {
-                println!("Another thread is locking MAIN_WINDOW");
-            }
-        }
+        state.main_state.main_window = main_window;
 
-        if MAIN_WINDOW.lock()?.is_none() {
+        if state.main_state.main_window.is_none() {
             pb::show_message_box_cstr_message(
                 SDL_MESSAGEBOX_ERROR,
                 "Could not create window",
                 SDL_GetError(),
+                &state.main_state.main_window,
             );
             println!("Could not create window");
             exit(1);
@@ -642,45 +605,38 @@ fn main() -> Result<(), Box<dyn Error>> {
             let renderer: *mut SDL_Renderer = SDL_CreateRenderer(window, -1, flags as u32);
 
             if !renderer.is_null() {
-                let mut static_renderer = RENDERER.lock()?;
-                *static_renderer = Some(SdlRendererPtr(renderer));
+                (&mut state.main_state).renderer = Some(SdlRendererPtr(renderer));
                 println!("Renderer successfully created and assigned.");
                 break;
             }
         }
 
-        if RENDERER.lock()?.is_none() {
+        if (&mut state.main_state).renderer.is_none() {
             pb::show_message_box_cstr_message(
                 SDL_MESSAGEBOX_ERROR,
                 "Could not create renderer",
                 SDL_GetError(),
+                &state.main_state.main_window,
             );
             println!("Could not create renderer, is null");
             exit(1);
         }
 
-        match RENDERER.lock() {
-            Ok(guard) => {
-                let mut renderer_info: SDL_RendererInfo = std::mem::zeroed();
+        let mut renderer_info: SDL_RendererInfo = std::mem::zeroed();
 
-                if let Some(renderer_ptr) = guard.as_ref() {
-                    let result = SDL_GetRendererInfo(renderer_ptr.0, &mut renderer_info);
+        if let Some(renderer_ptr) = (&mut state.main_state).renderer.as_ref() {
+            let result = SDL_GetRendererInfo(renderer_ptr.0, &mut renderer_info);
 
-                    if result != 0 {
-                        println!("Error getting renderer information");
-                    } else {
-                        println!(
-                            "Using SDL Renderer: {}",
-                            CStr::from_ptr(renderer_info.name).to_str()?
-                        );
-                    }
-
-                    SDL_SetRenderDrawColor(renderer_ptr.0, 0, 0, 0, 255);
-                }
+            if result != 0 {
+                println!("Error getting renderer information");
+            } else {
+                println!(
+                    "Using SDL Renderer: {}",
+                    CStr::from_ptr(renderer_info.name).to_str()?
+                );
             }
-            Err(e) => {
-                println!("Error locking renderer: {}", e);
-            }
+
+            SDL_SetRenderDrawColor(renderer_ptr.0, 0, 0, 0, 255);
         }
 
         SDL_SetHint(
@@ -739,7 +695,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         println!("Entering loop");
         loop {
-            RESTART.store(false, Relaxed);
+            (&mut state.main_state).restart = false;
 
             // ImGUi Init
             let mut imgui_context = Context::create();
@@ -755,13 +711,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             imgui_context.set_ini_filename(Some(ini_path));
 
             // First option initialization step: just load settings from .ini. Needs ImGui context.
-            options::init_primary(&mut pb_state.options_state);
+            options::init_primary(&mut state.options_state);
             if reset_all_options {
                 reset_all_options = false;
-                options::reset_all_options(&mut pb_state.options_state);
+                options::reset_all_options(&mut state.options_state);
             }
 
-            let font_file_name = &pb_state.options_state.options.font_file_name.value;
+            let font_file_name = &(&mut state.options_state).options.font_file_name.value;
 
             if !font_file_name.is_empty() {
                 let mut fonts = imgui_context.fonts();
@@ -784,19 +740,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             imgui_context.fonts().build();
 
-            match RENDERER.lock() {
-                Ok(renderer_ptr) => {
-                    if let Some(renderer) = renderer_ptr.as_ref() {
-                        println!("Initializing IMGUI_SDL");
-                        imgui_sdl::initialize(&mut imgui_context, renderer.0, 0, 0);
-                        imgui_sdl::init_for_sdl_renderer(&mut imgui_context, window, renderer.0);
-                    } else {
-                        panic!("No renderer found to initialize IMGUI!");
-                    }
-                }
-                Err(e) => {
-                    println!("Failed to lock renderer: {}", e)
-                }
+            if let Some(renderer) = (&mut state.main_state).renderer.as_ref() {
+                println!("Initializing IMGUI_SDL");
+                imgui_sdl::initialize(&mut imgui_context, renderer.0, 0, 0);
+                imgui_sdl::init_for_sdl_renderer(&mut imgui_context, window, renderer.0);
+            } else {
+                panic!("No renderer found to initialize IMGUI!");
             }
 
             cfg_flags |= ConfigFlags::NAV_ENABLE_KEYBOARD | ConfigFlags::NAV_ENABLE_GAMEPAD;
@@ -809,10 +758,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             #[cfg(not(target_os = "windows"))]
             search_paths.extend_from_slice(&PLATFORM_DATA_PATHS);
-            pb::select_dat_file(&search_paths, &mut pb_state.options_state);
+            pb::select_dat_file(
+                &search_paths,
+                &mut state.options_state,
+                &mut state.pb_game_state,
+            );
 
             // Second step: run updates that depend on .DAT file selection
-            options::init_secondary(&mut pb_state.options_state);
+            options::init_secondary(
+                &mut state.options_state,
+                &mut state.pb_game_state,
+                &mut state.fullscrn_state,
+            );
 
             // TODO: Implement sound, we're skipping for now to focus on PB:INIT();
             // match OPTIONS.lock() {
@@ -824,7 +781,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             //     }
             // }
 
-            if !pb::init(&mut pb_state.options_state)? {
+            if !pb::init(&mut state)? {
                 let mut message = String::from(
                     "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
                 );
@@ -837,23 +794,28 @@ fn main() -> Result<(), Box<dyn Error>> {
                     message += str_push;
                 }
                 println!("Could not load game data");
-                pb::show_message_box(SDL_MESSAGEBOX_ERROR, "Could not load game data", &message);
+                pb::show_message_box(
+                    SDL_MESSAGEBOX_ERROR,
+                    "Could not load game data",
+                    &message,
+                    &state.main_state.main_window,
+                );
                 exit(1);
             }
 
-            fullscrn::init(&mut pb_state.options_state);
+            fullscrn::init(&mut state);
 
-            pb::reset_table();
-            pb::first_time_setup();
+            pb::reset_table(&mut state.pb_game_state);
+            pb::first_time_setup(&mut state.render_state);
 
             let fullscreen = env::args().any(|arg| arg == "-fullscreen");
             if fullscreen {
-                *pb_state.options_state.options.full_screen = true;
+                *(&mut state.options_state).options.full_screen = true;
             }
 
-            if *pb_state.options_state.options.full_screen == false {
-                let resolution_array = RESOLUTION_ARRAY.lock()?;
-                let res_info = &resolution_array[fullscrn::get_resolution() as usize];
+            let res_val = state.fullscrn_state.resolution;
+            if *(&mut state.options_state).options.full_screen == false {
+                let res_info = &(&mut state.fullscrn_state).resolution_array[res_val as usize];
                 SDL_SetWindowSize(
                     window,
                     res_info.table_width as c_int,
@@ -861,28 +823,34 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
             }
             SDL_ShowWindow(window);
-            fullscrn::set_screen_mode(*pb_state.options_state.options.full_screen);
+            fullscrn::set_screen_mode(
+                *(&mut state.options_state).options.full_screen,
+                &mut state.fullscrn_state,
+                &mut state.main_state.main_window,
+            );
 
             let is_demo = env::args().any(|arg| arg == "-demo");
             if is_demo {
                 // TODO LOWPRIO: Implement me
                 pb::toggle_demo();
             } else {
-                pb::replay_level(false, &mut pb_state.options_state);
+                pb::replay_level(
+                    false,
+                    &mut state.main_state,
+                    &mut state.options_state,
+                    &mut state.pb_game_state,
+                )?;
             }
 
-            main_loop(&mut imgui_context, &mut pb_state);
+            main_loop(&mut imgui_context, &mut state);
 
-            options::uninit(&mut pb_state.options_state);
-            midi::music_shutdown();
+            options::uninit(&mut state.options_state);
+            // TODO: Implement sound midi::music_shutdown();
             // TODO: Implement sound stuff
             //sound::close();
-            pb::uninit();
+            pb::uninit(&mut state.pb_game_state, &mut state.loader_state);
 
-            let do_restart = RESTART.load(Relaxed);
-            if do_restart {
-                ()
-            }
+            if (&mut state.main_state).restart {}
         }
     }
 }

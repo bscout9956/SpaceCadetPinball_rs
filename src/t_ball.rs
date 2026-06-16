@@ -1,14 +1,17 @@
 use crate::loader::VisualStruct;
 use crate::maths::*;
 use crate::render::{RenderSprite, VisualTypes};
+use crate::state::loader_state::LoaderState;
+use crate::state::pb_game_state::PbGameState;
+use crate::state::render_state::RenderState;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_line::EdgeSegmentError;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
-use crate::{fullscrn, loader, proj};
+use crate::{loader, proj};
 use std::cell::{Cell, RefCell};
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::ptr::slice_from_raw_parts;
 use std::rc::{Rc, Weak};
 
@@ -41,8 +44,12 @@ impl TBall {
     pub fn new(
         table_weak: Option<Weak<RefCell<TPinballTable>>>,
         mut group_index: i32,
+        pb_game_state: &mut PbGameState,
+        render_state: &mut RenderState,
+        resolution: i32,
+        loader_state: &mut LoaderState,
     ) -> Rc<RefCell<Self>> {
-        let base_component = TPinballComponent::new(table_weak, group_index, false);
+        let base_component = TPinballComponent::new(table_weak, group_index, false, loader_state);
 
         let base_segment = TEdgeSegment::new(
             None,
@@ -83,9 +90,17 @@ impl TBall {
             instance_data.collision_mask = 1;
         } else {
             instance_data.has_group_flag = true;
-            loader::query_visual(group_index, 0, &mut visual);
+            loader::query_visual(
+                group_index,
+                0,
+                &mut visual,
+                pb_game_state,
+                resolution,
+                loader_state,
+            );
             instance_data.collision_mask = visual.collision_group;
-            let float_arr_ptr = loader::query_float_attribute_ptr(group_index, 0, 408).unwrap();
+            let float_arr_ptr =
+                loader::query_float_attribute_ptr(group_index, 0, 408, loader_state).unwrap();
             let float_slice = slice_from_raw_parts(float_arr_ptr, 4);
             unsafe {
                 let (position_x, position_y, position_z) =
@@ -101,31 +116,39 @@ impl TBall {
         let mut name_bytes = ball_group_name.as_bytes().to_vec();
 
         let c_name = CString::new(name_bytes.clone()).expect("Null byte found");
-        group_index = loader::query_handle(c_name.as_ptr()).unwrap();
+        group_index = loader::query_handle(c_name.as_ptr(), loader_state).unwrap();
 
         if group_index < 0 {
-            let res = fullscrn::get_resolution();
-            let new_name = format!("ball{}", res);
+            let new_name = format!("ball{}", resolution);
 
             let new_c_name = CString::new(new_name).unwrap();
-            group_index = loader::query_handle(new_c_name.as_ptr()).unwrap();
+            group_index = loader::query_handle(new_c_name.as_ptr(), loader_state).unwrap();
         }
 
-        let radius_val = loader::query_float_attribute_ptr(group_index, 0, 500).unwrap();
+        let radius_val =
+            loader::query_float_attribute_ptr(group_index, 0, 500, loader_state).unwrap();
         unsafe {
             instance_data.radius = *(radius_val);
         }
 
-        let visual_count = loader::query_visual_states(group_index).unwrap();
+        let visual_count = loader::query_visual_states(group_index, loader_state).unwrap();
 
         for index in 0..visual_count {
-            loader::query_visual(group_index, index as i32, &mut visual);
+            loader::query_visual(
+                group_index,
+                index as i32,
+                &mut visual,
+                pb_game_state,
+                resolution,
+                loader_state,
+            );
             instance_data
                 .base_component
                 .list_bitmap
                 .push(visual.bitmap.clone());
             let vis_vec_ptr =
-                loader::query_float_attribute_ptr(group_index, index as i32, 501).unwrap();
+                loader::query_float_attribute_ptr(group_index, index as i32, 501, loader_state)
+                    .unwrap();
             let vis_vec_slice = slice_from_raw_parts(vis_vec_ptr, 3);
             unsafe {
                 let vis_vec = Vector3 {
@@ -139,7 +162,7 @@ impl TBall {
         }
 
         instance_data.base_component.render_sprite =
-            RenderSprite::new(VisualTypes::Ball, None, None, 0, 0, None);
+            RenderSprite::new(VisualTypes::Ball, None, None, 0, 0, None, render_state);
 
         if let Some(t_weak) = &instance_data.base_component.pinball_table {
             if let Some(t_rc) = t_weak.upgrade() {

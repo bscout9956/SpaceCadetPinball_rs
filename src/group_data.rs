@@ -1,6 +1,7 @@
 use crate::embedded_data::PB_MSGFT_BIN_COMPRESSED_DATA_BASE85;
 use crate::errors::GroupDataError;
 use crate::gdrv::{BitmapTypes, GdrvBitmap8};
+use crate::state::fullscrn_state::FullscrnState;
 use crate::zdrv::ZMapHeaderType;
 use crate::{fullscrn, pb, zdrv};
 use base85::Error;
@@ -124,7 +125,7 @@ impl GroupData {
     pub fn reserve_entries(&mut self, count: usize) {
         self.entries.reserve(count);
     }
-    pub fn add_entry(&mut self, entry: EntryData) {
+    pub fn add_entry(&mut self, entry: EntryData, fullscrn_state: &mut FullscrnState) {
         match entry.entry_type {
             FieldTypes::Bitmap8bit => {
                 if let EntryBuffer::Bitmap8(src_bmp) = &entry.buffer {
@@ -135,19 +136,21 @@ impl GroupData {
                         let mut zmap =
                             ZMapHeaderType::new(src_bmp.width, src_bmp.height, src_bmp.width);
 
-                        let _ = split_sliced_bitmap(src_bmp, &mut bmp, &mut zmap);
+                        let _ = split_sliced_bitmap(src_bmp, &mut bmp, &mut zmap, fullscrn_state);
 
                         self.needs_sort = true;
-                        self.add_entry(EntryData::new(
-                            FieldTypes::Bitmap8bit,
-                            -1,
-                            EntryBuffer::Bitmap8(bmp),
-                        ));
-                        self.add_entry(EntryData::new(
-                            FieldTypes::Bitmap16bit,
-                            -1,
-                            EntryBuffer::Bitmap16(zmap),
-                        ));
+                        self.add_entry(
+                            EntryData::new(FieldTypes::Bitmap8bit, -1, EntryBuffer::Bitmap8(bmp)),
+                            fullscrn_state,
+                        );
+                        self.add_entry(
+                            EntryData::new(
+                                FieldTypes::Bitmap16bit,
+                                -1,
+                                EntryBuffer::Bitmap16(zmap),
+                            ),
+                            fullscrn_state,
+                        );
 
                         return;
                     }
@@ -216,6 +219,7 @@ pub fn split_sliced_bitmap(
     src_bmp: &GdrvBitmap8,
     bmp: &mut GdrvBitmap8,
     zmap: &mut ZMapHeaderType,
+    fullscrn_state: &mut FullscrnState,
 ) -> Result<(), GroupDataError> {
     assert_eq!(
         src_bmp.bitmap_type,
@@ -231,8 +235,7 @@ pub fn split_sliced_bitmap(
     zdrv::fill(zmap, zmap.width, zmap.height, 0, 0, 0xFFFF);
     zmap.resolution = src_bmp.resolution;
 
-    let res_array = fullscrn::RESOLUTION_ARRAY.lock()?;
-    let table_width = (*res_array)[src_bmp.resolution as usize].table_width;
+    let table_width = (fullscrn_state.resolution_array)[src_bmp.resolution as usize].table_width;
     let src = &src_bmp.indexed_bmp_data;
     let src_char = &src;
 
@@ -379,17 +382,19 @@ impl DatFile {
         }
     }
 
-    pub fn finalize(&mut self) -> Result<(), DatFileError> {
-        let is_full_tilt = pb::FULL_TILT_MODE.load(Relaxed);
-
-        if !is_full_tilt {
+    pub fn finalize(
+        &mut self,
+        full_tilt: bool,
+        fullscrn_state: &mut FullscrnState,
+    ) -> Result<(), DatFileError> {
+        if !full_tilt {
             let group_index = self.record_labeled("pbmsg_ft");
             assert!(group_index < 0, "DatFile: pbmsg_ft is already in .dat");
         }
 
         let rc_data = base85::decode(PB_MSGFT_BIN_COMPRESSED_DATA_BASE85)?; //TODO: use result yadda yadda
 
-        self.add_msg_font(&rc_data, "pbmsg_ft");
+        self.add_msg_font(&rc_data, "pbmsg_ft", fullscrn_state);
 
         for group in &mut self.groups {
             group.finalize_group();
@@ -398,7 +403,12 @@ impl DatFile {
         Ok(())
     }
 
-    fn add_msg_font(&mut self, font_data: &[u8], font_name: &str) -> Result<(), GroupDataError> {
+    fn add_msg_font(
+        &mut self,
+        font_data: &[u8],
+        font_name: &str,
+        fullscrn_state: &mut FullscrnState,
+    ) -> Result<(), GroupDataError> {
         if font_data.len() < 134 {
             return Err(GroupDataError::InvalidBufferLength);
         }
@@ -452,7 +462,7 @@ impl DatFile {
                 bmp_field_size,
                 EntryBuffer::Bitmap8(bmp),
             );
-            group_data.add_entry(bmp_entry);
+            group_data.add_entry(bmp_entry, fullscrn_state);
 
             if char_index == 32 {
                 let mut name_bytes = font_name.as_bytes().to_vec();
@@ -464,12 +474,12 @@ impl DatFile {
                     EntryBuffer::Raw(name_bytes),
                 );
 
-                group_data.add_entry(name_entry);
+                group_data.add_entry(name_entry, fullscrn_state);
 
                 let gap_bytes = gap_width.to_le_bytes().to_vec();
                 let gap_entry =
                     EntryData::new(FieldTypes::ShortArray, 2, EntryBuffer::Raw(gap_bytes));
-                group_data.add_entry(gap_entry);
+                group_data.add_entry(gap_entry, fullscrn_state);
             } else {
                 let group_name = format!("char {}='{}'\0", char_index, char_index as u8 as char);
                 let name_bytes = group_name.into_bytes();
@@ -479,7 +489,7 @@ impl DatFile {
                     name_bytes.len() as i32,
                     EntryBuffer::Raw(name_bytes),
                 );
-                group_data.add_entry(name_entry);
+                group_data.add_entry(name_entry, fullscrn_state);
             }
             self.groups.push(group_data);
             group_id += 1;
@@ -522,14 +532,14 @@ impl DatFile {
         self.field_size_nth(group_index, target_entry_type, 0)
     }
 
-    pub fn get_bitmap(&self, group_index: i32) -> &GdrvBitmap8 {
+    pub fn get_bitmap(&self, group_index: i32, resolution: i32) -> &GdrvBitmap8 {
         let group = self.groups.get(group_index as usize).unwrap();
-        group.get_bitmap(fullscrn::get_resolution())
+        group.get_bitmap(resolution)
     }
 
-    pub fn get_zmap(&self, group_index: i32) -> &ZMapHeaderType {
+    pub fn get_zmap(&self, group_index: i32, resolution: i32) -> &ZMapHeaderType {
         let group = self.groups.get(group_index as usize).unwrap();
-        group.get_zmap(fullscrn::get_resolution())
+        group.get_zmap(resolution)
     }
 
     pub fn record_labeled(&self, target_group_name: &str) -> i32 {

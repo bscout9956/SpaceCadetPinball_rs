@@ -7,5 +7,6 @@ pub(crate) fn music_stop() {
 }
 
 pub(crate) fn music_shutdown() {
+    music_stop();
     todo!()
 }

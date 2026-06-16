@@ -2,10 +2,11 @@ use crate::errors::LoaderError;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::maths::*;
-use crate::t_pinball_component::TPinballComponent;
+use crate::state::loader_state::LoaderState;
+use crate::state::pb_game_state::PbGameState;
 use crate::utils::PATH_SEPARATOR;
 use crate::zdrv::ZMapHeaderType;
-use crate::{pb, sound};
+use crate::{SdlWindowPtr, pb, sound};
 use num_traits::Float;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::mixer::Mix_Chunk;
@@ -13,8 +14,6 @@ use std::ffi::{CStr, c_char};
 use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
-use std::rc::Rc;
-use std::sync::atomic::Ordering::{Relaxed, SeqCst};
 use std::sync::{Arc, LazyLock, Mutex};
 
 #[derive(Copy, Clone)]
@@ -210,13 +209,6 @@ pub struct WaveHeader {
 
 const _: () = assert!(size_of::<WaveHeader>() == 44, "Wrong size for WaveHeader");
 
-static SOUND_COUNT: Mutex<i32> = Mutex::new(1);
-static LOADER_SOUND_COUNT: Mutex<i32> = Mutex::new(0);
-static LOADER_TABLE: Mutex<Option<Arc<DatFile>>> = Mutex::new(None);
-static SOUND_RECORD_TABLE: Mutex<Option<Arc<DatFile>>> = Mutex::new(None);
-static SOUND_LIST: LazyLock<Mutex<[SoundListStruct; 65]>> =
-    LazyLock::new(|| Mutex::new(std::array::from_fn(|_| SoundListStruct::default())));
-
 pub fn error(error_code: i32, caption_code: i32) -> i32 {
     let error_text = LOADER_ERRORS
         .iter()
@@ -230,7 +222,10 @@ pub fn error(error_code: i32, caption_code: i32) -> i32 {
         .map(|e| e.message)
         .unwrap_or("Unknown Error");
 
-    pb::show_message_box(SDL_MESSAGEBOX_ERROR, error_caption, error_text);
+    // HACK: I am passing no window here because this would mean error
+    // would need to know the window resulting in multiple calls being affected by it
+    let none_window: &Option<SdlWindowPtr> = &Option::None;
+    pb::show_message_box(SDL_MESSAGEBOX_ERROR, error_caption, error_text, none_window);
     -1
 }
 
@@ -250,16 +245,12 @@ pub fn default_vsi(visual: &mut VisualStruct) {
     visual.sound_index_4 = 0;
 }
 
-pub fn load_from(shared_dat: Arc<DatFile>) -> Result<(), LoaderError> {
-    if let Ok(mut table_guard) = LOADER_TABLE.lock() {
-        *table_guard = Some(Arc::clone(&shared_dat));
-    }
-
-    if let Ok(mut srt_guard) = SOUND_RECORD_TABLE.lock() {
-        *srt_guard = Some(Arc::clone(&shared_dat));
-    }
-
-    let mut sound_list = SOUND_LIST.lock()?;
+pub fn load_from(
+    shared_dat: Arc<DatFile>,
+    loader_state: &mut LoaderState,
+) -> Result<(), LoaderError> {
+    loader_state.loader_table = Some(Arc::clone(&shared_dat));
+    loader_state.sound_record_table = Some(Arc::clone(&shared_dat));
 
     let groups_len = shared_dat.groups.len() as i32;
     for group_index in 0..groups_len {
@@ -267,66 +258,65 @@ pub fn load_from(shared_dat: Arc<DatFile>) -> Result<(), LoaderError> {
             shared_dat.field(group_index, FieldTypes::ShortValue)
         {
             let final_val = i16::from_le_bytes([(*value_data)[0], (*value_data)[1]]);
-            let mut sound_count = SOUND_COUNT.lock()?;
-            if final_val == 202 && *sound_count < 65 {
-                sound_list[(*sound_count) as usize] = SoundListStruct {
+            if final_val == 202 && loader_state.sound_count < 65 {
+                let sound_count = loader_state.sound_count as usize;
+                loader_state.sound_list[sound_count] = SoundListStruct {
                     wave_ptr: null(),
                     group_index,
                     loaded: false,
                     duration: 0.0,
                 };
-                *sound_count += 1;
+                loader_state.sound_count += 1;
             }
         }
     }
 
-    let mut loader_sound_count = LOADER_SOUND_COUNT.lock()?;
-    let sound_count = SOUND_COUNT.lock()?;
-    loader_sound_count = sound_count;
+    loader_state.loader_sound_count = loader_state.sound_count;
     Ok(())
 }
 
-pub fn unload() -> Result<(), LoaderError> {
-    let mut sound_list = SOUND_LIST.lock()?;
-    let loader_sound_count = LOADER_SOUND_COUNT.lock()?;
-    for index in 1..*loader_sound_count {
-        sound::freesound(sound_list[index as usize].wave_ptr);
-        sound_list[index as usize] = SoundListStruct::default();
+pub fn unload(loader_state: &mut LoaderState) -> Result<(), LoaderError> {
+    for index in 1..loader_state.loader_sound_count {
+        sound::freesound(loader_state.sound_list[index as usize].wave_ptr);
+        loader_state.sound_list[index as usize] = SoundListStruct::default();
     }
     Ok(())
 }
 
-pub fn get_sound_id(group_index: i32) -> Result<i32, LoaderError> {
-    let mut sound_list = SOUND_LIST.lock()?;
-
+pub fn get_sound_id(
+    group_index: i32,
+    full_tilt_mode: bool,
+    quick_flag: bool,
+    base_path: &str,
+    loader_state: &mut LoaderState,
+) -> Result<i32, LoaderError> {
     let mut sound_index: i16 = 1;
-    let sound_count = SOUND_COUNT.lock()?;
-    if *sound_count <= 1 {
+    if loader_state.sound_count <= 1 {
         error(25, 26);
         return Ok(-1);
     }
 
-    while (sound_list[sound_index as usize].group_index != group_index) {
+    while (loader_state.sound_list[sound_index as usize].group_index != group_index) {
         sound_index += 1;
-        if sound_index as i32 >= *sound_count {
+        if sound_index as i32 >= loader_state.sound_count {
             error(25, 26);
             return Ok(-1);
         }
     }
 
-    if (!sound_list[sound_index as usize].loaded
-        && !sound_list[sound_index as usize].wave_ptr.is_null())
+    if (!loader_state.sound_list[sound_index as usize].loaded
+        && !loader_state.sound_list[sound_index as usize]
+            .wave_ptr
+            .is_null())
     {
         let mut wave_header = WaveHeader::default();
 
-        let sound_group_id = sound_list[sound_index as usize].group_index;
-        sound_list[sound_index as usize].duration = 0.0;
+        let sound_group_id = loader_state.sound_list[sound_index as usize].group_index;
+        loader_state.sound_list[sound_index as usize].duration = 0.0;
 
-        let quick_flag_val = pb::QUICK_FLAG.load(Relaxed);
-        let table_guard = LOADER_TABLE.lock()?;
-        let loader_table = table_guard.as_ref().unwrap();
+        let loader_table = loader_state.loader_table.as_ref().unwrap();
         if sound_group_id != 0
-            && !quick_flag_val
+            && !quick_flag
             && let Some(EntryBuffer::Raw(value_data)) =
                 loader_table.field(sound_group_id, FieldTypes::ShortValue)
         {
@@ -339,7 +329,7 @@ pub fn get_sound_id(group_index: i32) -> Result<i32, LoaderError> {
                         .trim_end_matches('\0')
                         .to_string();
 
-                    if pb::FULL_TILT_MODE.load(Relaxed) {
+                    if full_tilt_mode {
                         file_name.insert_str(0, &format!("{}sound", PATH_SEPARATOR));
                     }
 
@@ -350,7 +340,7 @@ pub fn get_sound_id(group_index: i32) -> Result<i32, LoaderError> {
                             file_name = file_name.to_uppercase();
                         }
 
-                        file_path = pb::make_path_name(&file_name);
+                        file_path = pb::make_path_name(&file_name, base_path);
 
                         if let Ok(mut file) = File::open(&file_path) {
                             let mut header_bytes = [0u8; size_of::<WaveHeader>()];
@@ -365,27 +355,33 @@ pub fn get_sound_id(group_index: i32) -> Result<i32, LoaderError> {
                             }
                         }
                     }
-                    sound_list[sound_index as usize].duration = duration;
-                    sound_list[sound_index as usize].wave_ptr = sound::load_wave_file(file_path);
+                    loader_state.sound_list[sound_index as usize].duration = duration;
+                    loader_state.sound_list[sound_index as usize].wave_ptr =
+                        sound::load_wave_file(file_path);
                 }
             }
         }
     }
 
-    sound_list[sound_index as usize].loaded = true;
+    loader_state.sound_list[sound_index as usize].loaded = true;
     Ok(sound_index as i32)
 }
 
-pub fn query_handle(lp_string: *const c_char) -> Result<i32, LoaderError> {
-    let loader_guard = LOADER_TABLE.lock()?;
-    let loader_table = loader_guard.as_ref().unwrap();
+pub fn query_handle(
+    lp_string: *const c_char,
+    loader_state: &mut LoaderState,
+) -> Result<i32, LoaderError> {
+    let loader_table = loader_state.loader_table.as_ref().unwrap();
     let lp_str = unsafe { CStr::from_ptr(lp_string).to_string_lossy().into_owned() };
     Ok(loader_table.record_labeled(&lp_str))
 }
 
 // TODO: Might be able to define new types in the EntryBuffer enum
 
-pub fn query_visual_states(group_index: i32) -> Result<i16, LoaderError> {
+pub fn query_visual_states(
+    group_index: i32,
+    loader_state: &mut LoaderState,
+) -> Result<i16, LoaderError> {
     let mut result: i16 = 0;
 
     if group_index < 0 {
@@ -393,8 +389,7 @@ pub fn query_visual_states(group_index: i32) -> Result<i16, LoaderError> {
         return Ok(error(0, 17) as i16);
     }
 
-    let loader_guard = LOADER_TABLE.lock()?;
-    let loader_table = loader_guard.as_ref().unwrap();
+    let loader_table = loader_state.loader_table.as_ref().unwrap();
 
     match loader_table.field(group_index, FieldTypes::ShortArray) {
         Some(EntryBuffer::Raw(short_array_data)) if short_array_data.len() >= 4 => {
@@ -414,9 +409,11 @@ pub fn query_visual_states(group_index: i32) -> Result<i16, LoaderError> {
 }
 
 // TODO: Stop using pointers?
-pub fn query_name(group_index: i32) -> Result<*const c_char, LoaderError> {
-    let loader_guard = LOADER_TABLE.lock()?;
-    let loader_table = loader_guard.as_ref().unwrap();
+pub fn query_name(
+    group_index: i32,
+    loader_state: &mut LoaderState,
+) -> Result<*const c_char, LoaderError> {
+    let loader_table = loader_state.loader_table.as_ref().unwrap();
     if group_index < 0 {
         error(0, 19);
         return Ok(null());
@@ -435,14 +432,14 @@ pub fn query_int_attribute(
     group_index: i32,
     first_value: i32,
     array_size: *mut i32,
+    loader_state: &mut LoaderState,
 ) -> Result<*const i16, LoaderError> {
     if group_index < 0 {
         error(0, 20);
         return Ok(null::<i16>());
     }
 
-    let loader_guard = LOADER_TABLE.lock()?;
-    let loader_table = loader_guard.as_ref().unwrap();
+    let loader_table = loader_state.loader_table.as_ref().unwrap();
     for skip_index in 0.. {
         match loader_table.field_nth(group_index, FieldTypes::ShortArray, skip_index) {
             Some(EntryBuffer::Raw(short_array_data)) => {
@@ -478,20 +475,20 @@ pub fn query_float_attribute_ptr(
     group_index: i32,
     group_index_offset: i32,
     first_value: i32,
+    loader_state: &mut LoaderState,
 ) -> Result<*const f32, LoaderError> {
     if group_index < 0 {
         error(0, 22);
         return Ok(null::<f32>());
     }
 
-    let state_id = state_id(group_index, group_index_offset)?;
+    let state_id = state_id(group_index, group_index_offset, loader_state)?;
     if state_id < 0 {
         error(16, 22);
         return Ok(null::<f32>());
     }
 
-    let loader_guard = LOADER_TABLE.lock()?;
-    let loader_table = loader_guard.as_ref().unwrap();
+    let loader_table = loader_state.loader_table.as_ref().unwrap();
 
     for skip_index in 0..i32::MAX {
         match loader_table.field_nth(group_index, FieldTypes::FloatArray, skip_index) {
@@ -528,20 +525,20 @@ pub fn query_float_attribute(
     group_index_offset: i32,
     first_value: i32,
     def_val: f32,
+    loader_state: &mut LoaderState,
 ) -> Result<f32, LoaderError> {
     if group_index < 0 {
         error(0, 22);
         return Ok(f32::nan());
     }
 
-    let state_id = state_id(group_index, group_index_offset)?;
+    let state_id = state_id(group_index, group_index_offset, loader_state)?;
     if state_id < 0 {
         error(16, 22);
         return Ok(f32::nan());
     }
 
-    let loader_guard = LOADER_TABLE.lock()?;
-    let loader_table = loader_guard.as_ref().unwrap();
+    let loader_table = loader_state.loader_table.as_ref().unwrap();
     for skip_index in 0.. {
         match loader_table.field_nth(group_index, FieldTypes::FloatArray, skip_index) {
             Some(EntryBuffer::Raw(float_array_data)) => {
@@ -578,13 +575,20 @@ pub fn query_float_attribute(
     Ok(f32::nan())
 }
 
-pub fn material(group_index: i32, visual: *mut VisualStruct) -> Result<i32, LoaderError> {
+// TODO: Maybe pass game state instead of two flags and a bool
+pub fn material(
+    group_index: i32,
+    visual: *mut VisualStruct,
+    full_tilt_mode: bool,
+    quick_flag: bool,
+    base_path: &str,
+    loader_state: &mut LoaderState,
+) -> Result<i32, LoaderError> {
     if group_index < 0 {
         error(0, 21);
     }
 
-    let loader_guard = LOADER_TABLE.lock()?;
-    let loader_table = loader_guard.as_ref().unwrap();
+    let loader_table = loader_state.loader_table.as_ref().unwrap();
     let short_value = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(short_array_data)) => {
             assert_eq!(short_array_data.len(), 2, "Array isn't big enough");
@@ -623,7 +627,13 @@ pub fn material(group_index: i32, visual: *mut VisualStruct) -> Result<i32, Load
             301 => unsafe { (*visual).smoothness = value },
             302 => unsafe { (*visual).elasticity = value },
             304 => unsafe {
-                let sound_id = get_sound_id(value.floor() as i32)?;
+                let sound_id = get_sound_id(
+                    value.floor() as i32,
+                    full_tilt_mode,
+                    quick_flag,
+                    base_path,
+                    loader_state,
+                )?;
                 unsafe { (*visual).soft_hit_sound_id = sound_id }
             },
             _ => return Ok(error(9, 21)),
@@ -633,29 +643,32 @@ pub fn material(group_index: i32, visual: *mut VisualStruct) -> Result<i32, Load
     Ok(0)
 }
 
-pub fn play_sound(sound_index: i32, sound_source: TPinballComponent, info: &[u8]) -> f32 {
-    if sound_index < 0 {
-        return 0.0;
-    }
+// pub fn play_sound(sound_index: i32, sound_source: TPinballComponent, info: &[u8]) -> f32 {
+//     if sound_index < 0 {
+//         return 0.0;
+//     }
+//
+//     let sound_list = SOUND_LIST.lock().unwrap();
+//     sound::play_sound(
+//         sound_list[sound_index as usize].wave_ptr,
+//         pb::TIME_TICKS.load(SeqCst),
+//         sound_source,
+//         info,
+//     );
+//     sound_list[sound_index as usize].duration
+// }
 
-    let sound_list = SOUND_LIST.lock().unwrap();
-    sound::play_sound(
-        sound_list[sound_index as usize].wave_ptr,
-        pb::TIME_TICKS.load(SeqCst),
-        sound_source,
-        info,
-    );
-    sound_list[sound_index as usize].duration
-}
-
-fn state_id(mut group_index: i32, group_index_offset: i32) -> Result<i32, LoaderError> {
-    let visual_state = query_visual_states(group_index)?;
+fn state_id(
+    mut group_index: i32,
+    group_index_offset: i32,
+    loader_state: &mut LoaderState,
+) -> Result<i32, LoaderError> {
+    let visual_state = query_visual_states(group_index, loader_state)?;
 
     if visual_state <= 0 {
         return Ok(error(12, 24));
     }
-    let loader_guard = LOADER_TABLE.lock()?;
-    let loader_table = loader_guard.as_ref().unwrap();
+    let loader_table = loader_state.loader_table.as_ref().unwrap();
     let mut short_val = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(data)) if data.len() >= 2 => i16::from_le_bytes([data[0], data[1]]),
         _ => return Ok(error(1, 24)),
@@ -693,13 +706,19 @@ fn read_float(data: &[u8], index: &mut usize) -> Result<f32, ()> {
     Ok(f32::from_le_bytes(bytes))
 }
 
-pub fn kicker(group_index: i32, kicker: *mut VisualKickerStruct) -> Result<i32, LoaderError> {
+pub fn kicker(
+    group_index: i32,
+    kicker: *mut VisualKickerStruct,
+    full_tilt_mode: bool,
+    quick_flag: bool,
+    base_path: &str,
+    loader_state: &mut LoaderState,
+) -> Result<i32, LoaderError> {
     if group_index < 0 {
         error(0, 20);
     }
 
-    let loader_guard = LOADER_TABLE.lock()?;
-    let loader_table = loader_guard.as_ref().unwrap();
+    let loader_table = loader_state.loader_table.as_ref().unwrap();
     let short_value = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(data)) => {
             assert_eq!(data.len(), 2, "Array isn't big enough");
@@ -754,7 +773,13 @@ pub fn kicker(group_index: i32, kicker: *mut VisualKickerStruct) -> Result<i32, 
             },
             406 => unsafe {
                 let val = read_float(&float_array_data, &mut index).unwrap();
-                (*kicker).hard_hit_sound_id = get_sound_id(val.floor() as i32)?;
+                (*kicker).hard_hit_sound_id = get_sound_id(
+                    val.floor() as i32,
+                    full_tilt_mode,
+                    quick_flag,
+                    base_path,
+                    loader_state,
+                )?;
             },
 
             _ => return Ok(error(10, 20)),
@@ -768,20 +793,22 @@ pub fn query_visual(
     group_index: i32,
     group_index_offset: i32,
     visual: &mut VisualStruct,
+    pb_game_state: &mut PbGameState,
+    resolution: i32,
+    loader_state: &mut LoaderState,
 ) -> Result<i32, LoaderError> {
     default_vsi(visual);
     if group_index < 0 {
         return Ok(error(0, 18));
     }
-    let state_id = state_id(group_index, group_index_offset)?;
+    let state_id = state_id(group_index, group_index_offset, loader_state)?;
     if state_id < 0 {
         return Ok(error(16, 18));
     }
 
-    let loader_guard = LOADER_TABLE.lock()?;
-    let loader_table = loader_guard.as_ref().unwrap();
-    let bmp = loader_table.get_bitmap(state_id).to_owned();
-    let zmap = loader_table.get_zmap(state_id).to_owned();
+    let loader_table = loader_state.loader_table.as_ref().unwrap();
+    let bmp = loader_table.get_bitmap(state_id, resolution).to_owned();
+    let zmap = loader_table.get_zmap(state_id, resolution).to_owned();
     visual.bitmap = SpriteData {
         bmp: Some(Arc::new(bmp)),
         zmap: Some(Arc::new(zmap)),
@@ -814,7 +841,15 @@ pub fn query_visual(
                     let material_value =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    if material(material_value as i32, visual as *mut _)? != 0 {
+                    if material(
+                        material_value as i32,
+                        visual as *mut _,
+                        pb_game_state.full_tilt_mode,
+                        pb_game_state.quick_flag,
+                        &pb_game_state.base_path,
+                        loader_state,
+                    )? != 0
+                    {
                         return Ok(error(15, 18));
                     }
                 }
@@ -825,7 +860,13 @@ pub fn query_visual(
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.soft_hit_sound_id = get_sound_id(sound_id as i32)?;
+                    visual.soft_hit_sound_id = get_sound_id(
+                        sound_id as i32,
+                        pb_game_state.full_tilt_mode,
+                        pb_game_state.quick_flag,
+                        &pb_game_state.base_path,
+                        loader_state,
+                    )?;
                 }
                 400 => {
                     if i + 1 >= short_arr_size {
@@ -835,7 +876,15 @@ pub fn query_visual(
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
                     // VERIFY: Is the 0 check correct? Should it be not 0?
-                    if kicker(kicker_val as i32, &mut visual.kicker)? != 0 {
+                    if kicker(
+                        kicker_val as i32,
+                        &mut visual.kicker,
+                        pb_game_state.full_tilt_mode,
+                        pb_game_state.quick_flag,
+                        &pb_game_state.base_path,
+                        loader_state,
+                    )? != 0
+                    {
                         return Ok(error(14, 18));
                     }
                 }
@@ -847,7 +896,13 @@ pub fn query_visual(
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.kicker.hard_hit_sound_id = get_sound_id(sound_id as i32)?;
+                    visual.kicker.hard_hit_sound_id = get_sound_id(
+                        sound_id as i32,
+                        pb_game_state.full_tilt_mode,
+                        pb_game_state.quick_flag,
+                        &pb_game_state.base_path,
+                        loader_state,
+                    )?;
                 }
                 602 => {
                     if i + 1 >= short_arr_size {
@@ -864,7 +919,13 @@ pub fn query_visual(
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.sound_index_4 = get_sound_id(sound_id as i32)?;
+                    visual.sound_index_4 = get_sound_id(
+                        sound_id as i32,
+                        pb_game_state.full_tilt_mode,
+                        pb_game_state.quick_flag,
+                        &pb_game_state.base_path,
+                        loader_state,
+                    )?;
                 }
                 1101 => {
                     if i + 1 >= short_arr_size {
@@ -873,7 +934,13 @@ pub fn query_visual(
                     let sound_id =
                         i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
                     i += 2;
-                    visual.sound_index_3 = get_sound_id(sound_id as i32)?;
+                    visual.sound_index_3 = get_sound_id(
+                        sound_id as i32,
+                        pb_game_state.full_tilt_mode,
+                        pb_game_state.quick_flag,
+                        &pb_game_state.base_path,
+                        loader_state,
+                    )?;
                 }
                 1500 => {
                     // Skipping 7 shorts or 14 bytes
@@ -890,7 +957,8 @@ pub fn query_visual(
     if visual.collision_group == 0 {
         visual.collision_group = 1;
     }
-
+    
+    let loader_table = loader_state.loader_table.as_ref().unwrap();
     let float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
         Some(EntryBuffer::Raw(float_array_data)) => float_array_data,
         _ => &vec![],

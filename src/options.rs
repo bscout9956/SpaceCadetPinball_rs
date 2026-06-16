@@ -1,5 +1,8 @@
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
-use crate::pinball_state::OptionsState;
+use crate::state::fullscrn_state::FullscrnState;
+use crate::state::options_state::OptionsState;
+use crate::state::pb_game_state::PbGameState;
+use crate::state::pinball_state::PinballState;
 use crate::translations::Msg;
 use crate::utils::clamp;
 use crate::{fullscrn, midi, render, translations};
@@ -22,11 +25,6 @@ use std::str::FromStr;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{LazyLock, Mutex};
-
-static SETTINGS: LazyLock<Mutex<HashMap<String, String>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
-
-static SHOW_DIALOG: AtomicBool = AtomicBool::new(false);
 
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
 
@@ -155,24 +153,22 @@ impl GameInput {
                     mouse_buttons[self.value as usize]
                 } else {
                     // VERIFY: Maybe we could just return string, we just need to make sure nothing else calls this necessarily
-                    // TODO: Dangling pointer
-                    CString::from_str(format!("MButton {}", self.value).as_str())
-                        .unwrap_or_default()
-                        .as_ptr()
+                    let c_str = CString::from_str(format!("MButton {}", self.value).as_str())
+                        .unwrap_or_default();
+                    c_str.as_ptr()
                 }
             }
             GameController => {
                 if self.value >= SDL_CONTROLLER_BUTTON_A as i32
-                    && self.value < std::cmp::min(SDL_CONTROLLER_BUTTON_MAX as i32, 21)
+                    && self.value < i32::min(SDL_CONTROLLER_BUTTON_MAX as i32, 21)
                 {
                     controller_buttons[self.value as usize]
                 } else {
                     // VERIFY: Maybe we could just return string?
                     // We just need to make sure nothing else calls this necessarily
-                    // TODO: Dangling pointer
-                    CString::from_str(format!("CButton {}", self.value).as_str())
-                        .unwrap_or_default()
-                        .as_ptr()
+                    let c_str = CString::from_str(format!("CButton {}", self.value).as_str())
+                        .unwrap_or_default();
+                    c_str.as_ptr()
                 }
             }
         }
@@ -199,15 +195,17 @@ pub enum GameBindings {
     Max,
 }
 
-pub fn get_int(name: &str, default_value: i32) -> i32 {
-    let settings = get_setting(name, &default_value.to_string());
+pub fn get_int(name: &str, default_value: i32, settings: &mut HashMap<String, String>) -> i32 {
+    let settings = get_setting(name, &default_value.to_string(), settings);
     settings.parse::<i32>().unwrap_or(default_value)
 }
 
-pub fn get_setting(key: &str, default_value: &str) -> String {
-    let mut hash_map = SETTINGS.lock().unwrap();
-
-    match hash_map.entry(key.to_string()) {
+pub fn get_setting(
+    key: &str,
+    default_value: &str,
+    settings: &mut HashMap<String, String>,
+) -> String {
+    match settings.entry(key.to_string()) {
         Entry::Occupied(entry) => entry.get().clone(),
         Entry::Vacant(entry) => {
             let new_value = entry.insert(default_value.to_string());
@@ -217,14 +215,12 @@ pub fn get_setting(key: &str, default_value: &str) -> String {
     }
 }
 
-pub fn set_int(name: &str, data: i32) {
-    set_setting(name, &data.to_string());
+pub fn set_int(name: &str, data: i32, settings: &mut HashMap<String, String>) {
+    set_setting(name, &data.to_string(), settings);
 }
 
-fn set_setting(key: &str, value: &String) {
-    let mut hash_map = SETTINGS.lock().unwrap();
-
-    hash_map.insert(key.to_string(), value.to_string());
+fn set_setting(key: &str, value: &String, settings: &mut HashMap<String, String>) {
+    settings.insert(key.to_string(), value.to_string());
     // TODO: Add imgui check
 }
 
@@ -246,71 +242,63 @@ pub const MIN_VOLUME: i32 = 0;
 pub const DEF_VOLUME: i32 = MAX_VOLUME;
 
 pub trait OptionBase {
-    fn load(&mut self);
-    fn save(&mut self);
+    fn load(&mut self, settings: &mut HashMap<String, String>);
+    fn save(&mut self, settings: &mut HashMap<String, String>);
     fn reset(&mut self);
 }
 
 pub trait SettingValue: Clone {
-    fn fetch(name: &str, default: Self) -> Self;
-    fn store(name: &str, value: &Self);
+    fn fetch(name: &str, default: Self, settings: &mut HashMap<String, String>) -> Self;
+    fn store(name: &str, value: &Self, settings: &mut HashMap<String, String>);
 }
 
 impl SettingValue for i32 {
-    fn fetch(name: &str, default: i32) -> Self {
-        let map = SETTINGS.lock().unwrap();
-        match map.get(name) {
+    fn fetch(name: &str, default: i32, settings: &mut HashMap<String, String>) -> Self {
+        match settings.get(name) {
             Some(value) => value.parse::<i32>().unwrap_or(default),
             Option::None => default,
         }
     }
-    fn store(name: &str, value: &i32) {
-        let mut map = SETTINGS.lock().unwrap();
-        map.insert(name.to_string(), value.to_string());
+    fn store(name: &str, value: &i32, settings: &mut HashMap<String, String>) {
+        settings.insert(name.to_string(), value.to_string());
     }
 }
 
 impl SettingValue for bool {
-    fn fetch(name: &str, default: Self) -> Self {
-        let map = SETTINGS.lock().unwrap();
-        match map.get(name) {
+    fn fetch(name: &str, default: Self, settings: &mut HashMap<String, String>) -> Self {
+        match settings.get(name) {
             Some(value) => value.parse::<bool>().unwrap_or(default),
             Option::None => default,
         }
     }
-    fn store(name: &str, value: &bool) {
-        let mut map = SETTINGS.lock().unwrap();
-        map.insert(name.to_string(), value.to_string());
+    fn store(name: &str, value: &bool, settings: &mut HashMap<String, String>) {
+        settings.insert(name.to_string(), value.to_string());
     }
 }
 
 impl SettingValue for String {
-    fn fetch(name: &str, default: Self) -> Self {
-        let map = SETTINGS.lock().unwrap();
-        match map.get(name) {
+    fn fetch(name: &str, default: Self, settings: &mut HashMap<String, String>) -> Self {
+        match settings.get(name) {
             Some(value) => value.to_string(),
             Option::None => default,
         }
     }
 
-    fn store(name: &str, value: &String) {
-        let mut map = SETTINGS.lock().unwrap();
-        map.insert(name.to_string(), value.to_string());
+    fn store(name: &str, value: &String, settings: &mut HashMap<String, String>) {
+        settings.insert(name.to_string(), value.to_string());
     }
 }
 
 impl SettingValue for f32 {
-    fn fetch(name: &str, default: Self) -> Self {
-        let map = SETTINGS.lock().unwrap();
-        match map.get(name) {
+    fn fetch(name: &str, default: Self, settings: &mut HashMap<String, String>) -> Self {
+        match settings.get(name) {
             Some(value) => value.parse::<f32>().unwrap_or(default),
             Option::None => default,
         }
     }
 
-    fn store(name: &str, value: &f32) {
-        let mut map = SETTINGS.lock().unwrap();
-        map.insert(name.to_string(), value.to_string());
+    fn store(name: &str, value: &f32, settings: &mut HashMap<String, String>) {
+        settings.insert(name.to_string(), value.to_string());
     }
 }
 
@@ -332,12 +320,12 @@ impl<T: SettingValue> Setting<T> {
 }
 
 impl<T: SettingValue> OptionBase for Setting<T> {
-    fn load(&mut self) {
-        self.value = T::fetch(self.name, self.default.clone());
+    fn load(&mut self, settings: &mut HashMap<String, String>) {
+        self.value = T::fetch(self.name, self.default.clone(), settings);
     }
 
-    fn save(&mut self) {
-        T::store(self.name, &self.value);
+    fn save(&mut self, settings: &mut HashMap<String, String>) {
+        T::store(self.name, &self.value, settings);
     }
 
     fn reset(&mut self) {
@@ -398,19 +386,23 @@ impl ControlOption {
 }
 
 impl OptionBase for ControlOption {
-    fn load(&mut self) {
+    fn load(&mut self, settings: &mut HashMap<String, String>) {
         for (idx, input) in self.inputs.iter_mut().enumerate() {
             let name = format!("{} {}", self.name, idx);
             input.input_type = self.defaults[idx].input_type;
-            input.value = get_int(&format!("{} input", name), self.defaults[idx].value);
+            input.value = get_int(
+                &format!("{} input", name),
+                self.defaults[idx].value,
+                settings,
+            );
         }
     }
 
-    fn save(&mut self) {
+    fn save(&mut self, settings: &mut HashMap<String, String>) {
         for (idx, input) in self.inputs.iter_mut().enumerate() {
             let name = String::from(self.name) + " " + &idx.to_string();
-            set_int(&format!("{} type", name), input.input_type as i32);
-            set_int(&format!("{} input", name), input.value);
+            set_int(&format!("{} type", name), input.input_type as i32, settings);
+            set_int(&format!("{} input", name), input.value, settings);
         }
     }
 
@@ -499,15 +491,15 @@ impl OptionsStruct {
         options
     }
 
-    pub fn load_all(&mut self) {
+    pub fn load_all(&mut self, settings: &mut HashMap<String, String>) {
         for opt in self.all_options_mut() {
-            opt.load();
+            opt.load(settings);
         }
     }
 
-    pub fn save_all(&mut self) {
+    pub fn save_all(&mut self, settings: &mut HashMap<String, String>) {
         for opt in self.all_options_mut() {
-            opt.save();
+            opt.save(settings);
         }
     }
 
@@ -530,24 +522,31 @@ pub unsafe fn init_primary(options_state: &mut OptionsState) {
         ini_handler.TypeName = c"Pinball".as_ptr();
         ini_handler.TypeHash = igImHashStr(ini_handler.TypeName, 0, 0);
 
+        ini_handler.UserData =
+            &mut options_state.settings as *mut HashMap<String, String> as *mut c_void;
+
         ini_handler.ReadOpenFn = Some(MyUserData_ReadOpen);
         ini_handler.ReadLineFn = Some(MyUserData_ReadLine);
         ini_handler.WriteAllFn = Some(MyUserData_WriteAll);
 
-        igAddSettingsHandler(&mut ini_handler);
+        igAddSettingsHandler(&ini_handler);
 
-        if (*im_context).SettingsLoaded == false {
+        if !(*im_context).SettingsLoaded {
             igLoadIniSettingsFromDisk((*im_context).IO.IniFilename);
             (*im_context).SettingsLoaded = true;
         }
 
-        options_state.options.load_all();
+        options_state.options.load_all(&mut options_state.settings);
         post_process_options(options_state);
     }
 }
 
-pub fn init_secondary(options_state: &mut OptionsState) {
-    let max_res = fullscrn::get_max_resolution();
+pub fn init_secondary(
+    options_state: &mut OptionsState,
+    pb_game_state: &mut PbGameState,
+    fullscrn_state: &mut FullscrnState,
+) {
+    let max_res = fullscrn::get_max_resolution(pb_game_state);
 
     if (options_state.options.resolution.value >= 0
         && options_state.options.resolution.value > max_res)
@@ -555,27 +554,35 @@ pub fn init_secondary(options_state: &mut OptionsState) {
         *options_state.options.resolution = max_res;
     }
     if (options_state.options.resolution.value == -1) {
-        fullscrn::set_resolution(max_res);
+        fullscrn::set_resolution(max_res, fullscrn_state, pb_game_state);
     } else {
-        fullscrn::set_resolution(options_state.options.resolution.value);
+        fullscrn::set_resolution(
+            *options_state.options.resolution,
+            fullscrn_state,
+            pb_game_state,
+        );
     }
 }
 
 pub fn uninit(options_state: &mut OptionsState) {
     if let Some(cur_lang) = translations::get_current_language() {
         options_state.options.language.value = cur_lang.short_name.to_string();
-        options_state.options.save_all();
+        options_state.options.save_all(&mut options_state.settings);
     } else {
         println!("Unable to obtain current language info...");
     }
 }
 
-pub fn get_input(row_name: &str, mut values: [GameInput; 3]) {
+pub fn get_input(
+    row_name: &str,
+    mut values: [GameInput; 3],
+    settings: &mut HashMap<String, String>,
+) {
     for (index, input) in values.iter_mut().enumerate() {
         let name = format!("{} {}", row_name, index);
-        let type_val = get_int(&format!("{} type", name), -1);
+        let type_val = get_int(&format!("{} type", name), -1, settings);
         let input_type: InputTypes = InputTypes::from_i32(type_val).unwrap();
-        let value = get_int(&format!("{} input", name), -1);
+        let value = get_int(&format!("{} input", name), -1, settings);
 
         if (input_type <= GameController && value != -1) {
             *input = GameInput { input_type, value };
@@ -583,65 +590,72 @@ pub fn get_input(row_name: &str, mut values: [GameInput; 3]) {
     }
 }
 
-pub fn set_input(row_name: &str, mut values: [GameInput; 3]) {
+pub fn set_input(
+    row_name: &str,
+    mut values: [GameInput; 3],
+    settings: &mut HashMap<String, String>,
+) {
     for (index, input) in values.iter_mut().enumerate() {
         let name = format!("{} {}", row_name, index);
-        set_int(&format!("{} type", input.input_type as i32), -1);
-        set_int(&format!("{} input", input.value), -1);
+        set_int(&format!("{} type", input.input_type as i32), -1, settings);
+        set_int(&format!("{} input", input.value), -1, settings);
     }
 }
 
 // TODO: Implement all the unimplemented stuff
-pub fn toggle(u_id_check_item: Menu, options_state: &mut OptionsState) {
+pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
     match u_id_check_item {
         Menu::NewGame => {}
         Menu::AboutPinball => {}
         Menu::HighScores => {}
         Menu::Exit => {}
         Menu::Sounds => {
-            *options_state.options.sounds = !(*options_state.options.sounds);
-            return;
+            *state.options_state.options.sounds = !(*state.options_state.options.sounds);
         }
         Menu::Music => {
-            *options_state.options.music = !(*options_state.options.music);
-            if (*options_state.options.music) == false {
+            *state.options_state.options.music = !(*state.options_state.options.music);
+            if !(*state.options_state.options.music) {
                 midi::music_stop();
             } else {
                 midi::music_play();
             }
-            return;
         }
         Menu::SoundStereo => {
-            *options_state.options.sound_stereo = !(*options_state.options.sound_stereo);
-            return;
+            *state.options_state.options.sound_stereo =
+                !(*state.options_state.options.sound_stereo);
         }
         Menu::HelpTopics => {}
         Menu::LaunchBall => {}
         Menu::PauseResumeGame => {}
         Menu::FullScreen => {
-            *options_state.options.full_screen = !(*options_state.options.full_screen);
-            fullscrn::set_screen_mode(*options_state.options.full_screen);
+            *state.options_state.options.full_screen = !(*state.options_state.options.full_screen);
+            fullscrn::set_screen_mode(
+                *state.options_state.options.full_screen,
+                &mut state.fullscrn_state,
+                &mut state.main_state.main_window,
+            );
         }
         Menu::Demo => {}
         Menu::SelectTable => {}
         Menu::PlayerControls => {}
         Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {}
         Menu::ShowMenu => {
-            *options_state.options.show_menu = !(*options_state.options.show_menu);
-            fullscrn::window_size_changed(options_state);
+            *state.options_state.options.show_menu = !(*state.options_state.options.show_menu);
+            fullscrn::window_size_changed(state);
         }
         Menu::MaximumResolution | Menu::R640x480 | Menu::R800x600 | Menu::R1024x768 => {
             let mut restart = false;
             let new_resolution = u_id_check_item as i32 - Menu::R640x480 as i32;
             if u_id_check_item == Menu::MaximumResolution {
-                restart = fullscrn::get_resolution() != fullscrn::get_max_resolution();
-                *options_state.options.resolution = -1;
-            } else if new_resolution <= fullscrn::get_max_resolution() {
+                restart = state.fullscrn_state.resolution
+                    != fullscrn::get_max_resolution(&mut state.pb_game_state);
+                *state.options_state.options.resolution = -1;
+            } else if new_resolution <= fullscrn::get_max_resolution(&mut state.pb_game_state) {
                 let mut current_resolution: i32;
-                if (*options_state.options.resolution == -1) {
-                    current_resolution = fullscrn::get_max_resolution();
+                if (*state.options_state.options.resolution == -1) {
+                    current_resolution = fullscrn::get_max_resolution(&mut state.pb_game_state);
                 } else {
-                    current_resolution = fullscrn::get_resolution();
+                    current_resolution = state.fullscrn_state.resolution;
                 }
 
                 let restart = (new_resolution != current_resolution);
@@ -652,21 +666,28 @@ pub fn toggle(u_id_check_item: Menu, options_state: &mut OptionsState) {
             }
         }
         Menu::WindowUniformScale => {
-            *options_state.options.uniform_scaling = !(*options_state.options.uniform_scaling);
-            fullscrn::window_size_changed(options_state);
+            *state.options_state.options.uniform_scaling =
+                !(*state.options_state.options.uniform_scaling);
+            fullscrn::window_size_changed(state);
         }
         Menu::WindowLinearFilter => {
-            *options_state.options.linear_filtering = !(*options_state.options.linear_filtering);
-            render::recreate_screen_texture(options_state);
+            *state.options_state.options.linear_filtering =
+                !(*state.options_state.options.linear_filtering);
+            render::recreate_screen_texture(
+                &mut state.main_state,
+                &mut state.options_state,
+                &mut state.render_state,
+            );
         }
         Menu::WindowIntegerScale => {
-            *options_state.options.integer_scaling = !(*options_state.options.integer_scaling);
-            fullscrn::window_size_changed(options_state);
+            *state.options_state.options.integer_scaling =
+                !(*state.options_state.options.integer_scaling);
+            fullscrn::window_size_changed(state);
         }
         Menu::Prefer3DPBGameData => {
-            *options_state.options.prefer_3dpb_game_data =
-                !(*options_state.options.prefer_3dpb_game_data);
-            fullscrn::window_size_changed(options_state);
+            *(&mut state.options_state).options.prefer_3dpb_game_data =
+                !(*(&mut state.options_state).options.prefer_3dpb_game_data);
+            fullscrn::window_size_changed(state);
         }
     }
 }
@@ -689,16 +710,14 @@ pub fn toggle(u_id_check_item: Menu, options_state: &mut OptionsState) {
 //     }
 // }
 
-pub fn render_control_dialog() {
-    let dialog_check = SHOW_DIALOG.load(SeqCst);
-    if !dialog_check {
+pub fn render_control_dialog(show_dialog: bool) {
+    if !show_dialog {
         return;
     }
 
     // TODO: ImGui stuff
 
-    let dialog_check = SHOW_DIALOG.load(SeqCst);
-    if !dialog_check {}
+    if !show_dialog {}
 }
 
 pub fn map_game_input(key: GameInput, options_state: &mut OptionsState) -> Vec<GameBindings> {
@@ -728,9 +747,14 @@ pub unsafe extern "C" fn MyUserData_ReadLine(
     entry: *mut c_void,
     line: *const c_char,
 ) {
+    if entry.is_null() {
+        return;
+    }
+
     unsafe {
         let kv_store = &mut *(entry as *mut HashMap<String, String>);
         let key_value = CStr::from_ptr(line).to_str().unwrap_or_default();
+
         if let Some(separator_pos) = key_value.find('=') {
             let key = &key_value[0..separator_pos];
             let value = &key_value[separator_pos + 1..];
@@ -745,13 +769,13 @@ pub unsafe extern "C" fn MyUserData_ReadOpen(
     handler: *mut ImGuiSettingsHandler,
     name: *const c_char,
 ) -> *mut c_void {
-    if name.eq(&c"Settings".as_ptr()) {
-        let settings = SETTINGS.lock().unwrap();
-        let mut clone_hash = settings.clone();
-        // TODO: Dangling pointer
-        return &raw mut clone_hash as *mut c_void;
+    unsafe {
+        let name_str = CStr::from_ptr(name);
+        if name_str.to_bytes() == b"Settings" {
+            return (*handler).UserData;
+        }
+        std::ptr::null_mut()
     }
-    std::ptr::null_mut()
 }
 
 #[allow(non_snake_case)]
@@ -761,12 +785,25 @@ pub unsafe extern "C" fn MyUserData_WriteAll(
     buf: *mut ImGuiTextBuffer,
 ) {
     unsafe {
-        ImGuiTextBuffer_appendf(buf, c"%s%s\n".as_ptr(), (*handler).TypeName, "Settings");
-        let settings = SETTINGS.lock().unwrap();
-        for setting in settings.iter() {
-            ImGuiTextBuffer_appendf(buf, c"%s=%s\n".as_ptr(), setting.0, setting.1);
+        if (*handler).UserData.is_null() {
+            return;
         }
-        // VERIFY: str end?
+
+        let settings = &*((*handler).UserData as *mut HashMap<String, String>);
+
+        ImGuiTextBuffer_appendf(
+            buf,
+            c"[%s][%s]\n".as_ptr(),
+            (*handler).TypeName,
+            c"Settings".as_ptr(),
+        );
+
+        for (key, value) in settings.iter() {
+            if let Ok(line) = CString::new(format!("{}={}\n", key, value)) {
+                ImGuiTextBuffer_append(buf, line.as_ptr(), std::ptr::null());
+            }
+        }
+
         ImGuiTextBuffer_append(buf, c"\n".as_ptr(), std::ptr::null());
     }
 }

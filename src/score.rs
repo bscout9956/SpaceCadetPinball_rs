@@ -1,9 +1,9 @@
 use crate::errors::ScoreError;
 use crate::fullscrn;
 use crate::gdrv::GdrvBitmap8;
-use crate::group_data::{EntryBuffer, FieldTypes};
-use crate::pb::RECORD_TABLE;
-use std::sync::Mutex;
+use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
+use crate::state::fullscrn_state::FullscrnState;
+use std::sync::{Arc, Mutex};
 
 pub struct ScoreStruct {
     pub score: i32,
@@ -52,9 +52,11 @@ impl ScoreMessageFontType {
 
 pub static MSG_FONTP: Mutex<Option<ScoreMessageFontType>> = Mutex::new(None);
 
-pub fn load_msg_font(font_name: &str) -> Result<(), ScoreError> {
-    let record_table = RECORD_TABLE.lock().map_err(ScoreError::RecordTableLock)?;
-
+pub fn load_msg_font(
+    font_name: &str,
+    record_table: &mut Option<Arc<DatFile>>,
+    fullscrn_state: &mut FullscrnState,
+) -> Result<(), ScoreError> {
     let record_table = match &*record_table {
         Some(record_table) => record_table,
         None => return Ok(()),
@@ -73,8 +75,8 @@ pub fn load_msg_font(font_name: &str) -> Result<(), ScoreError> {
     // FT font has multiple resolutions
     let gap_array = record_table.field(group_index, FieldTypes::ShortArray);
     if let Some(EntryBuffer::Raw(bytes)) = gap_array {
-        let resolution = fullscrn::get_resolution() as usize;
-        let offset = resolution * 2;
+        let res_val = fullscrn_state.resolution;
+        let offset = res_val as usize * 2;
 
         if offset + 1 < bytes.len() {
             font.gap_width = i16::from_le_bytes([bytes[offset], bytes[offset + 1]]) as i32;
@@ -84,7 +86,7 @@ pub fn load_msg_font(font_name: &str) -> Result<(), ScoreError> {
     }
 
     for (char_index, group_index) in (32..128).zip(group_index as usize..) {
-        let bmp = record_table.get_bitmap(group_index as i32);
+        let bmp = record_table.get_bitmap(group_index as i32, fullscrn_state.resolution);
         // TODO: This is an assumption, but it may work? Get bitmap doesn't return an option so idk
         if bmp.indexed_bmp_data.is_empty() {
             break;
@@ -100,4 +102,8 @@ pub fn load_msg_font(font_name: &str) -> Result<(), ScoreError> {
 
 pub fn init() -> i32 {
     1
+}
+
+pub(crate) fn unload_msg_font() {
+    todo!()
 }

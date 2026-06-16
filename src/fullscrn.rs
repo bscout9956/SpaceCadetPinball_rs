@@ -1,87 +1,61 @@
-use crate::MainError::NoneRendererError;
 use crate::errors::FullscreenError;
-use crate::pinball_state::OptionsState;
-use crate::{MAIN_WINDOW, RENDERER, get_main_menu_height, pb, render};
+use crate::state::fullscrn_state::FullscrnState;
+use crate::state::main_state::MainState;
+use crate::state::options_state::OptionsState;
+use crate::state::pb_game_state::PbGameState;
+use crate::state::pinball_state::PinballState;
+use crate::state::render_state::RenderState;
+use crate::{SdlWindowPtr, render};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
-use std::sync::atomic::Ordering::Relaxed;
-use std::sync::atomic::{AtomicBool, AtomicI32};
-use std::sync::{Mutex, atomic};
-
-static RESOLUTION: AtomicI32 = AtomicI32::new(0);
 
 #[derive(Clone)]
 pub struct ResolutionInfo {
-    screen_width: i16,
-    screen_height: i16,
+    pub(crate) screen_width: i16,
+    pub(crate) screen_height: i16,
     pub table_width: i16,
     pub table_height: i16,
-    resolution_menu_id: i16,
+    pub(crate) resolution_menu_id: i16,
 }
 
-pub static SCREEN_MODE: AtomicBool = AtomicBool::new(false);
-pub static DISPLAY_CHANGED: AtomicBool = AtomicBool::new(false);
-pub static RESOLUTION_ARRAY: Mutex<[ResolutionInfo; 3]> = Mutex::new([
-    ResolutionInfo {
-        screen_width: 640,
-        screen_height: 480,
-        table_width: 600,
-        table_height: 416,
-        resolution_menu_id: 501,
-    },
-    ResolutionInfo {
-        screen_width: 800,
-        screen_height: 600,
-        table_width: 752,
-        table_height: 520,
-        resolution_menu_id: 502,
-    },
-    ResolutionInfo {
-        screen_width: 1024,
-        screen_height: 768,
-        table_width: 960,
-        table_height: 666,
-        resolution_menu_id: 503,
-    },
-]);
-
-pub static SCALE_X: Mutex<f32> = Mutex::new(1.0);
-pub static SCALE_Y: Mutex<f32> = Mutex::new(1.0);
-pub static OFFSET_X: Mutex<f32> = Mutex::new(0.0);
-pub static OFFSET_Y: Mutex<f32> = Mutex::new(0.0);
-
-pub fn set_resolution(mut value: i32) -> Result<(), FullscreenError> {
-    if pb::FULL_TILT_MODE.load(Relaxed) && !pb::FULL_TILT_DEMO_MODE.load(Relaxed) {
-        value = 0;
+pub fn set_resolution(
+    mut res_value: i32,
+    fullscrn_state: &mut FullscrnState,
+    pb_game_state: &mut PbGameState,
+) -> Result<(), FullscreenError> {
+    if pb_game_state.full_tilt_mode && !pb_game_state.full_tilt_demo_mode {
+        res_value = 0;
     }
-    if !(0..=2).contains(&value) {
+    if !(0..=2).contains(&res_value) {
         return Err(FullscreenError::ResolutionOutOfBounds);
     }
-    RESOLUTION.store(value, Relaxed);
+    fullscrn_state.resolution = res_value;
     Ok(())
 }
 
-pub fn get_max_resolution() -> i32 {
-    if pb::FULL_TILT_MODE.load(Relaxed) && !pb::FULL_TILT_DEMO_MODE.load(Relaxed) {
+pub fn get_max_resolution(pb_game_state: &mut PbGameState) -> i32 {
+    if pb_game_state.full_tilt_mode && !pb_game_state.full_tilt_demo_mode {
         2
     } else {
         0
     }
 }
 
-pub fn set_screen_mode(is_fullscreen: bool) -> bool {
+pub fn set_screen_mode(
+    is_fullscreen: bool,
+    fullscrn_state: &mut FullscrnState,
+    main_window: &mut Option<SdlWindowPtr>,
+) -> bool {
     let mut result = is_fullscreen;
-    let mut screen_mode = SCREEN_MODE.load(Relaxed);
 
-    if is_fullscreen == screen_mode {
+    if is_fullscreen == fullscrn_state.screen_mode {
         return result;
     }
-    screen_mode = is_fullscreen;
-    SCREEN_MODE.store(screen_mode, Relaxed);
+    fullscrn_state.screen_mode = is_fullscreen;
 
     if is_fullscreen {
         unsafe {
-            match enable_fullscreen() {
+            match enable_fullscreen(main_window, fullscrn_state) {
                 Ok(enabled) => enabled,
                 Err(e) => {
                     println!("Failed to enable fullscreen: {}", e);
@@ -92,26 +66,20 @@ pub fn set_screen_mode(is_fullscreen: bool) -> bool {
         return true;
     }
 
-    disable_fullscreen();
+    disable_fullscreen(main_window, fullscrn_state);
     result
 }
 
-pub fn get_resolution() -> i32 {
-    RESOLUTION.load(atomic::Ordering::Acquire)
+fn reset_offset(mut offset: f32) {
+    offset = 0.0f32;
 }
 
-fn reset_offset(offset: &Mutex<f32>) -> Result<(), FullscreenError> {
-    let mut offset = offset
-        .lock()
-        .map_err(|_| FullscreenError::MainWindowMissing)?;
-    *offset = 0.0f32;
-    Ok(())
-}
+pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenError> {
+    let fullscrn_state: &mut FullscrnState = &mut state.fullscrn_state;
+    let render_state: &mut RenderState = &mut state.render_state;
 
-pub fn window_size_changed(option_state: &mut OptionsState) -> Result<(), FullscreenError> {
     let (mut width, mut height): (i32, i32) = (0, 0);
-    let renderer_guard = RENDERER.lock().map_err(|_| FullscreenError::LockGeneric)?;
-    if let Some(renderer) = renderer_guard.as_ref() {
+    if let Some(renderer) = (&mut state.main_state).renderer.as_ref() {
         unsafe {
             SDL_GetRendererOutputSize(renderer.0, &mut width, &mut height);
         }
@@ -119,102 +87,80 @@ pub fn window_size_changed(option_state: &mut OptionsState) -> Result<(), Fullsc
         return Err(FullscreenError::MissingRenderer);
     }
 
-    let menu_height = if *option_state.options.show_menu {
-        get_main_menu_height()
+    let menu_height = if *(&mut state.options_state).options.show_menu {
+        (&mut state.main_state).main_menu_height
     } else {
         0
     };
     height -= menu_height;
-    let res = match RESOLUTION_ARRAY.lock() {
-        Ok(resolution_array) => {
-            let idx = RESOLUTION.load(Relaxed) as usize;
-            resolution_array[idx].clone()
-        }
-        Err(e) => {
-            return Err(FullscreenError::ResolutionArrayLock(e));
-        }
-    };
 
-    update_x_scale(&mut width, &res)?;
-    update_y_scale(&mut height, &res)?;
+    let res = &fullscrn_state.resolution_array[fullscrn_state.resolution as usize];
 
-    reset_offset(&OFFSET_X)?;
-    reset_offset(&OFFSET_Y)?;
+    update_x_scale(&mut width, res, fullscrn_state.scale_x);
+    update_y_scale(&mut height, res, fullscrn_state.scale_y);
 
-    let mut offset2x = 0;
-    let mut offset2y = 0;
+    reset_offset(fullscrn_state.offset_x);
+    reset_offset(fullscrn_state.offset_y);
 
-    if *option_state.options.integer_scaling {
-        let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
-        let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
+    let mut offset_2x = 0;
+    let mut offset_2y = 0;
 
-        *scale_x = if *scale_x < 1.0 {
-            *scale_x
+    if *state.options_state.options.integer_scaling {
+        fullscrn_state.scale_x = if fullscrn_state.scale_x < 1.0 {
+            fullscrn_state.scale_x
         } else {
-            (*scale_x).floor()
+            fullscrn_state.scale_x.floor()
         };
 
-        *scale_y = if *scale_y < 1.0 {
-            *scale_y
+        fullscrn_state.scale_y = if fullscrn_state.scale_y < 1.0 {
+            fullscrn_state.scale_y
         } else {
-            (*scale_y).floor()
+            fullscrn_state.scale_y.floor()
         };
     }
 
-    if *option_state.options.uniform_scaling {
-        let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
-        let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
-        *scale_x = f32::min(*scale_x, *scale_y);
-        *scale_y = *scale_x;
+    if *state.options_state.options.uniform_scaling {
+        fullscrn_state.scale_x = f32::min(fullscrn_state.scale_x, fullscrn_state.scale_y);
+        fullscrn_state.scale_y = fullscrn_state.scale_x;
     }
 
-    let scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
-    let scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
-    offset2x = (width as f32 - res.table_width as f32 * *scale_x).floor() as i32;
-    offset2y = (height as f32 - res.table_height as f32 * *scale_y).floor() as i32;
+    offset_2x = (width as f32 - res.table_width as f32 * fullscrn_state.scale_x).floor() as i32;
+    offset_2y = (height as f32 - res.table_height as f32 * fullscrn_state.scale_y).floor() as i32;
 
-    let mut offset_x = OFFSET_X.lock().map_err(FullscreenError::FloatLock)?;
-    let mut offset_y = OFFSET_Y.lock().map_err(FullscreenError::FloatLock)?;
-    *offset_x = offset2x as f32 / 2.0f32;
-    *offset_y = offset2y as f32 / 2.0f32;
+    fullscrn_state.offset_x = offset_2x as f32 / 2.0f32;
+    fullscrn_state.offset_y = offset_2y as f32 / 2.0f32;
 
-    let mut dest_rect = render::DESTINATION_RECT
-        .lock()
-        .map_err(|_| FullscreenError::LockGeneric)?;
-
-    *dest_rect = SDL_Rect {
-        x: *offset_x as i32,
-        y: *offset_y as i32 + menu_height,
-        w: width - offset2x,
-        h: height - offset2y,
-    };
+    render_state.destination_rect = Some(SDL_Rect {
+        x: fullscrn_state.offset_x as i32,
+        y: fullscrn_state.offset_y as i32 + menu_height,
+        w: width - offset_2x,
+        h: height - offset_2y,
+    });
 
     Ok(())
 }
 
-fn update_y_scale(height: &mut i32, res: &ResolutionInfo) -> Result<(), FullscreenError> {
-    let mut scale_y = SCALE_Y.lock().map_err(FullscreenError::FloatLock)?;
-    *scale_y = *height as f32 / res.screen_height as f32;
-    Ok(())
+fn update_y_scale(height: &mut i32, res: &ResolutionInfo, mut scale_y: f32) {
+    scale_y = *height as f32 / res.screen_height as f32;
 }
 
-fn update_x_scale(width: &mut i32, res: &ResolutionInfo) -> Result<(), FullscreenError> {
-    let mut scale_x = SCALE_X.lock().map_err(FullscreenError::FloatLock)?;
-    *scale_x = *width as f32 / res.screen_width as f32;
-    Ok(())
+fn update_x_scale(width: &mut i32, res: &ResolutionInfo, mut scale_x: f32) {
+    scale_x = *width as f32 / res.screen_width as f32;
 }
 
-pub fn activate(flag: bool) {
-    let screen_mode = SCREEN_MODE.load(Relaxed);
-    if screen_mode && (!flag) {
-        set_screen_mode(false);
+pub fn activate(
+    flag: bool,
+    fullscrn_state: &mut FullscrnState,
+    main_window: &mut Option<SdlWindowPtr>,
+) {
+    if fullscrn_state.screen_mode && (!flag) {
+        set_screen_mode(false, fullscrn_state, main_window);
     }
 }
 
-pub fn shutdown() {
-    let display_changed = DISPLAY_CHANGED.load(Relaxed);
-    if display_changed {
-        set_screen_mode(false);
+pub fn shutdown(fullscrn_state: &mut FullscrnState, main_window: &mut Option<SdlWindowPtr>) {
+    if fullscrn_state.display_changed {
+        set_screen_mode(false, fullscrn_state, main_window);
     }
 }
 
@@ -232,20 +178,15 @@ pub fn get_screen_to_pinball_ratio() -> f32 {
     0.0
 }
 
-unsafe fn enable_fullscreen() -> Result<bool, FullscreenError> {
-    let mut display_changed = DISPLAY_CHANGED.load(Relaxed);
-    if !display_changed {
-        if let Some(main_window) = MAIN_WINDOW
-            .lock()
-            .map_err(|_| FullscreenError::LockGeneric)?
-            .as_ref()
-        {
+unsafe fn enable_fullscreen(
+    main_window: &Option<SdlWindowPtr>,
+    fullscrn_state: &mut FullscrnState,
+) -> Result<bool, FullscreenError> {
+    if !fullscrn_state.display_changed {
+        if let Some(window) = main_window {
             unsafe {
-                if (SDL_SetWindowFullscreen(main_window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32)
-                    == 0)
-                {
-                    display_changed = true;
-                    DISPLAY_CHANGED.store(display_changed, Relaxed);
+                if (SDL_SetWindowFullscreen(window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32) == 0) {
+                    fullscrn_state.display_changed = true;
                     return Ok(true);
                 }
             }
@@ -256,19 +197,15 @@ unsafe fn enable_fullscreen() -> Result<bool, FullscreenError> {
     Ok(false)
 }
 
-fn disable_fullscreen() -> Result<bool, FullscreenError> {
-    let mut display_changed = DISPLAY_CHANGED.load(Relaxed);
-    if display_changed {
-        if let Some(mut main_window) = MAIN_WINDOW
-            .lock()
-            .map_err(|_| FullscreenError::LockGeneric)?
-            .as_ref()
-        {
+fn disable_fullscreen(
+    main_window: &mut Option<SdlWindowPtr>,
+    fullscrn_state: &mut FullscrnState,
+) -> Result<bool, FullscreenError> {
+    if fullscrn_state.display_changed {
+        if let Some(mut window) = main_window.as_mut() {
             unsafe {
-                if (SDL_SetWindowFullscreen(main_window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32)
-                    == 0)
-                {
-                    display_changed = false;
+                if (SDL_SetWindowFullscreen(window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32) == 0) {
+                    fullscrn_state.display_changed = false;
                 }
             }
         } else {
@@ -279,6 +216,6 @@ fn disable_fullscreen() -> Result<bool, FullscreenError> {
     Ok(false)
 }
 
-pub fn init(options_state: &mut OptionsState) {
-    window_size_changed(options_state);
+pub fn init(state: &mut PinballState) {
+    window_size_changed(state);
 }
