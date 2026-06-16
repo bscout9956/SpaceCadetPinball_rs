@@ -9,8 +9,9 @@ use crate::options::Menu::ShowMenu;
 use crate::translations::Msg;
 use dear_imgui_rs::sys::{
     ImGuiCol_MenuBarBg, ImGuiIO, ImGuiMouseCursor_None, ImGuiStyleVar_WindowMinSize, ImVec2_c,
-    ImVec4, igBeginMainMenuBar, igEnd, igEndMainMenuBar, igFocusWindow, igMenuItem_Bool,
-    igNewFrame, igPopStyleVar, igPushStyleColor_Vec4, igPushStyleVar_Vec2, igSetMouseCursor,
+    ImVec4, igBeginMainMenuBar, igEnd, igEndMainMenuBar, igFocusWindow, igGetDrawData,
+    igMenuItem_Bool, igNewFrame, igPopStyleVar, igPushStyleColor_Vec4, igPushStyleVar_Vec2,
+    igRender, igSetMouseCursor,
 };
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig, StyleColor, StyleVar, Ui};
 use sdl2::sys::SDL_EventType::{
@@ -261,7 +262,7 @@ fn main_loop(
     let frame_start = unsafe { SdlPerformanceClock::now() };
     let mut prev_time = frame_start;
 
-    let _update_to_frame_counter = 0.0;
+    let mut update_to_frame_counter = 0.0;
     let _sleep_remainder: Duration<1_000_000_000> = Duration(0);
 
     let _frame_duration = pb_state.main_state.target_frametime;
@@ -360,7 +361,7 @@ fn main_loop(
 
         (&mut pb_state.main_state).no_time_loss = false;
 
-        if _update_to_frame_counter >= (&mut pb_state.main_state).update_to_frame_ratio {
+        if update_to_frame_counter >= (&mut pb_state.main_state).update_to_frame_ratio {
             if *pb_state.options_state.options.hide_cursor
                 && (&mut pb_state.main_state).cursor_idle_counter <= 0
             {
@@ -381,6 +382,15 @@ fn main_loop(
                     SDL_RenderFillRect(renderer.0, null());
                 }
                 render::present_v_screen(&mut pb_state.main_state, &mut pb_state.render_state);
+                igRender();
+                let draw_data = igGetDrawData();
+                imgui_sdl::renderer::render_draw_data(imgui_context.io_mut(), draw_data);
+
+                if let Some(renderer) = pb_state.main_state.renderer.as_ref() {
+                    SDL_RenderPresent(renderer.0);
+                }
+                frame_counter += 1;
+                update_to_frame_counter -= pb_state.main_state.update_to_frame_ratio;
             }
         }
     }
