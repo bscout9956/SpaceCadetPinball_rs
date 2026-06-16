@@ -274,6 +274,14 @@ pub enum MainLoopError {
     NullWindow,
 }
 
+impl Mul<Duration<1000000000>> for i32 {
+    type Output = Duration<1000000000>;
+
+    fn mul(self, rhs: Duration<1000000000>) -> Self::Output {
+        Duration((self as i64 * rhs.0))
+    }
+}
+
 fn main_loop(
     imgui_context: &mut Context,
     pb_state: &mut PinballState,
