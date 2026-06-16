@@ -1,33 +1,50 @@
+use crate::SdlRendererPtr;
 use crate::options::InputTypes::Keyboard;
-use dear_imgui_rs::sys::{ImGuiMouseCursor_COUNT, igGetFrameCount, igGetMainViewport};
-use dear_imgui_rs::{BackendFlags, Io, Key, MouseButton};
+use crate::state::pinball_state::PinballState;
+use dear_imgui_rs::sys::{
+    ImGuiConfigFlags_NoMouseCursorChange, ImGuiMouseCursor_Arrow, ImGuiMouseCursor_COUNT,
+    ImGuiMouseCursor_None, igGetDragDropPayload, igGetFrameCount, igGetMainViewport,
+    igGetMouseCursor,
+};
+use dear_imgui_rs::{BackendFlags, ConfigFlags, Io, Key, MouseButton};
 use dear_imgui_rs::{Context, TextureId};
 use num_traits::ToPrimitive;
 use sdl2::keyboard::Keycode;
 use sdl2::render::RenderTarget;
+use sdl2::sys::SDL_BlendMode::SDL_BLENDMODE_BLEND;
 use sdl2::sys::SDL_EventType::{
     SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEMOTION,
     SDL_MOUSEWHEEL, SDL_TEXTINPUT, SDL_WINDOWEVENT,
 };
 use sdl2::sys::SDL_Keymod::{KMOD_ALT, KMOD_CTRL, KMOD_GUI, KMOD_SHIFT};
+use sdl2::sys::SDL_PixelFormatEnum::SDL_PIXELFORMAT_ABGR8888;
+use sdl2::sys::SDL_ScaleMode::SDL_ScaleModeLinear;
 use sdl2::sys::SDL_SystemCursor::{
     SDL_SYSTEM_CURSOR_ARROW, SDL_SYSTEM_CURSOR_HAND, SDL_SYSTEM_CURSOR_IBEAM, SDL_SYSTEM_CURSOR_NO,
     SDL_SYSTEM_CURSOR_SIZEALL, SDL_SYSTEM_CURSOR_SIZENESW, SDL_SYSTEM_CURSOR_SIZENS,
     SDL_SYSTEM_CURSOR_SIZENWSE, SDL_SYSTEM_CURSOR_SIZEWE, SDL_SYSTEM_CURSOR_WAIT,
     SDL_SYSTEM_CURSOR_WAITARROW,
 };
+use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STATIC;
 use sdl2::sys::SDL_WindowEventID::{
     SDL_WINDOWEVENT_ENTER, SDL_WINDOWEVENT_FOCUS_GAINED, SDL_WINDOWEVENT_LEAVE,
 };
+use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_MINIMIZED;
+use sdl2::sys::SDL_bool::{SDL_FALSE, SDL_TRUE};
 use sdl2::sys::{
     KeyCode, SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2,
-    SDL_CreateRGBSurfaceFrom, SDL_CreateSystemCursor, SDL_CreateTextureFromSurface, SDL_Cursor,
-    SDL_DestroyTexture, SDL_Event, SDL_FreeSurface, SDL_GetCurrentVideoDriver, SDL_GetVersion,
-    SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE, SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH,
-    SDL_Keycode, SDL_Keymod, SDL_Renderer, SDL_SYSWM_TYPE, SDL_SetHint, SDL_Surface, SDL_SysWMinfo,
-    SDL_Texture, SDL_Window, SDL_bool, SDL_version,
+    SDL_CaptureMouse, SDL_CreateRGBSurfaceFrom, SDL_CreateSystemCursor, SDL_CreateTexture,
+    SDL_CreateTextureFromSurface, SDL_Cursor, SDL_DestroyTexture, SDL_Event, SDL_FreeSurface,
+    SDL_GL_GetDrawableSize, SDL_GetCurrentVideoDriver, SDL_GetGlobalMouseState,
+    SDL_GetKeyboardFocus, SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency,
+    SDL_GetRendererOutputSize, SDL_GetVersion, SDL_GetWindowFlags, SDL_GetWindowPosition,
+    SDL_GetWindowSize, SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE,
+    SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, SDL_Keycode, SDL_Keymod, SDL_Renderer, SDL_SYSWM_TYPE,
+    SDL_SetCursor, SDL_SetHint, SDL_SetTextureBlendMode, SDL_SetTextureScaleMode, SDL_ShowCursor,
+    SDL_Surface, SDL_SysWMinfo, SDL_Texture, SDL_UpdateTexture, SDL_WarpMouseInWindow, SDL_Window,
+    SDL_bool, SDL_version,
 };
-use std::ffi::{CStr, CString, c_char, c_void};
+use std::ffi::{CStr, CString, c_char, c_int, c_void};
 use std::ops::{Add, Mul};
 use std::ptr::{addr_of_mut, null_mut};
 use std::sync::{LazyLock, Mutex};
@@ -200,53 +217,60 @@ impl Drop for Texture {
     }
 }
 
-pub fn initialize(
-    context: &mut Context,
-    renderer: *mut SDL_Renderer,
-    window_width: i32,
-    window_height: i32,
-) {
-    let mut io = context.io_mut();
-    io.set_display_size([window_width as f32, window_height as f32]);
-    let context_style = context.style_mut();
-    context_style.set_window_rounding(0.0);
-    context_style.set_anti_aliased_fill(false);
-    context_style.set_anti_aliased_lines(false);
-    context_style.set_child_rounding(0.0);
-    context_style.set_popup_rounding(0.0);
-    context_style.set_frame_rounding(0.0);
-    context_style.set_scrollbar_rounding(0.0);
-    context_style.set_grab_rounding(0.0);
-    context_style.set_tab_rounding(0.0);
+pub mod renderer {
+    use crate::SdlRendererPtr;
+    use crate::imgui_sdl::{
+        CURRENT_DEVICE, Device, ImplSdl2RenderData, Texture, get_renderer_bd_from_io,
+    };
+    use dear_imgui_rs::sys::ImGuiBackendFlags_RendererHasVtxOffset;
+    use dear_imgui_rs::{BackendFlags, Context, TextureId};
+    use sdl2::sys::{
+        SDL_CreateRGBSurfaceFrom, SDL_CreateTextureFromSurface, SDL_DestroyTexture, SDL_Renderer,
+    };
+    use std::ffi::c_void;
+    use std::ptr::null_mut;
 
-    let tex_data = context.fonts().get_tex_data();
-    unsafe {
-        let (pixels, width, height) = ((*tex_data).Pixels, (*tex_data).Width, (*tex_data).Height);
-        let rmask = 0x0000_00ff;
-        let gmask = 0x0000_ff00;
-        let bmask = 0x00ff_0000;
-        let amask = 0xff00_0000;
-
-        let surface = SDL_CreateRGBSurfaceFrom(
-            pixels.cast::<c_void>(),
-            width,
-            height,
-            32,
-            4 * width,
-            rmask,
-            gmask,
-            bmask,
-            amask,
-        );
-
-        let source = SDL_CreateTextureFromSurface(renderer, surface);
-        let texture = Box::new(Texture::new(surface, source));
-        let raw_addr = Box::into_raw(texture) as usize;
-        let texture_id = TextureId::new(raw_addr as u64);
-        context.fonts().set_texture_id(texture_id);
-        if let Ok(mut guard) = CURRENT_DEVICE.lock() {
-            *guard = Some(Device::new(renderer));
+    pub fn init(context: &mut Context, renderer: *mut SDL_Renderer) {
+        let mut io = context.io_mut();
+        if !io.backend_renderer_user_data().is_null() {
+            println!("Already initialized a renderer backend");
+            return;
         }
+        if renderer.is_null() {
+            println!("SDL Renderer not initialized");
+        }
+
+        let bd = Box::new(ImplSdl2RenderData {
+            renderer,
+            font_texture: null_mut(),
+        });
+        let bd_ptr = Box::into_raw(bd);
+        io.set_backend_renderer_user_data(bd_ptr.cast::<c_void>());
+
+        let cur_flags = io.backend_flags();
+        io.set_backend_flags(cur_flags | BackendFlags::RENDERER_HAS_VTX_OFFSET);
+    }
+
+    pub fn shutdown(context: &mut Context) {
+        let mut io = context.io_mut();
+        let bd_ptr = io.backend_renderer_user_data();
+        if bd_ptr.is_null() {
+            panic!("No renderer backend to shutdown, or already shutdown?");
+        }
+
+        let bd = get_renderer_bd_from_io(io);
+
+        unsafe {
+            if !(*bd).font_texture.is_null() {
+                SDL_DestroyTexture((*bd).font_texture);
+                (*bd).font_texture = null_mut();
+            }
+
+            // free the boxed backend data
+            let _ = Box::from_raw(bd);
+        }
+
+        io.set_backend_renderer_user_data(null_mut());
     }
 }
 
@@ -258,7 +282,7 @@ pub fn init_for_sdl_renderer(
     unsafe { impl_sdl2_init(context, window, renderer) }
 }
 
-pub struct ImplSdl2Data {
+pub struct ImplSdl2UserData {
     window: *mut SDL_Window,
     renderer: *mut SDL_Renderer,
     time: u64,
@@ -267,6 +291,11 @@ pub struct ImplSdl2Data {
     pending_mouse_leave_frame: i32,
     clipboard_text_data: *mut c_char,
     mouse_can_use_global_state: bool,
+}
+
+pub struct ImplSdl2RenderData {
+    renderer: *mut SDL_Renderer,
+    font_texture: *mut SDL_Texture,
 }
 
 unsafe fn impl_sdl2_init(
@@ -308,7 +337,7 @@ unsafe fn impl_sdl2_init(
     };
 
     //new(ImNewWrapper(), ImGui::MemAlloc(sizeof(_TYPE))) _TYPE
-    let bd = Box::new(ImplSdl2Data {
+    let bd = Box::new(ImplSdl2UserData {
         window,
         renderer,
         time: 0,
@@ -380,13 +409,13 @@ pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Eve
     let io = context.io_mut();
     let bd_ptr = io.backend_platform_user_data();
 
-    let mut bd: *mut ImplSdl2Data = std::ptr::null_mut();
+    let mut bd: *mut ImplSdl2UserData = std::ptr::null_mut();
 
     if bd_ptr.is_null() {
         return false;
     }
 
-    bd = unsafe { &raw mut *bd_ptr.cast::<ImplSdl2Data>() };
+    bd = unsafe { &raw mut *bd_ptr.cast::<ImplSdl2UserData>() };
 
     unsafe {
         if (*event).type_ == SDL_MOUSEMOTION as u32 {
@@ -599,20 +628,194 @@ pub fn impl_sdl2_update_key_modifiers(io: &mut Io, sdl_key_mods: u32) {
     io.add_key_event(Key::ModSuper, (sdl_key_mods & KMOD_GUI as u32) != 0);
 }
 
-pub fn impl_sdl2_get_backend_data(io: &mut Io) -> Option<&mut ImplSdl2Data> {
+pub fn impl_sdl2_get_backend_data(io: &mut Io) -> Option<&mut ImplSdl2UserData> {
     let ptr = io.backend_platform_user_data();
 
     if ptr.is_null() {
         None
     } else {
-        Some(unsafe { &mut *ptr.cast::<ImplSdl2Data>() })
+        Some(unsafe { &mut *ptr.cast::<ImplSdl2UserData>() })
     }
 }
 
-pub(crate) fn render_new_frame() {
-    todo!()
+fn get_backend_bd_from_io(io: &mut Io) -> *mut ImplSdl2UserData {
+    let bd_ptr = io.backend_platform_user_data();
+    let mut bd: *mut ImplSdl2UserData = null_mut();
+    bd = unsafe { &raw mut *bd_ptr.cast::<ImplSdl2UserData>() };
+    bd
 }
 
-pub(crate) fn impl_sdl2_new_frame() {
-    todo!()
+fn get_renderer_bd_from_io(io: &mut Io) -> *mut ImplSdl2RenderData {
+    let bd_ptr = io.backend_renderer_user_data();
+    let mut bd: *mut ImplSdl2RenderData = null_mut();
+    bd = unsafe { &raw mut *bd_ptr.cast::<ImplSdl2RenderData>() };
+    bd
+}
+
+pub(crate) fn impl_sdl2_renderer_new_frame(context: &mut Context) {
+    let bd = get_renderer_bd_from_io(context.io_mut());
+    if bd.is_null() {
+        panic!("Did you call impl sdl renderer init?")
+    }
+    unsafe {
+        if (*bd).font_texture.is_null() {
+            impl_sdl2_renderer_create_device_objects(context);
+        }
+    }
+}
+
+fn impl_sdl2_renderer_create_device_objects(context: &mut Context) -> bool {
+    unsafe { impl_sdl2_renderer_create_fonts_texture(context) }
+}
+
+unsafe fn impl_sdl2_renderer_create_fonts_texture(context: &mut Context) -> bool {
+    unsafe {
+        let bd = get_renderer_bd_from_io(context.io_mut());
+
+        let tex_data = context.fonts().get_tex_data();
+        let pixels = (*tex_data).Pixels;
+        let width = (*tex_data).Width as c_int;
+        let height = (*tex_data).Height as c_int;
+
+        (*bd).font_texture = SDL_CreateTexture(
+            (*bd).renderer,
+            SDL_PIXELFORMAT_ABGR8888 as u32,
+            SDL_TEXTUREACCESS_STATIC as c_int,
+            width,
+            height,
+        );
+
+        if !(*bd).font_texture.is_null() && !pixels.is_null() {
+            SDL_UpdateTexture(
+                (*bd).font_texture,
+                std::ptr::null(),
+                pixels.cast::<c_void>(),
+                width * 4,
+            );
+            SDL_SetTextureBlendMode((*bd).font_texture, SDL_BLENDMODE_BLEND);
+            SDL_SetTextureScaleMode((*bd).font_texture, SDL_ScaleModeLinear);
+
+            let raw_addr = (*bd).font_texture as usize;
+            let texture_id = TextureId::new(raw_addr as u64);
+            context.fonts().set_texture_id(texture_id);
+            true
+        } else {
+            false
+        }
+    }
+}
+
+pub(crate) unsafe fn impl_sdl2_new_frame(io: &mut Io, state: &mut PinballState) {
+    let bd = get_backend_bd_from_io(io);
+
+    if bd.is_null() {
+        panic!("Did you call impl sdl2 init?");
+    }
+
+    let mut w = 0 as c_int;
+    let mut h = 0 as c_int;
+    let mut display_w = 0 as c_int;
+    let mut display_h = 0 as c_int;
+
+    if let Some(window) = state.main_state.main_window.as_ref() {
+        unsafe {
+            SDL_GetWindowSize(window.0, &raw mut w, &raw mut h);
+            if (SDL_GetWindowFlags(window.0) & SDL_WINDOW_MINIMIZED as u32) > 0 {
+                h = 0;
+                w = 0;
+            }
+            if !(*bd).renderer.is_null() {
+                println!("No renderer in BD!!!!!");
+                SDL_GetRendererOutputSize((*bd).renderer, &raw mut display_w, &raw mut display_h);
+            } else {
+                SDL_GL_GetDrawableSize(window.0, &raw mut display_w, &raw mut display_h);
+            }
+            println!("Setting display size");
+            io.set_display_size([w as f32, h as f32]);
+            if w > 0 && h > 0 {
+                println!("Display sizes greater than 0");
+                io.set_display_framebuffer_scale([
+                    display_w as f32 / w as f32,
+                    display_h as f32 / h as f32,
+                ]);
+            }
+
+            let frequency: u64 = SDL_GetPerformanceFrequency();
+            let current_time = SDL_GetPerformanceCounter();
+            let mut delta_time: f32 = if (*bd).time > 0 {
+                let dt = (current_time - (*bd).time) as f64 / frequency as f64;
+                dt as f32
+            } else {
+                1.0f32 / 60.0f32
+            };
+            if delta_time <= 0.0 {
+                delta_time = 1.0e-6;
+            }
+            io.set_delta_time(delta_time);
+            (*bd).time = current_time;
+
+            if (*bd).pending_mouse_leave_frame > 0
+                && (*bd).pending_mouse_leave_frame >= igGetFrameCount()
+                && (*bd).mouse_buttons_down == 0
+            {
+                io.add_mouse_pos_event([-f32::MAX, -f32::MAX]);
+                (*bd).pending_mouse_leave_frame = 0;
+            }
+
+            impl_sdl2_update_mouse_data(io, bd);
+            impl_sdl2_update_mouse_cursor(io, bd);
+
+            // TODO: Ignore for now
+            // Update game controllers (if enabled and available)
+            // impl_sdl2_update_game_pads();
+        }
+    }
+}
+
+unsafe fn impl_sdl2_update_mouse_cursor(io: &mut Io, bd: *mut ImplSdl2UserData) {
+    if (io
+        .config_flags()
+        .contains(ConfigFlags::NO_MOUSE_CURSOR_CHANGE))
+    {
+        return;
+    }
+
+    unsafe {
+        let cursor = igGetMouseCursor();
+        if io.mouse_draw_cursor() || cursor == ImGuiMouseCursor_None {
+            SDL_ShowCursor(SDL_FALSE as c_int);
+        } else {
+            let mut cursor = (*bd).cursor[cursor as usize];
+            SDL_SetCursor(&raw mut cursor);
+            SDL_ShowCursor(SDL_TRUE as c_int);
+        }
+    }
+}
+
+unsafe fn impl_sdl2_update_mouse_data(io: &mut Io, bd: *mut ImplSdl2UserData) {
+    unsafe {
+        let check = (*bd).mouse_buttons_down != 0 && igGetDragDropPayload().is_null();
+        SDL_CaptureMouse(if check { SDL_TRUE } else { SDL_FALSE });
+        let focused_window = SDL_GetKeyboardFocus();
+        let is_app_focused = (*bd).window == focused_window;
+        if is_app_focused {
+            if io.want_set_mouse_pos() {
+                let mouse_pos = io.mouse_pos();
+                SDL_WarpMouseInWindow((*bd).window, mouse_pos[0] as c_int, mouse_pos[1] as c_int);
+            }
+
+            if (*bd).mouse_can_use_global_state && (*bd).mouse_buttons_down == 0 {
+                let mut window_x = 0 as c_int;
+                let mut window_y = 0 as c_int;
+                let mouse_x_global = 0 as c_int;
+                let mouse_y_global = 0 as c_int;
+                SDL_GetGlobalMouseState(&raw mut window_x, &raw mut window_y);
+                SDL_GetWindowPosition((*bd).window, &raw mut window_x, &mut window_y);
+                io.add_mouse_pos_event([
+                    (mouse_x_global - window_x) as f32,
+                    (mouse_y_global - window_y) as f32,
+                ]);
+            }
+        }
+    }
 }
