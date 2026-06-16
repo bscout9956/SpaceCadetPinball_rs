@@ -103,72 +103,56 @@ impl GameInput {
                 prefix = "GameController\n".to_string();
             }
         }
-        unsafe {
-            prefix
-                + CStr::from_ptr(self.get_short_input_description())
-                    .to_str()
-                    .unwrap()
-        }
+        unsafe { prefix + &self.get_short_input_description() }
     }
 
-    pub unsafe fn get_short_input_description(&self) -> *const c_char {
-        let mouse_buttons: [*const c_char; 6] = [
-            std::ptr::null(),
-            c"Left".as_ptr(),
-            c"Middle".as_ptr(),
-            c"Right".as_ptr(),
-            c"X1".as_ptr(),
-            c"X2".as_ptr(),
-        ];
+    pub unsafe fn get_short_input_description(&self) -> String {
+        let mouse_buttons: [&str; 6] = ["", "Left", "Middle", "Right", "X1", "X2"];
 
-        let controller_buttons: [*const c_char; 21] = [
-            c"A".as_ptr(),
-            c"B".as_ptr(),
-            c"X".as_ptr(),
-            c"Y".as_ptr(),
-            c"Back".as_ptr(),
-            c"Guide".as_ptr(),
-            c"Start".as_ptr(),
-            c"LeftStick".as_ptr(),
-            c"RightStick".as_ptr(),
-            c"LeftShoulder".as_ptr(),
-            c"RightShoulder".as_ptr(),
-            c"DpUp".as_ptr(),
-            c"DpDown".as_ptr(),
-            c"DpLeft".as_ptr(),
-            c"DpRight".as_ptr(),
-            c"Misc1".as_ptr(),
-            c"Paddle1".as_ptr(),
-            c"Paddle2".as_ptr(),
-            c"Paddle3".as_ptr(),
-            c"Paddle4".as_ptr(),
-            c"Touchpad".as_ptr(),
+        let controller_buttons: [&str; 21] = [
+            "A",
+            "B",
+            "X",
+            "Y",
+            "Back",
+            "Guide",
+            "Start",
+            "LeftStick",
+            "RightStick",
+            "LeftShoulder",
+            "RightShoulder",
+            "DpUp",
+            "DpDown",
+            "DpLeft",
+            "DpRight",
+            "Misc1",
+            "Paddle1",
+            "Paddle2",
+            "Paddle3",
+            "Paddle4",
+            "Touchpad",
         ];
 
         match self.input_type {
-            InputTypes::None => std::ptr::null(),
-            Keyboard => unsafe { SDL_GetKeyName(self.value) },
+            InputTypes::None => "".to_string(),
+            Keyboard => unsafe {
+                let key_name = SDL_GetKeyName(self.value);
+                CStr::from_ptr(key_name).to_string_lossy().into_owned()
+            },
             Mouse => {
                 if self.value >= SDL_BUTTON_LEFT as i32 && self.value <= SDL_BUTTON_X2 as i32 {
-                    mouse_buttons[self.value as usize]
+                    mouse_buttons[self.value as usize].to_string()
                 } else {
-                    // VERIFY: Maybe we could just return string, we just need to make sure nothing else calls this necessarily
-                    let c_str = CString::from_str(format!("MButton {}", self.value).as_str())
-                        .unwrap_or_default();
-                    c_str.as_ptr()
+                    format!("MButton {}", self.value)
                 }
             }
             GameController => {
                 if self.value >= SDL_CONTROLLER_BUTTON_A as i32
                     && self.value < i32::min(SDL_CONTROLLER_BUTTON_MAX as i32, 21)
                 {
-                    controller_buttons[self.value as usize]
+                    controller_buttons[self.value as usize].to_string()
                 } else {
-                    // VERIFY: Maybe we could just return string?
-                    // We just need to make sure nothing else calls this necessarily
-                    let c_str = CString::from_str(format!("CButton {}", self.value).as_str())
-                        .unwrap_or_default();
-                    c_str.as_ptr()
+                    format!("CButton {}", self.value)
                 }
             }
         }
@@ -369,16 +353,11 @@ impl ControlOption {
         }
     }
 
-    pub unsafe fn get_shortcut_description(&self) -> String {
+    pub fn get_shortcut_description(&self) -> String {
         let mut result: String = String::new();
         for input in self.inputs {
             if input.input_type != InputTypes::None {
-                return unsafe {
-                    CStr::from_ptr(input.get_short_input_description())
-                        .to_str()
-                        .unwrap_or_default()
-                        .to_string()
-                };
+                return unsafe { input.get_short_input_description() };
             }
         }
         result
