@@ -5,11 +5,11 @@ use crate::state::options_state::OptionsState;
 use crate::state::render_state::RenderState;
 use crate::zdrv::ZMapHeaderType;
 use crate::{gdrv, maths, zdrv};
+use sdl2::sys::SDL_RenderCopy;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
-use sdl2::sys::{SDL_Rect, SDL_RenderCopy};
 use std::cmp::PartialEq;
 use std::ptr::null;
-use std::sync::{Arc, LazyLock, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, MutexGuard, PoisonError};
 use thiserror::Error;
 
 #[derive(PartialEq, Debug, PartialOrd, Ord, Eq, Default, Clone)]
