@@ -214,15 +214,16 @@ impl Drop for Texture {
 
 pub mod renderer {
     use crate::imgui_sdl::{ImplSdl2RenderData, get_renderer_bd_from_io};
-    use dear_imgui_rs::sys::{ImDrawData, ImVec2};
+    use dear_imgui_rs::internal::{ImVector, imvector_cast_mut};
+    use dear_imgui_rs::sys::{ImDrawCmd, ImDrawData, ImDrawIdx, ImDrawVert, ImVec2};
     use dear_imgui_rs::{BackendFlags, Context, Io};
     use sdl2::sys::SDL_bool::SDL_TRUE;
     use sdl2::sys::{
-        SDL_DestroyTexture, SDL_Rect, SDL_RenderGetClipRect, SDL_RenderGetScale,
-        SDL_RenderGetViewport, SDL_RenderIsClipEnabled, SDL_RenderSetClipRect,
-        SDL_RenderSetViewport, SDL_Renderer,
+        SDL_Color, SDL_DestroyTexture, SDL_Rect, SDL_RenderGeometryRaw, SDL_RenderGetClipRect,
+        SDL_RenderGetScale, SDL_RenderGetViewport, SDL_RenderIsClipEnabled, SDL_RenderSetClipRect,
+        SDL_RenderSetViewport, SDL_Renderer, SDL_Texture,
     };
-    use std::ffi::c_void;
+    use std::ffi::{c_float, c_void};
     use std::ptr::{null, null_mut};
 
     struct BackupSDLRendererState {
