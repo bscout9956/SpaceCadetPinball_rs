@@ -133,9 +133,11 @@ pub fn paint_flat(
             src_idx += 1;
             dst_idx += 1;
             z_idx += 1;
+            x -= 1;
         }
         src_idx += (src_bmp.stride - width) as usize;
         dst_idx += (dst_bmp.stride - width) as usize;
         z_idx += (z_map.stride - width) as usize;
+        y -= 1;
     }
 }
