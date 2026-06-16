@@ -219,8 +219,13 @@ pub enum MainError {
     LockGeneric,
 }
 
-fn render_frame_time_dialog() {
-    todo!()
+unsafe fn render_frame_time_dialog() {
+    unsafe {
+        igPushStyleVar_Vec2(ImGuiStyleVar_WindowMinSize, ImVec2_c::new(300.0, 70.0));
+
+        igEnd();
+        igPopStyleVar(0);
+    }
 }
 
 fn hybrid_sleep(seconds: DurationMs) {
