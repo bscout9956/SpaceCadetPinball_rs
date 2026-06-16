@@ -1,9 +1,7 @@
-use crate::options::InputTypes::Keyboard;
 use crate::state::pinball_state::PinballState;
 use dear_imgui_rs::sys::{
-    ImGuiConfigFlags_NoMouseCursorChange, ImGuiMouseCursor_Arrow, ImGuiMouseCursor_COUNT,
-    ImGuiMouseCursor_None, igGetDragDropPayload, igGetFrameCount, igGetMainViewport,
-    igGetMouseCursor,
+    ImGuiMouseCursor_COUNT, ImGuiMouseCursor_None, igGetDragDropPayload, igGetFrameCount,
+    igGetMainViewport, igGetMouseCursor,
 };
 use dear_imgui_rs::{BackendFlags, ConfigFlags, Io, Key, MouseButton};
 use dear_imgui_rs::{Context, TextureId};
@@ -31,19 +29,17 @@ use sdl2::sys::SDL_WindowEventID::{
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_MINIMIZED;
 use sdl2::sys::SDL_bool::{SDL_FALSE, SDL_TRUE};
 use sdl2::sys::{
-    KeyCode, SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2,
-    SDL_CaptureMouse, SDL_CreateRGBSurfaceFrom, SDL_CreateSystemCursor, SDL_CreateTexture,
-    SDL_CreateTextureFromSurface, SDL_Cursor, SDL_DestroyTexture, SDL_Event, SDL_FreeSurface,
-    SDL_GL_GetDrawableSize, SDL_GetCurrentVideoDriver, SDL_GetGlobalMouseState,
-    SDL_GetKeyboardFocus, SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency,
-    SDL_GetRendererOutputSize, SDL_GetVersion, SDL_GetWindowFlags, SDL_GetWindowPosition,
-    SDL_GetWindowSize, SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE,
-    SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, SDL_Keycode, SDL_Keymod, SDL_Renderer, SDL_SYSWM_TYPE,
-    SDL_SetCursor, SDL_SetHint, SDL_SetTextureBlendMode, SDL_SetTextureScaleMode, SDL_ShowCursor,
-    SDL_Surface, SDL_SysWMinfo, SDL_Texture, SDL_UpdateTexture, SDL_WarpMouseInWindow, SDL_Window,
-    SDL_bool, SDL_version,
+    SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2,
+    SDL_CaptureMouse, SDL_CreateSystemCursor, SDL_CreateTexture, SDL_Cursor, SDL_DestroyTexture,
+    SDL_Event, SDL_FreeSurface, SDL_GL_GetDrawableSize, SDL_GetCurrentVideoDriver,
+    SDL_GetGlobalMouseState, SDL_GetKeyboardFocus, SDL_GetPerformanceCounter,
+    SDL_GetPerformanceFrequency, SDL_GetRendererOutputSize, SDL_GetVersion, SDL_GetWindowFlags,
+    SDL_GetWindowPosition, SDL_GetWindowSize, SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE,
+    SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, SDL_Renderer, SDL_SYSWM_TYPE, SDL_SetCursor, SDL_SetHint,
+    SDL_SetTextureBlendMode, SDL_SetTextureScaleMode, SDL_ShowCursor, SDL_Surface, SDL_SysWMinfo,
+    SDL_Texture, SDL_UpdateTexture, SDL_WarpMouseInWindow, SDL_Window, SDL_bool, SDL_version,
 };
-use std::ffi::{CStr, CString, c_char, c_int, c_void};
+use std::ffi::{CStr, c_char, c_int, c_void};
 use std::ops::{Add, Mul};
 use std::ptr::{addr_of_mut, null_mut};
 use std::sync::{LazyLock, Mutex};
@@ -217,21 +213,17 @@ impl Drop for Texture {
 }
 
 pub mod renderer {
-    use crate::imgui_sdl::{
-        CURRENT_DEVICE, Device, ImplSdl2RenderData, Texture, get_renderer_bd_from_io,
-    };
-    use dear_imgui_rs::sys::{
-        ImDrawData, ImGuiBackendFlags_RendererHasVtxOffset, ImVec2, ImVec2_c,
-    };
-    use dear_imgui_rs::{BackendFlags, Context, Io, TextureId};
+    use crate::imgui_sdl::{ImplSdl2RenderData, get_renderer_bd_from_io};
+    use dear_imgui_rs::sys::{ImDrawData, ImVec2};
+    use dear_imgui_rs::{BackendFlags, Context, Io};
     use sdl2::sys::SDL_bool::SDL_TRUE;
     use sdl2::sys::{
-        SDL_CreateRGBSurfaceFrom, SDL_CreateTextureFromSurface, SDL_DestroyTexture, SDL_Rect,
-        SDL_RenderGetClipRect, SDL_RenderGetScale, SDL_RenderGetViewport, SDL_RenderIsClipEnabled,
-        SDL_Renderer,
+        SDL_DestroyTexture, SDL_Rect, SDL_RenderGetClipRect, SDL_RenderGetScale,
+        SDL_RenderGetViewport, SDL_RenderIsClipEnabled, SDL_RenderSetClipRect,
+        SDL_RenderSetViewport, SDL_Renderer,
     };
     use std::ffi::c_void;
-    use std::ptr::null_mut;
+    use std::ptr::{null, null_mut};
 
     struct BackupSDLRendererState {
         viewport: SDL_Rect,
@@ -337,7 +329,16 @@ pub mod renderer {
             let clip_off = (*draw_data).DisplayPos;
             let clip_scale = render_scale;
 
-            //l141
+            // command list render and more crap here l141
+            setup_render_state(io);
+        }
+    }
+
+    fn setup_render_state(io: &mut Io) {
+        let bd = get_renderer_bd_from_io(io);
+        unsafe {
+            SDL_RenderSetViewport((*bd).renderer, null());
+            SDL_RenderSetClipRect((*bd).renderer, null());
         }
     }
 }
