@@ -4,6 +4,7 @@ use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::maths::*;
 use crate::state::loader_state::LoaderState;
 use crate::state::pb_game_state::PbGameState;
+use crate::state::sound_state::SoundState;
 use crate::utils::PATH_SEPARATOR;
 use crate::zdrv::ZMapHeaderType;
 use crate::{SdlWindowPtr, pb, sound};
@@ -275,9 +276,15 @@ pub fn load_from(
     Ok(())
 }
 
-pub fn unload(loader_state: &mut LoaderState) -> Result<(), LoaderError> {
+pub fn unload(
+    loader_state: &mut LoaderState,
+    sound_state: &mut SoundState,
+) -> Result<(), LoaderError> {
     for index in 1..loader_state.loader_sound_count {
-        sound::freesound(loader_state.sound_list[index as usize].wave_ptr);
+        sound::free_sound(
+            loader_state.sound_list[index as usize].wave_ptr as *mut Mix_Chunk,
+            sound_state,
+        );
         loader_state.sound_list[index as usize] = SoundListStruct::default();
     }
     Ok(())
@@ -957,7 +964,7 @@ pub fn query_visual(
     if visual.collision_group == 0 {
         visual.collision_group = 1;
     }
-    
+
     let loader_table = loader_state.loader_table.as_ref().unwrap();
     let float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
         Some(EntryBuffer::Raw(float_array_data)) => float_array_data,
