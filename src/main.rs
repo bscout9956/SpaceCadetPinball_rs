@@ -291,13 +291,13 @@ fn main_loop(
     let mut update_count: usize = 0;
     let mut frame_counter: usize = 0;
 
-    let frame_start = unsafe { SdlPerformanceClock::now() };
+    let mut frame_start = unsafe { SdlPerformanceClock::now() };
     let mut prev_time = frame_start;
 
     let mut update_to_frame_counter = 0.0;
-    let _sleep_remainder: Duration<1_000_000_000> = Duration(0);
+    let mut sleep_remainder: Duration<1_000_000_000> = Duration(0);
 
-    let _frame_duration = pb_state.main_state.target_frametime;
+    let mut frame_duration = pb_state.main_state.target_frametime;
 
     println!("Entering main loop, loop");
     loop {
