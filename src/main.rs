@@ -35,7 +35,7 @@ use state::pinball_state::PinballState;
 use std::cell::RefCell;
 use std::env;
 use std::error::Error;
-use std::ffi::{CStr, CString, NulError, c_int};
+use std::ffi::{CStr, CString, NulError, c_char, c_int};
 use std::mem::MaybeUninit;
 use std::ops::{Index, Mul, Neg, Sub};
 use std::path::PathBuf;
@@ -421,9 +421,7 @@ fn main_loop(
             }
 
             unsafe {
-                println!("Setting new sdl2 frame");
                 imgui_sdl::impl_sdl2_new_frame(imgui_context.io_mut(), pb_state);
-                println!("Rendering it??");
                 imgui_sdl::impl_sdl2_renderer_new_frame(imgui_context);
                 let ui = imgui_context.frame();
                 render_ui(ui, pb_state);
@@ -540,8 +538,38 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) {
         if !(*state.options_state.options.show_menu) && igBeginMainMenuBar() {
             if igMenuItem_Bool(c"Menu".as_ptr(), null(), false, false) {
                 options::toggle(ShowMenu, state);
-                // TODO: Focus
+                igFocusWindow(std::ptr::null_mut(), ImGuiFocusRequestFlags_None);
             }
+            igEndMainMenuBar();
+        }
+
+        // TODO: remove unwraps
+        if *state.options_state.options.show_menu && igBeginMainMenuBar() {
+            let current_menu_height = igGetWindowSize().y as i32;
+            if state.main_state.main_menu_height != current_menu_height {
+                state.main_state.main_menu_height = current_menu_height;
+                fullscrn::window_size_changed(state).unwrap();
+            }
+
+            let menu_string = pb::get_rc_string(Msg::Menu1Game).unwrap();
+            if igBeginMenu(menu_string.as_ptr() as *const c_char, true) {
+                imgui_menu_item_w_shortcut(GameBindings::NewGame, Option::None);
+                let menu_item_string = pb::get_rc_string(Msg::Menu1LaunchBall).unwrap();
+                if igMenuItem_Bool(
+                    menu_item_string.as_ptr() as *const c_char,
+                    null(),
+                    false,
+                    state.main_state.launch_ball_enabled,
+                ) {
+                    end_pause(&mut state.main_state);
+                    pb::launch_ball();
+                }
+                imgui_menu_item_w_shortcut(GameBindings::TogglePause, Option::None);
+                igSeparator();
+
+                igEndMenu();
+            }
+
             igEndMainMenuBar();
         }
     }
@@ -1026,7 +1054,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             //sound::close();
             pb::uninit(&mut state);
 
-            if state.main_state.restart {}
+            if state.main_state.restart {
+                println!("Restarting");
+                restart(&mut state.main_state);
+            }
         }
     }
 }
