@@ -330,8 +330,115 @@ pub mod renderer {
             let clip_off = (*draw_data).DisplayPos;
             let clip_scale = render_scale;
 
-            // command list render and more crap here l141
+            // Render command lists
             setup_render_state(io);
+
+            let cmd_lists = &(*draw_data).CmdLists;
+
+            for n in 0..cmd_lists.Size as usize {
+                let cmd_list = *cmd_lists.Data.add(n);
+
+                let vtx_buffer = (*cmd_list).VtxBuffer.Data;
+                let idx_buffer = (*cmd_list).IdxBuffer.Data;
+
+                for cmd_i in 0..(*cmd_list).CmdBuffer.Size as usize {
+                    let draw_cmd_vec: &mut ImVector<ImDrawCmd> =
+                        imvector_cast_mut(&mut (*cmd_list).CmdBuffer);
+                    let draw_cmd = draw_cmd_vec.as_slice()[cmd_i];
+
+                    // Some obscure casting as per the original definition
+                    let reset_state_sentinel = (-8isize) as usize;
+
+                    if let Some(callback) = draw_cmd.UserCallback {
+                        if callback as usize == reset_state_sentinel {
+                            setup_render_state(io)
+                        } else {
+                            callback(cmd_list, &raw const draw_cmd);
+                        }
+                    } else {
+                        // Project scissor/clipping rectangles into framebuffer space
+                        let mut clip_min = ImVec2::new(
+                            (draw_cmd.ClipRect.x - clip_off.x) * clip_scale.x,
+                            (draw_cmd.ClipRect.y - draw_cmd.ClipRect.y) * clip_scale.y,
+                        );
+                        let mut clip_max = ImVec2::new(
+                            (draw_cmd.ClipRect.z - draw_cmd.ClipRect.x) * clip_scale.x,
+                            (draw_cmd.ClipRect.w - draw_cmd.ClipRect.y) * clip_scale.y,
+                        );
+
+                        if clip_min.x < 0.0 {
+                            clip_min.x = 0.0f32;
+                        }
+
+                        if clip_min.y < 0.0 {
+                            clip_min.y = 0.0f32;
+                        }
+
+                        if clip_max.x > fb_width as f32 {
+                            clip_max.x = fb_width as f32;
+                        }
+
+                        if clip_max.y > fb_height as f32 {
+                            clip_max.y = fb_height as f32;
+                        }
+
+                        if clip_max.x <= clip_min.x || clip_max.y <= clip_min.y {
+                            continue;
+                        }
+
+                        let r = SDL_Rect {
+                            x: clip_min.x as i32,
+                            y: clip_min.y as i32,
+                            w: (clip_max.x - clip_min.x) as i32,
+                            h: (clip_max.y - clip_min.y) as i32,
+                        };
+                        SDL_RenderSetClipRect((*bd).renderer, &raw const r);
+
+                        let xy =
+                            std::ptr::addr_of!((*vtx_buffer.add(draw_cmd.VtxOffset as usize)).pos)
+                                as *const c_float;
+
+                        let uv =
+                            std::ptr::addr_of!((*vtx_buffer.add(draw_cmd.VtxOffset as usize)).uv)
+                                as *const c_float;
+
+                        let color =
+                            std::ptr::addr_of!((*vtx_buffer.add(draw_cmd.VtxOffset as usize)).col)
+                                as *const SDL_Color;
+
+                        // Bind texture, Draw
+                        let tex = draw_cmd.TexRef._TexID as *mut SDL_Texture;
+                        let im_draw_vert_size = size_of::<ImDrawVert>() as i32;
+                        let num_vertices = (*cmd_list).VtxBuffer.Size - (draw_cmd.VtxOffset as i32);
+
+                        SDL_RenderGeometryRaw(
+                            (*bd).renderer,
+                            tex,
+                            xy,
+                            im_draw_vert_size,
+                            color,
+                            im_draw_vert_size,
+                            uv,
+                            im_draw_vert_size,
+                            num_vertices,
+                            idx_buffer.add(draw_cmd.IdxOffset as usize) as *const c_void,
+                            draw_cmd.ElemCount as i32,
+                            size_of::<ImDrawIdx>() as i32,
+                        );
+                    }
+                }
+            }
+
+            //Restore modified SDL_Renderer state
+            SDL_RenderSetViewport((*bd).renderer, &old.viewport);
+            SDL_RenderSetClipRect(
+                (*bd).renderer,
+                if old.clip_enabled {
+                    &old.clip_rect
+                } else {
+                    null()
+                },
+            );
         }
     }
 
