@@ -662,7 +662,7 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             }
 
             if restart {
-                //TODO: restart_func();
+                crate::restart(&mut state.main_state);
             }
         }
         Menu::WindowUniformScale => {

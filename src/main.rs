@@ -378,7 +378,14 @@ fn main_loop(
 unsafe fn render_ui() {
     let vec4 = ImVec4::new(0.0, 0.0, 0.0, 1.0);
     unsafe {
-        igPushStyleColor_Vec4(ImGuiCol_MenuBarBg, vec4);
+pub fn restart(main_state: &mut MainState) {
+    main_state.restart = true;
+    unsafe {
+        let mut event = SDL_Event {
+            type_: SDL_QUIT as u32,
+        };
+        let event_ptr = &raw mut event;
+        SDL_PushEvent(event_ptr);
     }
 }
 
