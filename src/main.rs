@@ -7,11 +7,13 @@ use crate::maths::Vector2;
 use crate::options::GameBindings;
 use crate::options::Menu::ShowMenu;
 use crate::translations::Msg;
+use crate::utils::{SdlRendererPtr, SdlWindowPtr};
 use dear_imgui_rs::sys::{
-    ImGuiCol_MenuBarBg, ImGuiIO, ImGuiMouseCursor_None, ImGuiStyleVar_WindowMinSize, ImVec2_c,
-    ImVec4, igBeginMainMenuBar, igEnd, igEndMainMenuBar, igFocusWindow, igGetDrawData,
-    igMenuItem_Bool, igNewFrame, igPopStyleVar, igPushStyleColor_Vec4, igPushStyleVar_Vec2,
-    igRender, igSetMouseCursor,
+    ImGuiCol_MenuBarBg, ImGuiFocusRequestFlags_None, ImGuiIO, ImGuiMouseCursor_None,
+    ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, igBeginMainMenuBar, igBeginMenu, igEnd,
+    igEndMainMenuBar, igEndMenu, igFocusWindow, igGetDrawData, igGetWindowSize, igMenuItem_Bool,
+    igNewFrame, igPopStyleColor, igPopStyleVar, igPushStyleColor_Vec4, igPushStyleVar_Vec2,
+    igRender, igSeparator, igSetMouseCursor,
 };
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig, StyleColor, StyleVar, Ui};
 use sdl2::sys::SDL_EventType::{
