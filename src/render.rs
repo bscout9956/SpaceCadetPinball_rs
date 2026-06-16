@@ -251,14 +251,14 @@ pub fn recreate_screen_texture(
     render_state: &mut RenderState,
 ) {
     let filtering = if *options_state.options.linear_filtering {
-        c"linear"
+        "linear"
     } else {
-        c"nearest"
+        "nearest"
     };
     let v_screen_def = render_state.v_screen.as_mut().unwrap();
 
     v_screen_def.create_texture(
-        filtering.as_ptr(),
+        filtering,
         SDL_TEXTUREACCESS_STREAMING as i32,
         &main_state.renderer,
     );

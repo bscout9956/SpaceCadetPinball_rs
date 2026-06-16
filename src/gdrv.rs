@@ -254,7 +254,7 @@ impl GdrvBitmap8 {
 
     pub fn create_texture(
         &mut self,
-        scale_hint: *const c_char,
+        scale_hint: &str,
         access: i32,
         renderer: &Option<SdlRendererPtr>,
     ) {
@@ -265,7 +265,7 @@ impl GdrvBitmap8 {
         unsafe {
             SDL_SetHint(
                 SDL_HINT_RENDER_SCALE_QUALITY.as_ptr() as *const i8,
-                scale_hint,
+                scale_hint.as_ptr() as *const c_char,
             );
         }
 
