@@ -29,8 +29,6 @@ use std::sync::{LazyLock, Mutex};
 static SETTINGS: LazyLock<Mutex<HashMap<String, String>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-static SHOW_DIALOG: AtomicBool = AtomicBool::new(false);
-
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -724,16 +722,14 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
 //     }
 // }
 
-pub fn render_control_dialog() {
-    let dialog_check = SHOW_DIALOG.load(SeqCst);
-    if !dialog_check {
+pub fn render_control_dialog(show_dialog: bool) {
+    if !show_dialog {
         return;
     }
 
     // TODO: ImGui stuff
 
-    let dialog_check = SHOW_DIALOG.load(SeqCst);
-    if !dialog_check {}
+    if !show_dialog {}
 }
 
 pub fn map_game_input(key: GameInput, options_state: &mut OptionsState) -> Vec<GameBindings> {
