@@ -47,3 +47,9 @@ impl FullscrnState {
         }
     }
 }
+
+impl Default for FullscrnState {
+    fn default() -> Self {
+        Self::new()
+    }
+}

@@ -16,10 +16,16 @@ impl PinballState {
     pub fn new() -> PinballState {
         Self {
             main_state: MainState::new(),
-            pb_game_state: PbGameState::new(),
-            options_state: OptionsState::new(),
-            fullscrn_state: FullscrnState::new(),
+            pb_game_state: PbGameState::default(),
+            options_state: OptionsState::default(),
+            fullscrn_state: FullscrnState::default(),
             render_state: RenderState::default(),
         }
+    }
+}
+
+impl Default for PinballState {
+    fn default() -> Self {
+        Self::new()
     }
 }

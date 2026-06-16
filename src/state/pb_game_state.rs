@@ -51,3 +51,9 @@ impl PbGameState {
         }
     }
 }
+
+impl Default for PbGameState {
+    fn default() -> Self {
+        Self::new()
+    }
+}

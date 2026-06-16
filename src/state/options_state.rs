@@ -36,6 +36,12 @@ impl OptionsState {
     }
 }
 
+impl Default for OptionsState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn get_default_options() -> OptionsStruct {
     OptionsStruct {
         control_options: [
