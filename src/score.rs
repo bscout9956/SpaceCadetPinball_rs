@@ -103,7 +103,3 @@ pub fn load_msg_font(
 pub fn init() -> i32 {
     1
 }
-
-pub(crate) fn unload_msg_font() {
-    todo!()
-}
