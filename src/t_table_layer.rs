@@ -52,17 +52,17 @@ impl TTableLayer {
         table: Option<Weak<RefCell<TPinballTable>>>,
         pb_game_state: &mut PbGameState,
         render_state: &mut RenderState,
+        resolution: i32,
     ) -> Result<Self, TTableLayerError> {
         let mut visual = VisualStruct::default();
         let mut rect = RectangleType::default();
 
         let group_index = loader::query_handle(c"table".as_ptr())?;
-        loader::query_visual(group_index, 0, &mut visual, pb_game_state)?;
+        loader::query_visual(group_index, 0, &mut visual, pb_game_state, resolution)?;
         let sprite_data = visual.bitmap;
 
         /*Full tilt: proj center first value is offset by resolution*/
-        let float_ptr =
-            loader::query_float_attribute_ptr(group_index, 0, 700 + fullscrn::get_resolution())?;
+        let float_ptr = loader::query_float_attribute_ptr(group_index, 0, 700 + resolution)?;
         let proj_center = slice_from_raw_parts(float_ptr, 2);
         unsafe {
             proj::recenter(&(*proj_center)[0], &(*proj_center)[1]);
@@ -133,7 +133,8 @@ impl TTableLayer {
             gravity_mult = 0.2f32;
         }
 
-        let mut base = TCollisionComponent::new(table.clone(), -1, false, pb_game_state);
+        let mut base =
+            TCollisionComponent::new(table.clone(), -1, false, pb_game_state, resolution);
         base.borrow_mut().threshold = visual.kicker.threshold;
         base.borrow_mut().boost = 15.0f32;
 
@@ -183,7 +184,7 @@ impl TTableLayer {
             // line.place_in_grid(&instance.base_component.AABB);
         }
 
-        Ok(TTableLayer::new(table, pb_game_state, render_state)?) // TODO: I'm unfinished, just so rustc can stfu
+        Ok(TTableLayer::new(table, pb_game_state, render_state, resolution)?) // TODO: I'm unfinished, just so rustc can stfu
     }
 }
 

@@ -8,8 +8,6 @@ use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicI32};
 use std::sync::{Mutex, atomic};
 
-static RESOLUTION: AtomicI32 = AtomicI32::new(0);
-
 #[derive(Clone)]
 pub struct ResolutionInfo {
     pub(crate) screen_width: i16,
@@ -20,16 +18,17 @@ pub struct ResolutionInfo {
 }
 
 pub fn set_resolution(
-    mut value: i32,
+    mut res_value: i32,
+    fullscrn_state: &mut FullscrnState,
     pb_game_state: &mut PbGameState,
 ) -> Result<(), FullscreenError> {
     if pb_game_state.full_tilt_mode && !pb_game_state.full_tilt_demo_mode {
-        value = 0;
+        res_value = 0;
     }
-    if !(0..=2).contains(&value) {
+    if !(0..=2).contains(&res_value) {
         return Err(FullscreenError::ResolutionOutOfBounds);
     }
-    RESOLUTION.store(value, Relaxed);
+    fullscrn_state.resolution = res_value;
     Ok(())
 }
 
@@ -66,10 +65,6 @@ pub fn set_screen_mode(is_fullscreen: bool, fullscrn_state: &mut FullscrnState) 
     result
 }
 
-pub fn get_resolution() -> i32 {
-    RESOLUTION.load(atomic::Ordering::Acquire)
-}
-
 fn reset_offset(mut offset: f32) {
     offset = 0.0f32;
 }
@@ -95,7 +90,7 @@ pub fn window_size_changed(
     };
     height -= menu_height;
 
-    let res = &fullscrn_state.resolution_array[RESOLUTION.load(Relaxed) as usize];
+    let res = &fullscrn_state.resolution_array[fullscrn_state.resolution as usize];
 
     update_x_scale(&mut width, res, fullscrn_state.scale_x);
     update_y_scale(&mut height, res, fullscrn_state.scale_y);

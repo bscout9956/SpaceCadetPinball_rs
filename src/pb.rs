@@ -163,7 +163,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
 
     let use_bmp_font: i32 = get_rc_int(Msg::TextBoxUseBitmapFont)?;
     if use_bmp_font == 1 {
-        score::load_msg_font("pbmsg_ft", &mut pb_game_state.record_table);
+        score::load_msg_font("pbmsg_ft", &mut pb_game_state.record_table, fullscrn_state);
     }
 
     if pb_game_state.record_table.is_none() {
@@ -198,18 +198,25 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
     }
 
     let mut background_bmp = table
-        .get_bitmap(table.record_labeled("background"))
+        .get_bitmap(
+            table.record_labeled("background"),
+            fullscrn_state.resolution,
+        )
         .to_owned();
-    let camera_info_id = table.record_labeled("camera_info") + fullscrn::get_resolution();
+
+    let camera_info_id = table.record_labeled("camera_info") + fullscrn_state.resolution;
     let camera_data = table.field(camera_info_id, FieldTypes::FloatArray).unwrap();
     let mut camera_info: Vec<f32> = Vec::new();
+
     match camera_data {
         EntryBuffer::Raw(float_data) => {
             camera_info = read_camera_floats(float_data);
         }
         _ => {}
     }
-    let res_info = &fullscrn_state.resolution_array[fullscrn::get_resolution() as usize];
+
+    let res_val = fullscrn_state.resolution;
+    let res_info = &fullscrn_state.resolution_array[res_val as usize];
 
     if !camera_info.is_empty() {
         projection_matrix.copy_from_slice(&camera_info);
@@ -259,7 +266,11 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
     timer::init(150);
     score::init();
 
-    pb_game_state.main_table = Some(TPinballTable::new(pb_game_state, &mut state.render_state));
+    pb_game_state.main_table = Some(TPinballTable::new(
+        pb_game_state,
+        &mut state.render_state,
+        &mut state.fullscrn_state,
+    ));
     let table = pb_game_state.main_table.as_ref().unwrap();
     let ball = &table.ball_list[0].borrow();
 

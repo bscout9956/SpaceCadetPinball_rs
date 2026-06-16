@@ -544,7 +544,11 @@ pub unsafe fn init_primary(options_state: &mut OptionsState) {
     }
 }
 
-pub fn init_secondary(options_state: &mut OptionsState, pb_game_state: &mut PbGameState) {
+pub fn init_secondary(
+    options_state: &mut OptionsState,
+    pb_game_state: &mut PbGameState,
+    fullscrn_state: &mut FullscrnState,
+) {
     let max_res = fullscrn::get_max_resolution(pb_game_state);
 
     if (options_state.options.resolution.value >= 0
@@ -553,9 +557,13 @@ pub fn init_secondary(options_state: &mut OptionsState, pb_game_state: &mut PbGa
         *options_state.options.resolution = max_res;
     }
     if (options_state.options.resolution.value == -1) {
-        fullscrn::set_resolution(max_res, pb_game_state);
+        fullscrn::set_resolution(max_res, fullscrn_state, pb_game_state);
     } else {
-        fullscrn::set_resolution(*options_state.options.resolution, pb_game_state);
+        fullscrn::set_resolution(
+            *options_state.options.resolution,
+            fullscrn_state,
+            pb_game_state,
+        );
     }
 }
 
@@ -637,7 +645,7 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             let mut restart = false;
             let new_resolution = u_id_check_item as i32 - Menu::R640x480 as i32;
             if u_id_check_item == Menu::MaximumResolution {
-                restart = fullscrn::get_resolution()
+                restart = state.fullscrn_state.resolution
                     != fullscrn::get_max_resolution(&mut state.pb_game_state);
                 *state.options_state.options.resolution = -1;
             } else if new_resolution <= fullscrn::get_max_resolution(&mut state.pb_game_state) {
@@ -645,7 +653,7 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
                 if (*state.options_state.options.resolution == -1) {
                     current_resolution = fullscrn::get_max_resolution(&mut state.pb_game_state);
                 } else {
-                    current_resolution = fullscrn::get_resolution();
+                    current_resolution = state.fullscrn_state.resolution;
                 }
 
                 let restart = (new_resolution != current_resolution);

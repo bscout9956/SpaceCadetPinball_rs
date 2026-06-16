@@ -1,6 +1,6 @@
 use crate::loader::VisualStruct;
 use crate::maths::*;
-use crate::pinball_state::{PbGameState, RenderState};
+use crate::pinball_state::{FullscrnState, PbGameState, RenderState};
 use crate::render::{RenderSprite, VisualTypes};
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
@@ -44,6 +44,7 @@ impl TBall {
         mut group_index: i32,
         pb_game_state: &mut PbGameState,
         render_state: &mut RenderState,
+        resolution: i32,
     ) -> Rc<RefCell<Self>> {
         let base_component = TPinballComponent::new(table_weak, group_index, false);
 
@@ -86,7 +87,7 @@ impl TBall {
             instance_data.collision_mask = 1;
         } else {
             instance_data.has_group_flag = true;
-            loader::query_visual(group_index, 0, &mut visual, pb_game_state);
+            loader::query_visual(group_index, 0, &mut visual, pb_game_state, resolution);
             instance_data.collision_mask = visual.collision_group;
             let float_arr_ptr = loader::query_float_attribute_ptr(group_index, 0, 408).unwrap();
             let float_slice = slice_from_raw_parts(float_arr_ptr, 4);
@@ -107,8 +108,7 @@ impl TBall {
         group_index = loader::query_handle(c_name.as_ptr()).unwrap();
 
         if group_index < 0 {
-            let res = fullscrn::get_resolution();
-            let new_name = format!("ball{}", res);
+            let new_name = format!("ball{}", resolution);
 
             let new_c_name = CString::new(new_name).unwrap();
             group_index = loader::query_handle(new_c_name.as_ptr()).unwrap();
@@ -122,7 +122,13 @@ impl TBall {
         let visual_count = loader::query_visual_states(group_index).unwrap();
 
         for index in 0..visual_count {
-            loader::query_visual(group_index, index as i32, &mut visual, pb_game_state);
+            loader::query_visual(
+                group_index,
+                index as i32,
+                &mut visual,
+                pb_game_state,
+                resolution,
+            );
             instance_data
                 .base_component
                 .list_bitmap

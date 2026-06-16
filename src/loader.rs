@@ -2,7 +2,7 @@ use crate::errors::LoaderError;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::maths::*;
-use crate::pinball_state::PbGameState;
+use crate::pinball_state::{FullscrnState, PbGameState};
 use crate::t_pinball_component::TPinballComponent;
 use crate::utils::PATH_SEPARATOR;
 use crate::zdrv::ZMapHeaderType;
@@ -789,6 +789,7 @@ pub fn query_visual(
     group_index_offset: i32,
     visual: &mut VisualStruct,
     pb_game_state: &mut PbGameState,
+    resolution: i32
 ) -> Result<i32, LoaderError> {
     default_vsi(visual);
     if group_index < 0 {
@@ -801,8 +802,12 @@ pub fn query_visual(
 
     let loader_guard = LOADER_TABLE.lock()?;
     let loader_table = loader_guard.as_ref().unwrap();
-    let bmp = loader_table.get_bitmap(state_id).to_owned();
-    let zmap = loader_table.get_zmap(state_id).to_owned();
+    let bmp = loader_table
+        .get_bitmap(state_id, resolution)
+        .to_owned();
+    let zmap = loader_table
+        .get_zmap(state_id, resolution)
+        .to_owned();
     visual.bitmap = SpriteData {
         bmp: Some(Arc::new(bmp)),
         zmap: Some(Arc::new(zmap)),

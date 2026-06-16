@@ -213,6 +213,7 @@ pub struct FullscrnState {
     pub resolution_array: [ResolutionInfo; 3],
     pub screen_mode: bool,
     pub display_changed: bool,
+    pub resolution: i32,
 }
 impl FullscrnState {
     pub fn new() -> FullscrnState {
@@ -246,6 +247,7 @@ impl FullscrnState {
             ],
             screen_mode: false,
             display_changed: false,
+            resolution: 0,
         }
     }
 }

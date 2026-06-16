@@ -40,7 +40,7 @@ pub trait ICollisionComponent {
 }
 
 use crate::message_code::MessageCode;
-use crate::pinball_state::PbGameState;
+use crate::pinball_state::{FullscrnState, PbGameState};
 use std::ops::{Deref, DerefMut};
 use std::rc::Weak;
 
@@ -64,6 +64,7 @@ impl TCollisionComponent {
         group_index: i32,
         create_wall: bool,
         pb_game_state: &mut PbGameState,
+        resolution: i32,
     ) -> Rc<RefCell<Self>> {
         let base = TPinballComponent::new(table, group_index, true);
 
@@ -72,7 +73,7 @@ impl TCollisionComponent {
         if group_index <= 0 {
             loader::default_vsi(&mut visual);
         } else {
-            loader::query_visual(group_index, 0, &mut visual, pb_game_state);
+            loader::query_visual(group_index, 0, &mut visual, pb_game_state, resolution);
         }
 
         let mut instance_data = Self {

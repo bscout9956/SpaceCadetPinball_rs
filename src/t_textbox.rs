@@ -39,6 +39,7 @@ impl TTextBox {
     pub fn new(
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
+        resolution: i32,
     ) -> Result<TTextBox, TTextBoxError> {
         let bg_bmp = render::BACKGROUND_BITMAP
             .lock()
@@ -60,11 +61,8 @@ impl TTextBox {
         if group_index > 0 {
             /*Full tilt: text box dimensions index is offset by resolution*/
             let mut arr_length: i32 = 0;
-            let dimensions = loader::query_int_attribute(
-                group_index + fullscrn::get_resolution(),
-                1500,
-                &mut arr_length,
-            )?;
+            let dimensions =
+                loader::query_int_attribute(group_index + resolution, 1500, &mut arr_length)?;
 
             let dim_array =
                 unsafe { slice::from_raw_parts(dimensions as *mut i16, arr_length as usize) };

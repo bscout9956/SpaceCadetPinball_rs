@@ -800,7 +800,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             );
 
             // Second step: run updates that depend on .DAT file selection
-            options::init_secondary(&mut state.options_state, &mut state.pb_game_state);
+            options::init_secondary(
+                &mut state.options_state,
+                &mut state.pb_game_state,
+                &mut state.fullscrn_state,
+            );
 
             // TODO: Implement sound, we're skipping for now to focus on PB:INIT();
             // match OPTIONS.lock() {
@@ -843,9 +847,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 *(&mut state.options_state).options.full_screen = true;
             }
 
+            let res_val = state.fullscrn_state.resolution;
             if *(&mut state.options_state).options.full_screen == false {
                 let res_info = &(&mut state.fullscrn_state).resolution_array
-                    [fullscrn::get_resolution() as usize];
+                    [res_val as usize];
                 SDL_SetWindowSize(
                     window,
                     res_info.table_width as c_int,
