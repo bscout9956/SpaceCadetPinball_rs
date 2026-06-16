@@ -167,7 +167,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
 
     let use_bmp_font: i32 = get_rc_int(Msg::TextBoxUseBitmapFont)?;
     if use_bmp_font == 1 {
-        score::load_msg_font("pbmsg_ft", &mut pb_game_state.record_table, fullscrn_state);
+        score::load_msg_font("pbmsg_ft", &mut pb_game_state.record_table, fullscrn_state, &mut state.score_state);
     }
 
     if pb_game_state.record_table.is_none() {
@@ -572,4 +572,8 @@ pub(crate) fn pause_continue(main_state: &mut MainState) {
 
 pub(crate) fn input_up() {
     todo!()
+}
+
+pub(crate) fn launch_ball() {
+    println!("Implement me pls asap");
 }
