@@ -483,10 +483,10 @@ pub(crate) fn present_v_screen(main_state: &mut MainState, render_state: &mut Re
             if render_state.offset_x == 0 && render_state.offset_y == 0 {
                 if let Some(renderer) = main_state.renderer.as_ref()
                     && let Some(tex) = v_screen.texture.as_mut()
-                        && let Some(dest_rect) = render_state.destination_rect.as_ref() {
-                            SDL_RenderCopy(renderer.0, tex, null(), dest_rect);
-                        }
-                }e {odo!() // L465 of render.cpp
+                    && let Some(dest_rect) = render_state.destination_rect.as_ref()
+                {
+                    SDL_RenderCopy(renderer.0, tex, null(), dest_rect);
+                }
             }
         }
     }
