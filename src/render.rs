@@ -86,12 +86,11 @@ impl RenderSprite {
 
         if instance.zmap.is_none() && instance.visual_type != VisualTypes::Ball {
             unreachable!("Background zmap should not be used");
-            let zmap_bg = BACKGROUND_ZMAP.lock().unwrap();
 
-            instance.zmap = zmap_bg.clone();
+            instance.zmap = render_state.background_zmap.clone();
 
-            instance.z_map_offset_x = x_pos - *Z_MAP_OFFSET_X.lock().unwrap();
-            instance.z_map_offset_y = y_pos - *Z_MAP_OFFSET_Y.lock().unwrap();
+            instance.z_map_offset_x = x_pos - render_state.z_map_offset_x;
+            instance.z_map_offset_y = y_pos - render_state.z_map_offset_y;
         }
 
         add_sprite(instance.clone(), render_state);
@@ -166,25 +165,6 @@ impl PartialEq for RenderSprite {
     }
 }
 
-pub static BACKGROUND_BITMAP: Mutex<Option<GdrvBitmap8>> = Mutex::new(None);
-pub static BACKGROUND_ZMAP: Mutex<Option<Arc<ZMapHeaderType>>> = Mutex::new(None);
-
-pub static Z_MAP_OFFSET_X: Mutex<i32> = Mutex::new(0);
-pub static Z_MAP_OFFSET_Y: Mutex<i32> = Mutex::new(0);
-
-pub static DESTINATION_RECT: LazyLock<Mutex<SDL_Rect>> = LazyLock::new(|| {
-    Mutex::new(SDL_Rect {
-        x: 0,
-        y: 0,
-        w: 0,
-        h: 0,
-    })
-});
-
-static V_SCREEN_RECT: LazyLock<Mutex<RectangleType>> =
-    LazyLock::new(|| Mutex::new(RectangleType::default()));
-static BALL_BITMAP: Mutex<Option<[GdrvBitmap8; 20]>> = Mutex::new(None);
-
 #[derive(Debug, Error)]
 pub enum RenderLockError {
     #[error("Failed to lock V_SCREEN")]
@@ -225,22 +205,20 @@ pub fn init(
 
     zdrv::fill(z_unwrap, z_width, z_height, 0, 0, 0xFFFF);
 
-    let mut v_screen_rect = V_SCREEN_RECT.lock()?;
-    v_screen_rect.x_position = 0;
-    v_screen_rect.y_position = 0;
-    v_screen_rect.width = width as i32;
-    v_screen_rect.height = height as i32;
+    render_state.v_screen_rect.x_position = 0;
+    render_state.v_screen_rect.y_position = 0;
+    render_state.v_screen_rect.width = width as i32;
+    render_state.v_screen_rect.height = height as i32;
 
     let mut v_screen_unwrap = render_state.v_screen.to_owned().unwrap();
     v_screen_unwrap.y_position = 0;
     v_screen_unwrap.x_position = 0;
 
-    let mut ball_bitmap_guard = BALL_BITMAP.lock()?;
-    let mut ball_array = ball_bitmap_guard.get_or_insert_with(|| {
+    let mut ball_array = render_state.ball_bitmap.get_or_insert_with(|| {
         std::array::from_fn(|_| GdrvBitmap8::new_dims_indexed(64, 64, false))
     });
 
-    *BACKGROUND_BITMAP.lock()? = bmp.clone();
+    render_state.background_bitmap = bmp.clone();
     match bmp.is_some() {
         true => {
             gdrv::copy_bitmap(
@@ -290,8 +268,6 @@ fn repaint(sprite: &RenderSprite) {
 }
 
 fn paint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> {
-    let v_screen_rect = V_SCREEN_RECT.lock()?;
-
     let v_screen = render_state.v_screen.as_mut().unwrap();
     let z_screen = render_state.z_screen.as_ref().unwrap();
 
@@ -301,13 +277,12 @@ fn paint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> {
     // For balls that clip vScreen: save original vScreen contents and paint the ball bitmap.
     for index in 0..render_state.ball_list.len() {
         let ball_sprite = &mut render_state.ball_list[index];
-        let mut ball_guard = BALL_BITMAP.lock()?;
-        let mut ball_bitmap = ball_guard.as_mut().unwrap();
+        let mut ball_bitmap = render_state.ball_bitmap.as_mut().unwrap();
 
         let dirty = &mut ball_sprite.dirty_rect;
 
         if ball_sprite.bmp.is_some()
-            && maths::rectangle_clip(&ball_sprite.bmp_rect, &(*v_screen_rect), dirty)
+            && maths::rectangle_clip(&ball_sprite.bmp_rect, &render_state.v_screen_rect, dirty)
         {
             let ball_sprite_bmp = ball_sprite.bmp.as_ref().unwrap();
 
@@ -351,8 +326,7 @@ fn unpaint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> 
     for index in (0..ball_list_size).rev() {
         let cur_ball = &mut render_state.ball_list[index];
 
-        let mut ball_bitmap_guard = BALL_BITMAP.lock()?;
-        let ball_bitmap = ball_bitmap_guard.as_mut().unwrap();
+        let ball_bitmap = render_state.ball_bitmap.as_mut().unwrap();
 
         if cur_ball.dirty_rect.width > 0 {
             gdrv::copy_bitmap(
@@ -385,9 +359,11 @@ pub fn update(render_state: &mut RenderState) {
         let mut clear_sprite: bool = false;
         match sprite.visual_type {
             VisualTypes::Background => {
-                let v_screen_rect = V_SCREEN_RECT.lock().unwrap();
-                let rec_clip =
-                    maths::rectangle_clip(&sprite.bmp_rect, &v_screen_rect, &mut sprite.dirty_rect);
+                let rec_clip = maths::rectangle_clip(
+                    &sprite.bmp_rect,
+                    &render_state.v_screen_rect,
+                    &mut sprite.dirty_rect,
+                );
                 if rec_clip {
                     clear_sprite = sprite.bmp.is_some();
                 } else {
@@ -405,10 +381,12 @@ pub fn update(render_state: &mut RenderState) {
 
                 let dirty_rect = sprite.dirty_rect;
                 let mut clipped_rect = dirty_rect;
-                let v_screen_rect = V_SCREEN_RECT.lock().unwrap();
 
-                let rec_clip =
-                    maths::rectangle_clip(&dirty_rect, &v_screen_rect, &mut clipped_rect);
+                let rec_clip = maths::rectangle_clip(
+                    &dirty_rect,
+                    &render_state.v_screen_rect,
+                    &mut clipped_rect,
+                );
 
                 if rec_clip {
                     clear_sprite = true;
@@ -425,16 +403,14 @@ pub fn update(render_state: &mut RenderState) {
 
             let z_screen_mut = render_state.z_screen.as_mut().unwrap();
             zdrv::fill(z_screen_mut, width, height, x_pos, y_pos, 0xFFFF);
-            let background_bmp = BACKGROUND_BITMAP.lock().unwrap();
-            if background_bmp.is_some() {
-                let mut bg_bmp = background_bmp.clone().unwrap();
+            if let Some(mut background_bmp) = render_state.background_bitmap.clone() {
                 gdrv::copy_bitmap(
                     render_state.v_screen.as_mut().unwrap(),
                     width,
                     height,
                     x_pos,
                     y_pos,
-                    &mut bg_bmp,
+                    &mut background_bmp,
                     x_pos,
                     y_pos,
                 );
@@ -487,13 +463,15 @@ pub fn remove_sprite(sprite: &RenderSprite, render_state: &mut RenderState) {
     }
 }
 
-pub fn set_background_zmap(zmap: Option<Arc<ZMapHeaderType>>, offset_x: i32, offset_y: i32) {
-    let mut zmap_guard = BACKGROUND_ZMAP.lock().unwrap();
-    *zmap_guard = zmap;
-    let mut zmap_offset_x = Z_MAP_OFFSET_X.lock().unwrap();
-    let mut zmap_offset_y = Z_MAP_OFFSET_Y.lock().unwrap();
-    (*zmap_offset_x) = offset_x;
-    (*zmap_offset_y) = offset_y;
+pub fn set_background_zmap(
+    zmap: Option<Arc<ZMapHeaderType>>,
+    offset_x: i32,
+    offset_y: i32,
+    render_state: &mut RenderState,
+) {
+    render_state.background_zmap = zmap;
+    render_state.z_map_offset_x = offset_x;
+    render_state.z_map_offset_y = offset_y;
 }
 
 pub(crate) fn uninit() {

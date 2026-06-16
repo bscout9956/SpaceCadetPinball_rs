@@ -641,11 +641,7 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
         Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {}
         Menu::ShowMenu => {
             *state.options_state.options.show_menu = !(*state.options_state.options.show_menu);
-            fullscrn::window_size_changed(
-                &mut state.fullscrn_state,
-                &mut state.main_state,
-                &mut state.options_state,
-            );
+            fullscrn::window_size_changed(state);
         }
         Menu::MaximumResolution | Menu::R640x480 | Menu::R800x600 | Menu::R1024x768 => {
             let mut restart = false;
@@ -672,11 +668,7 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
         Menu::WindowUniformScale => {
             *state.options_state.options.uniform_scaling =
                 !(*state.options_state.options.uniform_scaling);
-            fullscrn::window_size_changed(
-                &mut state.fullscrn_state,
-                &mut state.main_state,
-                &mut state.options_state,
-            );
+            fullscrn::window_size_changed(state);
         }
         Menu::WindowLinearFilter => {
             *state.options_state.options.linear_filtering =
@@ -690,20 +682,12 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
         Menu::WindowIntegerScale => {
             *state.options_state.options.integer_scaling =
                 !(*state.options_state.options.integer_scaling);
-            fullscrn::window_size_changed(
-                &mut state.fullscrn_state,
-                &mut state.main_state,
-                &mut state.options_state,
-            );
+            fullscrn::window_size_changed(state);
         }
         Menu::Prefer3DPBGameData => {
             *(&mut state.options_state).options.prefer_3dpb_game_data =
                 !(*(&mut state.options_state).options.prefer_3dpb_game_data);
-            fullscrn::window_size_changed(
-                &mut state.fullscrn_state,
-                &mut state.main_state,
-                &mut state.options_state,
-            );
+            fullscrn::window_size_changed(state);
         }
     }
 }

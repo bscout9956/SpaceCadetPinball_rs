@@ -1,7 +1,11 @@
 use crate::gdrv::GdrvBitmap8;
+use crate::maths::RectangleType;
 use crate::render::RenderSprite;
 use crate::zdrv::ZMapHeaderType;
+use sdl2::sys::SDL_Rect;
+use std::sync::Arc;
 
+#[derive(Default)]
 pub struct RenderState {
     pub sprite_list: Vec<RenderSprite>,
     pub ball_list: Vec<RenderSprite>,
@@ -9,17 +13,11 @@ pub struct RenderState {
     pub offset_x: i32,
     pub offset_y: i32,
     pub z_screen: Option<ZMapHeaderType>,
-}
-
-impl RenderState {
-    pub(crate) fn new() -> Self {
-        Self {
-            sprite_list: Vec::new(),
-            ball_list: Vec::new(),
-            v_screen: None,
-            offset_x: 0,
-            offset_y: 0,
-            z_screen: None,
-        }
-    }
+    pub z_map_offset_x: i32,
+    pub z_map_offset_y: i32,
+    pub background_bitmap: Option<GdrvBitmap8>,
+    pub background_zmap: Option<Arc<ZMapHeaderType>>,
+    pub destination_rect: Option<SDL_Rect>,
+    pub v_screen_rect: RectangleType,
+    pub ball_bitmap: Option<[GdrvBitmap8; 20]>,
 }

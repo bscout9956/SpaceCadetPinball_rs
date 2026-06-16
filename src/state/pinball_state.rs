@@ -19,7 +19,7 @@ impl PinballState {
             pb_game_state: PbGameState::new(),
             options_state: OptionsState::new(),
             fullscrn_state: FullscrnState::new(),
-            render_state: RenderState::new(),
+            render_state: RenderState::default(),
         }
     }
 }

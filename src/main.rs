@@ -803,11 +803,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 exit(1);
             }
 
-            fullscrn::init(
-                &mut state.fullscrn_state,
-                &mut state.main_state,
-                &mut state.options_state,
-            );
+            fullscrn::init(&mut state);
 
             pb::reset_table(&mut state.pb_game_state);
             pb::first_time_setup(&mut state.render_state);

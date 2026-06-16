@@ -68,7 +68,7 @@ impl TTableLayer {
             proj::recenter(&(*proj_center)[0], &(*proj_center)[1]);
         }
 
-        render::set_background_zmap(sprite_data.zmap.clone(), 0, 0);
+        render::set_background_zmap(sprite_data.zmap.clone(), 0, 0, render_state);
 
         let bmp = &sprite_data.bmp;
         rect.x_position = 0;

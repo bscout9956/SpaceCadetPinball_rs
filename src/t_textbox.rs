@@ -40,10 +40,8 @@ impl TTextBox {
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         resolution: i32,
+        background_bitmap: Option<GdrvBitmap8>,
     ) -> Result<TTextBox, TTextBoxError> {
-        let bg_bmp = render::BACKGROUND_BITMAP
-            .lock()
-            .map_err(|_| TTextBoxError::New)?;
         let font = score::MSG_FONTP.lock().map_err(|_| TTextBoxError::New)?;
 
         let mut instance = Self {
@@ -52,7 +50,7 @@ impl TTextBox {
             width: 0,
             height: 0,
             timer: 0,
-            bg_bmp: (*bg_bmp).clone(),
+            bg_bmp: background_bitmap.clone(),
             font: (*font).clone(),
             current_message: None,
             previous_message: None,

@@ -3,6 +3,8 @@ use crate::state::fullscrn_state::FullscrnState;
 use crate::state::main_state::MainState;
 use crate::state::options_state::OptionsState;
 use crate::state::pb_game_state::PbGameState;
+use crate::state::pinball_state::PinballState;
+use crate::state::render_state::RenderState;
 use crate::{SdlWindowPtr, render};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
@@ -72,13 +74,12 @@ fn reset_offset(mut offset: f32) {
     offset = 0.0f32;
 }
 
-pub fn window_size_changed(
-    fullscrn_state: &mut FullscrnState,
-    main_state: &mut MainState,
-    option_state: &mut OptionsState,
-) -> Result<(), FullscreenError> {
+pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenError> {
+    let fullscrn_state: &mut FullscrnState = &mut state.fullscrn_state;
+    let render_state: &mut RenderState = &mut state.render_state;
+
     let (mut width, mut height): (i32, i32) = (0, 0);
-    if let Some(renderer) = main_state.renderer.as_ref() {
+    if let Some(renderer) = (&mut state.main_state).renderer.as_ref() {
         unsafe {
             SDL_GetRendererOutputSize(renderer.0, &mut width, &mut height);
         }
@@ -86,8 +87,8 @@ pub fn window_size_changed(
         return Err(FullscreenError::MissingRenderer);
     }
 
-    let menu_height = if *option_state.options.show_menu {
-        main_state.main_menu_height
+    let menu_height = if *(&mut state.options_state).options.show_menu {
+        (&mut state.main_state).main_menu_height
     } else {
         0
     };
@@ -104,7 +105,7 @@ pub fn window_size_changed(
     let mut offset_2x = 0;
     let mut offset_2y = 0;
 
-    if *option_state.options.integer_scaling {
+    if *(&mut state.options_state).options.integer_scaling {
         fullscrn_state.scale_x = if fullscrn_state.scale_x < 1.0 {
             fullscrn_state.scale_x
         } else {
@@ -118,7 +119,7 @@ pub fn window_size_changed(
         };
     }
 
-    if *option_state.options.uniform_scaling {
+    if *(&mut state.options_state).options.uniform_scaling {
         fullscrn_state.scale_x = f32::min(fullscrn_state.scale_x, fullscrn_state.scale_y);
         fullscrn_state.scale_y = fullscrn_state.scale_x;
     }
@@ -129,16 +130,12 @@ pub fn window_size_changed(
     fullscrn_state.offset_x = offset_2x as f32 / 2.0f32;
     fullscrn_state.offset_y = offset_2y as f32 / 2.0f32;
 
-    let mut dest_rect = render::DESTINATION_RECT
-        .lock()
-        .map_err(|_| FullscreenError::LockGeneric)?;
-
-    *dest_rect = SDL_Rect {
+    render_state.destination_rect = Some(SDL_Rect {
         x: fullscrn_state.offset_x as i32,
         y: fullscrn_state.offset_y as i32 + menu_height,
         w: width - offset_2x,
         h: height - offset_2y,
-    };
+    });
 
     Ok(())
 }
@@ -219,10 +216,6 @@ fn disable_fullscreen(
     Ok(false)
 }
 
-pub fn init(
-    fullscrn_state: &mut FullscrnState,
-    main_state: &mut MainState,
-    options_state: &mut OptionsState,
-) {
-    window_size_changed(fullscrn_state, main_state, options_state);
+pub fn init(state: &mut PinballState) {
+    window_size_changed(state);
 }
