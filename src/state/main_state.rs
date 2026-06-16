@@ -11,7 +11,7 @@ pub struct MainState {
     pub return_value: i32,
     pub single_step: bool,
     pub target_frametime: Duration<1_000_000_000>,
-    pub cursor_idle_counter: i32,
+    pub cursor_idle_counter: i64,
     pub fps_details: String,
     pub last_mouse_x: i32,
     pub last_mouse_y: i32,

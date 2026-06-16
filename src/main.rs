@@ -232,8 +232,32 @@ unsafe fn render_frame_time_dialog() {
     }
 }
 
-fn hybrid_sleep(seconds: DurationMs) {
-    todo!()
+fn hybrid_sleep(mut sleep_target: Duration<1000000000>, main_state: &mut MainState) {
+    let std_dev_factor = 0.5f64;
+
+    // This nice concept is from https://blat-blatnik.github.io/computerBear/making-accurate-sleep-function/
+    // Sacrifices some CPU time for smaller frame time jitter
+    while sleep_target > main_state.spin_threshold {
+        let start = unsafe { SdlPerformanceClock::now() };
+        std::thread::sleep(std::time::Duration::from_nanos(start.0.count() as u64)); // TODO: Is this correct?
+        let end = unsafe { SdlPerformanceClock::now() };
+
+        let actual_duration = end - start;
+        sleep_target = sleep_target - actual_duration;
+        main_state
+            .sleep_state
+            .advance(actual_duration.count() as f64);
+        main_state.spin_threshold = Duration(
+            (main_state.sleep_state.mean + main_state.sleep_state.get_std_dev() * std_dev_factor)
+                as i64,
+        );
+    }
+
+    unsafe {
+        // spin lock
+        let start = SdlPerformanceClock::now();
+        while SdlPerformanceClock::now() - start < sleep_target {}
+    }
 }
 
 // TODO: Implement?
