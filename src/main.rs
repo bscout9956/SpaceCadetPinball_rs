@@ -375,7 +375,6 @@ fn main_loop(
             main_state.no_time_loss = false;
         }
 
-
         if update_to_frame_counter >= (&mut pb_state.main_state).update_to_frame_ratio {
             if *pb_state.options_state.options.hide_cursor
                 && (&mut pb_state.main_state).cursor_idle_counter <= 0
@@ -623,10 +622,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     unsafe {
         println!("Creating window");
         let rc_string = pb::get_rc_string(Msg::STRING139)?;
-        let rc_cstr = CStr::from_bytes_with_nul_unchecked(rc_string.as_bytes());
+        let c_string = CString::new(rc_string)?;
 
         let window = SDL_CreateWindow(
-            rc_cstr.as_ptr(),
+            c_string.as_ptr(),
             0,
             0,
             800,
