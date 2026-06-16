@@ -12,3 +12,4 @@ pub mod options_state;
 pub mod pb_game_state;
 pub mod pinball_state;
 pub mod render_state;
+pub mod sound_state;
