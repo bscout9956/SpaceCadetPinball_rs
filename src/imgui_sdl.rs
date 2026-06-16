@@ -1,4 +1,3 @@
-use crate::SdlRendererPtr;
 use crate::options::InputTypes::Keyboard;
 use crate::state::pinball_state::PinballState;
 use dear_imgui_rs::sys::{
@@ -218,7 +217,6 @@ impl Drop for Texture {
 }
 
 pub mod renderer {
-    use crate::SdlRendererPtr;
     use crate::imgui_sdl::{
         CURRENT_DEVICE, Device, ImplSdl2RenderData, Texture, get_renderer_bd_from_io,
     };

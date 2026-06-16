@@ -5,17 +5,17 @@ use crate::maths::*;
 use crate::state::loader_state::LoaderState;
 use crate::state::pb_game_state::PbGameState;
 use crate::state::sound_state::SoundState;
-use crate::utils::PATH_SEPARATOR;
+use crate::utils::{PATH_SEPARATOR, SdlWindowPtr};
 use crate::zdrv::ZMapHeaderType;
-use crate::{SdlWindowPtr, pb, sound};
+use crate::{pb, sound};
 use num_traits::Float;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::mixer::Mix_Chunk;
-use std::ffi::{CStr, CString, c_char};
+use std::ffi::{CStr, c_char};
 use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::Arc;
 
 #[derive(Copy, Clone)]
 pub struct ErrorMessage {

@@ -1,6 +1,17 @@
-// Equivalent to pch.h
+// Equivalent to pch.h with some additions
 
 use std::io::Read;
+use sdl2::sys::{SDL_Renderer, SDL_Texture, SDL_Window};
+
+pub struct SdlWindowPtr(pub *mut SDL_Window);
+unsafe impl Sync for SdlWindowPtr {}
+unsafe impl Send for SdlWindowPtr {}
+pub struct SdlRendererPtr(pub *mut SDL_Renderer);
+unsafe impl Send for SdlRendererPtr {}
+unsafe impl Sync for SdlRendererPtr {}
+
+#[derive(Clone)]
+pub struct SdlTexturePtr(pub *mut SDL_Texture);
 
 pub fn clamp<T: std::cmp::Ord + Copy>(n: &T, lower: &T, upper: &T) -> T {
     std::cmp::max(*lower, std::cmp::min(*n, *upper))

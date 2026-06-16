@@ -210,13 +210,6 @@ impl WelfordState {
     }
 }
 
-pub struct SdlWindowPtr(pub *mut SDL_Window);
-unsafe impl Sync for SdlWindowPtr {}
-unsafe impl Send for SdlWindowPtr {}
-pub struct SdlRendererPtr(pub *mut SDL_Renderer);
-unsafe impl Send for SdlRendererPtr {}
-unsafe impl Sync for SdlRendererPtr {}
-
 pub const VERSION: &str = "1.0 DEV";
 
 pub type DurationMs = f64;

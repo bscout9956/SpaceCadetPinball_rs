@@ -486,7 +486,7 @@ pub(crate) fn present_v_screen(main_state: &mut MainState, render_state: &mut Re
                 && let Some(tex) = v_screen.texture.as_mut()
                 && let Some(dest_rect) = render_state.destination_rect.as_ref()
             {
-                SDL_RenderCopy(renderer.0, tex, null(), dest_rect);
+                SDL_RenderCopy(renderer.0, tex.0, null(), dest_rect);
             }
         }
     }

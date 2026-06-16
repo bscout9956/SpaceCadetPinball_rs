@@ -1,15 +1,14 @@
-use crate::errors::LoaderError;
+use crate::errors::TTextBoxError;
 use crate::gdrv::GdrvBitmap8;
 use crate::score::ScoreMessageFontType;
 use crate::state::loader_state::LoaderState;
+use crate::state::score_state::ScoreState;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox_message::TTextBoxMessage;
-use crate::{fullscrn, loader, render, score};
+use crate::loader;
 use std::cell::RefCell;
 use std::rc::Weak;
 use std::slice;
-use thiserror::Error;
-
 pub struct TTextBox {
     pub offset_x: i32,
     pub offset_y: i32,
@@ -28,14 +27,6 @@ impl TTextBox {
     }
 }
 
-#[derive(Debug, Error)]
-enum TTextBoxError {
-    #[error("Failure creating new TTextBox")]
-    New,
-    #[error("Failure to load dimensions from loader `{0}`")]
-    DimensionLoading(#[from] LoaderError),
-}
-
 impl TTextBox {
     pub fn new(
         table: Option<Weak<RefCell<TPinballTable>>>,
@@ -43,9 +34,8 @@ impl TTextBox {
         resolution: i32,
         background_bitmap: Option<GdrvBitmap8>,
         loader_state: &mut LoaderState,
+        score_state: &mut ScoreState,
     ) -> Result<TTextBox, TTextBoxError> {
-        let font = score::MSG_FONTP.lock().map_err(|_| TTextBoxError::New)?;
-
         let mut instance = Self {
             offset_x: 0,
             offset_y: 0,
@@ -53,7 +43,7 @@ impl TTextBox {
             height: 0,
             timer: 0,
             bg_bmp: background_bitmap.clone(),
-            font: (*font).clone(),
+            font: score_state.MSG_FONTP.clone(),
             current_message: None,
             previous_message: None,
         };

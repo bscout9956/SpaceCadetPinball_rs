@@ -3,7 +3,6 @@ use std::io::Error;
 use std::sync::{Arc, MutexGuard, PoisonError};
 use thiserror::Error;
 
-use crate::MainError;
 use crate::fullscrn::ResolutionInfo;
 use crate::group_data::DatFile;
 use crate::loader::SoundListStruct;
@@ -92,4 +91,12 @@ pub enum FullscreenError {
     FloatLock(#[from] PoisonError<MutexGuard<'static, f32>>),
     #[error("Failed to lock Mutex")]
     LockGeneric,
+}
+
+#[derive(Debug, Error)]
+pub enum TTextBoxError {
+    #[error("Failure creating new TTextBox")]
+    New,
+    #[error("Failure to load dimensions from loader `{0}`")]
+    DimensionLoading(#[from] LoaderError),
 }

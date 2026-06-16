@@ -1,5 +1,5 @@
-use crate::SdlRendererPtr;
 use crate::partman::{Bmp8Flags, Dat8BitBmpHeader};
+use crate::utils::{SdlRendererPtr, SdlTexturePtr};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::sys::{
     SDL_CreateTexture, SDL_DestroyTexture, SDL_HINT_RENDER_SCALE_QUALITY, SDL_LockTexture,
@@ -106,7 +106,7 @@ pub struct GdrvBitmap8 {
     pub x_position: i32,
     pub y_position: i32,
     pub resolution: u32,
-    pub texture: Option<SDL_Texture>,
+    pub texture: Option<SdlTexturePtr>,
 }
 
 impl GdrvBitmap8 {
@@ -114,9 +114,9 @@ impl GdrvBitmap8 {
         let mut pitch = 0 as c_int;
         let mut locked_pixels_ptr: *mut c_void = null_mut();
 
-        if let Some(mut tex) = self.texture {
+        if let Some(tex) = self.texture.as_mut() {
             let result =
-                unsafe { SDL_LockTexture(&mut tex, null(), &mut locked_pixels_ptr, &mut pitch) };
+                unsafe { SDL_LockTexture(tex.0, null(), &mut locked_pixels_ptr, &mut pitch) };
             if result != 0 {
                 panic!("We are updating a non-streaming texture!");
             }
@@ -145,7 +145,9 @@ impl GdrvBitmap8 {
                 }
             }
 
-            unsafe { SDL_UnlockTexture(&mut tex) };
+            unsafe { SDL_UnlockTexture(tex.0) };
+        } else {
+            panic!("We are updating a null texture");
         }
     }
 }
@@ -259,7 +261,7 @@ impl GdrvBitmap8 {
         renderer: &Option<SdlRendererPtr>,
     ) {
         if let Some(texture) = self.texture.as_mut() {
-            unsafe { SDL_DestroyTexture(texture) };
+            unsafe { SDL_DestroyTexture(texture.0) };
         }
         unsafe {
             SDL_SetHint(
@@ -277,7 +279,7 @@ impl GdrvBitmap8 {
                     self.width,
                     self.height,
                 );
-                self.texture = Some(*tex);
+                self.texture = Some(SdlTexturePtr(tex));
             };
         }
     }
