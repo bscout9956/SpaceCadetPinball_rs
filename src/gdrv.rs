@@ -2,12 +2,15 @@ use crate::SdlRendererPtr;
 use crate::partman::{Bmp8Flags, Dat8BitBmpHeader};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::sys::{
-    SDL_CreateTexture, SDL_DestroyTexture, SDL_HINT_RENDER_SCALE_QUALITY, SDL_SetHint, SDL_Texture,
+    SDL_CreateTexture, SDL_DestroyTexture, SDL_HINT_RENDER_SCALE_QUALITY, SDL_LockTexture,
+    SDL_SetHint, SDL_Texture, SDL_UnlockTexture,
 };
 use std::cmp::PartialEq;
-use std::ffi::c_char;
+use std::ffi::{c_char, c_int, c_uint, c_void};
 use std::fmt::Debug;
+use std::ptr::{self, null, null_mut};
 use std::sync::Mutex;
+use std::{mem, slice};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
 #[repr(u8)]
@@ -104,6 +107,47 @@ pub struct GdrvBitmap8 {
     pub y_position: i32,
     pub resolution: u32,
     pub texture: Option<SDL_Texture>,
+}
+
+impl GdrvBitmap8 {
+    pub unsafe fn blit_to_texture(&mut self) {
+        let mut pitch = 0 as c_int;
+        let mut locked_pixels_ptr: *mut c_void = null_mut();
+
+        if let Some(mut tex) = self.texture {
+            let result =
+                unsafe { SDL_LockTexture(&mut tex, null(), &mut locked_pixels_ptr, &mut pitch) };
+            if result != 0 {
+                panic!("We are updating a non-streaming texture!");
+            }
+
+            let width_bytes = (self.width as usize) * size_of::<ColorRgba>();
+            let height = self.height as usize;
+
+            if pitch as usize == width_bytes {
+                let dst_slice = unsafe {
+                    slice::from_raw_parts_mut(
+                        locked_pixels_ptr as *mut ColorRgba,
+                        self.bmp_buffer_data.len(),
+                    )
+                };
+
+                dst_slice.copy_from_slice(&self.bmp_buffer_data);
+            } else {
+                let mut dst_row = locked_pixels_ptr as *mut u8;
+                let src_bytes = self.bmp_buffer_data.as_ptr() as *const u8;
+                for row in 0..height {
+                    unsafe {
+                        let src = src_bytes.add(row * width_bytes);
+                        let dst = dst_row.add(row * pitch as usize);
+                        ptr::copy_nonoverlapping(src, dst, width_bytes);
+                    }
+                }
+            }
+
+            unsafe { SDL_UnlockTexture(&mut tex) };
+        }
+    }
 }
 
 impl GdrvBitmap8 {
