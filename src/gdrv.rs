@@ -258,9 +258,8 @@ impl GdrvBitmap8 {
         access: i32,
         renderer: &Option<SdlRendererPtr>,
     ) {
-        if self.texture.is_some() {
-            let text_ref = self.texture.as_mut().unwrap();
-            unsafe { SDL_DestroyTexture(text_ref) };
+        if let Some(texture) = self.texture.as_mut() {
+            unsafe { SDL_DestroyTexture(texture) };
         }
         unsafe {
             SDL_SetHint(
@@ -269,19 +268,17 @@ impl GdrvBitmap8 {
             );
         }
 
-        match (renderer.as_ref()) {
-            Some(renderer) => {
-                unsafe {
-                    SDL_CreateTexture(
-                        renderer.0,
-                        PixelFormatEnum::BGRA32 as u32,
-                        access,
-                        self.width,
-                        self.height,
-                    )
-                };
-            }
-            None => {}
+        if let Some(renderer) = renderer.as_ref() {
+            unsafe {
+                let tex = SDL_CreateTexture(
+                    renderer.0,
+                    PixelFormatEnum::BGRA32 as u32,
+                    access,
+                    self.width,
+                    self.height,
+                );
+                self.texture = Some(*tex);
+            };
         }
     }
 }
