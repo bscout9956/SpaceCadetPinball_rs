@@ -349,17 +349,32 @@ fn main_loop(
 
             (&mut pb_state.main_state).update_mouse_xy(x, y);
         }
-        if (&mut pb_state.main_state).single_step == false
-            && (&mut pb_state.main_state).no_time_loss == false
+
+        // Scope to avoid repetition, Rust usually doesn't like long-lived scopes but in this case it helps
         {
-            let dt = _frame_duration.count() as f32;
-            pb::frame(dt, &mut pb_state.pb_game_state);
-            if (&mut pb_state.main_state).disp_gr_history == true {
-                // TODO: Continue from L360 in winmain.cpp
+            let main_state = &mut pb_state.main_state;
+            if main_state.single_step == false && main_state.no_time_loss == false {
+                let dt = _frame_duration.count() as f32;
+                pb::frame(dt, &mut pb_state.pb_game_state);
+
+                if main_state.disp_gr_history == true {
+                    let target_size = (*pb_state.options_state.options.updates_per_second as f32
+                        * main_state.gfr_window) as usize;
+                    if main_state.gfr_display.len() != target_size {
+                        main_state
+                            .gfr_display
+                            .resize(target_size, main_state.target_frametime.count() as f32);
+                        main_state.gfr_offset = 0;
+                    }
+                    main_state.gfr_display[main_state.gfr_offset as usize] = dt;
+                    main_state.gfr_offset =
+                        (main_state.gfr_offset + 1) % main_state.gfr_display.len() as u32;
+                }
+                update_count += 1
             }
+            main_state.no_time_loss = false;
         }
 
-        (&mut pb_state.main_state).no_time_loss = false;
 
         if update_to_frame_counter >= (&mut pb_state.main_state).update_to_frame_ratio {
             if *pb_state.options_state.options.hide_cursor
