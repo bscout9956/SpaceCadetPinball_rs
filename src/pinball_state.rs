@@ -17,6 +17,7 @@ use crate::render::RenderSprite;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
 use crate::translations::Msg;
+use crate::zdrv::ZMapHeaderType;
 use crate::{Duration, SdlRendererPtr, translations};
 use sdl2::sys::SDL_GameControllerButton::{
     SDL_CONTROLLER_BUTTON_A, SDL_CONTROLLER_BUTTON_BACK, SDL_CONTROLLER_BUTTON_DPAD_LEFT,
@@ -91,6 +92,9 @@ pub struct RenderState {
     pub sprite_list: Vec<RenderSprite>,
     pub ball_list: Vec<RenderSprite>,
     pub v_screen: Option<GdrvBitmap8>,
+    pub offset_x: i32,
+    pub offset_y: i32,
+    pub z_screen: Option<ZMapHeaderType>,
 }
 
 impl RenderState {
@@ -99,6 +103,9 @@ impl RenderState {
             sprite_list: Vec::new(),
             ball_list: Vec::new(),
             v_screen: None,
+            offset_x: 0,
+            offset_y: 0,
+            z_screen: None,
         }
     }
 }

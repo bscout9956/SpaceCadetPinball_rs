@@ -179,14 +179,9 @@ pub static DESTINATION_RECT: LazyLock<Mutex<SDL_Rect>> = LazyLock::new(|| {
     })
 });
 
-static OFFSET_X: Mutex<i32> = Mutex::new(0);
-static OFFSET_Y: Mutex<i32> = Mutex::new(0);
-
 static V_SCREEN_RECT: LazyLock<Mutex<RectangleType>> =
     LazyLock::new(|| Mutex::new(RectangleType::default()));
 static BALL_BITMAP: Mutex<Option<[GdrvBitmap8; 20]>> = Mutex::new(None);
-
-static Z_SCREEN: Mutex<Option<ZMapHeaderType>> = Mutex::new(None);
 
 #[derive(Debug, Error)]
 pub enum RenderLockError {
@@ -216,14 +211,13 @@ pub fn init(
         false,
     ));
 
-    let mut z_screen = Z_SCREEN.lock()?;
-    *z_screen = Some(ZMapHeaderType::new(
+    render_state.z_screen = Some(ZMapHeaderType::new(
         width as i32,
         height as i32,
         width as i32,
     ));
 
-    let mut z_unwrap = (*z_screen).as_mut().unwrap();
+    let mut z_unwrap = render_state.z_screen.as_mut().unwrap();
     let z_width = z_unwrap.width;
     let z_height = z_unwrap.height;
 
@@ -295,10 +289,9 @@ fn repaint(sprite: &RenderSprite) {
 
 fn paint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> {
     let v_screen_rect = V_SCREEN_RECT.lock()?;
-    let z_screen_guard = Z_SCREEN.lock()?;
 
     let v_screen = render_state.v_screen.as_mut().unwrap();
-    let z_screen = (*z_screen_guard).as_ref().unwrap();
+    let z_screen = render_state.z_screen.as_ref().unwrap();
 
     // Sort ball sprites by ascending depth
     render_state.ball_list.sort_by(|a, b| a.depth.cmp(&b.depth));
@@ -427,8 +420,8 @@ pub fn update(render_state: &mut RenderState) {
             let width = sprite.dirty_rect.width;
             let x_pos = sprite.dirty_rect.x_position;
             let height = sprite.dirty_rect.height;
-            let mut z_screen_guard = Z_SCREEN.lock().unwrap();
-            let z_screen_mut = z_screen_guard.as_mut().unwrap();
+
+            let z_screen_mut = render_state.z_screen.as_mut().unwrap();
             zdrv::fill(z_screen_mut, width, height, x_pos, y_pos, 0xFFFF);
             let background_bmp = BACKGROUND_BITMAP.lock().unwrap();
             if background_bmp.is_some() {
