@@ -41,7 +41,7 @@ pub trait ICollisionComponent {
 }
 
 use crate::message_code::MessageCode;
-use crate::state::pb_game_state::PbGameState;
+use crate::state::pinball_state::PinballState;
 use std::ops::{Deref, DerefMut};
 use std::rc::Weak;
 
@@ -64,25 +64,16 @@ impl TCollisionComponent {
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         create_wall: bool,
-        pb_game_state: &mut PbGameState,
-        resolution: i32,
-        loader_state: &mut LoaderState,
+        state: &mut PinballState,
     ) -> Rc<RefCell<Self>> {
-        let base = TPinballComponent::new(table, group_index, true, loader_state);
+        let base = TPinballComponent::new(table, group_index, true, &mut state.loader_state);
 
         let mut visual = VisualStruct::default();
 
         if group_index <= 0 {
             loader::default_vsi(&mut visual);
         } else {
-            loader::query_visual(
-                group_index,
-                0,
-                &mut visual,
-                pb_game_state,
-                resolution,
-                loader_state,
-            );
+            loader::query_visual(group_index, 0, &mut visual, state);
         }
 
         let mut instance_data = Self {
@@ -112,7 +103,7 @@ impl TCollisionComponent {
             if let Some(tbl) = &instance.borrow().base.pinball_table {
                 let offset: f32 = tbl.upgrade().unwrap().borrow().collision_comp_offset;
                 let float_array =
-                    loader::query_float_attribute_ptr(group_index, 0, 600, loader_state);
+                    loader::query_float_attribute_ptr(group_index, 0, 600, &mut state.loader_state);
                 match float_array {
                     Ok(array_ptr) => {
                         let weak_comp =
