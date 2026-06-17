@@ -168,3 +168,11 @@ pub(crate) fn play_sound(p0: *const Mix_Chunk, p1: usize, p2: TPinballComponent,
 pub(crate) fn init(p0: bool, p1: Setting<i32>, p2: Setting<bool>, p3: Setting<i32>) {
     todo!()
 }
+
+pub(crate) fn set_volume(p0: i32) {
+    todo!()
+}
+
+pub(crate) fn set_channels(p0: i32) {
+    todo!()
+}
