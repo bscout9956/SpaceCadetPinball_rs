@@ -3,11 +3,12 @@
 extern crate core;
 
 use crate::embedded_data::load_controller_db;
+use crate::errors::FullscreenError;
 use crate::maths::Vector2;
-use crate::options::GameBindings;
 use crate::options::Menu::ShowMenu;
-use crate::translations::Msg;
+use crate::options::{GameBindings, GameInput, InputTypes};
 use crate::translations::Msg::Menu1Game;
+use crate::translations::{Msg, TranslationError};
 use crate::utils::{SdlRendererPtr, SdlWindowPtr};
 use dear_imgui_rs::sys::{
     ImGuiCol_MenuBarBg, ImGuiFocusRequestFlags_None, ImGuiIO, ImGuiMouseCursor_None,
@@ -278,6 +279,10 @@ pub enum MainLoopError {
     NulError(#[from] NulError),
     #[error("There is no MainWindow to attach to...")]
     NullWindow,
+    #[error(transparent)]
+    FullScreen(#[from] FullscreenError),
+    #[error(transparent)]
+    Translation(#[from] TranslationError),
 }
 
 impl Mul<Duration<1000000000>> for i32 {
@@ -335,13 +340,7 @@ fn main_loop(
             }
         }
 
-        if !process_window_messages(
-            imgui_context,
-            &mut pb_state.main_state,
-            &mut pb_state.options_state,
-            &mut pb_state.fullscrn_state,
-        )? || pb_state.main_state.b_quit
-        {
+        if !process_window_messages(imgui_context, pb_state)? || pb_state.main_state.b_quit {
             break;
         }
 
@@ -529,7 +528,7 @@ fn main_loop(
     Ok(())
 }
 
-unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) {
+unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoopError> {
     unsafe {
         let menu_bar_bg_color =
             ui.push_style_color(StyleColor::MenuBarBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
@@ -545,20 +544,17 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) {
             igEndMainMenuBar();
         }
 
-        // TODO: remove unwraps
         if *state.options_state.options.show_menu && igBeginMainMenuBar() {
             let current_menu_height = igGetWindowSize().y as i32;
             if state.main_state.main_menu_height != current_menu_height {
                 state.main_state.main_menu_height = current_menu_height;
-                fullscrn::window_size_changed(state).unwrap();
+                fullscrn::window_size_changed(state)?;
             }
 
-            let menu_string = pb::get_rc_string_cstring(Msg::Menu1Game).unwrap();
-            if igBeginMenu(menu_string.as_ptr(), true) {
+            if igBeginMenu(pb::get_rc_string_cstring(Msg::Menu1Game)?.as_ptr(), true) {
                 imgui_menu_item_w_shortcut(GameBindings::NewGame, Option::None);
-                let menu_item_string = pb::get_rc_string_cstring(Msg::Menu1LaunchBall).unwrap();
                 if igMenuItem_Bool(
-                    menu_item_string.as_ptr(),
+                    pb::get_rc_string_cstring(Msg::Menu1LaunchBall)?.as_ptr(),
                     null(),
                     false,
                     state.main_state.launch_ball_enabled,
@@ -569,12 +565,47 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) {
                 imgui_menu_item_w_shortcut(GameBindings::TogglePause, Option::None);
                 igSeparator();
 
+                if igMenuItem_Bool(
+                    pb::get_rc_string_cstring(Msg::Menu1HighScores)?.as_ptr(),
+                    null(),
+                    false,
+                    state.main_state.high_scores_enabled,
+                ) {
+                    pause(false, &mut state.main_state);
+                    pb::high_scores(&mut state.high_score_state);
+                }
+
+                if igMenuItem_Bool(
+                    pb::get_rc_string_cstring(Msg::Menu1Demo)?.as_ptr(),
+                    null(),
+                    state.main_state.demo_active,
+                    true,
+                ) {
+                    end_pause(&mut state.main_state);
+                    pb::toggle_demo();
+                }
+
+                imgui_menu_item_w_shortcut(GameBindings::Exit, Option::None);
+                igEndMenu();
+            }
+
+            if igBeginMenu(pb::get_rc_string_cstring(Msg::Menu1Options)?.as_ptr(), true) {
+                imgui_menu_item_w_shortcut(
+                    GameBindings::ToggleMenuDisplay,
+                    Some(*state.options_state.options.show_menu),
+                );
+                imgui_menu_item_w_shortcut(
+                    GameBindings::ToggleFullScreen,
+                    Some(*state.options_state.options.full_screen),
+                );
+
                 igEndMenu();
             }
 
             igEndMainMenuBar();
         }
     }
+    Ok(())
 }
 
 pub fn restart(main_state: &mut MainState) {
@@ -588,27 +619,25 @@ pub fn restart(main_state: &mut MainState) {
     }
 }
 
+fn pause(toggle: bool, main_state: &mut MainState) {
+    if toggle || !main_state.single_step {
+        pb::pause_continue(main_state);
+        main_state.no_time_loss = true;
+    }
+}
+
 fn process_window_messages(
     imgui_context: &mut Context,
-    main_state: &mut MainState,
-    options_state: &mut OptionsState,
-    fullscrn_state: &mut FullscrnState,
+    state: &mut PinballState,
 ) -> Result<bool, MainLoopError> {
     let mut idle_wait = 0i64;
     let mut event = MaybeUninit::<SDL_Event>::uninit();
 
-    if main_state.has_focus {
-        idle_wait = main_state.target_frametime.count();
+    if state.main_state.has_focus {
+        idle_wait = state.main_state.target_frametime.count();
         unsafe {
             while SDL_PollEvent(event.as_mut_ptr()) > 0 {
-                if event_handler(
-                    event.as_mut_ptr(),
-                    imgui_context,
-                    main_state,
-                    options_state,
-                    fullscrn_state,
-                )? == false
-                {
+                if event_handler(event.as_mut_ptr(), imgui_context, state)? == false {
                     return Ok(false);
                 }
             }
@@ -618,17 +647,11 @@ fn process_window_messages(
     }
 
     // Progressively wait longer when transitioning to idle
-    idle_wait = i64::min(idle_wait + main_state.target_frametime.0, 500);
+    idle_wait = i64::min(idle_wait + state.main_state.target_frametime.0, 500);
     unsafe {
         if SDL_WaitEventTimeout(event.as_mut_ptr(), idle_wait as c_int) > 0 {
-            idle_wait = main_state.target_frametime.count();
-            return event_handler(
-                event.as_mut_ptr(),
-                imgui_context,
-                main_state,
-                options_state,
-                fullscrn_state,
-            );
+            idle_wait = state.main_state.target_frametime.count();
+            return event_handler(event.as_mut_ptr(), imgui_context, state);
         }
     }
     Ok(true)
@@ -636,10 +659,8 @@ fn process_window_messages(
 
 unsafe fn event_handler(
     event: *mut SDL_Event,
-    imgui_context: &mut Context,
-    main_state: &mut MainState,
-    options_state: &mut OptionsState,
-    fullscrn_state: &mut FullscrnState,
+    context: &mut Context,
+    state: &mut PinballState,
 ) -> Result<bool, MainLoopError> {
     let mut input_down = false;
 
@@ -653,8 +674,8 @@ unsafe fn event_handler(
         }
     }
 
-    if options_state.control_waiting_for_input.is_none() || !input_down {
-        imgui_sdl::impl_sdl2_process_event(imgui_context, event);
+    if state.options_state.control_waiting_for_input.is_none() || !input_down {
+        imgui_sdl::impl_sdl2_process_event(context, event);
     }
 
     let mouse_event: bool;
@@ -665,19 +686,19 @@ unsafe fn event_handler(
             || (*event).type_ == SDL_EventType::SDL_MOUSEBUTTONUP as u32
             || (*event).type_ == SDL_EventType::SDL_MOUSEWHEEL as u32
         {
-            main_state.cursor_idle_counter = 1000;
+            state.main_state.cursor_idle_counter = 1000;
             mouse_event = true;
         } else {
             mouse_event = false;
         }
     }
 
-    let io = imgui_context.io_mut();
+    let io = context.io_mut();
 
-    if io.want_capture_mouse() && options_state.control_waiting_for_input.is_none() {
-        if main_state.mouse_down == true {
-            main_state.mouse_down = false;
-            if let Some(window) = main_state.main_window.as_ref() {
+    if io.want_capture_mouse() && state.options_state.control_waiting_for_input.is_none() {
+        if state.main_state.mouse_down == true {
+            state.main_state.mouse_down = false;
+            if let Some(window) = state.main_state.main_window.as_ref() {
                 unsafe {
                     SDL_SetWindowGrab(window.0, SDL_FALSE);
                 }
@@ -689,7 +710,7 @@ unsafe fn event_handler(
         }
     }
 
-    if io.want_capture_keyboard() && options_state.control_waiting_for_input.is_none() {
+    if io.want_capture_keyboard() && state.options_state.control_waiting_for_input.is_none() {
         unsafe {
             if (*event).type_ == SDL_KEYUP as u32
                 || (*event).type_ == SDL_KEYDOWN as u32
@@ -703,15 +724,19 @@ unsafe fn event_handler(
 
     unsafe {
         if (*event).type_ == SDL_QUIT as u32 {
-            end_pause(main_state);
+            end_pause(&mut state.main_state);
 
-            main_state.b_quit = true;
-            fullscrn::shutdown(fullscrn_state, &mut main_state.main_window);
-            main_state.return_value = 0;
+            state.main_state.b_quit = true;
+            fullscrn::shutdown(&mut state.fullscrn_state, &mut state.main_state.main_window);
+            state.main_state.return_value = 0;
             return Ok(false);
         }
         if (*event).type_ == SDL_KEYUP as u32 {
-            pb::input_up()
+            pb::input_up(
+                GameInput::new(InputTypes::Keyboard, (*event).key.keysym.sym),
+                &mut state.main_state,
+                &mut state.pb_game_state,
+            );
         }
     }
     Ok(true)
