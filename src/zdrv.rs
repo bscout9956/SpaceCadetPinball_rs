@@ -155,7 +155,7 @@ pub(crate) fn paint(
     src_bmp: &GdrvBitmap8,
     src_bmp_x_off: i32,
     src_bmp_y_off: i32,
-    src_z_map: &mut ZMapHeaderType,
+    src_z_map: &ZMapHeaderType,
     src_z_map_x_off: i32,
     src_z_map_y_off: i32,
 ) {
