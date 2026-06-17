@@ -12,7 +12,7 @@ use std::cmp::PartialEq;
 use std::ffi::{c_char, c_int, c_uint, c_void};
 use std::fmt::Debug;
 use std::ptr::{self, null, null_mut};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::{mem, slice};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
@@ -290,7 +290,7 @@ impl GdrvBitmap8 {
 
 static CURRENT_PALETTE: Mutex<[ColorRgba; 256]> = Mutex::new([ColorRgba::black(); 256]);
 
-pub fn display_palette(plt: Option<&[ColorRgba]>) {
+pub fn display_palette(plt: Option<&[ColorRgba]>, pb_game_state: &mut PbGameState) {
     const SYS_PALETTE_COLORS: [ColorRgba; 10] = [
         ColorRgba::color_rgba(0, 0, 0, 0),
         ColorRgba::color_rgba(0x80, 0, 0, 0xff),
@@ -325,9 +325,44 @@ pub fn display_palette(plt: Option<&[ColorRgba]>) {
             }
 
             palette[255] = ColorRgba::white();
+
+            if let Some(table) = pb_game_state.record_table.as_mut() {
+                if let Some(t) = Arc::get_mut(table) {
+                    for group in &mut t.groups {
+                        for i in 0..=2 {
+                            let bmp = group.get_bitmap_mut(i);
+                            apply_palette(bmp);
+                        }
+                    }
+                }
+            }
         }
         Err(e) => {
             println!("Failed to lock CURRENT_PALLETTE {}", e); // TODO: Result, Err
+        }
+    }
+}
+
+fn apply_palette(bmp: &mut GdrvBitmap8) {
+    if bmp.bitmap_type == BitmapTypes::None {
+        return;
+    }
+    if bmp.bitmap_type == BitmapTypes::Spliced {
+        panic!("Wrong bitmap type");
+    }
+
+    let palette = CURRENT_PALETTE.lock().unwrap();
+
+    let width = bmp.width as usize;
+    let stride = bmp.indexed_stride as usize;
+    let height = bmp.height as usize;
+
+    let dst_rows = bmp.bmp_buffer_data.chunks_exact_mut(width);
+    let src_rows = bmp.indexed_bmp_data.chunks_exact(stride).take(height).rev();
+
+    for (dst_row, src_row) in dst_rows.zip(src_rows) {
+        for (dst_pixel, &src_pixel) in dst_row.iter_mut().zip(src_row.iter()) {
+            *dst_pixel = palette[src_pixel as usize];
         }
     }
 }
