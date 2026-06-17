@@ -66,8 +66,8 @@ impl RenderSprite {
             dirty_flag,
         };
 
-        if bounding_rect.is_some() {
-            instance.bounding_rect = bounding_rect.unwrap();
+        if let Some(rect) = bounding_rect {
+            instance.bounding_rect = rect;
         } else {
             instance.bounding_rect.width = -1;
             instance.bounding_rect.height = -1;
@@ -141,7 +141,7 @@ impl RenderSprite {
 }
 
 fn add_sprite(sprite: RenderSprite, render_state: &mut RenderState) {
-    let mut list = if sprite.visual_type == VisualTypes::Ball {
+    let list = if sprite.visual_type == VisualTypes::Ball {
         &mut render_state.ball_list
     } else {
         &mut render_state.sprite_list
@@ -169,7 +169,7 @@ impl PartialEq for RenderSprite {
 }
 
 #[derive(Debug, Error)]
-pub enum RenderLockError {
+pub enum RenderError {
     #[error("Failed to lock V_SCREEN")]
     VScreen(#[from] PoisonError<MutexGuard<'static, Option<GdrvBitmap8>>>),
     #[error("Failed to lock BALL_BITMAP")]
@@ -189,7 +189,8 @@ pub fn init(
     main_state: &mut MainState,
     options_state: &mut OptionsState,
     render_state: &mut RenderState,
-) -> Result<(), RenderLockError> {
+    pb_game_state: &mut PbGameState,
+) -> Result<(), RenderError> {
     render_state.v_screen = Some(GdrvBitmap8::new_dims_indexed(
         width as i32,
         height as i32,
@@ -202,7 +203,7 @@ pub fn init(
         width as i32,
     ));
 
-    let mut z_unwrap = render_state.z_screen.as_mut().unwrap();
+    let z_unwrap = render_state.z_screen.as_mut().unwrap();
     let z_width = z_unwrap.width;
     let z_height = z_unwrap.height;
 
@@ -213,11 +214,11 @@ pub fn init(
     render_state.v_screen_rect.width = width as i32;
     render_state.v_screen_rect.height = height as i32;
 
-    let mut v_screen_unwrap = render_state.v_screen.to_owned().unwrap();
+    let v_screen_unwrap = render_state.v_screen.as_mut().unwrap();
     v_screen_unwrap.y_position = 0;
     v_screen_unwrap.x_position = 0;
 
-    let mut ball_array = render_state.ball_bitmap.get_or_insert_with(|| {
+    render_state.ball_bitmap.get_or_insert_with(|| {
         std::array::from_fn(|_| GdrvBitmap8::new_dims_indexed(64, 64, false))
     });
 
@@ -225,7 +226,7 @@ pub fn init(
     match bmp.is_some() {
         true => {
             gdrv::copy_bitmap(
-                &mut v_screen_unwrap,
+                v_screen_unwrap,
                 width as i32,
                 height as i32,
                 0,
@@ -238,7 +239,7 @@ pub fn init(
         false => {
             let v_width = v_screen_unwrap.width;
             let v_height = v_screen_unwrap.height;
-            gdrv::fill_bitmap(&mut v_screen_unwrap, v_width, v_height, 0, 0, 0);
+            gdrv::fill_bitmap(v_screen_unwrap, v_width, v_height, 0, 0, 0, pb_game_state);
         }
     }
 
@@ -361,7 +362,7 @@ fn paint_balls(render_state: &mut RenderState) -> Result<(), RenderError> {
     Ok(())
 }
 
-fn unpaint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> {
+fn unpaint_balls(render_state: &mut RenderState) -> Result<(), RenderError> {
     // Restore portions of v_screen saved during previous paint_balls call.
     let ball_list_size = render_state.ball_list.len();
 
