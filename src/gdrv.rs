@@ -275,12 +275,11 @@ impl GdrvBitmap8 {
                     self.height,
                 );
                 self.texture = Some(SdlTexturePtr(tex));
+                SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_NONE);
             };
         }
     }
 }
-
-static CURRENT_PALETTE: Mutex<[ColorRgba; 256]> = Mutex::new([ColorRgba::black(); 256]);
 
 pub fn display_palette(plt: Option<&[ColorRgba]>, pb_game_state: &mut PbGameState) {
     const SYS_PALETTE_COLORS: [ColorRgba; 10] = [
