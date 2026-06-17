@@ -54,3 +54,7 @@ impl HighScoreEntry {
 pub(crate) fn show_high_score_dialog(high_score_state: &mut HighScoreState) {
     high_score_state.show_dialog = true;
 }
+
+pub(crate) fn show_and_set_high_score_dialog(entry: HighScoreEntry) {
+    todo!()
+}
