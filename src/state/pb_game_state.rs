@@ -2,6 +2,7 @@ use crate::group_data::DatFile;
 use crate::pb::GameModes;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
+use dear_imgui_rs::sys::ImU32;
 use std::sync::Arc;
 
 pub struct PbGameState {
@@ -24,6 +25,8 @@ pub struct PbGameState {
     pub base_path: String,
     pub idle_timer_ms: f32,
     pub miss_text_box: Option<TTextBox>,
+    pub info_text_box: Option<TTextBox>,
+    pub text_box_color: ImU32,
 }
 
 impl PbGameState {
@@ -48,6 +51,8 @@ impl PbGameState {
             base_path: String::new(),
             idle_timer_ms: 0.0f32,
             miss_text_box: None,
+            info_text_box: None,
+            text_box_color: 0,
         }
     }
 }
