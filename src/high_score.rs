@@ -2,7 +2,10 @@ use crate::options;
 use crate::state::high_score_state::HighScoreState;
 use std::collections::HashMap;
 
-pub(crate) fn write(high_score_state: &mut HighScoreState, settings: &mut HashMap<String, String>) -> i32 {
+pub(crate) fn write(
+    high_score_state: &mut HighScoreState,
+    settings: &mut HashMap<String, String>,
+) -> i32 {
     let mut check_sum = 0;
     let scores: Vec<String> = Vec::with_capacity(5);
 
@@ -31,10 +34,7 @@ pub struct HighScore {
 
 impl HighScore {
     pub(crate) fn default() -> Self {
-        Self {
-            name: "",
-            score: 0,
-        }
+        Self { name: "", score: 0 }
     }
 }
 
@@ -50,4 +50,8 @@ impl HighScoreEntry {
             position: 0,
         }
     }
+}
+
+pub(crate) fn show_high_score_dialog(high_score_state: &mut HighScoreState) {
+    high_score_state.show_dialog = true;
 }
