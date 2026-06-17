@@ -1,4 +1,3 @@
-#![allow(unused)]
 #![allow(arithmetic_overflow)]
 extern crate core;
 
@@ -452,19 +451,22 @@ fn main_loop(
                 imgui_sdl::impl_sdl2_new_frame(imgui_context.io_mut(), pb_state);
                 imgui_sdl::impl_sdl2_renderer_new_frame(imgui_context);
                 let ui = imgui_context.frame();
-                render_ui(ui, pb_state);
+                render_ui(ui, pb_state)?;
                 if let Some(renderer) = pb_state.main_state.renderer.as_ref() {
                     SDL_RenderClear(renderer.0);
                     SDL_RenderFillRect(renderer.0, null());
                 }
-                render::present_v_screen(&mut pb_state.main_state, &mut pb_state.render_state);
+                render::present_v_screen(pb_state);
                 igRender();
                 let draw_data = igGetDrawData();
                 imgui_sdl::renderer::render_draw_data(imgui_context.io_mut(), draw_data);
 
-                if let Some(renderer) = pb_state.main_state.renderer.as_ref() {
+                if let Some(renderer) = pb_state.main_state.renderer.as_mut() {
                     SDL_RenderPresent(renderer.0);
+                } else {
+                    panic!("No renderer")
                 }
+
                 frame_counter += 1;
                 update_to_frame_counter -= pb_state.main_state.update_to_frame_ratio;
             }
@@ -1400,7 +1402,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             fullscrn::init(&mut state);
 
             pb::reset_table(&mut state.pb_game_state);
-            pb::first_time_setup(&mut state.render_state);
+            pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state);
 
             let fullscreen = env::args().any(|arg| arg == "-fullscreen");
             if fullscreen {
