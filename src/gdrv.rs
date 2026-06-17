@@ -4,16 +4,17 @@ use crate::state::render_state::RenderState;
 use crate::utils::{SdlRendererPtr, SdlTexturePtr};
 use dear_imgui_rs::Ui;
 use sdl2::pixels::PixelFormatEnum;
+use sdl2::sys::SDL_BlendMode::SDL_BLENDMODE_NONE;
 use sdl2::sys::{
-    SDL_CreateTexture, SDL_DestroyTexture, SDL_HINT_RENDER_SCALE_QUALITY, SDL_LockTexture,
-    SDL_SetHint, SDL_Texture, SDL_UnlockTexture,
+    SDL_CreateTexture, SDL_DestroyTexture, SDL_LockTexture, SDL_SetHint,
+    SDL_SetTextureBlendMode, SDL_UnlockTexture, SDL_HINT_RENDER_SCALE_QUALITY,
 };
 use std::cmp::PartialEq;
-use std::ffi::{c_char, c_int, c_uint, c_void};
+use std::ffi::{c_int, c_void, CString};
 use std::fmt::Debug;
-use std::ptr::{self, null, null_mut};
-use std::sync::{Arc, Mutex};
-use std::{mem, slice};
+use std::ptr::{null, null_mut};
+use std::sync::Arc;
+use std::slice;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
 #[repr(u8)]
