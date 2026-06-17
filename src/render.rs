@@ -264,8 +264,49 @@ pub fn recreate_screen_texture(
     );
 }
 
-fn repaint(sprite: &RenderSprite) {
-    todo!()
+fn repaint(
+    sprite: &RenderSprite,
+    v_screen: &mut Option<GdrvBitmap8>,
+    z_screen: &mut Option<ZMapHeaderType>,
+) {
+    let mut clip_rectangle: RectangleType = RectangleType::default();
+    if sprite.occluded_sprites.is_none()
+        || sprite.visual_type == VisualTypes::Ball
+        || sprite.dirty_rect.width <= 0
+    {
+        return;
+    }
+
+    if let Some(sprites) = sprite.occluded_sprites.as_ref() {
+        for ref_sprite in sprites {
+            if let Some(sprite) = ref_sprite.as_ref()
+                && let Some(v_screen) = v_screen.as_mut()
+                && let Some(z_screen) = z_screen.as_mut()
+                && !sprite.delete_flag
+                && sprite.bmp.is_some()
+                && maths::rectangle_clip(&sprite.bmp_rect, &sprite.dirty_rect, &mut clip_rectangle)
+                && let Some(sprite_bmp) = sprite.bmp.as_ref()
+                && let Some(sprite_zmap) = sprite.zmap.as_ref()
+            {
+                zdrv::paint(
+                    clip_rectangle.width,
+                    clip_rectangle.height,
+                    v_screen,
+                    clip_rectangle.x_position,
+                    clip_rectangle.y_position,
+                    z_screen,
+                    clip_rectangle.x_position,
+                    clip_rectangle.y_position,
+                    sprite_bmp,
+                    clip_rectangle.x_position - sprite.bmp_rect.x_position,
+                    clip_rectangle.y_position - sprite.bmp_rect.y_position,
+                    sprite_zmap,
+                    clip_rectangle.x_position + sprite.z_map_offset_y - sprite.bmp_rect.x_position,
+                    clip_rectangle.y_position + sprite.z_map_offset_x - sprite.bmp_rect.y_position,
+                );
+            }
+        }
+    }
 }
 
 fn paint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> {
