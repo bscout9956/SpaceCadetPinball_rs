@@ -1,5 +1,8 @@
 use crate::partman::{Bmp8Flags, Dat8BitBmpHeader};
+use crate::state::pb_game_state::PbGameState;
+use crate::state::render_state::RenderState;
 use crate::utils::{SdlRendererPtr, SdlTexturePtr};
+use dear_imgui_rs::Ui;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::sys::{
     SDL_CreateTexture, SDL_DestroyTexture, SDL_HINT_RENDER_SCALE_QUALITY, SDL_LockTexture,
@@ -391,5 +394,20 @@ fn fill_bitmap_color_rgba(
             index += 1;
         }
         index += bmp.stride - width;
+    }
+}
+
+pub(crate) fn gr_text_draw_ttext_in_box(
+    render_state: &mut RenderState,
+    pb_game_state: &mut PbGameState,
+    ui: &mut Ui,
+) {
+    let text_boxes = [
+        pb_game_state.miss_text_box.as_mut().unwrap(),
+        pb_game_state.info_text_box.as_mut().unwrap(),
+    ];
+
+    for text_box in text_boxes.into_iter() {
+        unsafe { text_box.draw_im_gui(render_state, pb_game_state.text_box_color, ui) };
     }
 }
