@@ -3,19 +3,16 @@ extern crate core;
 
 use crate::embedded_data::load_controller_db;
 use crate::errors::FullscreenError;
-use crate::maths::Vector2;
 use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPlayers};
 use crate::options::{GameBindings, GameInput, InputTypes, Menu};
-use crate::translations::Msg::Menu1Game;
 use crate::translations::{Msg, TranslationError};
 use crate::utils::{SdlRendererPtr, SdlWindowPtr};
 use dear_imgui_rs::sys::{
-    ImGuiCol_MenuBarBg, ImGuiFocusRequestFlags_None, ImGuiIO, ImGuiMouseCursor_None,
-    ImGuiSliderFlags_AlwaysClamp, ImGuiStyle, ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4,
-    ImWchar, igBeginMainMenuBar, igBeginMenu, igBeginMenuEx, igEnd, igEndMainMenuBar, igEndMenu,
-    igFocusWindow, igGetDrawData, igGetWindowSize, igMenuItem_Bool, igNewFrame, igPopStyleColor,
-    igPopStyleVar, igPushStyleColor_Vec4, igPushStyleVar_Vec2, igRender, igSeparator,
-    igSetMouseCursor, igSliderInt, igStyleColorsDark, igTextUnformatted,
+    ImGuiFocusRequestFlags_None, ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp,
+    ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, ImWchar, igBeginMainMenuBar, igBeginMenu, igEnd,
+    igEndMainMenuBar, igEndMenu, igFocusWindow, igGetDrawData, igGetWindowSize, igMenuItem_Bool,
+    igPopStyleVar, igPushStyleVar_Vec2, igRender, igSeparator, igSetMouseCursor, igSliderInt,
+    igTextUnformatted,
 };
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig, StyleColor, StyleVar, Ui};
 use num_traits::FromPrimitive;
@@ -31,23 +28,18 @@ use sdl2::sys::mixer::{
     MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_Init, Mix_OpenAudio,
 };
 use sdl2::sys::*;
-use state::fullscrn_state::FullscrnState;
 use state::main_state::MainState;
 use state::options_state::OptionsState;
 use state::pinball_state::PinballState;
-use std::cell::RefCell;
 use std::env;
 use std::error::Error;
-use std::ffi::{CStr, CString, NulError, c_char, c_int};
+use std::ffi::{CStr, CString, NulError, c_int};
 use std::mem::MaybeUninit;
-use std::ops::{Index, Mul, Neg, Sub};
+use std::ops::{Mul, Neg, Sub};
 use std::path::PathBuf;
 use std::process::exit;
-use std::ptr::{NonNull, null};
-use std::str::FromStr;
-use std::sync::atomic::AtomicU32;
-use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
-use std::thread::sleep;
+use std::ptr::null;
+use std::sync::{MutexGuard, PoisonError};
 use thiserror::Error;
 
 mod fullscrn;
@@ -393,34 +385,34 @@ fn main_loop(
             let mut x_mod: i32 = 0;
             let mut y_mod: i32 = 0;
 
-            if (x as i32 == 0 || x as i32 >= (w as i32 - 1)) {
-                x_mod = w as i32 - 2;
+            if x == 0 || x >= (w - 1) {
+                x_mod = w - 2;
             }
-            if (y as i32 == 0 || y as i32 >= (h as i32 - 1)) {
-                y_mod = h as i32 - 2;
+            if y == 0 || y >= (h - 1) {
+                y_mod = h - 2;
             }
 
             unsafe {
                 if (x_mod != 0 || y_mod != 0) {
-                    x = i32::abs(x as i32 - x_mod);
-                    y = i32::abs(y as i32 - y_mod);
+                    x = i32::abs(x - x_mod);
+                    y = i32::abs(y - y_mod);
                     if let Some(window) = pb_state.main_state.main_window.as_ref() {
                         SDL_WarpMouseInWindow(window.0, x, y);
                     }
                 }
             }
 
-            (&mut pb_state.main_state).update_mouse_xy(x, y);
+            pb_state.main_state.update_mouse_xy(x, y);
         }
 
         // Scope to avoid repetition, Rust usually doesn't like long-lived scopes but in this case it helps
         {
             let main_state = &mut pb_state.main_state;
-            if main_state.single_step == false && main_state.no_time_loss == false {
+            if !main_state.single_step && !main_state.no_time_loss {
                 let dt = frame_duration.count() as f32;
                 pb::frame(dt, &mut pb_state.pb_game_state);
 
-                if main_state.disp_gr_history == true {
+                if main_state.disp_gr_history {
                     let target_size = (*pb_state.options_state.options.updates_per_second as f32
                         * main_state.gfr_window) as usize;
                     if main_state.gfr_display.len() != target_size {
