@@ -5,7 +5,6 @@ use dear_imgui_rs::sys::{
 };
 use dear_imgui_rs::{BackendFlags, ConfigFlags, Io, Key, MouseButton};
 use dear_imgui_rs::{Context, TextureId};
-use num_traits::ToPrimitive;
 use sdl2::keyboard::Keycode;
 use sdl2::render::RenderTarget;
 use sdl2::sys::SDL_BlendMode::SDL_BLENDMODE_BLEND;
@@ -43,9 +42,6 @@ use sdl2::sys::{
 use std::ffi::{CStr, c_char, c_int, c_void};
 use std::ops::{Add, Mul};
 use std::ptr::{addr_of_mut, null, null_mut};
-use std::sync::{LazyLock, Mutex};
-
-pub static CURRENT_DEVICE: LazyLock<Mutex<Option<Device>>> = LazyLock::new(|| Mutex::new(None));
 
 struct ClipRect {
     x: i32,
@@ -71,9 +67,6 @@ impl Drop for TriangleCacheItem {
 }
 
 type Clip = ClipRect;
-
-static UNIFORM_COLOR_TRIANGLE_CACHE_SIZE: usize = 512;
-static GENERIC_TRIANGLE_CACHE_SIZE: usize = 64;
 
 pub struct Device {
     pub renderer: *mut SDL_Renderer,
@@ -190,7 +183,7 @@ impl Texture {
 
             let location = y * (*self.surface).w + x;
             assert!(location < (*self.surface).w * (*self.surface).h);
-            let color_u32 = unsafe {
+            let color_u32 = {
                 let ptr = (*self.surface).pixels as *const u32;
                 ptr.offset(location as isize).read()
             };
@@ -218,7 +211,9 @@ pub mod renderer {
 
     use crate::imgui_sdl::{ImplSdl2RenderData, get_renderer_bd_from_io};
     use dear_imgui_rs::internal::{ImVector, imvector_cast_mut};
-    use dear_imgui_rs::sys::{ImDrawCmd, ImDrawCmd_GetTexID, ImDrawData, ImDrawIdx, ImDrawVert, ImVec2};
+    use dear_imgui_rs::sys::{
+        ImDrawCmd, ImDrawCmd_GetTexID, ImDrawData, ImDrawIdx, ImDrawVert, ImVec2,
+    };
     use dear_imgui_rs::{BackendFlags, Context, Io};
     use sdl2::sys::SDL_bool::SDL_TRUE;
     use sdl2::sys::{
@@ -258,7 +253,7 @@ pub mod renderer {
     }
 
     pub fn init(context: &mut Context, renderer: *mut SDL_Renderer) {
-        let mut io = context.io_mut();
+        let io = context.io_mut();
         if !io.backend_renderer_user_data().is_null() {
             println!("Already initialized a renderer backend");
             return;
@@ -279,7 +274,7 @@ pub mod renderer {
     }
 
     pub fn shutdown(context: &mut Context) {
-        let mut io = context.io_mut();
+        let io = context.io_mut();
         let bd_ptr = io.backend_renderer_user_data();
         if bd_ptr.is_null() {
             panic!("No renderer backend to shutdown, or already shutdown?");
@@ -413,7 +408,7 @@ pub mod renderer {
 
                         // Bind texture, Draw
                         let mut tex = ImDrawCmd_GetTexID(&raw mut draw_cmd) as *mut SDL_Texture;
-                        
+
                         if tex.is_null() && !(*bd).font_texture.is_null() {
                             if FALLBACK_WARN
                                 .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
@@ -428,8 +423,6 @@ pub mod renderer {
 
                         let im_draw_vert_size = size_of::<ImDrawVert>() as i32;
                         let num_vertices = (*cmd_list).VtxBuffer.Size - (draw_cmd.VtxOffset as i32);
-
-                        let tex_ptr = draw_cmd.TexRef._TexID as *mut SDL_Texture;
 
                         SDL_RenderGeometryRaw(
                             (*bd).renderer,
@@ -500,7 +493,7 @@ unsafe fn impl_sdl2_init(
     window: *mut SDL_Window,
     renderer: *mut SDL_Renderer,
 ) -> bool {
-    let mut io = context.io_mut();
+    let io = context.io_mut();
     assert!(
         io.backend_platform_user_data().is_null(),
         "SDL_UserData is NULL"
@@ -612,7 +605,7 @@ pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Eve
         return false;
     }
 
-    bd = unsafe { &raw mut *bd_ptr.cast::<ImplSdl2UserData>() };
+    bd = &raw mut *bd_ptr.cast::<ImplSdl2UserData>();
 
     unsafe {
         if (*event).type_ == SDL_MOUSEMOTION as u32 {
@@ -665,7 +658,7 @@ pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Eve
         }
 
         if (*event).type_ == SDL_TEXTINPUT as u32 {
-            let c_str = unsafe { CStr::from_ptr((*event).text.text.as_ptr()) };
+            let c_str = CStr::from_ptr((*event).text.text.as_ptr());
 
             if let Ok(text) = c_str.to_str() {
                 for c in text.chars() {
@@ -837,15 +830,13 @@ pub fn impl_sdl2_get_backend_data(io: &mut Io) -> Option<&mut ImplSdl2UserData> 
 
 fn get_backend_bd_from_io(io: &mut Io) -> *mut ImplSdl2UserData {
     let bd_ptr = io.backend_platform_user_data();
-    let mut bd: *mut ImplSdl2UserData = null_mut();
-    bd = unsafe { &raw mut *bd_ptr.cast::<ImplSdl2UserData>() };
+    let bd: *mut ImplSdl2UserData = &raw mut *bd_ptr.cast::<ImplSdl2UserData>();
     bd
 }
 
 fn get_renderer_bd_from_io(io: &mut Io) -> *mut ImplSdl2RenderData {
     let bd_ptr = io.backend_renderer_user_data();
-    let mut bd: *mut ImplSdl2RenderData = null_mut();
-    bd = unsafe { &raw mut *bd_ptr.cast::<ImplSdl2RenderData>() };
+    let bd: *mut ImplSdl2RenderData = &raw mut *bd_ptr.cast::<ImplSdl2RenderData>();
     bd
 }
 
@@ -873,7 +864,6 @@ unsafe fn impl_sdl2_renderer_create_fonts_texture(context: &mut Context) -> bool
         let pixels = (*tex_data).Pixels;
         let width = (*tex_data).Width as c_int;
         let height = (*tex_data).Height as c_int;
-        let bytes_per_pixel = (*tex_data).BytesPerPixel as c_int;
 
         if pixels.is_null() {
             println!("Font pixels is null!!");
@@ -1013,9 +1003,9 @@ pub(crate) unsafe fn impl_sdl2_new_frame(io: &mut Io, state: &mut PinballState) 
 }
 
 unsafe fn impl_sdl2_update_mouse_cursor(io: &mut Io, bd: *mut ImplSdl2UserData) {
-    if (io
+    if io
         .config_flags()
-        .contains(ConfigFlags::NO_MOUSE_CURSOR_CHANGE))
+        .contains(ConfigFlags::NO_MOUSE_CURSOR_CHANGE)
     {
         return;
     }
@@ -1025,7 +1015,7 @@ unsafe fn impl_sdl2_update_mouse_cursor(io: &mut Io, bd: *mut ImplSdl2UserData) 
         if io.mouse_draw_cursor() || cursor == ImGuiMouseCursor_None {
             SDL_ShowCursor(SDL_FALSE as c_int);
         } else {
-            let mut cursor = (*bd).cursor[cursor as usize];
+            let cursor = (*bd).cursor[cursor as usize];
             SDL_SetCursor(cursor);
             SDL_ShowCursor(SDL_TRUE as c_int);
         }
