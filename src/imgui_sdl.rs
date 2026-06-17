@@ -1046,9 +1046,9 @@ unsafe fn impl_sdl2_update_mouse_data(io: &mut Io, bd: *mut ImplSdl2UserData) {
             if (*bd).mouse_can_use_global_state && (*bd).mouse_buttons_down == 0 {
                 let mut window_x = 0 as c_int;
                 let mut window_y = 0 as c_int;
-                let mouse_x_global = 0 as c_int;
-                let mouse_y_global = 0 as c_int;
-                SDL_GetGlobalMouseState(&raw mut window_x, &raw mut window_y);
+                let mut mouse_x_global = 0 as c_int;
+                let mut mouse_y_global = 0 as c_int;
+                SDL_GetGlobalMouseState(&raw mut mouse_x_global, &raw mut mouse_y_global);
                 SDL_GetWindowPosition((*bd).window, &raw mut window_x, &mut window_y);
                 io.add_mouse_pos_event([
                     (mouse_x_global - window_x) as f32,
