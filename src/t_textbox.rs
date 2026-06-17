@@ -2,13 +2,26 @@ use crate::errors::TTextBoxError;
 use crate::gdrv::GdrvBitmap8;
 use crate::score::ScoreMessageFontType;
 use crate::state::loader_state::LoaderState;
+use crate::state::pb_game_state::PbGameState;
+use crate::state::render_state::RenderState;
 use crate::state::score_state::ScoreState;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox_message::TTextBoxMessage;
-use crate::loader;
+use crate::{fullscrn, loader, pb};
+use dear_imgui_rs::sys::{
+    ImGuiCol_Text, ImGuiViewportFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoBackground,
+    ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoInputs,
+    ImGuiWindowFlags_NoSavedSettings, ImU32, ImVec2, igBegin, igEnd, igPopStyleColor,
+    igPushStyleColor_U32, igSetNextWindowPos, igSetNextWindowSize, igTextWrapped,
+};
+use dear_imgui_rs::{Context, Ui};
+use sdl2::sys::SDL_Rect;
 use std::cell::RefCell;
+use std::ffi::CString;
+use std::ptr::null_mut;
 use std::rc::Weak;
 use std::slice;
+
 pub struct TTextBox {
     pub offset_x: i32,
     pub offset_y: i32,
