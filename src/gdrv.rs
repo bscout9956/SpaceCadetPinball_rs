@@ -257,10 +257,11 @@ impl GdrvBitmap8 {
         if let Some(texture) = self.texture.as_mut() {
             unsafe { SDL_DestroyTexture(texture.0) };
         }
+        let c_scale_hint = CString::new(scale_hint).expect("CString::new failed, invalid string");
         unsafe {
             SDL_SetHint(
                 SDL_HINT_RENDER_SCALE_QUALITY.as_ptr() as *const i8,
-                scale_hint.as_ptr() as *const c_char,
+                c_scale_hint.as_ptr(),
             );
         }
 
