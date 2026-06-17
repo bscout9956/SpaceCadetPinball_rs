@@ -1,9 +1,10 @@
+use crate::gdrv::ColorRgba;
 use crate::group_data::DatFile;
 use crate::pb::GameModes;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
 use dear_imgui_rs::sys::ImU32;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 pub struct PbGameState {
     pub ball_max_speed: f32,
@@ -27,6 +28,7 @@ pub struct PbGameState {
     pub miss_text_box: Option<TTextBox>,
     pub info_text_box: Option<TTextBox>,
     pub text_box_color: ImU32,
+    pub current_palette: [ColorRgba; 256],
 }
 
 impl PbGameState {
@@ -53,6 +55,7 @@ impl PbGameState {
             miss_text_box: None,
             info_text_box: None,
             text_box_color: 0,
+            current_palette: std::array::from_fn(|_| ColorRgba::black()),
         }
     }
 }
