@@ -38,3 +38,7 @@ pub(crate) fn pbctrl_bdoor_controller(p0: &u8) {
 pub(crate) fn unstuck_ball(p0: &mut TBall, p1: usize) {
     todo!()
 }
+
+pub(crate) fn cheat_bump_rank() {
+    todo!()
+}
