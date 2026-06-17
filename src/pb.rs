@@ -188,7 +188,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
             &mut state.pb_game_state.record_table,
             fullscrn_state,
             &mut state.score_state,
-        );
+        )?;
     }
 
     if state.pb_game_state.record_table.is_none() {
