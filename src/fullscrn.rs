@@ -164,14 +164,13 @@ pub fn shutdown(fullscrn_state: &mut FullscrnState, main_window: &mut Option<Sdl
     }
 }
 
-pub fn get_screen_rect_from_pinball_rect(rect: SDL_Rect) -> SDL_Rect {
-    // SDL_Rect {
-    //     x: 0,
-    //     y: 0,
-    //     w: 0,
-    //     h: 0,
-    // }
-    todo!()
+pub fn get_screen_rect_from_pinball_rect(rect: SDL_Rect, render_state: &mut RenderState) -> SDL_Rect {
+    SDL_Rect {
+        x: rect.x * render_state.destination_rect.unwrap().w / render_state.v_screen.as_ref().unwrap().width + render_state.destination_rect.unwrap().x,
+        y: rect.y * render_state.destination_rect.unwrap().h / render_state.v_screen.as_ref().unwrap().height + render_state.destination_rect.unwrap().y,
+        w: rect.w * render_state.destination_rect.unwrap().w / render_state.v_screen.as_ref().unwrap().width,
+        h: rect.h * render_state.destination_rect.unwrap().h / render_state.v_screen.as_ref().unwrap().height,
+    }
 }
 
 pub fn get_screen_to_pinball_ratio() -> f32 {
