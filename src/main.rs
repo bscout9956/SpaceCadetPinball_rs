@@ -5,17 +5,18 @@ extern crate core;
 use crate::embedded_data::load_controller_db;
 use crate::errors::FullscreenError;
 use crate::maths::Vector2;
-use crate::options::Menu::ShowMenu;
-use crate::options::{GameBindings, GameInput, InputTypes};
+use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPlayers};
+use crate::options::{GameBindings, GameInput, InputTypes, Menu};
 use crate::translations::Msg::Menu1Game;
 use crate::translations::{Msg, TranslationError};
 use crate::utils::{SdlRendererPtr, SdlWindowPtr};
 use dear_imgui_rs::sys::{
-    ImGuiCol_MenuBarBg, ImGuiFocusRequestFlags_None, ImGuiIO, ImGuiMouseCursor_None, ImGuiStyle,
-    ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, ImWchar, igBeginMainMenuBar, igBeginMenu, igEnd,
-    igEndMainMenuBar, igEndMenu, igFocusWindow, igGetDrawData, igGetWindowSize, igMenuItem_Bool,
-    igNewFrame, igPopStyleColor, igPopStyleVar, igPushStyleColor_Vec4, igPushStyleVar_Vec2,
-    igRender, igSeparator, igSetMouseCursor, igStyleColorsDark,
+    ImGuiCol_MenuBarBg, ImGuiFocusRequestFlags_None, ImGuiIO, ImGuiMouseCursor_None,
+    ImGuiSliderFlags_AlwaysClamp, ImGuiStyle, ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4,
+    ImWchar, igBeginMainMenuBar, igBeginMenu, igBeginMenuEx, igEnd, igEndMainMenuBar, igEndMenu,
+    igFocusWindow, igGetDrawData, igGetWindowSize, igMenuItem_Bool, igNewFrame, igPopStyleColor,
+    igPopStyleVar, igPushStyleColor_Vec4, igPushStyleVar_Vec2, igRender, igSeparator,
+    igSetMouseCursor, igSliderInt, igStyleColorsDark, igTextUnformatted,
 };
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig, StyleColor, StyleVar, Ui};
 use num_traits::FromPrimitive;
@@ -553,108 +554,401 @@ fn main_loop(
     Ok(())
 }
 
+unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopError> {
+    unsafe {
+        let menu_string = pb::get_rc_string_cstring(Msg::Menu1Options)?;
+        if igBeginMenu(menu_string.as_ptr(), true) {
+            imgui_menu_item_w_shortcut(
+                GameBindings::ToggleMenuDisplay,
+                Some(*state.options_state.options.show_menu),
+                &mut state.options_state,
+            );
+            imgui_menu_item_w_shortcut(
+                GameBindings::ToggleFullScreen,
+                Some(*state.options_state.options.full_screen),
+                &mut state.options_state,
+            );
+
+            let select_player_string = pb::get_rc_string_cstring(Msg::Menu1SelectPlayers)?;
+            if igBeginMenu(select_player_string.as_ptr(), true) {
+                let one_player_string = pb::get_rc_string_cstring(Msg::MENU1_1PLAYER)?;
+                if igMenuItem_Bool(
+                    one_player_string.as_ptr(),
+                    null(),
+                    *state.options_state.options.players == 1,
+                    true,
+                ) {
+                    options::toggle(OnePlayer, state);
+                    // TODO: new_game();
+                }
+
+                if igMenuItem_Bool(
+                    pb::get_rc_string_cstring(Msg::MENU1_2PLAYERS)?.as_ptr(),
+                    null(),
+                    *state.options_state.options.players == 2,
+                    true,
+                ) {
+                    options::toggle(TwoPlayers, state);
+                    // TODO: new_game();
+                }
+
+                if igMenuItem_Bool(
+                    pb::get_rc_string_cstring(Msg::MENU1_3PLAYERS)?.as_ptr(),
+                    null(),
+                    *state.options_state.options.players == 3,
+                    true,
+                ) {
+                    options::toggle(ThreePlayers, state);
+                    // TODO: new_game();
+                }
+
+                if igMenuItem_Bool(
+                    pb::get_rc_string_cstring(Msg::MENU1_4PLAYERS)?.as_ptr(),
+                    null(),
+                    *state.options_state.options.players == 4,
+                    true,
+                ) {
+                    options::toggle(FourPlayers, state);
+                    // TODO: new_game();
+                }
+                igEndMenu();
+            }
+            imgui_menu_item_w_shortcut(
+                GameBindings::ShowControlDialog,
+                Option::None,
+                &mut state.options_state,
+            );
+
+            if igBeginMenu(c"Language".as_ptr(), true) {
+                let current_language = translations::get_current_language().unwrap();
+                for item in translations::LANGUAGES {
+                    let name = CString::new(item.display_name.to_string())?;
+                    if igMenuItem_Bool(
+                        name.as_ptr(),
+                        null(),
+                        current_language.language == item.language,
+                        true,
+                    ) {
+                        if current_language.language != item.language {
+                            translations::set_current_language(item.short_name);
+                            //restart();
+                        }
+                    }
+                }
+
+                igEndMenu();
+            }
+
+            igSeparator();
+
+            create_audio_menu(state);
+            // create_graphics_menu();
+            create_resolution_menu(state);
+            create_game_data_menu(state);
+
+            igSeparator();
+
+            if igMenuItem_Bool(c"Reset All Options".as_ptr(), null(), false, true) {
+                //TODO, needs io
+                // options::reset_all_options()
+                //restart();
+            }
+            igEndMenu();
+        }
+
+        Ok(())
+    }
+}
+
+unsafe fn create_resolution_menu(state: &mut PinballState) -> Result<(), MainLoopError> {
+    unsafe {
+        let table_res_string = pb::get_rc_string_cstring(Msg::Menu1TableResolution)?;
+        if igBeginMenu(table_res_string.as_ptr(), true) {
+            let mut resolution_string_id = Msg::Menu1UseMaxResolution640x480;
+
+            match fullscrn::get_max_resolution(&mut state.pb_game_state) {
+                0 => {
+                    resolution_string_id = Msg::Menu1UseMaxResolution640x480;
+                }
+                1 => {
+                    resolution_string_id = Msg::Menu1UseMaxResolution800x600;
+                }
+                2 => {
+                    resolution_string_id = Msg::Menu1UseMaxResolution1024x768;
+                }
+                _ => {}
+            }
+
+            let max_res_text = pb::get_rc_string_cstring(resolution_string_id)?;
+            if igMenuItem_Bool(
+                max_res_text.as_ptr(),
+                null(),
+                *state.options_state.options.resolution == -1,
+                true,
+            ) {
+                options::toggle(Menu::MaximumResolution, state);
+            }
+
+            for i in 0..=fullscrn::get_max_resolution(&mut state.pb_game_state) {
+                let res = &state.fullscrn_state.resolution_array[i as usize];
+                let text = format!("{} x {}", res.screen_width, res.screen_height);
+                let cstr = CString::new(text)?;
+                if igMenuItem_Bool(
+                    cstr.as_ptr(),
+                    null(),
+                    *state.options_state.options.resolution == i,
+                    true,
+                ) {
+                    match i {
+                        0 => {
+                            options::toggle(Menu::R640x480, state);
+                        }
+                        1 => {
+                            options::toggle(Menu::R800x600, state);
+                        }
+                        2 => {
+                            options::toggle(Menu::R1024x768, state);
+                        }
+                        _ => {
+                            options::toggle(Menu::R640x480, state);
+                        }
+                    };
+                }
+            }
+            igEndMenu();
+        }
+    }
+    Ok(())
+}
+
+unsafe fn create_audio_menu(state: &mut PinballState) {
+    unsafe {
+        if igBeginMenu(c"Audio".as_ptr(), true) {
+            imgui_menu_item_w_shortcut(
+                GameBindings::ToggleSounds,
+                Some(*state.options_state.options.sounds),
+                &mut state.options_state,
+            );
+
+            if igMenuItem_Bool(
+                c"Stereo Sound Effects".as_ptr(),
+                null(),
+                *state.options_state.options.sound_stereo,
+                true,
+            ) {
+                options::toggle(Menu::SoundStereo, state);
+            }
+            igTextUnformatted(c"Sound Volume".as_ptr(), c"".as_ptr());
+            if igSliderInt(
+                c"##Sound Volume".as_ptr(),
+                &raw mut state.options_state.options.sound_volume.value,
+                options::MIN_VOLUME,
+                options::MAX_VOLUME,
+                c"%d".as_ptr(),
+                ImGuiSliderFlags_AlwaysClamp,
+            ) {
+                sound::set_volume(*state.options_state.options.sound_volume);
+            }
+            igTextUnformatted(c"Sound Channels".as_ptr(), c"".as_ptr());
+            if igSliderInt(
+                c"##Sound Channels".as_ptr(),
+                &raw mut state.options_state.options.sound_channels.value,
+                options::MIN_SOUND_CHANNELS,
+                options::MAX_SOUND_CHANNELS,
+                c"%d".as_ptr(),
+                ImGuiSliderFlags_AlwaysClamp,
+            ) {
+                sound::set_channels(*state.options_state.options.sound_channels);
+            }
+            igSeparator();
+
+            imgui_menu_item_w_shortcut(
+                GameBindings::ToggleMusic,
+                Some(*state.options_state.options.music),
+                &mut state.options_state,
+            );
+            igTextUnformatted(c"Music Volume".as_ptr(), c"".as_ptr());
+            if igSliderInt(
+                c"##Music Volume".as_ptr(),
+                &raw mut state.options_state.options.music_volume.value,
+                options::MIN_VOLUME,
+                options::MAX_VOLUME,
+                c"%d".as_ptr(),
+                ImGuiSliderFlags_AlwaysClamp,
+            ) {
+                midi::set_volume(*state.options_state.options.music_volume);
+            }
+            igEndMenu();
+        }
+    }
+}
+
+unsafe fn create_game_data_menu(state: &mut PinballState) {
+    unsafe {
+        if igBeginMenu(c"Game Data".as_ptr(), true) {
+            if igMenuItem_Bool(
+                c"Prefer 3DPB Data".as_ptr(),
+                null(),
+                *state.options_state.options.prefer_3dpb_game_data,
+                true,
+            ) {
+                options::toggle(Menu::Prefer3DPBGameData, state);
+            }
+            igEndMenu();
+        }
+    }
+}
+
+unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<(), MainLoopError> {
+    unsafe {
+        if *state.options_state.options.show_menu && igBeginMainMenuBar() {
+            let current_menu_height = igGetWindowSize().y as i32;
+            if state.main_state.main_menu_height != current_menu_height {
+                // Get the height of the main menu bar and update screen coordinates
+                state.main_state.main_menu_height = current_menu_height;
+                fullscrn::window_size_changed(state)?;
+            }
+
+            // create_game_menu();
+            create_options_menu(state);
+            // create_help_menu();
+
+            if state.main_state.disp_frame_rate && !state.main_state.fps_details.is_empty() {
+                let cstr = CString::new(state.main_state.fps_details.as_str())?;
+                if igBeginMenu(cstr.as_ptr(), true) {
+                    igEndMenu();
+                }
+            }
+
+            igEndMainMenuBar();
+        }
+    }
+
+    Ok(())
+}
+
 unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoopError> {
     unsafe {
         let _menu_bar_bg =
             ui.push_style_color(StyleColor::MenuBarBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
-
         let _window_bg = ui.push_style_color(StyleColor::WindowBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
-
         let _border_var = ui.push_style_var(StyleVar::WindowBorderSize(0.0));
 
         if !(state.options_state.options.show_menu.value) && igBeginMainMenuBar() {
             let menu_string = "Menu".to_string();
             let cstr_menu = CString::new(menu_string)?;
-            if igMenuItem_Bool(cstr_menu.as_ptr(), null(), false, false) {
+
+            if igMenuItem_Bool(cstr_menu.as_ptr(), null(), false, true) {
                 options::toggle(ShowMenu, state);
                 igFocusWindow(std::ptr::null_mut(), ImGuiFocusRequestFlags_None);
             }
+
             igEndMainMenuBar();
         }
 
-        if *state.options_state.options.show_menu && igBeginMainMenuBar() {
-            let current_menu_height = igGetWindowSize().y as i32;
-            if state.main_state.main_menu_height != current_menu_height {
-                state.main_state.main_menu_height = current_menu_height;
-                fullscrn::window_size_changed(state)?;
-            }
+        create_main_menu_bar(state);
 
-            let menu_game_string = pb::get_rc_string_cstring(Msg::Menu1Game)?;
-            if igBeginMenu(menu_game_string.as_ptr(), true) {
-                imgui_menu_item_w_shortcut(
-                    GameBindings::NewGame,
-                    Option::None,
-                    &mut state.options_state,
-                );
+        // render_dialogs();
 
-                let launch_ball_string = pb::get_rc_string_cstring(Msg::Menu1LaunchBall)?;
-                if igMenuItem_Bool(
-                    launch_ball_string.as_ptr(),
-                    null(),
-                    false,
-                    state.main_state.launch_ball_enabled,
-                ) {
-                    end_pause(&mut state.main_state);
-                    pb::launch_ball();
-                }
-                imgui_menu_item_w_shortcut(
-                    GameBindings::TogglePause,
-                    Option::None,
-                    &mut state.options_state,
-                );
-                igSeparator();
+        // if *state.options_state.options.show_menu && igBeginMainMenuBar() {
+        //     let current_menu_height = igGetWindowSize().y as i32;
+        //     if state.main_state.main_menu_height != current_menu_height {
+        //         state.main_state.main_menu_height = current_menu_height;
+        //         fullscrn::window_size_changed(state)?;
+        //     }
+        //
+        //     let menu_game_string = pb::get_rc_string_cstring(Msg::Menu1Game)?;
+        //     if igBeginMenu(menu_game_string.as_ptr(), true) {
+        //         imgui_menu_item_w_shortcut(
+        //             GameBindings::NewGame,
+        //             Option::None,
+        //             &mut state.options_state,
+        //         );
+        //
+        //         let launch_ball_string = pb::get_rc_string_cstring(Msg::Menu1LaunchBall)?;
+        //         if igMenuItem_Bool(
+        //             launch_ball_string.as_ptr(),
+        //             null(),
+        //             false,
+        //             state.main_state.launch_ball_enabled,
+        //         ) {
+        //             end_pause(&mut state.main_state);
+        //             pb::launch_ball();
+        //         }
+        //         imgui_menu_item_w_shortcut(
+        //             GameBindings::TogglePause,
+        //             Option::None,
+        //             &mut state.options_state,
+        //         );
+        //         igSeparator();
+        //
+        //         let high_score_string = pb::get_rc_string_cstring(Msg::Menu1HighScores)?;
+        //         if igMenuItem_Bool(
+        //             high_score_string.as_ptr(),
+        //             null(),
+        //             false,
+        //             state.main_state.high_scores_enabled,
+        //         ) {
+        //             pause(false, &mut state.main_state);
+        //             pb::high_scores(&mut state.high_score_state);
+        //         }
+        //
+        //         if igMenuItem_Bool(
+        //             pb::get_rc_string_cstring(Msg::Menu1Demo)?.as_ptr(),
+        //             null(),
+        //             state.main_state.demo_active,
+        //             true,
+        //         ) {
+        //             end_pause(&mut state.main_state);
+        //             pb::toggle_demo();
+        //         }
+        //
+        //         imgui_menu_item_w_shortcut(
+        //             GameBindings::Exit,
+        //             Option::None,
+        //             &mut state.options_state,
+        //         );
+        //         igEndMenu();
+        //     }
+        //
+        //
+        //
+        //     imgui_menu_item_w_shortcut(
+        //         GameBindings::ShowControlDialog,
+        //         Option::None,
+        //         &mut state.options_state,
+        //     );
+        //
+        //     if igBeginMenu(c"Language".as_ptr(), true) {
+        //         let current_language = translations::get_current_language().unwrap();
+        //         for item in translations::LANGUAGES {
+        //             let name = CString::new(item.display_name.to_string())?;
+        //             if igMenuItem_Bool(
+        //                 name.as_ptr(),
+        //                 null(),
+        //                 current_language.language == item.language,
+        //                 true,
+        //             ) {
+        //                 translations::set_current_language(item.short_name);
+        //                 //restart();
+        //             }
+        //         }
+        //
+        //         igEndMenu();
+        //     }
+        //     igSeparator();
+        //
+        //     if state.main_state.disp_frame_rate && !state.main_state.fps_details.is_empty() {
+        //         let cstr = CString::new(state.main_state.fps_details.as_str());
+        //         if igBeginMenu(cstr?.as_ptr(), true) {
+        //             igEndMenu();
+        //         }
+        //     }
+        //     igEndMainMenuBar();
+        // }
 
-                if igMenuItem_Bool(
-                    pb::get_rc_string_cstring(Msg::Menu1HighScores)?.as_ptr(),
-                    null(),
-                    false,
-                    state.main_state.high_scores_enabled,
-                ) {
-                    pause(false, &mut state.main_state);
-                    pb::high_scores(&mut state.high_score_state);
-                }
-
-                if igMenuItem_Bool(
-                    pb::get_rc_string_cstring(Msg::Menu1Demo)?.as_ptr(),
-                    null(),
-                    state.main_state.demo_active,
-                    true,
-                ) {
-                    end_pause(&mut state.main_state);
-                    pb::toggle_demo();
-                }
-
-                imgui_menu_item_w_shortcut(
-                    GameBindings::Exit,
-                    Option::None,
-                    &mut state.options_state,
-                );
-                igEndMenu();
-            }
-
-            if igBeginMenu(pb::get_rc_string_cstring(Msg::Menu1Options)?.as_ptr(), true) {
-                imgui_menu_item_w_shortcut(
-                    GameBindings::ToggleMenuDisplay,
-                    Some(*state.options_state.options.show_menu),
-                    &mut state.options_state,
-                );
-                imgui_menu_item_w_shortcut(
-                    GameBindings::ToggleFullScreen,
-                    Some(*state.options_state.options.full_screen),
-                    &mut state.options_state,
-                );
-
-                igEndMenu();
-            }
-
-            if state.main_state.disp_frame_rate && !state.main_state.fps_details.is_empty() {
-                let cstr = CString::new(state.main_state.fps_details.as_str());
-                if igBeginMenu(cstr?.as_ptr(), true) {
-                    igEndMenu();
-                }
-            }
-            igEndMainMenuBar();
-        }
+        // Print game texts on the sidebar
+        //TODO: gdrv::gr_text_draw_ttext_in_box(&mut state.render_state, &mut state.pb_game_state, ui);
     }
     Ok(())
 }
