@@ -103,6 +103,10 @@ impl GroupData {
         &self.bitmaps[resolution as usize]
     }
 
+    pub fn get_bitmap_mut(&mut self, resolution: i32) -> &mut GdrvBitmap8 {
+        &mut self.bitmaps[resolution as usize]
+    }
+
     pub fn finalize_group(&mut self) {
         if self.needs_sort {
             self.needs_sort = false;
