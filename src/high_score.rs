@@ -7,13 +7,12 @@ pub(crate) fn write(
     settings: &mut HashMap<String, String>,
 ) -> i32 {
     let mut check_sum = 0;
-    let scores: Vec<String> = Vec::with_capacity(5);
 
     for position in 0..5 {
         let mut temp_string = String::new();
         let table = &high_score_state.high_score_table[position];
         temp_string = temp_string + &format!("{}", position);
-        temp_string = temp_string + &format!("{}", table.name);
+        temp_string += table.name;
         temp_string = temp_string + &format!("{}", position);
         temp_string = temp_string + &format!("{}", table.score);
 
@@ -24,7 +23,7 @@ pub(crate) fn write(
     }
 
     options::set_int("Verification", check_sum as i32, settings);
-    return 0;
+    0
 }
 
 pub struct HighScore {
