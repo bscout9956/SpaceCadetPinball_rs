@@ -514,18 +514,75 @@ pub fn set_background_zmap(
     render_state.z_map_offset_y = offset_y;
 }
 
-pub(crate) fn present_v_screen(main_state: &mut MainState, render_state: &mut RenderState) {
-    if let Some(v_screen) = render_state.v_screen.as_mut() {
+pub(crate) fn present_v_screen(state: &mut PinballState) {
+    if let Some(v_screen) = state.render_state.v_screen.as_mut() {
         unsafe {
             v_screen.blit_to_texture();
 
-            if render_state.offset_x == 0
-                && render_state.offset_y == 0
-                && let Some(renderer) = main_state.renderer.as_ref()
+            if state.render_state.offset_x == 0
+                && state.render_state.offset_y == 0
+                && let Some(renderer) = state.main_state.renderer.as_ref()
                 && let Some(tex) = v_screen.texture.as_mut()
-                && let Some(dest_rect) = render_state.destination_rect.as_ref()
+                && let Some(dest_rect) = state.render_state.destination_rect.as_ref()
             {
                 SDL_RenderCopy(renderer.0, tex.0, null(), dest_rect);
+            } else {
+                if let Some(table) = state.pb_game_state.main_table.as_ref() {
+                    let table_width_coef = (table.width / v_screen.width) as f32;
+                    let src_separation_x =
+                        f32::round(v_screen.width as f32 * table_width_coef) as i32;
+                    let src_board_rect = SDL_Rect {
+                        x: 0,
+                        y: 0,
+                        w: src_separation_x,
+                        h: v_screen.height,
+                    };
+                    let src_sidebar_rect = SDL_Rect {
+                        x: src_separation_x,
+                        y: 0,
+                        w: v_screen.width - src_separation_x,
+                        h: v_screen.height,
+                    };
+
+                    if let Some(destination_rect) = state.render_state.destination_rect.as_ref() {
+                        let dst_separation_x = destination_rect.w as f32 * table_width_coef;
+                        let dst_board_rect = SDL_FRect {
+                            x: destination_rect.x as f32
+                                + state.render_state.offset_x as f32 * state.fullscrn_state.scale_x,
+                            y: destination_rect.y as f32
+                                + state.render_state.offset_y as f32 * state.fullscrn_state.scale_y,
+                            w: 0.0,
+                            h: 0.0,
+                        };
+                        let dst_sidebar_rect = SDL_FRect {
+                            x: destination_rect.x as f32 + dst_separation_x,
+                            y: destination_rect.y as f32,
+                            w: destination_rect.w as f32 - dst_separation_x,
+                            h: destination_rect.h as f32,
+                        };
+
+                        if let Some(renderer) = &state.main_state.renderer
+                            && let Some(texture) = v_screen.texture.as_mut()
+                        {
+                            SDL_RenderCopyF(
+                                renderer.0,
+                                texture.0,
+                                &raw const src_board_rect,
+                                &raw const dst_board_rect,
+                            );
+                            SDL_RenderCopyF(
+                                renderer.0,
+                                texture.0,
+                                &raw const src_sidebar_rect,
+                                &raw const dst_sidebar_rect,
+                            );
+                        }
+                    }
+                }
+            }
+
+            if *state.options_state.options.debug_overlay {
+                debug_overlay::draw_overlay();
             }
         }
     }
