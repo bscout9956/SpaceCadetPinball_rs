@@ -1,10 +1,9 @@
 use crate::errors::ScoreError;
-use crate::fullscrn;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::state::fullscrn_state::FullscrnState;
 use crate::state::score_state::ScoreState;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 pub struct ScoreStruct {
     pub score: i32,
