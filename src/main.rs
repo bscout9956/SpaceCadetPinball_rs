@@ -69,6 +69,7 @@ mod translations;
 mod zdrv;
 
 pub mod control;
+pub mod debug_overlay;
 mod embedded_data;
 mod errors;
 pub mod high_score;
