@@ -11,11 +11,11 @@ use crate::translations::Msg::Menu1Game;
 use crate::translations::{Msg, TranslationError};
 use crate::utils::{SdlRendererPtr, SdlWindowPtr};
 use dear_imgui_rs::sys::{
-    ImGuiCol_MenuBarBg, ImGuiFocusRequestFlags_None, ImGuiIO, ImGuiMouseCursor_None,
+    ImGuiCol_MenuBarBg, ImGuiFocusRequestFlags_None, ImGuiIO, ImGuiMouseCursor_None, ImGuiStyle,
     ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, ImWchar, igBeginMainMenuBar, igBeginMenu, igEnd,
     igEndMainMenuBar, igEndMenu, igFocusWindow, igGetDrawData, igGetWindowSize, igMenuItem_Bool,
     igNewFrame, igPopStyleColor, igPopStyleVar, igPushStyleColor_Vec4, igPushStyleVar_Vec2,
-    igRender, igSeparator, igSetMouseCursor,
+    igRender, igSeparator, igSetMouseCursor, igStyleColorsDark,
 };
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig, StyleColor, StyleVar, Ui};
 use num_traits::FromPrimitive;
@@ -267,9 +267,34 @@ fn hybrid_sleep(mut sleep_target: Duration<1000000000>, main_state: &mut MainSta
     }
 }
 
-// TODO: Implement?
-// bool defaults to false
-fn imgui_menu_item_w_shortcut(binding: GameBindings, selected: Option<bool>) {}
+fn imgui_menu_item_w_shortcut(
+    binding: GameBindings,
+    selected: Option<bool>,
+    options_state: &mut OptionsState,
+) {
+    let idx = (binding as usize)
+        .checked_sub(1)
+        .expect("Invalid binding index");
+
+    let key_def = options_state
+        .options
+        .control_options
+        .get(idx)
+        .expect("Binding not found in control options");
+
+    let select = selected.unwrap_or(false);
+    let shortcut_cstr = CString::new(key_def.get_shortcut_description()).unwrap();
+    let desc = pb::get_rc_string_cstring(key_def.description).unwrap();
+    unsafe {
+        if igMenuItem_Bool(desc.as_ptr(), shortcut_cstr.as_ptr(), select, true) {
+            handle_game_binding(binding, false);
+        }
+    };
+}
+
+fn handle_game_binding(bind: GameBindings, p1: bool) {
+    //todo implement me
+}
 
 #[derive(Error, Debug)]
 pub enum MainLoopError {
@@ -530,14 +555,17 @@ fn main_loop(
 
 unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoopError> {
     unsafe {
-        let menu_bar_bg_color =
+        let _menu_bar_bg =
             ui.push_style_color(StyleColor::MenuBarBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
-        let window_bg_color =
-            ui.push_style_color(StyleColor::WindowBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
-        let border_var = ui.push_style_var(StyleVar::WindowBorderSize(0.0));
 
-        if !(*state.options_state.options.show_menu) && igBeginMainMenuBar() {
-            if igMenuItem_Bool(c"Menu".as_ptr(), null(), false, false) {
+        let _window_bg = ui.push_style_color(StyleColor::WindowBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
+
+        let _border_var = ui.push_style_var(StyleVar::WindowBorderSize(0.0));
+
+        if !(state.options_state.options.show_menu.value) && igBeginMainMenuBar() {
+            let menu_string = "Menu".to_string();
+            let cstr_menu = CString::new(menu_string)?;
+            if igMenuItem_Bool(cstr_menu.as_ptr(), null(), false, false) {
                 options::toggle(ShowMenu, state);
                 igFocusWindow(std::ptr::null_mut(), ImGuiFocusRequestFlags_None);
             }
@@ -551,10 +579,17 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoo
                 fullscrn::window_size_changed(state)?;
             }
 
-            if igBeginMenu(pb::get_rc_string_cstring(Msg::Menu1Game)?.as_ptr(), true) {
-                imgui_menu_item_w_shortcut(GameBindings::NewGame, Option::None);
+            let menu_game_string = pb::get_rc_string_cstring(Msg::Menu1Game)?;
+            if igBeginMenu(menu_game_string.as_ptr(), true) {
+                imgui_menu_item_w_shortcut(
+                    GameBindings::NewGame,
+                    Option::None,
+                    &mut state.options_state,
+                );
+
+                let launch_ball_string = pb::get_rc_string_cstring(Msg::Menu1LaunchBall)?;
                 if igMenuItem_Bool(
-                    pb::get_rc_string_cstring(Msg::Menu1LaunchBall)?.as_ptr(),
+                    launch_ball_string.as_ptr(),
                     null(),
                     false,
                     state.main_state.launch_ball_enabled,
@@ -562,7 +597,11 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoo
                     end_pause(&mut state.main_state);
                     pb::launch_ball();
                 }
-                imgui_menu_item_w_shortcut(GameBindings::TogglePause, Option::None);
+                imgui_menu_item_w_shortcut(
+                    GameBindings::TogglePause,
+                    Option::None,
+                    &mut state.options_state,
+                );
                 igSeparator();
 
                 if igMenuItem_Bool(
@@ -585,7 +624,11 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoo
                     pb::toggle_demo();
                 }
 
-                imgui_menu_item_w_shortcut(GameBindings::Exit, Option::None);
+                imgui_menu_item_w_shortcut(
+                    GameBindings::Exit,
+                    Option::None,
+                    &mut state.options_state,
+                );
                 igEndMenu();
             }
 
@@ -593,15 +636,23 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoo
                 imgui_menu_item_w_shortcut(
                     GameBindings::ToggleMenuDisplay,
                     Some(*state.options_state.options.show_menu),
+                    &mut state.options_state,
                 );
                 imgui_menu_item_w_shortcut(
                     GameBindings::ToggleFullScreen,
                     Some(*state.options_state.options.full_screen),
+                    &mut state.options_state,
                 );
 
                 igEndMenu();
             }
 
+            if state.main_state.disp_frame_rate && !state.main_state.fps_details.is_empty() {
+                let cstr = CString::new(state.main_state.fps_details.as_str());
+                if igBeginMenu(cstr?.as_ptr(), true) {
+                    igEndMenu();
+                }
+            }
             igEndMainMenuBar();
         }
     }
@@ -991,10 +1042,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             imgui_context.fonts().build();
 
             println!("Initializing IMGUI_SDL");
-            // TODO: Should I instead keep the ptr? Is this broken?
             if let Some(renderer) = state.main_state.renderer.as_ref() {
                 imgui_sdl::renderer::init(&mut imgui_context, renderer.0);
-                // TODO: Styles color dark
                 imgui_sdl::init_for_sdl_renderer(&mut imgui_context, window, renderer.0);
             }
 
