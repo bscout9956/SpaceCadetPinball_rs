@@ -189,11 +189,10 @@ impl GdrvBitmap8 {
             assert_eq!(size_in_bytes, header_size, "Wrong bitmap8 size");
         }
 
-        let bmp_vec: Vec<u8> = Vec::with_capacity(size_in_bytes as usize);
+        let bmp_vec: Vec<u8> = vec![0; size_in_bytes as usize];
         instance.indexed_bmp_data = bmp_vec;
-        let mut color = ColorRgba::color_rgba_u32((instance.height * instance.stride) as u32);
         instance.bmp_buffer_data =
-            vec![ColorRgba::black(); (instance.height * instance.width) as usize];
+            vec![ColorRgba::black(); (instance.height * instance.stride) as usize];
 
         instance
     }
