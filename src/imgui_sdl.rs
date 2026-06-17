@@ -24,7 +24,8 @@ use sdl2::sys::SDL_SystemCursor::{
 };
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STATIC;
 use sdl2::sys::SDL_WindowEventID::{
-    SDL_WINDOWEVENT_ENTER, SDL_WINDOWEVENT_FOCUS_GAINED, SDL_WINDOWEVENT_LEAVE,
+    SDL_WINDOWEVENT_ENTER, SDL_WINDOWEVENT_FOCUS_GAINED, SDL_WINDOWEVENT_FOCUS_LOST,
+    SDL_WINDOWEVENT_LEAVE,
 };
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_MINIMIZED;
 use sdl2::sys::SDL_bool::{SDL_FALSE, SDL_TRUE};
@@ -483,7 +484,7 @@ pub struct ImplSdl2UserData {
     renderer: *mut SDL_Renderer,
     time: u64,
     mouse_buttons_down: i32,
-    cursor: [SDL_Cursor; ImGuiMouseCursor_COUNT as usize],
+    cursor: [*mut SDL_Cursor; ImGuiMouseCursor_COUNT as usize],
     pending_mouse_leave_frame: i32,
     clipboard_text_data: *mut c_char,
     mouse_can_use_global_state: bool,
@@ -516,19 +517,19 @@ unsafe fn impl_sdl2_init(
         }
     }
 
-    let cursors: [SDL_Cursor; ImGuiMouseCursor_COUNT as usize] = unsafe {
+    let cursors: [*mut SDL_Cursor; ImGuiMouseCursor_COUNT as usize] = unsafe {
         [
-            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW),
-            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM),
-            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL),
-            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENS),
-            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE),
-            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW),
-            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE),
-            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND),
-            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_WAIT),
-            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_WAITARROW),
-            *SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NO),
+            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW),
+            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM),
+            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL),
+            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENS),
+            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE),
+            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW),
+            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE),
+            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND),
+            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_WAIT),
+            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_WAITARROW),
+            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NO),
         ]
     };
 
@@ -697,7 +698,7 @@ pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Eve
             }
             if window_event == SDL_WINDOWEVENT_FOCUS_GAINED as u8 {
                 io.add_focus_event(true);
-            } else if (*event).window.event == SDL_WINDOWEVENT_FOCUS_GAINED as u8 {
+            } else if (*event).window.event == SDL_WINDOWEVENT_FOCUS_LOST as u8 {
                 io.add_focus_event(false);
             }
             return true;
@@ -1025,7 +1026,7 @@ unsafe fn impl_sdl2_update_mouse_cursor(io: &mut Io, bd: *mut ImplSdl2UserData) 
             SDL_ShowCursor(SDL_FALSE as c_int);
         } else {
             let mut cursor = (*bd).cursor[cursor as usize];
-            SDL_SetCursor(&raw mut cursor);
+            SDL_SetCursor(cursor);
             SDL_ShowCursor(SDL_TRUE as c_int);
         }
     }
