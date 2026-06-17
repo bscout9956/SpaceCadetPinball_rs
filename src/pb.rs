@@ -3,6 +3,8 @@ use crate::gdrv::ColorRgba;
 use crate::group_data::{EntryBuffer, FieldTypes};
 use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
 use crate::message_code::MessageCode;
+use crate::options::GameInput;
+use crate::state::high_score_state::HighScoreState;
 use crate::state::loader_state::LoaderState;
 use crate::state::main_state::MainState;
 use crate::state::options_state::OptionsState;
@@ -580,10 +582,23 @@ pub(crate) fn pause_continue(main_state: &mut MainState) {
     //TODO continue
 }
 
-pub(crate) fn input_up() {
-    todo!()
+pub(crate) fn input_up(
+    input: GameInput,
+    main_state: &mut MainState,
+    pinball_state: &mut PbGameState,
+) {
+    if pinball_state.game_mode != GameModes::InGame
+        || main_state.single_step
+        || pinball_state.demo_mode
+    {
+        return;
+    }
 }
 
 pub(crate) fn launch_ball() {
     println!("Implement me pls asap");
+}
+
+pub(crate) fn high_scores(high_score_state: &mut HighScoreState) {
+    high_score::show_high_score_dialog(high_score_state);
 }
