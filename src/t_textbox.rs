@@ -22,6 +22,56 @@ pub struct TTextBox {
 }
 
 impl TTextBox {
+    pub(crate) unsafe fn draw_im_gui(
+        &self,
+        render_state: &mut RenderState,
+        text_box_color: ImU32,
+        ui: &mut Ui,
+    ) {
+        if self.font.is_some() || !self.current_message.is_some() {
+            return;
+        }
+
+        let window_flags = ImGuiWindowFlags_NoBackground
+            | ImGuiWindowFlags_NoDecoration
+            | ImGuiWindowFlags_NoSavedSettings
+            | ImGuiWindowFlags_NoFocusOnAppearing
+            | ImGuiWindowFlags_NoInputs;
+
+        let mut rect = SDL_Rect {
+            x: self.offset_x,
+            y: self.offset_y,
+            w: self.width,
+            h: self.height,
+        };
+
+        rect = fullscrn::get_screen_rect_from_pinball_rect(rect, render_state);
+        unsafe {
+            igSetNextWindowPos(
+                ImVec2::new(rect.x as f32, rect.y as f32),
+                0,
+                ImVec2::new(0.0, 0.0),
+            );
+            igSetNextWindowSize(ImVec2::new(rect.w as f32, rect.h as f32), 0);
+            let window_name = format!("TTextbox_{:p}", self);
+            let win_cstr = CString::new(window_name).unwrap();
+            if igBegin(win_cstr.as_ptr(), null_mut(), window_flags) {
+                ui.set_window_font_scale(fullscrn::get_screen_to_pinball_ratio());
+
+                igPushStyleColor_U32(ImGuiCol_Text, text_box_color);
+                igTextWrapped(
+                    c"%s".as_ptr(),
+                    self.current_message.as_ref().unwrap().text.as_ptr(),
+                );
+                // TODO: Check if you need to remove this, might have...
+                igPopStyleColor(1);
+            }
+            igEnd();
+        }
+    }
+}
+
+impl TTextBox {
     pub(crate) fn clear(&self, p0: bool) {
         todo!()
     }
