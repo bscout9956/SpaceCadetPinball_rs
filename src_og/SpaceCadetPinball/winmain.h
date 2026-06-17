@@ -108,6 +108,17 @@ private:
 	static float gfrWindow;
 	static int CursorIdleCounter;
 
+	// Defined to avoid clutter in RenderUi
+	static void CreateResolutionMenu();
+	static void CreateGraphicsMenu();
+	static void CreateGameMenu();
+	static void CreateAudioMenu();
+	static void CreateOptionsMenu();
+	static void CreateHelpMenu();
+	static void CreateMainMenuBar();
+	static void CreateExitPopup();
+	static void RenderDialogs();
+
 	static void RenderUi();
 	static void RenderFrameTimeDialog();
 	static void HybridSleep(DurationMs seconds);

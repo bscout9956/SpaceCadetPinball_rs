@@ -452,6 +452,400 @@ void winmain::MainLoop()
 	}
 }
 
+static void winmain::CreateResolutionMenu()
+{
+	if (ImGui::BeginMenu(pb::get_rc_string(Msg::Menu1_Table_Resolution)))
+	{
+		char buffer[20]{};
+		auto resolutionStringId = Msg::Menu1_UseMaxResolution_640x480;
+
+		switch (fullscrn::GetMaxResolution())
+		{
+		case 0: resolutionStringId = Msg::Menu1_UseMaxResolution_640x480;
+			break;
+		case 1: resolutionStringId = Msg::Menu1_UseMaxResolution_800x600;
+			break;
+		case 2: resolutionStringId = Msg::Menu1_UseMaxResolution_1024x768;
+			break;
+		}
+
+		auto maxResText = pb::get_rc_string(resolutionStringId);
+		if (ImGui::MenuItem(maxResText, nullptr, Options.Resolution == -1))
+		{
+			options::toggle(Menu1::MaximumResolution);
+		}
+		for (auto i = 0; i <= fullscrn::GetMaxResolution(); i++)
+		{
+			auto& res = fullscrn::resolution_array[i];
+			snprintf(buffer, sizeof buffer - 1, "%d x %d", res.ScreenWidth, res.ScreenHeight);
+			if (ImGui::MenuItem(buffer, nullptr, Options.Resolution == i))
+			{
+				options::toggle(static_cast<Menu1>(static_cast<int>(Menu1::R640x480) + i));
+			}
+		}
+		ImGui::EndMenu();
+	}
+}
+
+void winmain::CreateGraphicsMenu()
+{
+	if (ImGui::BeginMenu("Graphics"))
+	{
+		if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_WindowUniformScale), nullptr, Options.UniformScaling))
+		{
+			options::toggle(Menu1::WindowUniformScale);
+		}
+		if (ImGui::MenuItem("Linear Filtering", nullptr, Options.LinearFiltering))
+		{
+			options::toggle(Menu1::WindowLinearFilter);
+		}
+		if (ImGui::MenuItem("Integer Scaling", nullptr, Options.IntegerScaling))
+		{
+			options::toggle(Menu1::WindowIntegerScale);
+		}
+		if (ImGui::DragFloat("UI Scale", &Options.UIScale.V, 0.005f, 0.8f, 5,
+			"%.2f", ImGuiSliderFlags_AlwaysClamp))
+		{
+			ImIO->FontGlobalScale = Options.UIScale;
+		}
+		ImGui::Separator();
+
+		char buffer[80]{};
+		auto changed = false;
+		if (ImGui::MenuItem("Set Default UPS/FPS"))
+		{
+			changed = true;
+			Options.UpdatesPerSecond = options::DefUps;
+			Options.FramesPerSecond = options::DefFps;
+		}
+		if (ImGui::SliderInt("UPS", &Options.UpdatesPerSecond.V, options::MinUps, options::MaxUps, "%d",
+			ImGuiSliderFlags_AlwaysClamp))
+		{
+			changed = true;
+			Options.FramesPerSecond = std::min(Options.UpdatesPerSecond.V, Options.FramesPerSecond.V);
+		}
+		if (ImGui::SliderInt("FPS", &Options.FramesPerSecond.V, options::MinFps, options::MaxFps, "%d",
+			ImGuiSliderFlags_AlwaysClamp))
+		{
+			changed = true;
+			Options.UpdatesPerSecond = std::max(Options.UpdatesPerSecond.V, Options.FramesPerSecond.V);
+		}
+		snprintf(buffer, sizeof buffer - 1, "Uncapped UPS (FPS ratio %02.02f)", UpdateToFrameRatio);
+		if (ImGui::MenuItem(buffer, nullptr, Options.UncappedUpdatesPerSecond))
+		{
+			Options.UncappedUpdatesPerSecond ^= true;
+		}
+		if (ImGui::MenuItem("Precise Sleep", nullptr, Options.HybridSleep))
+		{
+			Options.HybridSleep ^= true;
+			SleepState = WelfordState{};
+			SpinThreshold = DurationMs::zero();
+		}
+
+		if (changed)
+		{
+			UpdateFrameRate();
+		}
+		ImGui::Separator();
+
+		if (ImGui::MenuItem("Hide Cursor", nullptr, Options.HideCursor))
+		{
+			Options.HideCursor ^= true;
+		}
+		if (ImGui::MenuItem("Change Font..."))
+		{
+			font_selection::ShowDialog();
+		}
+
+		ImGui::EndMenu();
+	}
+}
+
+void winmain::CreateGameMenu()
+{
+	if (ImGui::BeginMenu(pb::get_rc_string(Msg::Menu1_Game)))
+	{
+		ImGuiMenuItemWShortcut(GameBindings::NewGame);
+		if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_Launch_Ball), nullptr, false, LaunchBallEnabled))
+		{
+			end_pause();
+			pb::launch_ball();
+		}
+		ImGuiMenuItemWShortcut(GameBindings::TogglePause);
+		ImGui::Separator();
+
+		if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_High_Scores), nullptr, false, HighScoresEnabled))
+		{
+			pause(false);
+			pb::high_scores();
+		}
+		if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_Demo), nullptr, DemoActive))
+		{
+			end_pause();
+			pb::toggle_demo();
+		}
+		ImGuiMenuItemWShortcut(GameBindings::Exit);
+		ImGui::EndMenu();
+	}
+}
+
+void winmain::CreateAudioMenu()
+{
+	if (ImGui::BeginMenu("Audio"))
+	{
+		ImGuiMenuItemWShortcut(GameBindings::ToggleSounds, Options.Sounds);
+		if (ImGui::MenuItem("Stereo Sound Effects", nullptr, Options.SoundStereo))
+		{
+			options::toggle(Menu1::SoundStereo);
+		}
+		ImGui::TextUnformatted("Sound Volume");
+		if (ImGui::SliderInt("##Sound Volume", &Options.SoundVolume.V, options::MinVolume, options::MaxVolume,
+			"%d",
+			ImGuiSliderFlags_AlwaysClamp))
+		{
+			Sound::SetVolume(Options.SoundVolume);
+		}
+		ImGui::TextUnformatted("Sound Channels");
+		if (ImGui::SliderInt("##Sound Channels", &Options.SoundChannels.V, options::MinSoundChannels,
+			options::MaxSoundChannels, "%d", ImGuiSliderFlags_AlwaysClamp))
+		{
+			Sound::SetChannels(Options.SoundChannels);
+		}
+		ImGui::Separator();
+
+		ImGuiMenuItemWShortcut(GameBindings::ToggleMusic, Options.Music);
+		ImGui::TextUnformatted("Music Volume");
+		if (ImGui::SliderInt("##Music Volume", &Options.MusicVolume.V, options::MinVolume, options::MaxVolume,
+			"%d",
+			ImGuiSliderFlags_AlwaysClamp))
+		{
+			midi::SetVolume(Options.MusicVolume);
+		}
+		ImGui::EndMenu();
+	}
+}
+
+void winmain::CreateOptionsMenu()
+{
+	if (ImGui::BeginMenu(pb::get_rc_string(Msg::Menu1_Options)))
+	{
+		ImGuiMenuItemWShortcut(GameBindings::ToggleMenuDisplay, Options.ShowMenu);
+		ImGuiMenuItemWShortcut(GameBindings::ToggleFullScreen, Options.FullScreen);
+		if (ImGui::BeginMenu(pb::get_rc_string(Msg::Menu1_Select_Players)))
+		{
+			if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_1Player), nullptr, Options.Players == 1))
+			{
+				options::toggle(Menu1::OnePlayer);
+				new_game();
+			}
+			if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_2Players), nullptr, Options.Players == 2))
+			{
+				options::toggle(Menu1::TwoPlayers);
+				new_game();
+			}
+			if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_3Players), nullptr, Options.Players == 3))
+			{
+				options::toggle(Menu1::ThreePlayers);
+				new_game();
+			}
+			if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_4Players), nullptr, Options.Players == 4))
+			{
+				options::toggle(Menu1::FourPlayers);
+				new_game();
+			}
+			ImGui::EndMenu();
+		}
+		ImGuiMenuItemWShortcut(GameBindings::ShowControlDialog);
+		if (ImGui::BeginMenu("Language"))
+		{
+			auto currentLanguage = translations::GetCurrentLanguage();
+			for (auto& item : translations::Languages)
+			{
+				if (ImGui::MenuItem(item.DisplayName, nullptr, currentLanguage->Language == item.Language))
+				{
+					if (currentLanguage->Language != item.Language)
+					{
+						translations::SetCurrentLanguage(item.ShortName);
+						Restart();
+					}
+				}
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::Separator();
+
+		CreateAudioMenu();
+
+		CreateGraphicsMenu();
+
+		CreateResolutionMenu();
+
+		if (ImGui::BeginMenu("Game Data"))
+		{
+			if (ImGui::MenuItem("Prefer 3DPB Data", nullptr, Options.Prefer3DPBGameData))
+			{
+				options::toggle(Menu1::Prefer3DPBGameData);
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::Separator();
+		if (ImGui::MenuItem("Reset All Options"))
+		{
+			options::ResetAllOptions();
+			Restart();
+		}
+		ImGui::EndMenu();
+	}
+}
+
+void winmain::CreateHelpMenu()
+{
+	if (ImGui::BeginMenu(pb::get_rc_string(Msg::Menu1_Help)))
+	{
+#ifndef NDEBUG
+		if (ImGui::MenuItem("ImGui Demo", nullptr, ShowImGuiDemo))
+		{
+			ShowImGuiDemo ^= true;
+		}
+#endif
+		if (ImGui::MenuItem("Sprite Viewer", nullptr, ShowSpriteViewer))
+		{
+			if (!ShowSpriteViewer)
+				pause(false);
+			ShowSpriteViewer ^= true;
+		}
+		if (pb::cheat_mode && ImGui::MenuItem("Frame Times", nullptr, DispGRhistory))
+		{
+			DispGRhistory ^= true;
+		}
+		if (ImGui::MenuItem("Debug Overlay", nullptr, Options.DebugOverlay))
+		{
+			Options.DebugOverlay ^= true;
+		}
+		if (Options.DebugOverlay && ImGui::BeginMenu("Overlay Options"))
+		{
+			if (ImGui::MenuItem("Box Grid", nullptr, Options.DebugOverlayGrid))
+				Options.DebugOverlayGrid ^= true;
+			if (ImGui::MenuItem("Ball Depth Grid", nullptr, Options.DebugOverlayBallDepthGrid))
+				Options.DebugOverlayBallDepthGrid ^= true;
+			if (ImGui::MenuItem("Sprite Positions", nullptr, Options.DebugOverlaySprites))
+				Options.DebugOverlaySprites ^= true;
+			if (ImGui::MenuItem("All Edges", nullptr, Options.DebugOverlayAllEdges))
+				Options.DebugOverlayAllEdges ^= true;
+			if (ImGui::MenuItem("Component AABB", nullptr, Options.DebugOverlayAabb))
+				Options.DebugOverlayAabb ^= true;
+			if (ImGui::MenuItem("Ball Position", nullptr, Options.DebugOverlayBallPosition))
+				Options.DebugOverlayBallPosition ^= true;
+			if (ImGui::MenuItem("Ball Box Edges", nullptr, Options.DebugOverlayBallEdges))
+				Options.DebugOverlayBallEdges ^= true;
+			if (ImGui::MenuItem("Sound Positions", nullptr, Options.DebugOverlaySounds))
+				Options.DebugOverlaySounds ^= true;
+			if (ImGui::MenuItem("Apply Collision Mask", nullptr, Options.DebugOverlayCollisionMask))
+				Options.DebugOverlayCollisionMask ^= true;
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Cheats"))
+		{
+			if (ImGui::MenuItem("hidden test", nullptr, pb::cheat_mode))
+				pb::PushCheat("hidden test");
+			if (ImGui::MenuItem("1max"))
+				pb::PushCheat("1max");
+			if (ImGui::MenuItem("bmax", nullptr, control::table_unlimited_balls))
+				pb::PushCheat("bmax");
+			if (ImGui::MenuItem("gmax"))
+				pb::PushCheat("gmax");
+			if (ImGui::MenuItem("rmax"))
+				pb::PushCheat("rmax");
+			if (pb::FullTiltMode && ImGui::MenuItem("quote"))
+				pb::PushCheat("quote");
+			if (ImGui::MenuItem("easy mode", nullptr, control::easyMode))
+				pb::PushCheat("easy mode");
+
+			ImGui::EndMenu();
+		}
+		ImGui::Separator();
+
+		if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_About_Pinball)))
+		{
+			pause(false);
+			ShowAboutDialog = true;
+		}
+		ImGui::EndMenu();
+	}
+}
+
+void winmain::CreateMainMenuBar()
+{
+	if (Options.ShowMenu && ImGui::BeginMainMenuBar())
+	{
+		int currentMenuHeight = static_cast<int>(ImGui::GetWindowSize().y);
+		if (MainMenuHeight != currentMenuHeight)
+		{
+			// Get the height of the main menu bar and update screen coordinates
+			MainMenuHeight = currentMenuHeight;
+			fullscrn::window_size_changed();
+		}
+
+		CreateGameMenu();
+		CreateOptionsMenu();
+		CreateHelpMenu();
+
+		if (DispFrameRate && !FpsDetails.empty())
+			if (ImGui::BeginMenu(FpsDetails.c_str()))
+				ImGui::EndMenu();
+
+		ImGui::EndMainMenuBar();
+	}
+}
+
+void winmain::CreateExitPopup()
+{
+	const auto exitText = translations::GetTranslation(Msg::Menu1_Exit);
+	if (ShowExitPopup)
+	{
+		ShowExitPopup = false;
+		pause(false);
+		ImGui::OpenPopup(exitText);
+		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	}
+	if (ImGui::BeginPopupModal(exitText, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::Text("Exit the game?");
+		ImGui::Separator();
+
+		if (ImGui::Button(pb::get_rc_string(Msg::GenericOk), ImVec2(120, 0)))
+		{
+			SDL_Event event{ SDL_QUIT };
+			SDL_PushEvent(&event);
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::IsWindowAppearing())
+		{
+			ImGui::SetKeyboardFocusHere(0);
+		}
+		if (ImGui::Button(pb::get_rc_string(Msg::GenericCancel), ImVec2(120, 0)))
+		{
+			end_pause();
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SetItemDefaultFocus();
+		ImGui::EndPopup();
+	}
+}
+
+void winmain::RenderDialogs()
+{
+	a_dialog();
+	high_score::RenderHighScoreDialog();
+	font_selection::RenderDialog();
+	if (ShowSpriteViewer)
+		render::SpriteViewer(&ShowSpriteViewer);
+	options::RenderControlDialog();
+	if (DispGRhistory)
+		RenderFrameTimeDialog();
+}
+
 void winmain::RenderUi()
 {
 	// Transparent menu bar with a button for preventing menu lockout.
@@ -476,360 +870,11 @@ void winmain::RenderUi()
 		ImGui::ShowDemoWindow(&ShowImGuiDemo);
 #endif
 
-	if (Options.ShowMenu && ImGui::BeginMainMenuBar())
-	{
-		int currentMenuHeight = static_cast<int>(ImGui::GetWindowSize().y);
-		if (MainMenuHeight != currentMenuHeight)
-		{
-			// Get the height of the main menu bar and update screen coordinates
-			MainMenuHeight = currentMenuHeight;
-			fullscrn::window_size_changed();
-		}
+	CreateMainMenuBar();
 
-		if (ImGui::BeginMenu(pb::get_rc_string(Msg::Menu1_Game)))
-		{
-			ImGuiMenuItemWShortcut(GameBindings::NewGame);
-			if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_Launch_Ball), nullptr, false, LaunchBallEnabled))
-			{
-				end_pause();
-				pb::launch_ball();
-			}
-			ImGuiMenuItemWShortcut(GameBindings::TogglePause);
-			ImGui::Separator();
+	RenderDialogs();
 
-			if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_High_Scores), nullptr, false, HighScoresEnabled))
-			{
-				pause(false);
-				pb::high_scores();
-			}
-			if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_Demo), nullptr, DemoActive))
-			{
-				end_pause();
-				pb::toggle_demo();
-			}
-			ImGuiMenuItemWShortcut(GameBindings::Exit);
-			ImGui::EndMenu();
-		}
-
-		if (ImGui::BeginMenu(pb::get_rc_string(Msg::Menu1_Options)))
-		{
-			ImGuiMenuItemWShortcut(GameBindings::ToggleMenuDisplay, Options.ShowMenu);
-			ImGuiMenuItemWShortcut(GameBindings::ToggleFullScreen, Options.FullScreen);
-			if (ImGui::BeginMenu(pb::get_rc_string(Msg::Menu1_Select_Players)))
-			{
-				if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_1Player), nullptr, Options.Players == 1))
-				{
-					options::toggle(Menu1::OnePlayer);
-					new_game();
-				}
-				if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_2Players), nullptr, Options.Players == 2))
-				{
-					options::toggle(Menu1::TwoPlayers);
-					new_game();
-				}
-				if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_3Players), nullptr, Options.Players == 3))
-				{
-					options::toggle(Menu1::ThreePlayers);
-					new_game();
-				}
-				if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_4Players), nullptr, Options.Players == 4))
-				{
-					options::toggle(Menu1::FourPlayers);
-					new_game();
-				}
-				ImGui::EndMenu();
-			}
-			ImGuiMenuItemWShortcut(GameBindings::ShowControlDialog);
-			if (ImGui::BeginMenu("Language"))
-			{
-				auto currentLanguage = translations::GetCurrentLanguage();
-				for (auto& item : translations::Languages)
-				{
-					if (ImGui::MenuItem(item.DisplayName, nullptr, currentLanguage->Language == item.Language))
-					{
-						if (currentLanguage->Language != item.Language)
-						{
-							translations::SetCurrentLanguage(item.ShortName);
-							Restart();
-						}
-					}
-				}
-				ImGui::EndMenu();
-			}
-			ImGui::Separator();
-
-			if (ImGui::BeginMenu("Audio"))
-			{
-				ImGuiMenuItemWShortcut(GameBindings::ToggleSounds, Options.Sounds);
-				if (ImGui::MenuItem("Stereo Sound Effects", nullptr, Options.SoundStereo))
-				{
-					options::toggle(Menu1::SoundStereo);
-				}
-				ImGui::TextUnformatted("Sound Volume");
-				if (ImGui::SliderInt("##Sound Volume", &Options.SoundVolume.V, options::MinVolume, options::MaxVolume,
-				                     "%d",
-				                     ImGuiSliderFlags_AlwaysClamp))
-				{
-					Sound::SetVolume(Options.SoundVolume);
-				}
-				ImGui::TextUnformatted("Sound Channels");
-				if (ImGui::SliderInt("##Sound Channels", &Options.SoundChannels.V, options::MinSoundChannels,
-				                     options::MaxSoundChannels, "%d", ImGuiSliderFlags_AlwaysClamp))
-				{
-					Sound::SetChannels(Options.SoundChannels);
-				}
-				ImGui::Separator();
-
-				ImGuiMenuItemWShortcut(GameBindings::ToggleMusic, Options.Music);
-				ImGui::TextUnformatted("Music Volume");
-				if (ImGui::SliderInt("##Music Volume", &Options.MusicVolume.V, options::MinVolume, options::MaxVolume,
-				                     "%d",
-				                     ImGuiSliderFlags_AlwaysClamp))
-				{
-					midi::SetVolume(Options.MusicVolume);
-				}
-				ImGui::EndMenu();
-			}
-
-			if (ImGui::BeginMenu("Graphics"))
-			{
-				if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_WindowUniformScale), nullptr, Options.UniformScaling))
-				{
-					options::toggle(Menu1::WindowUniformScale);
-				}
-				if (ImGui::MenuItem("Linear Filtering", nullptr, Options.LinearFiltering))
-				{
-					options::toggle(Menu1::WindowLinearFilter);
-				}
-				if (ImGui::MenuItem("Integer Scaling", nullptr, Options.IntegerScaling))
-				{
-					options::toggle(Menu1::WindowIntegerScale);
-				}
-				if (ImGui::DragFloat("UI Scale", &Options.UIScale.V, 0.005f, 0.8f, 5,
-				                     "%.2f", ImGuiSliderFlags_AlwaysClamp))
-				{
-					ImIO->FontGlobalScale = Options.UIScale;
-				}
-				ImGui::Separator();
-
-				char buffer[80]{};
-				auto changed = false;
-				if (ImGui::MenuItem("Set Default UPS/FPS"))
-				{
-					changed = true;
-					Options.UpdatesPerSecond = options::DefUps;
-					Options.FramesPerSecond = options::DefFps;
-				}
-				if (ImGui::SliderInt("UPS", &Options.UpdatesPerSecond.V, options::MinUps, options::MaxUps, "%d",
-				                     ImGuiSliderFlags_AlwaysClamp))
-				{
-					changed = true;
-					Options.FramesPerSecond = std::min(Options.UpdatesPerSecond.V, Options.FramesPerSecond.V);
-				}
-				if (ImGui::SliderInt("FPS", &Options.FramesPerSecond.V, options::MinFps, options::MaxFps, "%d",
-				                     ImGuiSliderFlags_AlwaysClamp))
-				{
-					changed = true;
-					Options.UpdatesPerSecond = std::max(Options.UpdatesPerSecond.V, Options.FramesPerSecond.V);
-				}
-				snprintf(buffer, sizeof buffer - 1, "Uncapped UPS (FPS ratio %02.02f)", UpdateToFrameRatio);
-				if (ImGui::MenuItem(buffer, nullptr, Options.UncappedUpdatesPerSecond))
-				{
-					Options.UncappedUpdatesPerSecond ^= true;
-				}
-				if (ImGui::MenuItem("Precise Sleep", nullptr, Options.HybridSleep))
-				{
-					Options.HybridSleep ^= true;
-					SleepState = WelfordState{};
-					SpinThreshold = DurationMs::zero();
-				}
-
-				if (changed)
-				{
-					UpdateFrameRate();
-				}
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("Hide Cursor", nullptr, Options.HideCursor))
-				{
-					Options.HideCursor ^= true;
-				}
-				if (ImGui::MenuItem("Change Font..."))
-				{
-					font_selection::ShowDialog();
-				}
-
-				ImGui::EndMenu();
-			}
-
-			if (ImGui::BeginMenu(pb::get_rc_string(Msg::Menu1_Table_Resolution)))
-			{
-				char buffer[20]{};
-				auto resolutionStringId = Msg::Menu1_UseMaxResolution_640x480;
-
-				switch (fullscrn::GetMaxResolution())
-				{
-				case 0: resolutionStringId = Msg::Menu1_UseMaxResolution_640x480;
-					break;
-				case 1: resolutionStringId = Msg::Menu1_UseMaxResolution_800x600;
-					break;
-				case 2: resolutionStringId = Msg::Menu1_UseMaxResolution_1024x768;
-					break;
-				}
-
-				auto maxResText = pb::get_rc_string(resolutionStringId);
-				if (ImGui::MenuItem(maxResText, nullptr, Options.Resolution == -1))
-				{
-					options::toggle(Menu1::MaximumResolution);
-				}
-				for (auto i = 0; i <= fullscrn::GetMaxResolution(); i++)
-				{
-					auto& res = fullscrn::resolution_array[i];
-					snprintf(buffer, sizeof buffer - 1, "%d x %d", res.ScreenWidth, res.ScreenHeight);
-					if (ImGui::MenuItem(buffer, nullptr, Options.Resolution == i))
-					{
-						options::toggle(static_cast<Menu1>(static_cast<int>(Menu1::R640x480) + i));
-					}
-				}
-				ImGui::EndMenu();
-			}
-
-			if (ImGui::BeginMenu("Game Data"))
-			{
-				if (ImGui::MenuItem("Prefer 3DPB Data", nullptr, Options.Prefer3DPBGameData))
-				{
-					options::toggle(Menu1::Prefer3DPBGameData);
-				}
-				ImGui::EndMenu();
-			}
-			ImGui::Separator();
-			if (ImGui::MenuItem("Reset All Options"))
-			{
-				options::ResetAllOptions();
-				Restart();
-			}
-			ImGui::EndMenu();
-		}
-
-		if (ImGui::BeginMenu(pb::get_rc_string(Msg::Menu1_Help)))
-		{
-#ifndef NDEBUG
-			if (ImGui::MenuItem("ImGui Demo", nullptr, ShowImGuiDemo))
-			{
-				ShowImGuiDemo ^= true;
-			}
-#endif
-			if (ImGui::MenuItem("Sprite Viewer", nullptr, ShowSpriteViewer))
-			{
-				if (!ShowSpriteViewer)
-					pause(false);
-				ShowSpriteViewer ^= true;
-			}
-			if (pb::cheat_mode && ImGui::MenuItem("Frame Times", nullptr, DispGRhistory))
-			{
-				DispGRhistory ^= true;
-			}
-			if (ImGui::MenuItem("Debug Overlay", nullptr, Options.DebugOverlay))
-			{
-				Options.DebugOverlay ^= true;
-			}
-			if (Options.DebugOverlay && ImGui::BeginMenu("Overlay Options"))
-			{
-				if (ImGui::MenuItem("Box Grid", nullptr, Options.DebugOverlayGrid))
-					Options.DebugOverlayGrid ^= true;
-				if (ImGui::MenuItem("Ball Depth Grid", nullptr, Options.DebugOverlayBallDepthGrid))
-					Options.DebugOverlayBallDepthGrid ^= true;
-				if (ImGui::MenuItem("Sprite Positions", nullptr, Options.DebugOverlaySprites))
-					Options.DebugOverlaySprites ^= true;
-				if (ImGui::MenuItem("All Edges", nullptr, Options.DebugOverlayAllEdges))
-					Options.DebugOverlayAllEdges ^= true;
-				if (ImGui::MenuItem("Component AABB", nullptr, Options.DebugOverlayAabb))
-					Options.DebugOverlayAabb ^= true;
-				if (ImGui::MenuItem("Ball Position", nullptr, Options.DebugOverlayBallPosition))
-					Options.DebugOverlayBallPosition ^= true;
-				if (ImGui::MenuItem("Ball Box Edges", nullptr, Options.DebugOverlayBallEdges))
-					Options.DebugOverlayBallEdges ^= true;
-				if (ImGui::MenuItem("Sound Positions", nullptr, Options.DebugOverlaySounds))
-					Options.DebugOverlaySounds ^= true;
-				if (ImGui::MenuItem("Apply Collision Mask", nullptr, Options.DebugOverlayCollisionMask))
-					Options.DebugOverlayCollisionMask ^= true;
-				ImGui::EndMenu();
-			}
-			if (ImGui::BeginMenu("Cheats"))
-			{
-				if (ImGui::MenuItem("hidden test", nullptr, pb::cheat_mode))
-					pb::PushCheat("hidden test");
-				if (ImGui::MenuItem("1max"))
-					pb::PushCheat("1max");
-				if (ImGui::MenuItem("bmax", nullptr, control::table_unlimited_balls))
-					pb::PushCheat("bmax");
-				if (ImGui::MenuItem("gmax"))
-					pb::PushCheat("gmax");
-				if (ImGui::MenuItem("rmax"))
-					pb::PushCheat("rmax");
-				if (pb::FullTiltMode && ImGui::MenuItem("quote"))
-					pb::PushCheat("quote");
-				if (ImGui::MenuItem("easy mode", nullptr, control::easyMode))
-					pb::PushCheat("easy mode");
-
-				ImGui::EndMenu();
-			}
-			ImGui::Separator();
-
-			if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_About_Pinball)))
-			{
-				pause(false);
-				ShowAboutDialog = true;
-			}
-			ImGui::EndMenu();
-		}
-		if (DispFrameRate && !FpsDetails.empty())
-			if (ImGui::BeginMenu(FpsDetails.c_str()))
-				ImGui::EndMenu();
-		ImGui::EndMainMenuBar();
-	}
-
-	a_dialog();
-	high_score::RenderHighScoreDialog();
-	font_selection::RenderDialog();
-	if (ShowSpriteViewer)
-		render::SpriteViewer(&ShowSpriteViewer);
-	options::RenderControlDialog();
-	if (DispGRhistory)
-		RenderFrameTimeDialog();
-
-	const auto exitText = translations::GetTranslation(Msg::Menu1_Exit);
-	if (ShowExitPopup)
-	{
-		ShowExitPopup = false;
-		pause(false);
-		ImGui::OpenPopup(exitText);
-		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	}
-	if (ImGui::BeginPopupModal(exitText, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-	{
-		ImGui::Text("Exit the game?");
-		ImGui::Separator();
-
-		if (ImGui::Button(pb::get_rc_string(Msg::GenericOk), ImVec2(120, 0)))
-		{
-			SDL_Event event{SDL_QUIT};
-			SDL_PushEvent(&event);
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::SameLine();
-		if (ImGui::IsWindowAppearing())
-		{
-			ImGui::SetKeyboardFocusHere(0);
-		}
-		if (ImGui::Button(pb::get_rc_string(Msg::GenericCancel), ImVec2(120, 0)))
-		{
-			end_pause();
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::SetItemDefaultFocus();
-		ImGui::EndPopup();
-	}
+	CreateExitPopup();
 
 	// Print game texts on the sidebar
 	gdrv::grtext_draw_ttext_in_box();
