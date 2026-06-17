@@ -401,7 +401,7 @@ fn fill_bitmap_color_rgba(
     y_off: i32,
     fill_color: ColorRgba,
 ) {
-    let mut index = bmp.width * y_off + x_off;
+    let mut index = bmp.stride * y_off + x_off;
     for _ in 0..height {
         for x in (0..width).rev() {
             bmp.bmp_buffer_data[index as usize] = fill_color;
