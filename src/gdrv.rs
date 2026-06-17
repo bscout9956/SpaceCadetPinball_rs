@@ -125,7 +125,6 @@ impl GdrvBitmap8 {
             }
 
             let width_bytes = (self.width as usize) * size_of::<ColorRgba>();
-            let height = self.height as usize;
 
             if pitch as usize == width_bytes {
                 let dst_slice = unsafe {
@@ -137,15 +136,7 @@ impl GdrvBitmap8 {
 
                 dst_slice.copy_from_slice(&self.bmp_buffer_data);
             } else {
-                let mut dst_row = locked_pixels_ptr as *mut u8;
-                let src_bytes = self.bmp_buffer_data.as_ptr() as *const u8;
-                for row in 0..height {
-                    unsafe {
-                        let src = src_bytes.add(row * width_bytes);
-                        let dst = dst_row.add(row * pitch as usize);
-                        ptr::copy_nonoverlapping(src, dst, width_bytes);
-                    }
-                }
+                panic!("Padding on vScreen texture");
             }
 
             unsafe { SDL_UnlockTexture(tex.0) };
