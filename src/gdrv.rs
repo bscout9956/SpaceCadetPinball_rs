@@ -381,15 +381,15 @@ pub fn fill_bitmap(
     x_off: i32,
     y_off: i32,
     fill_char: u8,
+    pb_game_state: &mut PbGameState,
 ) {
-    let mut palette = CURRENT_PALETTE.lock().unwrap();
     fill_bitmap_color_rgba(
         bmp,
         width,
         height,
         x_off,
         y_off,
-        (*palette)[fill_char as usize],
+        pb_game_state.current_palette[fill_char as usize],
     );
 }
 
