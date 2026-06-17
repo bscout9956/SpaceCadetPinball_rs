@@ -7,6 +7,7 @@ use crate::maths::Vector2;
 use crate::options::GameBindings;
 use crate::options::Menu::ShowMenu;
 use crate::translations::Msg;
+use crate::translations::Msg::Menu1Game;
 use crate::utils::{SdlRendererPtr, SdlWindowPtr};
 use dear_imgui_rs::sys::{
     ImGuiCol_MenuBarBg, ImGuiFocusRequestFlags_None, ImGuiIO, ImGuiMouseCursor_None,
@@ -552,12 +553,12 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) {
                 fullscrn::window_size_changed(state).unwrap();
             }
 
-            let menu_string = pb::get_rc_string(Msg::Menu1Game).unwrap();
-            if igBeginMenu(menu_string.as_ptr() as *const c_char, true) {
+            let menu_string = pb::get_rc_string_cstring(Msg::Menu1Game).unwrap();
+            if igBeginMenu(menu_string.as_ptr(), true) {
                 imgui_menu_item_w_shortcut(GameBindings::NewGame, Option::None);
-                let menu_item_string = pb::get_rc_string(Msg::Menu1LaunchBall).unwrap();
+                let menu_item_string = pb::get_rc_string_cstring(Msg::Menu1LaunchBall).unwrap();
                 if igMenuItem_Bool(
-                    menu_item_string.as_ptr() as *const c_char,
+                    menu_item_string.as_ptr(),
                     null(),
                     false,
                     state.main_state.launch_ball_enabled,
@@ -916,10 +917,18 @@ fn main() -> Result<(), Box<dyn Error>> {
             imgui_context.set_ini_filename(Some(ini_path));
 
             // First option initialization step: just load settings from .ini. Needs ImGui context.
-            options::init_primary(&mut state.options_state);
+            options::init_primary(
+                imgui_context.io_mut(),
+                &mut state.main_state,
+                &mut state.options_state,
+            );
             if reset_all_options {
                 reset_all_options = false;
-                options::reset_all_options(&mut state.options_state);
+                options::reset_all_options(
+                    imgui_context.io_mut(),
+                    &mut state.main_state,
+                    &mut state.options_state,
+                );
             }
 
             let font_file_name = &state.options_state.options.font_file_name.value;
@@ -1123,4 +1132,11 @@ fn build_glyph_ranges_from_translations() -> Vec<ImWchar> {
     ranges.push(0); // Null terminator
 
     ranges
+}
+
+fn update_frame_rate(main_state: &mut MainState, options_state: &mut OptionsState) {
+    let fps = options_state.options.frames_per_second.value;
+    let ups = options_state.options.frames_per_second.value;
+    main_state.update_to_frame_ratio = (ups as f64) / fps as f64;
+    main_state.target_frametime = Duration((1000.0 / ups as f64) as i64);
 }

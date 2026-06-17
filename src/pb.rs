@@ -37,6 +37,11 @@ pub fn get_rc_string(u_id: Msg) -> Result<&'static str, TranslationError> {
     translations::get_translation(u_id)
 }
 
+pub fn get_rc_string_cstring(u_id: Msg) -> Result<CString, TranslationError> {
+    let string = translations::get_translation(u_id)?;
+    Ok(CString::new(string)?)
+}
+
 pub fn show_message_box(
     flags: SDL_MessageBoxFlags,
     title: &str,
@@ -167,7 +172,12 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
 
     let use_bmp_font: i32 = get_rc_int(Msg::TextBoxUseBitmapFont)?;
     if use_bmp_font == 1 {
-        score::load_msg_font("pbmsg_ft", &mut pb_game_state.record_table, fullscrn_state, &mut state.score_state);
+        score::load_msg_font(
+            "pbmsg_ft",
+            &mut pb_game_state.record_table,
+            fullscrn_state,
+            &mut state.score_state,
+        );
     }
 
     if pb_game_state.record_table.is_none() {

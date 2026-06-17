@@ -1,11 +1,13 @@
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
 use crate::state::fullscrn_state::FullscrnState;
+use crate::state::main_state::MainState;
 use crate::state::options_state::OptionsState;
 use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::translations::Msg;
 use crate::utils::clamp;
-use crate::{fullscrn, midi, render, translations};
+use crate::{fullscrn, midi, render, translations, update_frame_rate};
+use dear_imgui_rs::Io;
 use dear_imgui_rs::sys::{
     ImGuiContext, ImGuiSettingsHandler, ImGuiTextBuffer, ImGuiTextBuffer_append,
     ImGuiTextBuffer_appendf, igAddSettingsHandler, igGetCurrentContext, igImHashStr,
@@ -493,7 +495,11 @@ impl OptionsStruct {
 // I am not going to bother (for now) to spend the time to implement this properly
 // So this should be a 1:1 (esque) translation of the original code
 // The code below IS UNSAFE!
-pub unsafe fn init_primary(options_state: &mut OptionsState) {
+pub unsafe fn init_primary(
+    io: &mut Io,
+    main_state: &mut MainState,
+    options_state: &mut OptionsState,
+) {
     unsafe {
         let im_context = igGetCurrentContext();
         let mut ini_handler: ImGuiSettingsHandler = std::mem::zeroed();
@@ -516,7 +522,7 @@ pub unsafe fn init_primary(options_state: &mut OptionsState) {
         }
 
         options_state.options.load_all(&mut options_state.settings);
-        post_process_options(options_state);
+        post_process_options(io, main_state, options_state);
     }
 }
 
@@ -714,9 +720,13 @@ pub fn map_game_input(key: GameInput, options_state: &mut OptionsState) -> Vec<G
     result
 }
 
-pub fn reset_all_options(options_state: &mut OptionsState) {
+pub fn reset_all_options(
+    io: &mut Io,
+    main_state: &mut MainState,
+    options_state: &mut OptionsState,
+) {
     options_state.options.reset_all();
-    post_process_options(options_state);
+    post_process_options(io, main_state, options_state);
 }
 
 #[allow(non_snake_case)]
@@ -787,10 +797,12 @@ pub unsafe extern "C" fn MyUserData_WriteAll(
     }
 }
 
-// TODO Implement all the trash
-pub fn post_process_options(options_state: &mut OptionsState) {
-    // TODO: Pull this
-    //main::ImIO.FontGlobalScale = *options_state.options.ui_scale;
+pub fn post_process_options(
+    io: &mut Io,
+    main_state: &mut MainState,
+    options_state: &mut OptionsState,
+) {
+    io.set_font_global_scale(*options_state.options.ui_scale);
     *options_state.options.frames_per_second = clamp(
         &options_state.options.frames_per_second.value,
         &MIN_FPS,
@@ -821,6 +833,5 @@ pub fn post_process_options(options_state: &mut OptionsState) {
         &MAX_VOLUME,
     );
     translations::set_current_language(&options_state.options.language.value);
-    // TODO: Implement meee
-    // crate::main::UpdateFrameRate();
+    update_frame_rate(main_state, options_state);
 }
