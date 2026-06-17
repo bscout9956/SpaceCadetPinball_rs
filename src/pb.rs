@@ -159,41 +159,47 @@ fn read_camera_floats(float_data: &[u8]) -> Vec<f32> {
 
 pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
     let fullscrn_state = &mut state.fullscrn_state;
-    let pb_game_state = &mut state.pb_game_state;
 
     let mut projection_matrix: [f32; 12] = [0.0; 12];
 
     let mut data_file_path = String::new();
 
-    if pb_game_state.dat_file_name.is_empty() {
+    if state.pb_game_state.dat_file_name.is_empty() {
         return Ok(false);
     }
-    data_file_path = make_path_name(&pb_game_state.dat_file_name, &pb_game_state.base_path);
+    data_file_path = make_path_name(
+        &state.pb_game_state.dat_file_name,
+        &state.pb_game_state.base_path,
+    );
 
-    let dat = partman::load_records(data_file_path, pb_game_state.full_tilt_mode, fullscrn_state)?;
+    let dat = partman::load_records(
+        data_file_path,
+        state.pb_game_state.full_tilt_mode,
+        fullscrn_state,
+    )?;
     let shared_dat = Arc::new(dat);
 
-    pb_game_state.record_table = Some(Arc::clone(&shared_dat));
+    state.pb_game_state.record_table = Some(Arc::clone(&shared_dat));
 
     let use_bmp_font: i32 = get_rc_int(Msg::TextBoxUseBitmapFont)?;
     if use_bmp_font == 1 {
         score::load_msg_font(
             "pbmsg_ft",
-            &mut pb_game_state.record_table,
+            &mut state.pb_game_state.record_table,
             fullscrn_state,
             &mut state.score_state,
         );
     }
 
-    if pb_game_state.record_table.is_none() {
+    if state.pb_game_state.record_table.is_none() {
         return Ok(true);
     }
 
-    let table = pb_game_state.record_table.as_mut().unwrap();
-    let plt = table.field_labeled("background", FieldTypes::Palette);
-    let plt_data = plt.unwrap();
-    match plt_data {
-        EntryBuffer::Raw(data) => {
+    {
+        let table = state.pb_game_state.record_table.as_mut().unwrap();
+        let plt = table.field_labeled("background", FieldTypes::Palette);
+        let plt_data = plt.unwrap();
+        if let EntryBuffer::Raw(data) = plt_data {
             let mut palette_colors = Vec::with_capacity(256);
             // extract method here
             for i in 0..256 {
@@ -211,11 +217,11 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
                 }
             }
 
-            gdrv::display_palette(Some(&palette_colors));
+            gdrv::display_palette(Some(&palette_colors), &mut state.pb_game_state);
         }
-        _ => {}
     }
 
+    let table = state.pb_game_state.record_table.as_mut().unwrap();
     let mut background_bmp = table
         .get_bitmap(
             table.record_labeled("background"),
@@ -227,11 +233,8 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
     let camera_data = table.field(camera_info_id, FieldTypes::FloatArray).unwrap();
     let mut camera_info: Vec<f32> = Vec::new();
 
-    match camera_data {
-        EntryBuffer::Raw(float_data) => {
-            camera_info = read_camera_floats(float_data);
-        }
-        _ => {}
+    if let EntryBuffer::Raw(float_data) = camera_data {
+        camera_info = read_camera_floats(float_data);
     }
 
     let res_val = fullscrn_state.resolution;
@@ -279,25 +282,29 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
 
     loader::load_from(shared_dat, &mut state.loader_state)?;
 
-    mode_change(GameModes::InGame, &mut state.main_state, pb_game_state);
+    mode_change(
+        GameModes::InGame,
+        &mut state.main_state,
+        &mut state.pb_game_state,
+    );
 
-    pb_game_state.time_ticks = 0;
+    state.pb_game_state.time_ticks = 0;
     timer::init(150);
     score::init();
 
-    pb_game_state.main_table = Some(TPinballTable::new(
-        pb_game_state,
+    state.pb_game_state.main_table = Some(TPinballTable::new(
+        &mut state.pb_game_state,
         &mut state.render_state,
         &mut state.fullscrn_state,
         &mut state.loader_state,
     ));
-    let table = pb_game_state.main_table.as_ref().unwrap();
+    let table = state.pb_game_state.main_table.as_ref().unwrap();
     let ball = &table.ball_list[0].borrow();
 
-    pb_game_state.ball_max_speed = ball.radius * 200.0f32;
-    pb_game_state.ball_half_radius = ball.radius * 0.5f32;
-    pb_game_state.ball_to_ball_collision_distance =
-        ball.radius + pb_game_state.ball_half_radius * 2.0f32;
+    state.pb_game_state.ball_max_speed = ball.radius * 200.0f32;
+    state.pb_game_state.ball_half_radius = ball.radius * 0.5f32;
+    state.pb_game_state.ball_to_ball_collision_distance =
+        ball.radius + state.pb_game_state.ball_half_radius * 2.0f32;
 
     let mut red = 255;
     let mut green = 255;
@@ -313,7 +320,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
         }
     }
 
-    pb_game_state.text_box_color =
+    state.pb_game_state.text_box_color =
         ((255u32) << 24) | ((blue as u32) << 16) | ((green as u32) << 8) | (red as u32);
     Ok(true)
 }
