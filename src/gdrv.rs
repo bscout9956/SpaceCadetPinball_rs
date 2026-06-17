@@ -296,41 +296,32 @@ pub fn display_palette(plt: Option<&[ColorRgba]>, pb_game_state: &mut PbGameStat
         ColorRgba::color_rgba(0xA6, 0xCA, 0xF0, 0xff),
     ];
 
-    match CURRENT_PALETTE.lock() {
-        Ok(mut palette) => {
-            *palette = [ColorRgba::black(); 256];
+    pb_game_state.current_palette[..10].copy_from_slice(&SYS_PALETTE_COLORS);
 
-            palette[..10].copy_from_slice(&SYS_PALETTE_COLORS);
+    if let Some(plt_slice) = plt {
+        for index in 10..246 {
+            if index < plt_slice.len() {
+                let mut src_clr = plt_slice[index];
+                src_clr.set_alpha(0xff);
 
-            if let Some(plt_slice) = plt {
-                for index in 10..246 {
-                    if index < plt_slice.len() {
-                        let mut src_clr = plt_slice[index];
-                        src_clr.set_alpha(0xff);
+                let mut current_clr = src_clr;
+                current_clr.set_alpha(2);
 
-                        let mut current_clr = src_clr;
-                        current_clr.set_alpha(2);
-
-                        palette[index] = current_clr;
-                    }
-                }
-            }
-
-            palette[255] = ColorRgba::white();
-
-            if let Some(table) = pb_game_state.record_table.as_mut() {
-                if let Some(t) = Arc::get_mut(table) {
-                    for group in &mut t.groups {
-                        for i in 0..=2 {
-                            let bmp = group.get_bitmap_mut(i);
-                            apply_palette(bmp);
-                        }
-                    }
-                }
+                pb_game_state.current_palette[index] = current_clr;
             }
         }
-        Err(e) => {
-            println!("Failed to lock CURRENT_PALLETTE {}", e); // TODO: Result, Err
+    }
+
+    pb_game_state.current_palette[255] = ColorRgba::white();
+
+    if let Some(table) = pb_game_state.record_table.as_mut()
+        && let Some(t) = Arc::get_mut(table)
+    {
+        for group in &mut t.groups {
+            for i in 0..=2 {
+                let bmp = group.get_bitmap_mut(i);
+                apply_palette(bmp, &pb_game_state.current_palette);
+            }
         }
     }
 }
