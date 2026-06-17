@@ -6,15 +6,15 @@ use dear_imgui_rs::Ui;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::sys::SDL_BlendMode::SDL_BLENDMODE_NONE;
 use sdl2::sys::{
-    SDL_CreateTexture, SDL_DestroyTexture, SDL_LockTexture, SDL_SetHint,
-    SDL_SetTextureBlendMode, SDL_UnlockTexture, SDL_HINT_RENDER_SCALE_QUALITY,
+    SDL_CreateTexture, SDL_DestroyTexture, SDL_HINT_RENDER_SCALE_QUALITY, SDL_LockTexture,
+    SDL_SetHint, SDL_SetTextureBlendMode, SDL_UnlockTexture,
 };
 use std::cmp::PartialEq;
-use std::ffi::{c_int, c_void, CString};
+use std::ffi::{CString, c_int, c_void};
 use std::fmt::Debug;
 use std::ptr::{null, null_mut};
-use std::sync::Arc;
 use std::slice;
+use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
 #[repr(u8)]
