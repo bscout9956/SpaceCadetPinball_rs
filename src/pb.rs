@@ -18,6 +18,9 @@ use crate::{
     SdlWindowPtr, control, gdrv, high_score, loader, maths, midi, partman, proj, render, score,
     timer, translations,
 };
+use dear_imgui_rs::sys::{
+    ImColor_ImColor_Int, ImColor_ImColor_U32, igGetColorU32_Col, igGetColorU32_Vec4,
+};
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
 use std::ffi::{CStr, CString, c_char};
@@ -296,6 +299,22 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
     pb_game_state.ball_to_ball_collision_distance =
         ball.radius + pb_game_state.ball_half_radius * 2.0f32;
 
+    let mut red = 255;
+    let mut green = 255;
+    let mut blue = 255;
+
+    if let Ok(font_color) = get_rc_string(Msg::TextBoxColor) {
+        let mut parts = font_color.split_whitespace().map(|s| s.parse::<i32>());
+        if let (Some(Ok(r)), Some(Ok(g)), Some(Ok(b))) = (parts.next(), parts.next(), parts.next())
+        {
+            red = r;
+            green = g;
+            blue = b;
+        }
+    }
+
+    pb_game_state.text_box_color =
+        ((255u32) << 24) | ((blue as u32) << 16) | ((green as u32) << 8) | (red as u32);
     Ok(true)
 }
 
