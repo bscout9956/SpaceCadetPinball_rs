@@ -333,10 +333,10 @@ impl<T: SettingValue> DerefMut for Setting<T> {
 }
 
 pub struct ControlOption {
-    name: &'static str,
-    description: Msg,
-    defaults: [GameInput; 3],
-    inputs: [GameInput; 3],
+    pub name: &'static str,
+    pub description: Msg,
+    pub defaults: [GameInput; 3],
+    pub inputs: [GameInput; 3],
 }
 
 impl ControlOption {
@@ -560,7 +560,7 @@ pub fn uninit(options_state: &mut OptionsState) {
 
 pub fn get_input(
     row_name: &str,
-    mut values: [GameInput; 3],
+    values: &mut [GameInput; 3],
     settings: &mut HashMap<String, String>,
 ) {
     for (index, input) in values.iter_mut().enumerate() {
@@ -577,13 +577,13 @@ pub fn get_input(
 
 pub fn set_input(
     row_name: &str,
-    mut values: [GameInput; 3],
+    values: &mut [GameInput; 3],
     settings: &mut HashMap<String, String>,
 ) {
     for (index, input) in values.iter_mut().enumerate() {
         let name = format!("{} {}", row_name, index);
-        set_int(&format!("{} type", input.input_type as i32), -1, settings);
-        set_int(&format!("{} input", input.value), -1, settings);
+        set_int(&format!("{} type", name), input.input_type as i32, settings);
+        set_int(&format!("{} input", name), input.value, settings);
     }
 }
 
