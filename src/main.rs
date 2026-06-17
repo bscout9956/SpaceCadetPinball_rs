@@ -1075,8 +1075,7 @@ unsafe fn event_handler(
         if (*event).type_ == SDL_KEYUP as u32 {
             pb::input_up(
                 GameInput::new(InputTypes::Keyboard, (*event).key.keysym.sym),
-                &mut state.main_state,
-                &mut state.pb_game_state,
+                state
             );
         }
     }
