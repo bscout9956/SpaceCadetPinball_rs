@@ -41,7 +41,7 @@ use sdl2::sys::{
 };
 use std::ffi::{CStr, c_char, c_int, c_void};
 use std::ops::{Add, Mul};
-use std::ptr::{addr_of_mut, null_mut};
+use std::ptr::{addr_of_mut, null, null_mut};
 use std::sync::{LazyLock, Mutex};
 
 pub static CURRENT_DEVICE: LazyLock<Mutex<Option<Device>>> = LazyLock::new(|| Mutex::new(None));
@@ -213,6 +213,8 @@ impl Drop for Texture {
 }
 
 pub mod renderer {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
     use crate::imgui_sdl::{ImplSdl2RenderData, get_renderer_bd_from_io};
     use dear_imgui_rs::internal::{ImVector, imvector_cast_mut};
     use dear_imgui_rs::sys::{ImDrawCmd, ImDrawData, ImDrawIdx, ImDrawVert, ImVec2};
@@ -225,6 +227,8 @@ pub mod renderer {
     };
     use std::ffi::{c_float, c_void};
     use std::ptr::{null, null_mut};
+
+    static FALLBACK_WARN: AtomicBool = AtomicBool::new(false);
 
     struct BackupSDLRendererState {
         viewport: SDL_Rect,
@@ -359,11 +363,11 @@ pub mod renderer {
                         // Project scissor/clipping rectangles into framebuffer space
                         let mut clip_min = ImVec2::new(
                             (draw_cmd.ClipRect.x - clip_off.x) * clip_scale.x,
-                            (draw_cmd.ClipRect.y - draw_cmd.ClipRect.y) * clip_scale.y,
+                            (draw_cmd.ClipRect.y - clip_off.y) * clip_scale.y,
                         );
                         let mut clip_max = ImVec2::new(
-                            (draw_cmd.ClipRect.z - draw_cmd.ClipRect.x) * clip_scale.x,
-                            (draw_cmd.ClipRect.w - draw_cmd.ClipRect.y) * clip_scale.y,
+                            (draw_cmd.ClipRect.z - clip_off.x) * clip_scale.x,
+                            (draw_cmd.ClipRect.w - clip_off.y) * clip_scale.y,
                         );
 
                         if clip_min.x < 0.0 {
@@ -407,9 +411,24 @@ pub mod renderer {
                                 as *const SDL_Color;
 
                         // Bind texture, Draw
-                        let tex = draw_cmd.TexRef._TexID as *mut SDL_Texture;
+
+                        let mut tex = draw_cmd.TexRef._TexID as *mut SDL_Texture;
+                        if tex.is_null() && !(*bd).font_texture.is_null() {
+                            if FALLBACK_WARN
+                                .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+                                .is_ok()
+                            {
+                                println!(
+                                    "ImGui draw command had null TexID; using font texture fallback"
+                                );
+                            }
+                            tex = (*bd).font_texture;
+                        }
+
                         let im_draw_vert_size = size_of::<ImDrawVert>() as i32;
                         let num_vertices = (*cmd_list).VtxBuffer.Size - (draw_cmd.VtxOffset as i32);
+
+                        let tex_ptr = draw_cmd.TexRef._TexID as *mut SDL_Texture;
 
                         SDL_RenderGeometryRaw(
                             (*bd).renderer,
@@ -848,37 +867,82 @@ fn impl_sdl2_renderer_create_device_objects(context: &mut Context) -> bool {
 unsafe fn impl_sdl2_renderer_create_fonts_texture(context: &mut Context) -> bool {
     unsafe {
         let bd = get_renderer_bd_from_io(context.io_mut());
-
         let tex_data = context.fonts().get_tex_data();
+
         let pixels = (*tex_data).Pixels;
         let width = (*tex_data).Width as c_int;
         let height = (*tex_data).Height as c_int;
+        let bytes_per_pixel = (*tex_data).BytesPerPixel as c_int;
 
-        (*bd).font_texture = SDL_CreateTexture(
-            (*bd).renderer,
-            SDL_PIXELFORMAT_ABGR8888 as u32,
-            SDL_TEXTUREACCESS_STATIC as c_int,
-            width,
-            height,
-        );
+        if pixels.is_null() {
+            println!("Font pixels is null!!");
+            return false;
+        }
 
-        if !(*bd).font_texture.is_null() && !pixels.is_null() {
+        let bytes_per_pixel = (*tex_data).BytesPerPixel; // if binding exposes this field
+
+        if bytes_per_pixel == 1 {
+            let src_len = (width as usize) * (height as usize);
+            let src = std::slice::from_raw_parts(pixels as *const u8, src_len);
+            let mut rgba_data = Vec::with_capacity(src_len * 4);
+            for &a in src.iter() {
+                rgba_data.push(255u8);
+                rgba_data.push(255u8);
+                rgba_data.push(255u8);
+                rgba_data.push(a);
+            }
+
+            (*bd).font_texture = SDL_CreateTexture(
+                (*bd).renderer,
+                SDL_PIXELFORMAT_ABGR8888 as u32,
+                SDL_TEXTUREACCESS_STATIC as c_int,
+                width,
+                height,
+            );
+
+            if (*bd).font_texture.is_null() {
+                println!("SDL_CreateTexture failed (RGBA");
+                return false;
+            }
+
             SDL_UpdateTexture(
                 (*bd).font_texture,
                 std::ptr::null(),
+                rgba_data.as_ptr().cast::<c_void>(),
+                width * 4,
+            );
+        } else if bytes_per_pixel == 4 {
+            (*bd).font_texture = SDL_CreateTexture(
+                (*bd).renderer,
+                SDL_PIXELFORMAT_ABGR8888 as u32,
+                SDL_TEXTUREACCESS_STATIC as c_int,
+                width,
+                height,
+            );
+
+            if (*bd).font_texture.is_null() {
+                println!("SDL_CreateTexture failed (ABGR)");
+                return false;
+            }
+
+            SDL_UpdateTexture(
+                (*bd).font_texture,
+                null(),
                 pixels.cast::<c_void>(),
                 width * 4,
             );
-            SDL_SetTextureBlendMode((*bd).font_texture, SDL_BLENDMODE_BLEND);
-            SDL_SetTextureScaleMode((*bd).font_texture, SDL_ScaleModeLinear);
-
-            let raw_addr = (*bd).font_texture as usize;
-            let texture_id = TextureId::new(raw_addr as u64);
-            context.fonts().set_texture_id(texture_id);
-            true
         } else {
-            false
+            println!("Unsupported bpp: {}", bytes_per_pixel);
+            return false;
         }
+
+        SDL_SetTextureBlendMode((*bd).font_texture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureScaleMode((*bd).font_texture, SDL_ScaleModeLinear);
+
+        let raw_addr = (*bd).font_texture as usize;
+        let texture_id = TextureId::new(raw_addr as u64);
+        context.fonts().set_texture_id(texture_id);
+        true
     }
 }
 
