@@ -569,7 +569,7 @@ pub fn get_input(
         let input_type: InputTypes = InputTypes::from_i32(type_val).unwrap();
         let value = get_int(&format!("{} input", name), -1, settings);
 
-        if (input_type <= GameController && value != -1) {
+        if input_type <= GameController && value != -1 {
             *input = GameInput { input_type, value };
         }
     }
@@ -636,14 +636,14 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
                     != fullscrn::get_max_resolution(&mut state.pb_game_state);
                 *state.options_state.options.resolution = -1;
             } else if new_resolution <= fullscrn::get_max_resolution(&mut state.pb_game_state) {
-                let mut current_resolution: i32;
-                if (*state.options_state.options.resolution == -1) {
+                let current_resolution;
+                if *state.options_state.options.resolution == -1 {
                     current_resolution = fullscrn::get_max_resolution(&mut state.pb_game_state);
                 } else {
                     current_resolution = state.fullscrn_state.resolution;
                 }
 
-                let restart = (new_resolution != current_resolution);
+                restart = new_resolution != current_resolution;
             }
 
             if restart {

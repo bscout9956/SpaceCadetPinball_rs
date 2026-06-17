@@ -123,7 +123,7 @@ pub fn enclosing_box(rect1: &RectangleType, rect2: &RectangleType, dest_rect: &m
     let mut x_pos = rect1.x_position;
     let mut width = rect1.width;
 
-    if (rect2.x_position < rect1.x_position) {
+    if rect2.x_position < rect1.x_position {
         x_pos = rect2.x_position;
         width += rect1.x_position - rect2.x_position;
     }
@@ -131,17 +131,17 @@ pub fn enclosing_box(rect1: &RectangleType, rect2: &RectangleType, dest_rect: &m
     let mut y_pos = rect1.y_position;
     let mut height = rect1.height;
 
-    if (rect2.y_position < rect1.y_position) {
+    if rect2.y_position < rect1.y_position {
         y_pos = rect2.y_position;
         height += rect1.y_position - rect2.y_position;
     }
 
-    let mut x_end_2 = rect2.x_position + rect2.width;
+    let x_end_2 = rect2.x_position + rect2.width;
     if x_end_2 > x_pos + width {
         width = x_end_2 - x_pos;
     }
 
-    let mut y_end_2 = rect2.y_position + rect2.height;
+    let y_end_2 = rect2.y_position + rect2.height;
     if y_end_2 > y_pos + height {
         height = y_end_2 - y_pos;
     }
@@ -169,7 +169,7 @@ pub fn rectangle_clip(
 
     let mut x_pos = rect1.x_position;
     let mut width = rect1.width;
-    if (rect1.x_position < rect2.x_position) {
+    if rect1.x_position < rect2.x_position {
         x_pos = rect2.x_position;
         width += rect1.x_position - rect2.x_position;
     }
@@ -266,7 +266,7 @@ pub enum MathsError {
 }
 
 pub fn f32_vec_to_vec3(f32_vec: &[f32]) -> Result<Vec<Vector3>, MathsError> {
-    if f32_vec.len() == 0 || f32_vec.len() % 3 != 0 {
+    if f32_vec.is_empty() || !f32_vec.len().is_multiple_of(3) {
         return Err(MathsError::IncorrectF32VecSize(f32_vec.len()));
     }
     let mut result: Vec<Vector3> = Vec::new();
@@ -463,7 +463,7 @@ pub fn dot_product(vec1: &Vector2, vec2: &Vector2) -> f32 {
 }
 
 pub fn distance(vec1: &Vector2, vec2: &Vector2) -> f32 {
-    f32::sqrt(distance_squared(&vec1, &vec2))
+    f32::sqrt(distance_squared(vec1, vec2))
 }
 
 pub fn sin_cos(angle: f32) -> (f32, f32) {
@@ -522,7 +522,7 @@ pub fn distance_to_flipper(flipper: &mut TFlipperEdge, ray1: &RayType, ray2: &mu
             }
             normalize_2d(&mut ray2.direction);
         }
-        FlipperIntersect::None | _ => {}
+        _ => {}
     }
 
     distance

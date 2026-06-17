@@ -157,7 +157,6 @@ pub fn load_records(
     dat_file.description = description.to_string_lossy().into_owned();
 
     if header.unknown > 0 {
-        let unknown_size: usize = header.unknown as usize;
         reader.seek(SeekFrom::Current(header.unknown as i64))?;
     }
 
@@ -172,7 +171,7 @@ pub fn load_records(
         let mut group_data = GroupData::new(group_index as i32);
         group_data.reserve_entries(entry_count as usize);
 
-        for entry_index in 0..entry_count {
+        for _ in 0..entry_count {
             let mut entry_data = EntryData::default();
             let entry_type_u8 = u8::lread(&mut reader)?;
 
