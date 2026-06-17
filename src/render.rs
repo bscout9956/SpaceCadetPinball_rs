@@ -387,8 +387,11 @@ fn unpaint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> 
     Ok(())
 }
 
-pub fn update(render_state: &mut RenderState) {
-    unpaint_balls(render_state);
+pub fn update(
+    render_state: &mut RenderState,
+    pb_game_state: &mut PbGameState,
+) -> Result<(), RenderError> {
+    unpaint_balls(render_state)?;
 
     // Clip dirty sprites with vScreen, clear clipping (dirty) rectangles
     for sprite in render_state.sprite_list.iter_mut() {
@@ -462,6 +465,7 @@ pub fn update(render_state: &mut RenderState) {
                     x_pos,
                     y_pos,
                     0,
+                    pb_game_state,
                 );
             }
         }
@@ -473,7 +477,11 @@ pub fn update(render_state: &mut RenderState) {
         if !sprite.dirty_flag {
             continue;
         }
-        repaint(sprite);
+        repaint(
+            sprite,
+            &mut render_state.v_screen,
+            &mut render_state.z_screen,
+        );
         sprite.dirty_flag = false;
         sprite.dirty_rect_prev = sprite.dirty_rect;
 
@@ -483,11 +491,12 @@ pub fn update(render_state: &mut RenderState) {
     }
 
     for index in sprites_to_remove.into_iter().rev() {
-        let mut isolated_sprite = render_state.sprite_list.remove(index);
-        remove_sprite(&mut isolated_sprite, render_state);
+        let isolated_sprite = render_state.sprite_list.remove(index);
+        remove_sprite(&isolated_sprite, render_state);
     }
 
-    paint_balls(render_state);
+    paint_balls(render_state)?;
+    Ok(())
 }
 
 pub fn remove_sprite(sprite: &RenderSprite, render_state: &mut RenderState) {
