@@ -1,11 +1,11 @@
 use crate::errors::PbError;
 use crate::gdrv::ColorRgba;
 use crate::group_data::{EntryBuffer, FieldTypes};
-use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
+use crate::high_score::{HighScore, HighScoreEntry};
+use crate::maths::{normalize_2d, RayType, Vector2, Vector3};
 use crate::message_code::MessageCode;
-use crate::options::GameInput;
+use crate::options::{GameBindings, GameInput, InputTypes};
 use crate::state::high_score_state::HighScoreState;
-use crate::state::loader_state::LoaderState;
 use crate::state::main_state::MainState;
 use crate::state::options_state::OptionsState;
 use crate::state::pb_game_state::PbGameState;
@@ -15,15 +15,13 @@ use crate::t_collision_component::ICollisionComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::{Msg, TranslationError};
 use crate::{
-    SdlWindowPtr, control, gdrv, high_score, loader, maths, midi, partman, proj, render, score,
-    timer, translations,
+    control, gdrv, high_score, loader, maths, midi, nudge, options, partman, proj, render,
+    score, timer, translations, SdlWindowPtr,
 };
-use dear_imgui_rs::sys::{
-    ImColor_ImColor_Int, ImColor_ImColor_U32, igGetColorU32_Col, igGetColorU32_Vec4,
-};
+use rand::random;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
-use sdl2::sys::{SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
-use std::ffi::{CStr, CString, c_char};
+use sdl2::sys::{SDL_KeyCode, SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
+use std::ffi::{c_char, CStr, CString};
 use std::fs::File;
 use std::io::Write;
 use std::sync::Arc;
