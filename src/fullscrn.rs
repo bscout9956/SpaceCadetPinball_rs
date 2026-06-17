@@ -1,11 +1,9 @@
 use crate::errors::FullscreenError;
 use crate::state::fullscrn_state::FullscrnState;
-use crate::state::main_state::MainState;
-use crate::state::options_state::OptionsState;
 use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::state::render_state::RenderState;
-use crate::{SdlWindowPtr, render};
+use crate::SdlWindowPtr;
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
 
@@ -46,7 +44,7 @@ pub fn set_screen_mode(
     fullscrn_state: &mut FullscrnState,
     main_window: &mut Option<SdlWindowPtr>,
 ) -> bool {
-    let mut result = is_fullscreen;
+    let result = is_fullscreen;
 
     if is_fullscreen == fullscrn_state.screen_mode {
         return result;
@@ -161,12 +159,21 @@ pub fn shutdown(fullscrn_state: &mut FullscrnState, main_window: &mut Option<Sdl
     }
 }
 
-pub fn get_screen_rect_from_pinball_rect(rect: SDL_Rect, render_state: &mut RenderState) -> SDL_Rect {
+pub fn get_screen_rect_from_pinball_rect(
+    rect: SDL_Rect,
+    render_state: &mut RenderState,
+) -> SDL_Rect {
     SDL_Rect {
-        x: rect.x * render_state.destination_rect.unwrap().w / render_state.v_screen.as_ref().unwrap().width + render_state.destination_rect.unwrap().x,
-        y: rect.y * render_state.destination_rect.unwrap().h / render_state.v_screen.as_ref().unwrap().height + render_state.destination_rect.unwrap().y,
-        w: rect.w * render_state.destination_rect.unwrap().w / render_state.v_screen.as_ref().unwrap().width,
-        h: rect.h * render_state.destination_rect.unwrap().h / render_state.v_screen.as_ref().unwrap().height,
+        x: rect.x * render_state.destination_rect.unwrap().w
+            / render_state.v_screen.as_ref().unwrap().width
+            + render_state.destination_rect.unwrap().x,
+        y: rect.y * render_state.destination_rect.unwrap().h
+            / render_state.v_screen.as_ref().unwrap().height
+            + render_state.destination_rect.unwrap().y,
+        w: rect.w * render_state.destination_rect.unwrap().w
+            / render_state.v_screen.as_ref().unwrap().width,
+        h: rect.h * render_state.destination_rect.unwrap().h
+            / render_state.v_screen.as_ref().unwrap().height,
     }
 }
 
