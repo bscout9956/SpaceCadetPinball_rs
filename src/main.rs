@@ -67,6 +67,7 @@ pub mod high_score;
 mod imgui_sdl;
 pub mod message_code;
 mod midi;
+pub mod nudge;
 mod partman;
 mod pb;
 mod pinball_state;
