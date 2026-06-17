@@ -265,7 +265,8 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
         &mut state.main_state,
         &mut state.options_state,
         &mut state.render_state,
-    );
+        &mut state.pb_game_state,
+    )?;
 
     if let Some(dst) = state.render_state.v_screen.as_mut() {
         gdrv::copy_bitmap(
@@ -286,10 +287,10 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
         GameModes::InGame,
         &mut state.main_state,
         &mut state.pb_game_state,
-    );
+    )?;
 
     state.pb_game_state.time_ticks = 0;
-    timer::init(150);
+    timer::init(150)?;
     score::init();
 
     state.pb_game_state.main_table = Some(TPinballTable::new(
