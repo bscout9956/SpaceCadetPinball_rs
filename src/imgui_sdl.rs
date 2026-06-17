@@ -218,7 +218,7 @@ pub mod renderer {
 
     use crate::imgui_sdl::{ImplSdl2RenderData, get_renderer_bd_from_io};
     use dear_imgui_rs::internal::{ImVector, imvector_cast_mut};
-    use dear_imgui_rs::sys::{ImDrawCmd, ImDrawData, ImDrawIdx, ImDrawVert, ImVec2};
+    use dear_imgui_rs::sys::{ImDrawCmd, ImDrawCmd_GetTexID, ImDrawData, ImDrawIdx, ImDrawVert, ImVec2};
     use dear_imgui_rs::{BackendFlags, Context, Io};
     use sdl2::sys::SDL_bool::SDL_TRUE;
     use sdl2::sys::{
@@ -310,13 +310,13 @@ pub mod renderer {
             let mut render_scale = ImVec2::new(rsx, rsy);
 
             render_scale.x = if rsx == 1.0f32 {
-                (*draw_data).DisplaySize.x
+                (*draw_data).FramebufferScale.x
             } else {
                 1.0f32
             };
 
             render_scale.y = if rsy == 1.0f32 {
-                (*draw_data).DisplaySize.y
+                (*draw_data).FramebufferScale.y
             } else {
                 1.0f32
             };
@@ -349,7 +349,7 @@ pub mod renderer {
                 for cmd_i in 0..(*cmd_list).CmdBuffer.Size as usize {
                     let draw_cmd_vec: &mut ImVector<ImDrawCmd> =
                         imvector_cast_mut(&mut (*cmd_list).CmdBuffer);
-                    let draw_cmd = draw_cmd_vec.as_slice()[cmd_i];
+                    let mut draw_cmd = draw_cmd_vec.as_slice()[cmd_i];
 
                     // Some obscure casting as per the original definition
                     let reset_state_sentinel = (-8isize) as usize;
@@ -412,8 +412,8 @@ pub mod renderer {
                                 as *const SDL_Color;
 
                         // Bind texture, Draw
-
-                        let mut tex = draw_cmd.TexRef._TexID as *mut SDL_Texture;
+                        let mut tex = ImDrawCmd_GetTexID(&raw mut draw_cmd) as *mut SDL_Texture;
+                        
                         if tex.is_null() && !(*bd).font_texture.is_null() {
                             if FALLBACK_WARN
                                 .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
