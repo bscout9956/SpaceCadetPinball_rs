@@ -267,7 +267,7 @@ pub struct LanguageInfo {
     pub language: Lang,
 }
 
-static LANGUAGES: [LanguageInfo; Lang::MAX as usize] = [
+pub(crate) static LANGUAGES: [LanguageInfo; Lang::MAX as usize] = [
     LanguageInfo {
         short_name: "ar",
         display_name: "Arabic",
