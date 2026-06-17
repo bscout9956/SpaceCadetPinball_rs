@@ -347,8 +347,8 @@ pub fn reset_table(pb_game_state: &mut PbGameState) -> Result<(), PbError> {
     }
 }
 
-pub fn first_time_setup(render_state: &mut RenderState) {
-    render::update(render_state);
+pub fn first_time_setup(render_state: &mut RenderState, pb_game_state: &mut PbGameState) {
+    render::update(render_state, pb_game_state);
 }
 
 pub(crate) fn toggle_demo() {
