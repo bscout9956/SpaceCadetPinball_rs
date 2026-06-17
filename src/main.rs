@@ -1339,10 +1339,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             cfg_flags |= ConfigFlags::NAV_ENABLE_KEYBOARD | ConfigFlags::NAV_ENABLE_GAMEPAD;
 
             // Data search order: WD, executable path, user pref path, platform specific paths.
-            let mut search_paths: Vec<&str> = Vec::new();
-            search_paths.push("");
-            search_paths.push(CStr::from_ptr(base_path).to_str()?);
-            search_paths.push(CStr::from_ptr(pref_path).to_str()?);
+            let search_paths: Vec<&str> = vec![
+                "",
+                CStr::from_ptr(base_path).to_str()?,
+                CStr::from_ptr(pref_path).to_str()?,
+            ];
 
             #[cfg(not(target_os = "windows"))]
             search_paths.extend_from_slice(&PLATFORM_DATA_PATHS);
@@ -1398,7 +1399,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             let fullscreen = env::args().any(|arg| arg == "-fullscreen");
             if fullscreen {
-                *(&mut state.options_state).options.full_screen = true;
+                *state.options_state.options.full_screen = true;
             }
 
             let res_val = state.fullscrn_state.resolution;
