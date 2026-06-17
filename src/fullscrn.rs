@@ -79,7 +79,7 @@ pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenErr
     let render_state: &mut RenderState = &mut state.render_state;
 
     let (mut width, mut height): (i32, i32) = (0, 0);
-    if let Some(renderer) = (&mut state.main_state).renderer.as_ref() {
+    if let Some(renderer) = state.main_state.renderer.as_ref() {
         unsafe {
             SDL_GetRendererOutputSize(renderer.0, &mut width, &mut height);
         }
@@ -87,8 +87,8 @@ pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenErr
         return Err(FullscreenError::MissingRenderer);
     }
 
-    let menu_height = if *(&mut state.options_state).options.show_menu {
-        (&mut state.main_state).main_menu_height
+    let menu_height = if *state.options_state.options.show_menu {
+        state.main_state.main_menu_height
     } else {
         0
     };
@@ -96,11 +96,8 @@ pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenErr
 
     let res = &fullscrn_state.resolution_array[fullscrn_state.resolution as usize];
 
-    update_x_scale(&mut width, res, fullscrn_state.scale_x);
-    update_y_scale(&mut height, res, fullscrn_state.scale_y);
-
-    reset_offset(fullscrn_state.offset_x);
-    reset_offset(fullscrn_state.offset_y);
+    fullscrn_state.offset_x = 0 as f32;
+    fullscrn_state.offset_y = 0 as f32;
 
     let mut offset_2x = 0;
     let mut offset_2y = 0;
