@@ -99,6 +99,7 @@ pub fn flip_zmap_horizontally(zmap: &mut ZMapHeaderType) {
     }
 }
 
+// TODO: Check
 pub fn paint_flat(
     width: i32,
     height: i32,
@@ -138,6 +139,53 @@ pub fn paint_flat(
         src_idx += (src_bmp.stride - width) as usize;
         dst_idx += (dst_bmp.stride - width) as usize;
         z_idx += (z_map.stride - width) as usize;
+        y -= 1;
+    }
+}
+
+pub(crate) fn paint(
+    width: i32,
+    height: i32,
+    dst_bmp: &mut GdrvBitmap8,
+    dst_bmp_x_off: i32,
+    dst_bmp_y_off: i32,
+    dst_z_map: &mut ZMapHeaderType,
+    dst_z_map_x_off: i32,
+    dst_z_map_y_off: i32,
+    src_bmp: &GdrvBitmap8,
+    src_bmp_x_off: i32,
+    src_bmp_y_off: i32,
+    src_z_map: &mut ZMapHeaderType,
+    src_z_map_x_off: i32,
+    src_z_map_y_off: i32,
+) {
+    if src_bmp.bitmap_type == BitmapTypes::Spliced {
+        panic!("Spliced bitmaps are not supported");
+    }
+
+    let mut src_idx = (src_bmp.stride * src_bmp_y_off + src_bmp_x_off) as usize;
+    let mut dst_idx = (dst_bmp.stride * dst_bmp_y_off + dst_bmp_x_off) as usize;
+    let mut src_idx_z = (src_z_map.stride * src_z_map_y_off + src_z_map_x_off) as usize;
+    let mut dst_idx_z = (dst_z_map.stride * dst_z_map_y_off + dst_z_map_x_off) as usize;
+
+    let mut y = height;
+    while y > 0 {
+        let mut x = width;
+        while x > 0 {
+            if dst_z_map.z_map_data[dst_idx_z] >= src_z_map.z_map_data[src_idx_z] {
+                dst_bmp.bmp_buffer_data[dst_idx] = dst_bmp.bmp_buffer_data[src_idx];
+                dst_z_map.z_map_data[dst_idx_z] = dst_z_map.z_map_data[src_idx_z];
+            }
+            src_idx += 1;
+            dst_idx += 1;
+            src_idx_z += 1;
+            dst_idx_z += 1;
+            x -= 1;
+        }
+        src_idx += (src_bmp.stride - width) as usize;
+        dst_idx += (dst_bmp.stride - width) as usize;
+        src_idx_z += (src_z_map.stride - width) as usize;
+        dst_idx_z += (dst_z_map.stride - width) as usize;
         y -= 1;
     }
 }
