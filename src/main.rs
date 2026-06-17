@@ -307,7 +307,7 @@ impl Mul<Duration<1000000000>> for i32 {
     type Output = Duration<1000000000>;
 
     fn mul(self, rhs: Duration<1000000000>) -> Self::Output {
-        Duration((self as i64 * rhs.0))
+        Duration(self as i64 * rhs.0)
     }
 }
 
@@ -330,7 +330,7 @@ fn main_loop(
 
     println!("Entering main loop, loop");
     loop {
-        if (&mut pb_state.main_state).disp_frame_rate == true {
+        if pb_state.main_state.disp_frame_rate {
             let cur_time = unsafe { SdlPerformanceClock::now() };
 
             if (cur_time - prev_time) > Duration(1_000_000_000) {
@@ -376,8 +376,8 @@ fn main_loop(
                     return Err(MainLoopError::NullWindow);
                 }
             }
-            let dx = ((&mut pb_state.main_state).last_mouse_x - x) as f32 / w as f32;
-            let dy = (y - (&mut pb_state.main_state).last_mouse_y) as f32 / h as f32;
+            let dx = (pb_state.main_state.last_mouse_x - x) as f32 / w as f32;
+            let dy = (y - pb_state.main_state.last_mouse_y) as f32 / h as f32;
             pb::ball_set(dx, dy, &mut pb_state.pb_game_state);
 
             // Original creates continuous mouse movement with mouse capture.
@@ -1277,9 +1277,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             let pref_path_string =
                 CStr::from_ptr(pref_path).to_string_lossy().into_owned() + "imgui_pb.ini";
-            let mut ini_path = PathBuf::from(pref_path_string);
+            let ini_path = PathBuf::from(pref_path_string);
 
-            imgui_context.set_ini_filename(Some(ini_path));
+            imgui_context.set_ini_filename(Some(ini_path))?;
 
             // First option initialization step: just load settings from .ini. Needs ImGui context.
             options::init_primary(
@@ -1387,13 +1387,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                     "Could not load game data",
                     &message,
                     &state.main_state.main_window,
-                );
+                )?;
                 exit(1);
             }
 
-            fullscrn::init(&mut state);
+            fullscrn::init(&mut state)?;
 
-            pb::reset_table(&mut state.pb_game_state);
+            pb::reset_table(&mut state.pb_game_state)?;
             pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state);
 
             let fullscreen = env::args().any(|arg| arg == "-fullscreen");
@@ -1402,8 +1402,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             let res_val = state.fullscrn_state.resolution;
-            if *(&mut state.options_state).options.full_screen == false {
-                let res_info = &(&mut state.fullscrn_state).resolution_array[res_val as usize];
+            if !*state.options_state.options.full_screen {
+                let res_info = &state.fullscrn_state.resolution_array[res_val as usize];
                 SDL_SetWindowSize(
                     window,
                     res_info.table_width as c_int,
@@ -1412,7 +1412,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             SDL_ShowWindow(window);
             fullscrn::set_screen_mode(
-                *(&mut state.options_state).options.full_screen,
+                *state.options_state.options.full_screen,
                 &mut state.fullscrn_state,
                 &mut state.main_state.main_window,
             );
@@ -1430,7 +1430,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 )?;
             }
 
-            main_loop(&mut imgui_context, &mut state);
+            main_loop(&mut imgui_context, &mut state)?;
 
             options::uninit(&mut state.options_state);
             // TODO: Implement sound midi::music_shutdown();
@@ -1449,11 +1449,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 fn build_glyph_ranges_from_translations() -> Vec<ImWchar> {
     let mut cps: Vec<u32> = Vec::new();
     for i in 0..(Msg::MAX as i32) {
-        if let Some(msg) = Msg::from_i32(i) {
-            if let Ok(s) = translations::get_translation(msg) {
-                for ch in s.chars() {
-                    cps.push(ch as u32);
-                }
+        if let Some(msg) = Msg::from_i32(i)
+            && let Ok(s) = translations::get_translation(msg)
+        {
+            for ch in s.chars() {
+                cps.push(ch as u32);
             }
         }
     }

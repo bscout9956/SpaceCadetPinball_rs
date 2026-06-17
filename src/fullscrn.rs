@@ -1,9 +1,9 @@
+use crate::SdlWindowPtr;
 use crate::errors::FullscreenError;
 use crate::state::fullscrn_state::FullscrnState;
 use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::state::render_state::RenderState;
-use crate::SdlWindowPtr;
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
 
@@ -68,10 +68,6 @@ pub fn set_screen_mode(
     result
 }
 
-fn reset_offset(mut offset: f32) {
-    offset = 0.0f32;
-}
-
 pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenError> {
     let fullscrn_state: &mut FullscrnState = &mut state.fullscrn_state;
     let render_state: &mut RenderState = &mut state.render_state;
@@ -94,8 +90,8 @@ pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenErr
 
     let res = &fullscrn_state.resolution_array[fullscrn_state.resolution as usize];
 
-    fullscrn_state.offset_x = 0 as f32;
-    fullscrn_state.offset_y = 0 as f32;
+    fullscrn_state.offset_x = 0f32;
+    fullscrn_state.offset_y = 0f32;
 
     let mut offset_2x = 0;
     let mut offset_2y = 0;
@@ -133,14 +129,6 @@ pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenErr
     });
 
     Ok(())
-}
-
-fn update_y_scale(height: &mut i32, res: &ResolutionInfo, mut scale_y: f32) {
-    scale_y = *height as f32 / res.screen_height as f32;
-}
-
-fn update_x_scale(width: &mut i32, res: &ResolutionInfo, mut scale_x: f32) {
-    scale_x = *width as f32 / res.screen_width as f32;
 }
 
 pub fn activate(
@@ -219,6 +207,7 @@ fn disable_fullscreen(
     Ok(false)
 }
 
-pub fn init(state: &mut PinballState) {
-    window_size_changed(state);
+pub fn init(state: &mut PinballState)-> Result<(), FullscreenError> {
+    window_size_changed(state)?;
+    Ok(())
 }
