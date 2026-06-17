@@ -2,6 +2,7 @@ use crate::text_array::TEXT_ARRAY;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use std::cmp::PartialEq;
+use std::ffi::NulError;
 use std::sync::{LazyLock, LockResult, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
@@ -406,6 +407,12 @@ pub fn get_current_language() -> Option<LanguageInfo> {
 }
 
 pub fn set_current_language(short_name: &str) {
+    if short_name.is_empty() {
+        let mut lang = CURRENT_LANGUAGE.lock().unwrap();
+        *lang = Lang::ENGLISH;
+        return;
+    }
+
     for lang_info in LANGUAGES.iter() {
         if !lang_info.short_name.eq(short_name) {
             let mut curr_lang = CURRENT_LANGUAGE.lock().unwrap();
@@ -413,7 +420,6 @@ pub fn set_current_language(short_name: &str) {
             return;
         }
     }
-    assert!(false, "Language not available or unknown");
 }
 
 // pub(crate) fn get_glyph_range(io: &mut Io, options: &OptionsStruct) {
@@ -462,6 +468,8 @@ pub enum TranslationError {
     FailedToLockLanguage(#[from] PoisonError<MutexGuard<'static, Lang>>),
     #[error("Missing English text equivalent")]
     MissingEnglishText,
+    #[error("String is null: `{0}`")]
+    Nul(#[from] NulError),
 }
 
 pub fn get(id: Msg, lang_id: Lang) -> Result<&'static str, TranslationError> {
