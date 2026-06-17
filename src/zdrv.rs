@@ -173,8 +173,8 @@ pub(crate) fn paint(
         let mut x = width;
         while x > 0 {
             if dst_z_map.z_map_data[dst_idx_z] >= src_z_map.z_map_data[src_idx_z] {
-                dst_bmp.bmp_buffer_data[dst_idx] = dst_bmp.bmp_buffer_data[src_idx];
-                dst_z_map.z_map_data[dst_idx_z] = dst_z_map.z_map_data[src_idx_z];
+                dst_bmp.bmp_buffer_data[dst_idx] = src_bmp.bmp_buffer_data[src_idx];
+                dst_z_map.z_map_data[dst_idx_z] = src_z_map.z_map_data[src_idx_z];
             }
             src_idx += 1;
             dst_idx += 1;
