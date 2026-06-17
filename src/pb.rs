@@ -291,12 +291,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
     timer::init(150)?;
     score::init();
 
-    state.pb_game_state.main_table = Some(TPinballTable::new(
-        &mut state.pb_game_state,
-        &mut state.render_state,
-        &mut state.fullscrn_state,
-        &mut state.loader_state,
-    ));
+    state.pb_game_state.main_table = Some(TPinballTable::new(state));
     let table = state.pb_game_state.main_table.as_ref().unwrap();
     let ball = &table.ball_list[0].borrow();
 
@@ -607,21 +602,111 @@ pub(crate) fn pause_continue(main_state: &mut MainState) {
     //TODO continue
 }
 
-pub(crate) fn input_up(
-    input: GameInput,
-    main_state: &mut MainState,
-    pinball_state: &mut PbGameState,
-) {
-    if pinball_state.game_mode != GameModes::InGame
-        || main_state.single_step
-        || pinball_state.demo_mode
+pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<(), PbError> {
+    if state.pb_game_state.game_mode != GameModes::InGame
+        || state.main_state.single_step
+        || state.pb_game_state.demo_mode
     {
-        return;
+        return Ok(());
     }
+
+    let bindings = options::map_game_input(input, &mut state.options_state);
+    if let Some(table) = state.pb_game_state.main_table.as_mut() {
+        for binding in bindings {
+            match binding {
+                GameBindings::LeftFlipper => {
+                    table.message(
+                        MessageCode::LEFT_FLIPPER_INPUT_RELEASED,
+                        state.pb_game_state.time_now,
+                    );
+                }
+                GameBindings::RightFlipper => {
+                    table.message(
+                        MessageCode::RIGHT_FLIPPER_INPUT_RELEASED,
+                        state.pb_game_state.time_now,
+                    );
+                }
+                GameBindings::Plunger => {
+                    table.message(
+                        MessageCode::PLUNGER_INPUT_PRESSED,
+                        state.pb_game_state.time_now,
+                    );
+                }
+                GameBindings::LeftTableBump => {
+                    if !table.tilt_lock_flag {
+                        nudge::nudge_right();
+                    }
+                }
+                GameBindings::RightTableBump => {
+                    if !table.tilt_lock_flag {
+                        nudge::nudge_left();
+                    }
+                }
+                GameBindings::BottomTableBump => {
+                    if !table.tilt_lock_flag {
+                        nudge::nudge_up();
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if state.pb_game_state.cheat_mode && input.input_type == InputTypes::Keyboard {
+            const F12: i32 = SDL_KeyCode::SDLK_F12 as i32;
+            match input.value {
+                0x62 => {
+                    // 'b'
+                    let pos = Vector2 {
+                        x: 6.0f32,
+                        y: 7.0f32,
+                    };
+                    if !table.ball_count_in_rect(pos, table.collision_comp_offset * 1.2f32)
+                        && table.add_ball(pos, state).is_some()
+                    {
+                        table.multiball_count += 1;
+                    }
+                }
+                0x68 => {
+                    let entry = HighScore {
+                        name: get_rc_string(Msg::STRING127)?,
+                        score: 1000000000,
+                    };
+                    high_score::show_and_set_high_score_dialog(HighScoreEntry {
+                        entry,
+                        position: 1,
+                    })
+                }
+                0x72 => {
+                    control::cheat_bump_rank();
+                }
+                0x73 => table.add_score((random::<f32>() * 1000000.0f32) as i32),
+                F12 => {
+                    table.port_draw();
+                }
+                0x69 => {
+                    if let Some(lg) = table.light_group.as_ref() {
+                        lg.message(MessageCode::T_LIGHT_FT_TMP_OVERRIDE_ON, 1.0f32);
+                    }
+                }
+                0x70 => {
+                    if let Some(lg) = table.light_group.as_ref() {
+                        lg.message(MessageCode::T_LIGHT_FT_TMP_OVERRIDE_OFF, 1.0f32);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    Ok(())
 }
 
-pub(crate) fn launch_ball() {
-    println!("Implement me pls asap");
+pub(crate) fn launch_ball(state: &mut PinballState) -> Result<(), PbError> {
+    if let Some(table) = state.pb_game_state.main_table.as_ref() {
+        table
+            .plunger
+            .message(MessageCode::PLUNGER_LAUNCH_BALL, 0.0f32)?;
+    }
+    Ok(())
 }
 
 pub(crate) fn high_scores(high_score_state: &mut HighScoreState) {
