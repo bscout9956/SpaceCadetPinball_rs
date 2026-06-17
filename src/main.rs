@@ -10,12 +10,13 @@ use crate::translations::Msg;
 use crate::utils::{SdlRendererPtr, SdlWindowPtr};
 use dear_imgui_rs::sys::{
     ImGuiCol_MenuBarBg, ImGuiFocusRequestFlags_None, ImGuiIO, ImGuiMouseCursor_None,
-    ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, igBeginMainMenuBar, igBeginMenu, igEnd,
+    ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, ImWchar, igBeginMainMenuBar, igBeginMenu, igEnd,
     igEndMainMenuBar, igEndMenu, igFocusWindow, igGetDrawData, igGetWindowSize, igMenuItem_Bool,
     igNewFrame, igPopStyleColor, igPopStyleVar, igPushStyleColor_Vec4, igPushStyleVar_Vec2,
     igRender, igSeparator, igSetMouseCursor,
 };
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig, StyleColor, StyleVar, Ui};
+use num_traits::FromPrimitive;
 use sdl2::sys::SDL_EventType::{
     SDL_CONTROLLERBUTTONDOWN, SDL_CONTROLLERBUTTONUP, SDL_KEYDOWN, SDL_KEYUP, SDL_QUIT,
 };
@@ -771,8 +772,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let window = SDL_CreateWindow(
             c_string.as_ptr(),
-            0,
-            0,
+            20,
+            50,
             800,
             556,
             SDL_WINDOW_HIDDEN as u32 | SDL_WINDOW_RESIZABLE as u32,
@@ -899,14 +900,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         println!("Entering loop");
         loop {
-            (&mut state.main_state).restart = false;
+            state.main_state.restart = false;
 
             // ImGUi Init
             let mut imgui_context = Context::create();
             let io = imgui_context.io_mut();
             let mut cfg_flags = io.config_flags();
 
-            let font_cfg = FontConfig::new().oversample_h(2).oversample_h(4);
+            let font_cfg = FontConfig::new().oversample_v(2).oversample_h(4);
 
             let pref_path_string =
                 CStr::from_ptr(pref_path).to_string_lossy().into_owned() + "imgui_pb.ini";
@@ -921,21 +922,32 @@ fn main() -> Result<(), Box<dyn Error>> {
                 options::reset_all_options(&mut state.options_state);
             }
 
-            let font_file_name = &(&mut state.options_state).options.font_file_name.value;
+            let font_file_name = &state.options_state.options.font_file_name.value;
+            println!("Using FontFileName = {}", font_file_name);
 
             if !font_file_name.is_empty() {
                 let mut fonts = imgui_context.fonts();
-                let ranges = fonts.get_glyph_ranges_default().to_vec();
+                let ranges = build_glyph_ranges_from_translations();
 
-                let custom_font = fonts.add_font_from_file_ttf(
-                    font_file_name,
-                    13.0,
-                    Some(&font_cfg),
-                    Some(&ranges),
-                );
-
-                if custom_font.is_none() {
-                    println!("Could not load font {}", font_file_name);
+                if std::fs::File::open(font_file_name).is_ok() {
+                    let custom_font = fonts.add_font_from_file_ttf(
+                        font_file_name,
+                        13.0,
+                        Some(&font_cfg),
+                        Some(&ranges),
+                    );
+                    if custom_font.is_none() {
+                        println!(
+                            "Could not load font {}, falling back to default",
+                            font_file_name
+                        );
+                        imgui_context.fonts().add_font_default(Some(&font_cfg));
+                    }
+                } else {
+                    println!(
+                        "Font file not found: {}, using embedded font.",
+                        font_file_name
+                    );
                     imgui_context.fonts().add_font_default(Some(&font_cfg));
                 }
             } else {
@@ -1060,4 +1072,55 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
     }
+}
+
+fn build_glyph_ranges_from_translations() -> Vec<ImWchar> {
+    let mut cps: Vec<u32> = Vec::new();
+    for i in 0..(Msg::MAX as i32) {
+        if let Some(msg) = Msg::from_i32(i) {
+            if let Ok(s) = translations::get_translation(msg) {
+                for ch in s.chars() {
+                    cps.push(ch as u32);
+                }
+            }
+        }
+    }
+
+    // Regular ASCII
+    for c in 0x20u32..=0x7Eu32 {
+        cps.push(c);
+    }
+
+    cps.sort_unstable();
+    cps.dedup();
+
+    let mut ranges: Vec<ImWchar> = Vec::new();
+    let mut cur_start: Option<u16> = Option::None;
+    let mut cur_end: u16 = 0;
+    for &cp in cps.iter() {
+        if cp > 0xFFFF {
+            continue;
+        }
+        let cp16 = cp as u16;
+        if cur_start.is_none() {
+            cur_start = Some(cp16);
+            cur_end = cp16;
+            continue;
+        }
+        if cp16 == cur_end || cp16 == cur_end + 1 {
+            cur_end = cp16;
+            continue;
+        }
+        ranges.push(cur_start.unwrap() as ImWchar);
+        ranges.push(cur_end as ImWchar);
+        cur_start = Some(cp16);
+        cur_end = cp16;
+    }
+    if let Some(s) = cur_start {
+        ranges.push(s as ImWchar);
+        ranges.push(cur_end as ImWchar);
+    }
+    ranges.push(0); // Null terminator
+
+    ranges
 }
