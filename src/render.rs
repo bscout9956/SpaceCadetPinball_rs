@@ -309,25 +309,23 @@ fn repaint(
     }
 }
 
-fn paint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> {
+fn paint_balls(render_state: &mut RenderState) -> Result<(), RenderError> {
     let v_screen = render_state.v_screen.as_mut().unwrap();
     let z_screen = render_state.z_screen.as_ref().unwrap();
 
     // Sort ball sprites by ascending depth
-    render_state.ball_list.sort_by(|a, b| a.depth.cmp(&b.depth));
+    render_state.ball_list.sort_by_key(|a| a.depth);
 
     // For balls that clip vScreen: save original vScreen contents and paint the ball bitmap.
     for index in 0..render_state.ball_list.len() {
         let ball_sprite = &mut render_state.ball_list[index];
-        let mut ball_bitmap = render_state.ball_bitmap.as_mut().unwrap();
+        let ball_bitmap = render_state.ball_bitmap.as_mut().unwrap();
 
         let dirty = &mut ball_sprite.dirty_rect;
 
-        if ball_sprite.bmp.is_some()
+        if let Some(src_bmp) = ball_sprite.bmp.as_ref()
             && maths::rectangle_clip(&ball_sprite.bmp_rect, &render_state.v_screen_rect, dirty)
         {
-            let ball_sprite_bmp = ball_sprite.bmp.as_ref().unwrap();
-
             let x_pos = dirty.x_position;
             let y_pos = dirty.y_position;
             gdrv::copy_bitmap(
@@ -350,7 +348,7 @@ fn paint_balls(render_state: &mut RenderState) -> Result<(), RenderLockError> {
                 z_screen,
                 x_pos,
                 y_pos,
-                &ball_sprite_bmp,
+                src_bmp,
                 x_pos - ball_sprite.bmp_rect.x_position,
                 y_pos - ball_sprite.bmp_rect.y_position,
                 ball_sprite.depth,
