@@ -127,7 +127,7 @@ pub fn paint_flat(
     while y > 0 {
         let mut x = width;
         while x > 0 {
-            if dst_bmp.bmp_buffer_data[dst_idx].color > 0 && z_map.z_map_data[z_idx] > depth {
+            if src_bmp.bmp_buffer_data[src_idx].color > 0 && z_map.z_map_data[z_idx] > depth {
                 dst_bmp.bmp_buffer_data[dst_idx] = src_bmp.bmp_buffer_data[src_idx];
             }
             src_idx += 1;
