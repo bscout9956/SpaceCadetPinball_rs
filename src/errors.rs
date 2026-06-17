@@ -7,8 +7,10 @@ use crate::fullscrn::ResolutionInfo;
 use crate::group_data::DatFile;
 use crate::loader::SoundListStruct;
 use crate::options::OptionsStruct;
+use crate::render::RenderError;
 use crate::score::ScoreMessageFontType;
 use crate::t_pinball_table::TPinballTable;
+use crate::timer::TimerError;
 use crate::translations::TranslationError;
 
 #[derive(Error, Debug)]
@@ -63,6 +65,12 @@ pub enum PbError {
     LockGeneric,
     #[error("Failed to convert string: `{0}`")]
     FailedStrConversion(#[from] NulError),
+    #[error(transparent)]
+    ScoreError(#[from] ScoreError),
+    #[error(transparent)]
+    RenderLockError(#[from] RenderError),
+    #[error(transparent)]
+    TimerError(#[from] TimerError),
 }
 
 #[derive(Error, Debug)]
