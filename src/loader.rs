@@ -4,6 +4,7 @@ use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::maths::*;
 use crate::state::loader_state::LoaderState;
 use crate::state::pb_game_state::PbGameState;
+use crate::state::pinball_state::PinballState;
 use crate::state::sound_state::SoundState;
 use crate::utils::{PATH_SEPARATOR, SdlWindowPtr};
 use crate::zdrv::ZMapHeaderType;
@@ -292,9 +293,7 @@ pub fn unload(
 
 pub fn get_sound_id(
     group_index: i32,
-    full_tilt_mode: bool,
-    quick_flag: bool,
-    base_path: &str,
+    pb_game_state: &mut PbGameState,
     loader_state: &mut LoaderState,
 ) -> Result<i32, LoaderError> {
     let mut sound_index: i16 = 1;
@@ -323,7 +322,7 @@ pub fn get_sound_id(
 
         let loader_table = loader_state.loader_table.as_ref().unwrap();
         if sound_group_id != 0
-            && !quick_flag
+            && !pb_game_state.quick_flag
             && let Some(EntryBuffer::Raw(value_data)) =
                 loader_table.field(sound_group_id, FieldTypes::ShortValue)
         {
@@ -336,7 +335,7 @@ pub fn get_sound_id(
                         .trim_end_matches('\0')
                         .to_string();
 
-                    if full_tilt_mode {
+                    if pb_game_state.full_tilt_mode {
                         file_name.insert_str(0, &format!("{}sound", PATH_SEPARATOR));
                     }
 
@@ -347,7 +346,7 @@ pub fn get_sound_id(
                             file_name = file_name.to_uppercase();
                         }
 
-                        file_path = pb::make_path_name(&file_name, base_path);
+                        file_path = pb::make_path_name(&file_name, &pb_game_state.base_path);
 
                         if let Ok(mut file) = File::open(&file_path) {
                             let mut header_bytes = [0u8; size_of::<WaveHeader>()];
@@ -583,9 +582,7 @@ pub fn query_float_attribute(
 pub fn material(
     group_index: i32,
     visual: *mut VisualStruct,
-    full_tilt_mode: bool,
-    quick_flag: bool,
-    base_path: &str,
+    pb_game_state: &mut PbGameState,
     loader_state: &mut LoaderState,
 ) -> Result<i32, LoaderError> {
     if group_index < 0 {
@@ -631,13 +628,7 @@ pub fn material(
             301 => unsafe { (*visual).smoothness = value },
             302 => unsafe { (*visual).elasticity = value },
             304 => unsafe {
-                let sound_id = get_sound_id(
-                    value.floor() as i32,
-                    full_tilt_mode,
-                    quick_flag,
-                    base_path,
-                    loader_state,
-                )?;
+                let sound_id = get_sound_id(value.floor() as i32, pb_game_state, loader_state)?;
                 unsafe { (*visual).soft_hit_sound_id = sound_id }
             },
             _ => return Ok(error(9, 21)),
@@ -713,9 +704,7 @@ fn read_float(data: &[u8], index: &mut usize) -> Result<f32, ()> {
 pub fn kicker(
     group_index: i32,
     kicker: *mut VisualKickerStruct,
-    full_tilt_mode: bool,
-    quick_flag: bool,
-    base_path: &str,
+    pb_game_state: &mut PbGameState,
     loader_state: &mut LoaderState,
 ) -> Result<i32, LoaderError> {
     if group_index < 0 {
@@ -777,13 +766,8 @@ pub fn kicker(
             },
             406 => unsafe {
                 let val = read_float(&float_array_data, &mut index).unwrap();
-                (*kicker).hard_hit_sound_id = get_sound_id(
-                    val.floor() as i32,
-                    full_tilt_mode,
-                    quick_flag,
-                    base_path,
-                    loader_state,
-                )?;
+                (*kicker).hard_hit_sound_id =
+                    get_sound_id(val.floor() as i32, pb_game_state, loader_state)?;
             },
 
             _ => return Ok(error(10, 20)),
@@ -797,22 +781,24 @@ pub fn query_visual(
     group_index: i32,
     group_index_offset: i32,
     visual: &mut VisualStruct,
-    pb_game_state: &mut PbGameState,
-    resolution: i32,
-    loader_state: &mut LoaderState,
+    state: &mut PinballState,
 ) -> Result<i32, LoaderError> {
     default_vsi(visual);
     if group_index < 0 {
         return Ok(error(0, 18));
     }
-    let state_id = state_id(group_index, group_index_offset, loader_state)?;
+    let state_id = state_id(group_index, group_index_offset, &mut state.loader_state)?;
     if state_id < 0 {
         return Ok(error(16, 18));
     }
 
-    let loader_table = loader_state.loader_table.as_ref().unwrap();
-    let bmp = loader_table.get_bitmap(state_id, resolution).to_owned();
-    let zmap = loader_table.get_zmap(state_id, resolution).to_owned();
+    let loader_table = state.loader_state.loader_table.as_ref().unwrap();
+    let bmp = loader_table
+        .get_bitmap(state_id, state.fullscrn_state.resolution)
+        .to_owned();
+    let zmap = loader_table
+        .get_zmap(state_id, state.fullscrn_state.resolution)
+        .to_owned();
     visual.bitmap = SpriteData {
         bmp: Some(Arc::new(bmp)),
         zmap: Some(Arc::new(zmap)),
@@ -848,10 +834,8 @@ pub fn query_visual(
                     if material(
                         material_value as i32,
                         visual as *mut _,
-                        pb_game_state.full_tilt_mode,
-                        pb_game_state.quick_flag,
-                        &pb_game_state.base_path,
-                        loader_state,
+                        &mut state.pb_game_state,
+                        &mut state.loader_state,
                     )? != 0
                     {
                         return Ok(error(15, 18));
@@ -866,10 +850,8 @@ pub fn query_visual(
                     i += 2;
                     visual.soft_hit_sound_id = get_sound_id(
                         sound_id as i32,
-                        pb_game_state.full_tilt_mode,
-                        pb_game_state.quick_flag,
-                        &pb_game_state.base_path,
-                        loader_state,
+                        &mut state.pb_game_state,
+                        &mut state.loader_state,
                     )?;
                 }
                 400 => {
@@ -883,10 +865,8 @@ pub fn query_visual(
                     if kicker(
                         kicker_val as i32,
                         &mut visual.kicker,
-                        pb_game_state.full_tilt_mode,
-                        pb_game_state.quick_flag,
-                        &pb_game_state.base_path,
-                        loader_state,
+                        &mut state.pb_game_state,
+                        &mut state.loader_state,
                     )? != 0
                     {
                         return Ok(error(14, 18));
@@ -902,10 +882,8 @@ pub fn query_visual(
                     i += 2;
                     visual.kicker.hard_hit_sound_id = get_sound_id(
                         sound_id as i32,
-                        pb_game_state.full_tilt_mode,
-                        pb_game_state.quick_flag,
-                        &pb_game_state.base_path,
-                        loader_state,
+                        &mut state.pb_game_state,
+                        &mut state.loader_state,
                     )?;
                 }
                 602 => {
@@ -925,10 +903,8 @@ pub fn query_visual(
                     i += 2;
                     visual.sound_index_4 = get_sound_id(
                         sound_id as i32,
-                        pb_game_state.full_tilt_mode,
-                        pb_game_state.quick_flag,
-                        &pb_game_state.base_path,
-                        loader_state,
+                        &mut state.pb_game_state,
+                        &mut state.loader_state,
                     )?;
                 }
                 1101 => {
@@ -940,10 +916,8 @@ pub fn query_visual(
                     i += 2;
                     visual.sound_index_3 = get_sound_id(
                         sound_id as i32,
-                        pb_game_state.full_tilt_mode,
-                        pb_game_state.quick_flag,
-                        &pb_game_state.base_path,
-                        loader_state,
+                        &mut state.pb_game_state,
+                        &mut state.loader_state,
                     )?;
                 }
                 1500 => {
@@ -962,7 +936,7 @@ pub fn query_visual(
         visual.collision_group = 1;
     }
 
-    let loader_table = loader_state.loader_table.as_ref().unwrap();
+    let loader_table = state.loader_state.loader_table.as_ref().unwrap();
     let float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
         Some(EntryBuffer::Raw(float_array_data)) => float_array_data,
         _ => &vec![],
