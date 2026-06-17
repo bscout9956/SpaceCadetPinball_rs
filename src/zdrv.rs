@@ -119,9 +119,9 @@ pub fn paint_flat(
         "Wrong bitmap type"
     );
 
-    let mut dst_idx = (dst_bmp.stride * dst_bmp_y_off + dst_zmap_x_off) as usize;
-    let mut src_idx = (src_bmp.stride * src_bmp_x_off + src_bmp_x_off) as usize;
-    let mut z_idx = (z_map.stride * dst_bmp_y_off + dst_bmp_y_off) as usize;
+    let mut dst_idx = (dst_bmp.stride * dst_bmp_y_off + dst_bmp_x_off) as usize;
+    let mut src_idx = (src_bmp.stride * src_bmp_y_off + src_bmp_x_off) as usize;
+    let mut z_idx = (z_map.stride * dst_zmap_y_off + dst_zmap_x_off) as usize;
 
     let mut y = height;
     while y > 0 {
