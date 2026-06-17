@@ -414,12 +414,14 @@ pub fn set_current_language(short_name: &str) {
     }
 
     for lang_info in LANGUAGES.iter() {
-        if !lang_info.short_name.eq(short_name) {
+        if lang_info.short_name == short_name {
             let mut curr_lang = CURRENT_LANGUAGE.lock().unwrap();
             *curr_lang = lang_info.language;
             return;
         }
     }
+
+    panic!("Language not available: {}", short_name);
 }
 
 // pub(crate) fn get_glyph_range(io: &mut Io, options: &OptionsStruct) {
