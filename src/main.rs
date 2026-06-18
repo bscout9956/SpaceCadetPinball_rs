@@ -192,7 +192,7 @@ pub struct WelfordState {
 impl WelfordState {
     fn new() -> Self {
         Self {
-            mean: 0.005,
+            mean: 5000.0,
             m2: 0.0,
             count: 1,
         }
@@ -397,16 +397,14 @@ fn main_loop(
         {
             let main_state = &mut pb_state.main_state;
             if !main_state.single_step && !main_state.no_time_loss {
-                let dt = frame_duration.count() as f32;
-                pb::frame(dt, &mut pb_state.pb_game_state);
+                let dt = frame_duration.count() as f32 / 1_000_000.0;
+                pb::frame(dt, &mut pb_state.pb_game_state)?;
 
                 if main_state.disp_gr_history {
                     let target_size = (*pb_state.options_state.options.updates_per_second as f32
                         * main_state.gfr_window) as usize;
                     if main_state.gfr_display.len() != target_size {
-                        main_state
-                            .gfr_display
-                            .resize(target_size, main_state.target_frametime.count() as f32);
+                        main_state.gfr_display.resize(target_size, dt);
                         main_state.gfr_offset = 0;
                     }
                     main_state.gfr_display[main_state.gfr_offset as usize] = dt;
@@ -418,9 +416,9 @@ fn main_loop(
             main_state.no_time_loss = false;
         }
 
-        if update_to_frame_counter >= (&mut pb_state.main_state).update_to_frame_ratio {
+        if update_to_frame_counter >= pb_state.main_state.update_to_frame_ratio {
             if *pb_state.options_state.options.hide_cursor
-                && (&mut pb_state.main_state).cursor_idle_counter <= 0
+                && pb_state.main_state.cursor_idle_counter <= 0
             {
                 unsafe {
                     igSetMouseCursor(ImGuiMouseCursor_None);
