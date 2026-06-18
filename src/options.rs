@@ -708,7 +708,7 @@ pub fn render_control_dialog(show_dialog: bool) {
 pub fn map_game_input(key: GameInput, options_state: &mut OptionsState) -> Vec<GameBindings> {
     let mut result: Vec<GameBindings> = Vec::new();
 
-    for input_id in GameBindings::Min as i32..GameBindings::Max as i32 {
+    for input_id in GameBindings::Min as i32..GameBindings::Exit as i32 {
         for input_value in options_state.options.control_options[input_id as usize].inputs {
             if key == input_value {
                 result.push(GameBindings::from_i32(input_id).unwrap());
