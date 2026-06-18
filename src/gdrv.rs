@@ -32,7 +32,7 @@ pub struct ColorRgba {
 
 const ALPHA_OFFSET: u32 = 3 * 8;
 const RED_OFFSET: u32 = 2 * 8;
-const GREEN_OFFSET: u32 = 1 * 8;
+const GREEN_OFFSET: u32 = 8;
 const BLUE_OFFSET: u32 = 0;
 
 impl ColorRgba {
@@ -333,11 +333,12 @@ fn apply_palette(bmp: &mut GdrvBitmap8, palette: &[ColorRgba; 256]) {
         panic!("Wrong bitmap type");
     }
 
-    let stride = bmp.indexed_stride as usize;
+    let src_stride = bmp.indexed_stride as usize;
+    let dst_stride = bmp.stride as usize;
     let height = bmp.height as usize;
 
-    let dst_rows = bmp.bmp_buffer_data.chunks_exact_mut(stride);
-    let src_rows = bmp.indexed_bmp_data.chunks_exact(stride).take(height).rev();
+    let dst_rows = bmp.bmp_buffer_data.chunks_exact_mut(dst_stride);
+    let src_rows = bmp.indexed_bmp_data.chunks_exact(src_stride).take(height).rev();
 
     for (dst_row, src_row) in dst_rows.zip(src_rows) {
         for (dst_pixel, &src_pixel) in dst_row.iter_mut().zip(src_row.iter()) {
