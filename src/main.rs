@@ -1,11 +1,9 @@
-#![allow(arithmetic_overflow)]
 extern crate core;
 
 use crate::embedded_data::load_controller_db;
-use crate::errors::FullscreenError;
 use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPlayers};
 use crate::options::{GameBindings, GameInput, InputTypes, Menu};
-use crate::translations::{Msg, TranslationError};
+use crate::translations::Msg;
 use crate::utils::{SdlRendererPtr, SdlWindowPtr};
 use dear_imgui_rs::sys::{
     ImGuiFocusRequestFlags_None, ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp,
@@ -19,9 +17,14 @@ use errors::MainLoopError;
 use num_traits::FromPrimitive;
 use sdl2::sys::SDL_EventType::{
     SDL_CONTROLLERBUTTONDOWN, SDL_CONTROLLERBUTTONUP, SDL_KEYDOWN, SDL_KEYUP, SDL_QUIT,
+    SDL_WINDOWEVENT,
 };
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::SDL_RendererFlags::{SDL_RENDERER_ACCELERATED, SDL_RENDERER_SOFTWARE};
+use sdl2::sys::SDL_WindowEventID::{
+    SDL_WINDOWEVENT_FOCUS_GAINED, SDL_WINDOWEVENT_FOCUS_LOST, SDL_WINDOWEVENT_HIDDEN,
+    SDL_WINDOWEVENT_RESIZED, SDL_WINDOWEVENT_SHOWN, SDL_WINDOWEVENT_SIZE_CHANGED,
+};
 use sdl2::sys::SDL_WindowFlags::{SDL_WINDOW_HIDDEN, SDL_WINDOW_RESIZABLE};
 use sdl2::sys::SDL_bool::SDL_FALSE;
 use sdl2::sys::mixer::{
@@ -34,7 +37,7 @@ use state::options_state::OptionsState;
 use state::pinball_state::PinballState;
 use std::env;
 use std::error::Error;
-use std::ffi::{CStr, CString, NulError, c_int};
+use std::ffi::{CStr, CString, c_int};
 use std::mem::MaybeUninit;
 use std::ops::{Mul, Neg, Sub};
 use std::path::PathBuf;
@@ -1526,7 +1529,7 @@ fn build_glyph_ranges_from_translations() -> Vec<ImWchar> {
 
 fn update_frame_rate(main_state: &mut MainState, options_state: &mut OptionsState) {
     let fps = options_state.options.frames_per_second.value;
-    let ups = options_state.options.frames_per_second.value;
+    let ups = options_state.options.updates_per_second.value;
     main_state.update_to_frame_ratio = (ups as f64) / fps as f64;
-    main_state.target_frametime = Duration((1000.0 / ups as f64) as i64);
+    main_state.target_frametime = Duration((1_000_000_000.0 / ups as f64) as i64);
 }
