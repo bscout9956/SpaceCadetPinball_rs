@@ -15,16 +15,15 @@ use crate::t_collision_component::ICollisionComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::{Msg, TranslationError};
 use crate::{
-    control, gdrv, high_score, loader, maths, midi, nudge, options, partman, proj, render,
-    score, timer, translations, SdlWindowPtr,
+    SdlWindowPtr, control, gdrv, high_score, loader, maths, midi, nudge, options, partman, proj,
+    render, score, timer, translations,
 };
 use rand::random;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_KeyCode, SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
-use std::ffi::{c_char, CStr, CString};
+use std::ffi::{CStr, CString, c_char};
 use std::fs::File;
-use std::io::Write;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 #[derive(PartialEq, Eq, Ord, PartialOrd)]
 pub enum GameModes {
@@ -175,7 +174,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
         state.pb_game_state.full_tilt_mode,
         fullscrn_state,
     )?;
-    let shared_dat = Arc::new(dat);
+    let shared_dat = Arc::new(RwLock::new(dat));
 
     state.pb_game_state.record_table = Some(Arc::clone(&shared_dat));
 
@@ -193,12 +192,11 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
         return Ok(true);
     }
 
-    {
-        let table = state.pb_game_state.record_table.as_mut().unwrap();
-        let plt = table.field_labeled("background", FieldTypes::Palette);
-        let plt_data = plt.unwrap();
-        if let EntryBuffer::Raw(data) = plt_data {
-            let mut palette_colors = Vec::with_capacity(256);
+    let mut palette_colors = Vec::new();
+    if let Some(table_arc) = state.pb_game_state.record_table.as_ref() {
+        let t = table_arc.read().unwrap();
+        let plt = t.field_labeled("background", FieldTypes::Palette);
+        if let Some(EntryBuffer::Raw(data)) = plt {
             // extract method here
             for i in 0..256 {
                 let offset = i * 4;
@@ -214,26 +212,32 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
                     palette_colors.push(ColorRgba::black());
                 }
             }
-
-            gdrv::display_palette(Some(&palette_colors), &mut state.pb_game_state);
         }
     }
 
-    let table = state.pb_game_state.record_table.as_mut().unwrap();
-    let mut background_bmp = table
-        .get_bitmap(
-            table.record_labeled("background"),
-            fullscrn_state.resolution,
-        )
-        .to_owned();
-
-    let camera_info_id = table.record_labeled("camera_info") + fullscrn_state.resolution;
-    let camera_data = table.field(camera_info_id, FieldTypes::FloatArray).unwrap();
-    let mut camera_info: Vec<f32> = Vec::new();
-
-    if let EntryBuffer::Raw(float_data) = camera_data {
-        camera_info = read_camera_floats(float_data);
+    if !palette_colors.is_empty() {
+        gdrv::display_palette(Some(&palette_colors), &mut state.pb_game_state);
     }
+
+    let (mut background_bmp, camera_info) = {
+        let table_arc = state.pb_game_state.record_table.as_ref().unwrap();
+        let t = table_arc.read().unwrap();
+
+        let background_bmp = t
+            .get_bitmap(t.record_labeled("background"), fullscrn_state.resolution)
+            .to_owned();
+
+        let camera_info_id = t.record_labeled("camera_info") + fullscrn_state.resolution;
+        let camera_data = t.field(camera_info_id, FieldTypes::FloatArray).unwrap();
+
+        let camera_info = if let EntryBuffer::Raw(float_data) = camera_data {
+            read_camera_floats(float_data)
+        } else {
+            Vec::new()
+        };
+
+        (background_bmp, camera_info)
+    };
 
     let res_val = fullscrn_state.resolution;
     let res_info = &fullscrn_state.resolution_array[res_val as usize];

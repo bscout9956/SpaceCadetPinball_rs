@@ -4,7 +4,7 @@ use crate::pb::GameModes;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
 use dear_imgui_rs::sys::ImU32;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 pub struct PbGameState {
     pub ball_max_speed: f32,

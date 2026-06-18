@@ -1,12 +1,12 @@
 use crate::group_data::DatFile;
 use crate::loader::SoundListStruct;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 pub struct LoaderState {
     pub sound_count: i32,
     pub loader_sound_count: i32,
-    pub loader_table: Option<Arc<DatFile>>,
-    pub sound_record_table: Option<Arc<DatFile>>,
+    pub loader_table: Option<Arc<RwLock<DatFile>>>,
+    pub sound_record_table: Option<Arc<RwLock<DatFile>>>,
     pub sound_list: [SoundListStruct; 65],
 }
 

@@ -313,9 +313,8 @@ pub fn display_palette(plt: Option<&[ColorRgba]>, pb_game_state: &mut PbGameStat
 
     pb_game_state.current_palette[255] = ColorRgba::white();
 
-    if let Some(table) = pb_game_state.record_table.as_mut()
-        && let Some(t) = Arc::get_mut(table)
-    {
+    if let Some(table_arc) = pb_game_state.record_table.as_mut() {
+        let mut t = table_arc.write().unwrap();
         for group in &mut t.groups {
             for i in 0..=2 {
                 let bmp = group.get_bitmap_mut(i);

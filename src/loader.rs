@@ -16,7 +16,7 @@ use std::ffi::{CStr, c_char};
 use std::fs::File;
 use std::io::Read;
 use std::ptr::null;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 #[derive(Copy, Clone)]
 pub struct ErrorMessage {
@@ -248,11 +248,13 @@ pub fn default_vsi(visual: &mut VisualStruct) {
 }
 
 pub fn load_from(
-    shared_dat: Arc<DatFile>,
+    dat: Arc<RwLock<DatFile>>,
     loader_state: &mut LoaderState,
 ) -> Result<(), LoaderError> {
-    loader_state.loader_table = Some(Arc::clone(&shared_dat));
-    loader_state.sound_record_table = Some(Arc::clone(&shared_dat));
+    loader_state.loader_table = Some(Arc::clone(&dat));
+    loader_state.sound_record_table = Some(Arc::clone(&dat));
+
+    let shared_dat = dat.read().unwrap();
 
     let groups_len = shared_dat.groups.len() as i32;
     for group_index in 0..groups_len {
@@ -320,7 +322,8 @@ pub fn get_sound_id(
         let sound_group_id = loader_state.sound_list[sound_index as usize].group_index;
         loader_state.sound_list[sound_index as usize].duration = 0.0;
 
-        let loader_table = loader_state.loader_table.as_ref().unwrap();
+        let table_arc = loader_state.loader_table.as_ref().unwrap();
+        let loader_table = table_arc.read().unwrap();
         if sound_group_id != 0
             && !pb_game_state.quick_flag
             && let Some(EntryBuffer::Raw(value_data)) =
@@ -329,6 +332,7 @@ pub fn get_sound_id(
             let val = i16::from_le_bytes([value_data[0], value_data[1]]);
             if val == 202 {
                 // File name is in lower case, while game data is usually in upper case.
+
                 let file_name_ptr = loader_table.field(sound_group_id, FieldTypes::String);
                 if let Some(EntryBuffer::Raw(file_name_data)) = file_name_ptr {
                     let mut file_name = String::from_utf8_lossy(file_name_data.as_ref())
@@ -377,7 +381,8 @@ pub fn query_handle(
     lp_string: *const c_char,
     loader_state: &mut LoaderState,
 ) -> Result<i32, LoaderError> {
-    let loader_table = loader_state.loader_table.as_ref().unwrap();
+    let table_arc = loader_state.loader_table.as_ref().unwrap();
+    let loader_table = table_arc.read().unwrap();
     let lp_str = unsafe { CStr::from_ptr(lp_string).to_string_lossy().into_owned() };
     Ok(loader_table.record_labeled(&lp_str))
 }
@@ -395,7 +400,8 @@ pub fn query_visual_states(
         return Ok(error(0, 17) as i16);
     }
 
-    let loader_table = loader_state.loader_table.as_ref().unwrap();
+    let table_arc = loader_state.loader_table.as_ref().unwrap();
+    let loader_table = table_arc.read().unwrap();
 
     match loader_table.field(group_index, FieldTypes::ShortArray) {
         Some(EntryBuffer::Raw(short_array_data)) if short_array_data.len() >= 4 => {
@@ -415,7 +421,8 @@ pub fn query_visual_states(
 }
 
 pub fn query_name(group_index: i32, loader_state: &mut LoaderState) -> Result<String, LoaderError> {
-    let loader_table = loader_state.loader_table.as_ref().unwrap();
+    let table_arc = loader_state.loader_table.as_ref().unwrap();
+    let loader_table = table_arc.read().unwrap();
     if group_index < 0 {
         error(0, 19);
         return Ok("".to_string());
@@ -442,7 +449,8 @@ pub fn query_int_attribute(
         return Ok(null::<i16>());
     }
 
-    let loader_table = loader_state.loader_table.as_ref().unwrap();
+    let table_arc = loader_state.loader_table.as_ref().unwrap();
+    let loader_table = table_arc.read().unwrap();
     for skip_index in 0.. {
         match loader_table.field_nth(group_index, FieldTypes::ShortArray, skip_index) {
             Some(EntryBuffer::Raw(short_array_data)) => {
@@ -491,7 +499,8 @@ pub fn query_float_attribute_ptr(
         return Ok(null::<f32>());
     }
 
-    let loader_table = loader_state.loader_table.as_ref().unwrap();
+    let table_arc = loader_state.loader_table.as_ref().unwrap();
+    let loader_table = table_arc.read().unwrap();
 
     for skip_index in 0..i32::MAX {
         match loader_table.field_nth(group_index, FieldTypes::FloatArray, skip_index) {
@@ -541,7 +550,8 @@ pub fn query_float_attribute(
         return Ok(f32::nan());
     }
 
-    let loader_table = loader_state.loader_table.as_ref().unwrap();
+    let table_arc = loader_state.loader_table.as_ref().unwrap();
+    let loader_table = table_arc.read().unwrap();
     for skip_index in 0.. {
         match loader_table.field_nth(group_index, FieldTypes::FloatArray, skip_index) {
             Some(EntryBuffer::Raw(float_array_data)) => {
@@ -589,27 +599,31 @@ pub fn material(
         error(0, 21);
     }
 
-    let loader_table = loader_state.loader_table.as_ref().unwrap();
-    let short_value = match loader_table.field(group_index, FieldTypes::ShortValue) {
-        Some(EntryBuffer::Raw(short_array_data)) => {
-            assert_eq!(short_array_data.len(), 2, "Array isn't big enough");
-            i16::from_le_bytes([short_array_data[0], short_array_data[1]])
-        }
-        _ => {
-            return Ok(error(1, 21));
-        }
-    };
+    let mut float_array_data = Vec::new();
+    let mut float_array_len = 0;
+    if let Some(table_arc) = loader_state.loader_table.as_ref() {
+        let loader_table = table_arc.read().unwrap();
+        let short_value = match loader_table.field(group_index, FieldTypes::ShortValue) {
+            Some(EntryBuffer::Raw(short_array_data)) => {
+                assert_eq!(short_array_data.len(), 2, "Array isn't big enough");
+                i16::from_le_bytes([short_array_data[0], short_array_data[1]])
+            }
+            _ => {
+                return Ok(error(1, 21));
+            }
+        };
 
-    if short_value != 300 {
-        return Ok(error(3, 21));
+        if short_value != 300 {
+            return Ok(error(3, 21));
+        }
+
+        float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
+            Some(EntryBuffer::Raw(data)) => data.to_vec(),
+            _ => return Ok(error(11, 21)),
+        };
+
+        float_array_len = loader_table.field_size(group_index, FieldTypes::FloatArray) / 4;
     }
-
-    let float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
-        Some(EntryBuffer::Raw(data)) => data.to_vec(),
-        _ => return Ok(error(11, 21)),
-    };
-
-    let float_array_len = loader_table.field_size(group_index, FieldTypes::FloatArray) / 4;
 
     for index in (0..float_array_len).step_by(2) {
         let byte_offset = (index * 4) as usize;
@@ -663,7 +677,10 @@ fn state_id(
     if visual_state <= 0 {
         return Ok(error(12, 24));
     }
-    let loader_table = loader_state.loader_table.as_ref().unwrap();
+
+    let table_arc = loader_state.loader_table.as_ref().unwrap();
+    let loader_table = table_arc.read().unwrap();
+
     let mut short_val = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(data)) if data.len() >= 2 => i16::from_le_bytes([data[0], data[1]]),
         _ => return Ok(error(1, 24)),
@@ -711,27 +728,33 @@ pub fn kicker(
         error(0, 20);
     }
 
-    let loader_table = loader_state.loader_table.as_ref().unwrap();
-    let short_value = match loader_table.field(group_index, FieldTypes::ShortValue) {
-        Some(EntryBuffer::Raw(data)) => {
-            assert_eq!(data.len(), 2, "Array isn't big enough");
-            i16::from_le_bytes([data[0], data[1]])
+    if let Some(table_arc) = loader_state.loader_table.as_ref() {
+        let loader_table = table_arc.read().unwrap();
+        let short_value = match loader_table.field(group_index, FieldTypes::ShortValue) {
+            Some(EntryBuffer::Raw(data)) => {
+                assert_eq!(data.len(), 2, "Array isn't big enough");
+                i16::from_le_bytes([data[0], data[1]])
+            }
+            _ => {
+                return Ok(error(1, 20));
+            }
+        };
+        if short_value != 400 {
+            return Ok(error(4, 20));
         }
-        _ => {
-            return Ok(error(1, 20));
-        }
-    };
-
-    if short_value != 400 {
-        return Ok(error(4, 20));
     }
 
-    let float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
-        Some(EntryBuffer::Raw(data)) => data.to_vec(),
-        _ => return Ok(error(11, 20)),
-    };
+    let mut float_array_data = Vec::new();
+    let mut float_array_len = 0;
 
-    let float_array_len = loader_table.field_size(group_index, FieldTypes::FloatArray) as usize;
+    if let Some(table_arc) = loader_state.loader_table.as_ref() {
+        let loader_table = table_arc.read().unwrap();
+        float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
+            Some(EntryBuffer::Raw(data)) => data.to_vec(),
+            _ => return Ok(error(11, 20)),
+        };
+        float_array_len = loader_table.field_size(group_index, FieldTypes::FloatArray) as usize;
+    }
 
     let mut index: usize = 0;
     while index < float_array_len {
@@ -792,22 +815,28 @@ pub fn query_visual(
         return Ok(error(16, 18));
     }
 
-    let loader_table = state.loader_state.loader_table.as_ref().unwrap();
-    let bmp = loader_table
-        .get_bitmap(state_id, state.fullscrn_state.resolution)
-        .to_owned();
-    let zmap = loader_table
-        .get_zmap(state_id, state.fullscrn_state.resolution)
-        .to_owned();
-    visual.bitmap = SpriteData {
-        bmp: Some(Arc::new(bmp)),
-        zmap: Some(Arc::new(zmap)),
-    };
+    let mut short_array_data = Vec::new();
 
-    let short_array_data = match loader_table.field(state_id, FieldTypes::ShortArray) {
-        Some(EntryBuffer::Raw(data)) => data.to_vec(),
-        _ => vec![],
-    };
+    if let Some(table_arc) = state.loader_state.loader_table.as_ref() {
+        let loader_table = table_arc.read().unwrap();
+
+        let bmp = loader_table
+            .get_bitmap(state_id, state.fullscrn_state.resolution)
+            .to_owned();
+        let zmap = loader_table
+            .get_zmap(state_id, state.fullscrn_state.resolution)
+            .to_owned();
+        visual.bitmap = SpriteData {
+            bmp: Some(Arc::new(bmp)),
+            zmap: Some(Arc::new(zmap)),
+        };
+
+        short_array_data = match loader_table.field(state_id, FieldTypes::ShortArray) {
+            Some(EntryBuffer::Raw(data)) => data.to_vec(),
+            _ => vec![],
+        };
+    }
+
     if !short_array_data.is_empty() {
         let short_arr_size = short_array_data.len();
         let mut i: usize = 0;
@@ -936,7 +965,9 @@ pub fn query_visual(
         visual.collision_group = 1;
     }
 
-    let loader_table = state.loader_state.loader_table.as_ref().unwrap();
+    let table_arc = state.loader_state.loader_table.as_ref().unwrap();
+    let loader_table = table_arc.read().unwrap();
+
     let float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
         Some(EntryBuffer::Raw(float_array_data)) => float_array_data,
         _ => &vec![],
