@@ -15,6 +15,7 @@ use dear_imgui_rs::sys::{
     igTextUnformatted,
 };
 use dear_imgui_rs::{ConfigFlags, Context, FontConfig, StyleColor, StyleVar, Ui};
+use errors::MainLoopError;
 use num_traits::FromPrimitive;
 use sdl2::sys::SDL_EventType::{
     SDL_CONTROLLERBUTTONDOWN, SDL_CONTROLLERBUTTONUP, SDL_KEYDOWN, SDL_KEYUP, SDL_QUIT,
@@ -288,20 +289,6 @@ fn imgui_menu_item_w_shortcut(
 
 fn handle_game_binding(bind: GameBindings, p1: bool) {
     //todo implement me
-}
-
-#[derive(Error, Debug)]
-pub enum MainLoopError {
-    #[error("Failed to lock Mutex")]
-    MutexLock,
-    #[error(transparent)]
-    NulError(#[from] NulError),
-    #[error("There is no MainWindow to attach to...")]
-    NullWindow,
-    #[error(transparent)]
-    FullScreen(#[from] FullscreenError),
-    #[error(transparent)]
-    Translation(#[from] TranslationError),
 }
 
 impl Mul<Duration<1000000000>> for i32 {

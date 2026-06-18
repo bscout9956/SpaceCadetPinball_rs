@@ -106,3 +106,19 @@ pub enum TTextBoxError {
     #[error("Failure to load dimensions from loader `{0}`")]
     DimensionLoading(#[from] LoaderError),
 }
+
+#[derive(Error, Debug)]
+pub enum MainLoopError {
+    #[error("Failed to lock Mutex")]
+    MutexLock,
+    #[error(transparent)]
+    NulError(#[from] NulError),
+    #[error("There is no MainWindow to attach to...")]
+    NullWindow,
+    #[error(transparent)]
+    FullScreen(#[from] FullscreenError),
+    #[error(transparent)]
+    Translation(#[from] TranslationError),
+    #[error(transparent)]
+    PbError(#[from] PbError),
+}
