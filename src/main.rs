@@ -1025,7 +1025,7 @@ unsafe fn event_handler(
     let io = context.io_mut();
 
     if io.want_capture_mouse() && state.options_state.control_waiting_for_input.is_none() {
-        if state.main_state.mouse_down == true {
+        if state.main_state.mouse_down {
             state.main_state.mouse_down = false;
             if let Some(window) = state.main_state.main_window.as_ref() {
                 unsafe {
@@ -1063,7 +1063,7 @@ unsafe fn event_handler(
         if (*event).type_ == SDL_KEYUP as u32 {
             pb::input_up(
                 GameInput::new(InputTypes::Keyboard, (*event).key.keysym.sym),
-                state
+                state,
             );
         }
         // TODO: There is a bunch of other events missing here!!!
