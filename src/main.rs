@@ -1066,6 +1066,44 @@ unsafe fn event_handler(
                 state
             );
         }
+        // TODO: There is a bunch of other events missing here!!!
+
+        if (*event).type_ == SDL_WINDOWEVENT as u32 {
+            if (*event).window.event == SDL_WINDOWEVENT_SHOWN as u8
+                || (*event).window.event == SDL_WINDOWEVENT_FOCUS_GAINED as u8
+                || (*event).window.event == SDL_WINDOWEVENT_FOCUS_GAINED as u8
+            {
+                state.main_state.activated = true;
+                //TODO: sound::activate();
+                if *state.options_state.options.music && !state.main_state.single_step {
+                    //TODO: midi::music_play();
+                }
+                state.main_state.no_time_loss = true;
+                state.main_state.has_focus = true;
+            }
+
+            if (*event).window.event == SDL_WINDOWEVENT_FOCUS_LOST as u8
+                || (*event).window.event == SDL_WINDOWEVENT_HIDDEN as u8
+            {
+                state.main_state.activated = false;
+                fullscrn::activate(
+                    false,
+                    &mut state.fullscrn_state,
+                    &mut state.main_state.main_window,
+                );
+                *state.options_state.options.full_screen = false;
+                //TODO: sound::deactivate();
+                //TODO: midi::music_stop();
+                state.main_state.has_focus = false;
+                // TODO: pb::lose_focus();
+            }
+
+            if (*event).window.event == SDL_WINDOWEVENT_SIZE_CHANGED as u8
+                || (*event).window.event == SDL_WINDOWEVENT_RESIZED as u8
+            {
+                fullscrn::window_size_changed(state)?;
+            }
+        }
     }
     Ok(true)
 }
