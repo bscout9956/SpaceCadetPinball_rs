@@ -3,7 +3,7 @@ use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::state::fullscrn_state::FullscrnState;
 use crate::state::score_state::ScoreState;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 pub struct ScoreStruct {
     pub score: i32,
@@ -52,16 +52,13 @@ impl ScoreMessageFontType {
 
 pub fn load_msg_font(
     font_name: &str,
-    record_table: &mut Option<Arc<DatFile>>,
+    record_table: &mut Option<Arc<RwLock<DatFile>>>,
     fullscrn_state: &mut FullscrnState,
     score_state: &mut ScoreState,
 ) -> Result<(), ScoreError> {
-    let record_table = match &*record_table {
-        Some(record_table) => record_table,
-        None => return Ok(()),
-    };
+    let t = record_table.as_ref().unwrap().write().unwrap();
 
-    let group_index = record_table.record_labeled(font_name);
+    let group_index = t.record_labeled(font_name);
     if group_index < 0 {
         return Ok(());
     }
@@ -69,7 +66,7 @@ pub fn load_msg_font(
     let font = score_state.MSG_FONTP.as_mut().unwrap();
 
     // FT font has multiple resolutions
-    let gap_array = record_table.field(group_index, FieldTypes::ShortArray);
+    let gap_array = t.field(group_index, FieldTypes::ShortArray);
     if let Some(EntryBuffer::Raw(bytes)) = gap_array {
         let res_val = fullscrn_state.resolution;
         let offset = res_val as usize * 2;
@@ -82,7 +79,7 @@ pub fn load_msg_font(
     }
 
     for (char_index, group_index) in (32..128).zip(group_index as usize..) {
-        let bmp = record_table.get_bitmap(group_index as i32, fullscrn_state.resolution);
+        let bmp = t.get_bitmap(group_index as i32, fullscrn_state.resolution);
         // TODO: This is an assumption, but it may work? Get bitmap doesn't return an option so idk
         if bmp.indexed_bmp_data.is_empty() {
             break;
