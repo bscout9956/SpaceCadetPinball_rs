@@ -21,7 +21,7 @@ pub struct PbGameState {
     pub time_now: f32,
     pub quick_flag: bool,
     pub game_mode: GameModes,
-    pub record_table: Option<Arc<DatFile>>,
+    pub record_table: Option<Arc<RwLock<DatFile>>>,
     pub dat_file_name: String,
     pub base_path: String,
     pub idle_timer_ms: f32,
