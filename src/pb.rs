@@ -2,7 +2,7 @@ use crate::errors::PbError;
 use crate::gdrv::ColorRgba;
 use crate::group_data::{EntryBuffer, FieldTypes};
 use crate::high_score::{HighScore, HighScoreEntry};
-use crate::maths::{normalize_2d, RayType, Vector2, Vector3};
+use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
 use crate::message_code::MessageCode;
 use crate::options::{GameBindings, GameInput, InputTypes};
 use crate::state::high_score_state::HighScoreState;
@@ -231,7 +231,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
         let camera_data = t.field(camera_info_id, FieldTypes::FloatArray).unwrap();
 
         let camera_info = if let EntryBuffer::Raw(float_data) = camera_data {
-            read_camera_floats(float_data)
+            read_camera_floats(&float_data)
         } else {
             Vec::new()
         };
@@ -525,7 +525,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
     for index in 0..table.ball_list.len() {
         let ball = &mut table.ball_list[index].borrow_mut();
         ball_steps[index] = -1;
-        if ball.base_component.active_flag.take() != false {
+        if ball.base_component.active_flag.take() {
             let mut vec_dst: Vector2 = Vector2 { x: 0.0, y: 0.0 };
             ball.time_delta = time_delta;
             if ball.time_delta > 0.01f32 && ball.speed < 0.8f32 {
