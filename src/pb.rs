@@ -477,10 +477,10 @@ pub(crate) fn frame(mut dt_milli_sec: f32, pb_game_state: &mut PbGameState) -> R
 }
 
 fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), PbError> {
-    let mut table = pb_game_state.main_table.as_mut().unwrap();
+    let table = pb_game_state.main_table.as_mut().unwrap();
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
-        if ball.base_component.active_flag.take() == false
+        if !ball.base_component.active_flag.take()
             || ball.has_group_flag
             || ball.collision_comp.is_some()
             || ball.speed >= 0.8f32
@@ -508,10 +508,9 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
             } else {
                 ball.stuck_count += 1;
             }
-            control::unstuck_ball(
-                &mut *ball_rc.borrow_mut(),
-                pb_game_state.time_ticks - ball.last_active_time,
-            );
+
+            let ball_time = ball.last_active_time;
+            control::unstuck_ball(&mut ball, pb_game_state.time_ticks - ball_time);
         }
     }
 
