@@ -176,3 +176,11 @@ pub(crate) fn set_volume(p0: i32) {
 pub(crate) fn set_channels(p0: i32) {
     todo!()
 }
+
+pub(crate) fn activate() {
+    todo!()
+}
+
+pub(crate) fn deactivate() {
+    todo!()
+}
