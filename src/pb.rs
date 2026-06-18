@@ -649,22 +649,28 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<(),
                 _ => {}
             }
         }
+    }
 
-        if state.pb_game_state.cheat_mode && input.input_type == InputTypes::Keyboard {
-            const F12: i32 = SDL_KeyCode::SDLK_F12 as i32;
-            match input.value {
-                0x62 => {
-                    // 'b'
-                    let pos = Vector2 {
-                        x: 6.0f32,
-                        y: 7.0f32,
-                    };
-                    if !table.ball_count_in_rect(pos, table.collision_comp_offset * 1.2f32)
-                        && table.add_ball(pos, state).is_some()
-                    {
-                        table.multiball_count += 1;
-                    }
+    if state.pb_game_state.cheat_mode && input.input_type == InputTypes::Keyboard {
+        const F12: i32 = SDL_KeyCode::SDLK_F12 as i32;
+
+        if input.value == 0x62 {
+            // 'b' {
+            let pos = Vector2 {
+                x: 6.0f32,
+                y: 7.0f32,
+            };
+            // We're taking the table here, hopefully that isn't bad or anything
+            if let Some(mut table) = state.pb_game_state.main_table.take() {
+                if !table.ball_count_in_rect(pos, table.collision_comp_offset * 1.2f32)
+                    && table.add_ball(pos, state).as_mut().is_some()
+                {
+                    table.multiball_count += 1;
                 }
+                state.pb_game_state.main_table = Some(table);
+            }
+        } else if let Some(table) = state.pb_game_state.main_table.as_mut() {
+            match input.value {
                 0x68 => {
                     let entry = HighScore {
                         name: get_rc_string(Msg::STRING127)?,
