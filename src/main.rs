@@ -454,7 +454,10 @@ fn main_loop(
 
         unsafe {
             let sdl_error = SDL_GetError();
-            if !sdl_error.is_null() || !pb_state.main_state.prev_sdl_error.is_empty() {
+            let sdl_error_str = CStr::from_ptr(sdl_error);
+            let sdl_error_string = sdl_error_str.to_string_lossy().to_string();
+
+            if !sdl_error_string.is_empty() || !pb_state.main_state.prev_sdl_error.is_empty() {
                 if !sdl_error.is_null() {
                     SDL_ClearError();
                 }
