@@ -1,6 +1,4 @@
-use crate::pb;
-use std::sync::atomic::Ordering::SeqCst;
-
+#[derive(PartialEq)]
 pub struct TTextBoxMessage {
     pub next_message: Option<Box<TTextBoxMessage>>,
     pub text: &'static str,
