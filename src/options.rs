@@ -1,3 +1,4 @@
+use crate::errors::FullscreenError;
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
 use crate::state::fullscrn_state::FullscrnState;
 use crate::state::main_state::MainState;
@@ -23,6 +24,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::{CStr, CString, c_char, c_void};
 use std::ops::{Deref, DerefMut};
+use thiserror::Error;
 
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
 
@@ -522,11 +524,17 @@ pub unsafe fn init_primary(
     }
 }
 
+#[derive(Error, Debug)]
+pub enum OptionsError {
+    #[error(transparent)]
+    FullScreenError(#[from] FullscreenError),
+}
+
 pub fn init_secondary(
     options_state: &mut OptionsState,
     pb_game_state: &mut PbGameState,
     fullscrn_state: &mut FullscrnState,
-) {
+) -> Result<(), OptionsError> {
     let max_res = fullscrn::get_max_resolution(pb_game_state);
 
     if options_state.options.resolution.value >= 0
@@ -535,14 +543,15 @@ pub fn init_secondary(
         *options_state.options.resolution = max_res;
     }
     if options_state.options.resolution.value == -1 {
-        fullscrn::set_resolution(max_res, fullscrn_state, pb_game_state);
+        fullscrn::set_resolution(max_res, fullscrn_state, pb_game_state)?;
     } else {
         fullscrn::set_resolution(
             *options_state.options.resolution,
             fullscrn_state,
             pb_game_state,
-        );
+        )?;
     }
+    Ok(())
 }
 
 pub fn uninit(options_state: &mut OptionsState) {

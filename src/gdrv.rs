@@ -170,7 +170,7 @@ impl GdrvBitmap8 {
         instance.y_position = header.y_position as i32;
         instance.resolution = header.resolution as u32;
 
-        let mut size_in_bytes: i32;
+        let size_in_bytes: i32;
         if instance.bitmap_type == BitmapTypes::Spliced {
             size_in_bytes = header.size;
         } else {
@@ -406,7 +406,7 @@ fn fill_bitmap_color_rgba(
 ) {
     let mut index = bmp.stride * y_off + x_off;
     for _ in 0..height {
-        for x in (0..width).rev() {
+        for _x in (0..width).rev() {
             bmp.bmp_buffer_data[index as usize] = fill_color;
             index += 1;
         }
