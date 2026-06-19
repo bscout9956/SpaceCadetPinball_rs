@@ -1,9 +1,9 @@
-use crate::pb;
+use crate::state::pinball_state::PinballState;
 use std::ffi::c_void;
 use std::ptr::null_mut;
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::Ordering::Relaxed;
-use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError, atomic};
+use std::sync::{LazyLock, Mutex};
 use thiserror::Error;
 
 type CallBackFn = Box<dyn FnMut(i32, *mut c_void)>;
@@ -11,7 +11,7 @@ type CallBackFn = Box<dyn FnMut(i32, *mut c_void)>;
 pub struct TimerStruct {
     pub target_time: i32,
     pub caller: *mut c_void,
-    pub callback: Option<extern "C" fn(i32, *mut c_void)>,
+    pub callback: Option<unsafe extern "C" fn(i32, *mut c_void, &mut PinballState)>,
     pub next_timer: i32,
     pub timer_id: i32,
 }
@@ -81,7 +81,7 @@ pub fn uninit() {
 pub fn set(
     time: f32,
     caller: *mut c_void,
-    callback: extern "C" fn(i32, *mut c_void),
+    callback: unsafe extern "C" fn(i32, *mut c_void, &mut PinballState),
     time_ticks: usize,
 ) -> i32 {
     let current_count = COUNT.load(Relaxed);
@@ -144,7 +144,7 @@ pub fn set(
     timer_id
 }
 
-pub fn kill_callback(callback: extern "C" fn(i32, *mut c_void)) -> i32 {
+pub fn kill_callback(callback: unsafe extern "C" fn(i32, *mut c_void, &mut PinballState)) -> i32 {
     let mut buffer = TIMER_BUFFER.lock().unwrap();
     let mut count = COUNT.load(Relaxed);
     let mut kill_count = 0;
@@ -236,7 +236,7 @@ pub fn kill_id(timer_id: i32) -> i32 {
     timer_id
 }
 
-pub fn check(time_ticks: usize) -> i32 {
+pub fn check(time_ticks: usize, state: &mut PinballState) -> i32 {
     let mut buffer = TIMER_BUFFER.lock().unwrap();
     let mut count = COUNT.load(Relaxed);
     let mut index = 0;
@@ -255,7 +255,7 @@ pub fn check(time_ticks: usize) -> i32 {
             if let Some(callback) = buffer[current as usize].callback {
                 let timer_id = buffer[current as usize].timer_id;
                 let caller = buffer[current as usize].caller;
-                callback(timer_id, caller);
+                unsafe { callback(timer_id, caller, state) };
             }
 
             current = ACTIVE_HEAD.load(Relaxed);
@@ -282,7 +282,7 @@ pub fn check(time_ticks: usize) -> i32 {
             if let Some(callback) = buffer[current as usize].callback {
                 let timer_id = buffer[current as usize].timer_id;
                 let caller = buffer[current as usize].caller;
-                callback(timer_id, caller);
+                unsafe { callback(timer_id, caller, state) };
             }
 
             current = ACTIVE_HEAD.load(Relaxed);
