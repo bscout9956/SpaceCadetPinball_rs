@@ -7,7 +7,7 @@ use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::translations::Msg;
 use crate::utils::clamp;
-use crate::{fullscrn, midi, render, translations, update_frame_rate};
+use crate::{fullscrn, midi, render, sound, translations, update_frame_rate};
 use dear_imgui_rs::Io;
 use dear_imgui_rs::sys::{
     ImGuiContext, ImGuiSettingsHandler, ImGuiTextBuffer, ImGuiTextBuffer_append,
@@ -23,7 +23,7 @@ use std::cmp::{PartialEq, PartialOrd, max};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::{CStr, CString, c_char, c_void};
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Sub};
 use thiserror::Error;
 
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
@@ -592,7 +592,14 @@ pub fn set_input(
     }
 }
 
-// TODO: Implement all the unimplemented stuff
+impl Sub for Menu {
+    type Output = i32;
+
+    fn sub(self, rhs: Self) -> i32 {
+        self as i32 - rhs as i32
+    }
+}
+
 pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
     match u_id_check_item {
         Menu::NewGame => {}
@@ -600,25 +607,20 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
         Menu::HighScores => {}
         Menu::Exit => {}
         Menu::Sounds => {
-            *state.options_state.options.sounds = !(*state.options_state.options.sounds);
+            *state.options_state.options.sounds ^= true;
+            sound::enable(state.options_state.options.sounds);
         }
         Menu::Music => {
-            *state.options_state.options.music = !(*state.options_state.options.music);
+            *state.options_state.options.music ^= true;
             if !(*state.options_state.options.music) {
                 midi::music_stop();
             } else {
                 midi::music_play();
             }
         }
-        Menu::SoundStereo => {
-            *state.options_state.options.sound_stereo =
-                !(*state.options_state.options.sound_stereo);
-        }
-        Menu::HelpTopics => {}
-        Menu::LaunchBall => {}
-        Menu::PauseResumeGame => {}
+        Menu::SoundStereo => *state.options_state.options.sound_stereo ^= true,
         Menu::FullScreen => {
-            *state.options_state.options.full_screen = !(*state.options_state.options.full_screen);
+            *state.options_state.options.full_screen ^= true;
             fullscrn::set_screen_mode(
                 *state.options_state.options.full_screen,
                 &mut state.fullscrn_state,
@@ -628,7 +630,9 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
         Menu::Demo => {}
         Menu::SelectTable => {}
         Menu::PlayerControls => {}
-        Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {}
+        Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {
+            *state.options_state.options.players = u_id_check_item - Menu::OnePlayer + 1;
+        }
         Menu::ShowMenu => {
             *state.options_state.options.show_menu = !(*state.options_state.options.show_menu);
             fullscrn::window_size_changed(state);
@@ -656,13 +660,11 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             }
         }
         Menu::WindowUniformScale => {
-            *state.options_state.options.uniform_scaling =
-                !(*state.options_state.options.uniform_scaling);
+            *state.options_state.options.uniform_scaling ^= true;
             fullscrn::window_size_changed(state);
         }
         Menu::WindowLinearFilter => {
-            *state.options_state.options.linear_filtering =
-                !(*state.options_state.options.linear_filtering);
+            *state.options_state.options.linear_filtering ^= true;
             render::recreate_screen_texture(
                 &mut state.main_state,
                 &mut state.options_state,
@@ -670,14 +672,15 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             );
         }
         Menu::WindowIntegerScale => {
-            *state.options_state.options.integer_scaling =
-                !(*state.options_state.options.integer_scaling);
+            *state.options_state.options.integer_scaling ^= true;
             fullscrn::window_size_changed(state);
         }
         Menu::Prefer3DPBGameData => {
-            *(&mut state.options_state).options.prefer_3dpb_game_data =
-                !(*(&mut state.options_state).options.prefer_3dpb_game_data);
+            *(&mut state.options_state).options.prefer_3dpb_game_data ^= true;
             fullscrn::window_size_changed(state);
+        }
+        _ => {
+            
         }
     }
 }
