@@ -33,7 +33,7 @@ impl Default for ScoreStruct {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct ScoreMessageFontType {
     pub gap_width: i32,
     pub height: i32,
