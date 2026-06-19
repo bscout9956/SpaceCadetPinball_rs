@@ -244,7 +244,7 @@ fn hybrid_sleep(mut sleep_target: Duration<1000000000>, main_state: &mut MainSta
     // Sacrifices some CPU time for smaller frame time jitter
     while sleep_target > main_state.spin_threshold {
         let start = unsafe { SdlPerformanceClock::now() };
-        std::thread::sleep(std::time::Duration::from_nanos(start.0.count() as u64)); // TODO: Is this correct?
+        std::thread::sleep(std::time::Duration::from_nanos(start.0.count() as u64));
         let end = unsafe { SdlPerformanceClock::now() };
 
         let actual_duration = end - start;
@@ -647,6 +647,12 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
     }
 }
 
+fn new_game(state: &mut PinballState) -> Result<(), MainLoopError> {
+    end_pause(state)?;
+    pb::replay_level(false, state)?;
+    Ok(())
+}
+
 unsafe fn create_resolution_menu(state: &mut PinballState) -> Result<(), MainLoopError> {
     unsafe {
         let table_res_string = pb::get_rc_string_cstring(Msg::Menu1TableResolution)?;
@@ -951,11 +957,12 @@ pub fn restart(main_state: &mut MainState) {
     }
 }
 
-fn pause(toggle: bool, main_state: &mut MainState) {
-    if toggle || !main_state.single_step {
-        pb::pause_continue(main_state);
-        main_state.no_time_loss = true;
+fn pause(toggle: bool, state: &mut PinballState) -> Result<(), MainLoopError> {
+    if toggle || !state.main_state.single_step {
+        pb::pause_continue(state)?;
+        state.main_state.no_time_loss = true;
     }
+    Ok(())
 }
 
 fn process_window_messages(
@@ -1056,7 +1063,7 @@ unsafe fn event_handler(
 
     unsafe {
         if (*event).type_ == SDL_QUIT as u32 {
-            end_pause(&mut state.main_state);
+            end_pause(state)?;
 
             state.main_state.b_quit = true;
             fullscrn::shutdown(&mut state.fullscrn_state, &mut state.main_state.main_window);
@@ -1067,7 +1074,7 @@ unsafe fn event_handler(
             pb::input_up(
                 GameInput::new(InputTypes::Keyboard, (*event).key.keysym.sym),
                 state,
-            );
+            )?;
         }
         // TODO: There is a bunch of other events missing here!!!
 
@@ -1111,11 +1118,12 @@ unsafe fn event_handler(
     Ok(true)
 }
 
-fn end_pause(main_state: &mut MainState) {
-    if main_state.single_step == true {
-        pb::pause_continue(main_state);
-        main_state.no_time_loss = true;
+fn end_pause(state: &mut PinballState) -> Result<(), MainLoopError> {
+    if state.main_state.single_step {
+        pb::pause_continue(state)?;
+        state.main_state.no_time_loss = true;
     }
+    Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -1452,12 +1460,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // TODO LOWPRIO: Implement me
                 pb::toggle_demo();
             } else {
-                pb::replay_level(
-                    false,
-                    &mut state.main_state,
-                    &mut state.options_state,
-                    &mut state.pb_game_state,
-                )?;
+                pb::replay_level(false, &mut state)?;
             }
 
             main_loop(&mut imgui_context, &mut state)?;
