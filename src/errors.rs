@@ -8,6 +8,7 @@ use crate::group_data::DatFile;
 use crate::loader::SoundListStruct;
 use crate::render::RenderError;
 use crate::score::ScoreMessageFontType;
+use crate::sound::SoundError;
 use crate::timer::TimerError;
 use crate::translations::TranslationError;
 
@@ -47,6 +48,8 @@ pub enum LoaderError {
     SoundCountLock(#[from] PoisonError<MutexGuard<'static, i32>>),
     #[error(transparent)]
     FromBytesWithNul(#[from] FromBytesWithNulError),
+    #[error(transparent)]
+    SoundError(#[from] SoundError),
 }
 
 #[derive(Error, Debug)]
