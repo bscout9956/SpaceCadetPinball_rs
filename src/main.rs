@@ -844,10 +844,10 @@ unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<bool, MainLoo
 unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool, MainLoopError> {
     let mut reset_options = false;
     unsafe {
-        let _menu_bar_bg =
+        let menu_bar_bg =
             ui.push_style_color(StyleColor::MenuBarBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
-        let _window_bg = ui.push_style_color(StyleColor::WindowBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
-        let _border_var = ui.push_style_var(StyleVar::WindowBorderSize(0.0));
+        let window_bg = ui.push_style_color(StyleColor::WindowBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
+        let border_var = ui.push_style_var(StyleVar::WindowBorderSize(0.0));
 
         if !state.options_state.options.show_menu.value && igBeginMainMenuBar() {
             let menu_string = "Menu".to_string();
@@ -860,6 +860,10 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool, MainL
 
             igEndMainMenuBar();
         }
+        
+        menu_bar_bg.pop();
+        window_bg.pop();
+        border_var.pop();
 
         reset_options = create_main_menu_bar(state)?;
 
@@ -963,7 +967,7 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool, MainL
         // }
 
         // Print game texts on the sidebar
-        //TODO: gdrv::gr_text_draw_ttext_in_box(&mut state.render_state, &mut state.pb_game_state, ui);
+        gdrv::gr_text_draw_ttext_in_box(&mut state.render_state, &mut state.pb_game_state, ui);
     }
     Ok(reset_options)
 }
