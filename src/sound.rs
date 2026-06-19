@@ -1,14 +1,18 @@
-use crate::maths::Vector2;
-use crate::options::Setting;
+use crate::maths;
+use crate::maths::{Vector2, Vector3};
+use crate::state::pinball_state::PinballState;
 use crate::state::sound_state::SoundState;
-use crate::t_pinball_component::TPinballComponent;
+use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use sdl2::sys::SDL_RWFromFile;
 use sdl2::sys::mixer::{
     Mix_AllocateChannels, Mix_Chunk, Mix_FreeChunk, Mix_HaltChannel, Mix_LoadWAV_RW, Mix_Pause,
-    Mix_PlayChannelTimed, Mix_Playing, Mix_Resume, Mix_Volume,
+    Mix_PlayChannelTimed, Mix_Playing, Mix_Resume, Mix_SetPosition, Mix_Volume,
 };
-use std::ffi::CString;
+use std::f32::consts::PI;
+use std::ffi::{CString, NulError};
+use std::ops::Rem;
 use std::path::Path;
+use thiserror::Error;
 
 pub struct ChannelInfo {
     pub timestamp: i32,
@@ -33,158 +37,198 @@ struct Sound {
     channels: Vec<ChannelInfo>,
 }
 
-impl Sound {
-    fn init(mix_open: bool, channels: i32, enable_flag: bool, volume: i32) -> Self {
-        Self {
-            mix_open,
-            num_channels: channels,
-            volume,
-            enabled_flag: enable_flag,
-            channels: Vec::new(), // TODO?
-        }
-    }
-
-    pub fn enable(&mut self, enable_flag: bool) {
-        self.enabled_flag = enable_flag;
-        if self.mix_open && !enable_flag {
-            unsafe {
-                Mix_HaltChannel(-1);
-            }
-        }
-    }
-
-    pub fn activate(&self) {
+pub fn enable(enable_flag: bool, state: &mut SoundState) {
+    state.enabled_flag = enable_flag;
+    if state.mix_open && !enable_flag {
         unsafe {
-            if self.mix_open {
-                Mix_Resume(-1);
-            }
+            Mix_HaltChannel(-1);
         }
     }
+}
 
-    pub fn deactivate(&self) {
+pub fn activate(state: &mut SoundState) {
+    unsafe {
+        if state.mix_open {
+            Mix_Resume(-1);
+        }
+    }
+}
+
+pub fn deactivate(state: &mut SoundState) {
+    unsafe {
+        if state.mix_open {
+            Mix_Pause(-1);
+        }
+    }
+}
+
+pub fn close(state: &mut SoundState) {
+    enable(false, state);
+    state.channels.clear();
+}
+
+pub fn play_sound(
+    state: &mut PinballState,
+    wave: Option<Mix_Chunk>,
+    time: i32,
+    sound_source: Option<Box<dyn IPinballComponent>>,
+    _info: &[u8], // Unused in the decomp
+) {
+    if state.sound_state.mix_open
+        && state.sound_state.enabled_flag
+        && let Some(mut wv) = wave
+    {
         unsafe {
-            if self.mix_open {
-                Mix_Pause(-1);
+            if Mix_Playing(-1) == state.sound_state.num_channels
+                && let Some(min) = state
+                    .sound_state
+                    .channels
+                    .iter()
+                    .min_by_key(|ch| ch.timestamp)
+                && let Some(oldest_channel) = state
+                    .sound_state
+                    .channels
+                    .iter()
+                    .position(|ch| std::ptr::eq(ch, min))
+            {
+                Mix_HaltChannel(oldest_channel as i32);
             }
-        }
-    }
 
-    pub fn close(&mut self) {
-        self.enable(false);
-        self.channels.clear();
-    }
+            let channel = Mix_PlayChannelTimed(-1, &raw mut wv, 0, -1);
+            if channel != -1 {
+                state.sound_state.channels[channel as usize].timestamp = time;
+                if *state.options_state.options.sound_stereo {
+                    // Positional audio uses collision grid 2D coordinates normalized to [0, 1]
+                    // Point (0, 0) is bottom left table corner; point (1, 1) is top right table corner.
+                    // Z is defined as: 0 at table level, positive axis goes up from table surface.
 
-    pub fn play_sound(
-        &mut self,
-        wave: *mut Mix_Chunk,
-        time: i32,
-        sound_source: TPinballComponent,
-        _info: &[u8], // Unused in the decomp
-    ) {
-        if self.mix_open && self.enabled_flag && !wave.is_null() {
-            unsafe {
-                if Mix_Playing(-1) == self.num_channels
-                    && let Some(min) = self.channels.iter().min_by_key(|ch| ch.timestamp)
-                    && let Some(oldest_channel) =
-                        self.channels.iter().position(|ch| std::ptr::eq(ch, min))
-                {
-                    Mix_HaltChannel(oldest_channel as i32);
+                    // Get the source sound position.
+                    // Sound without position are assumed to be at the center top of the table.
+                    let sound_pos;
+
+                    if let Some(source) = sound_source {
+                        let sound_pos_2d = source.get_coordinates();
+                        sound_pos = Vector2 {
+                            x: sound_pos_2d.x,
+                            y: sound_pos_2d.y,
+                        };
+                    } else {
+                        sound_pos = Vector2 {
+                            x: 0.5f32,
+                            y: 1.0f32,
+                        }
+                    }
+                    state.sound_state.channels[channel as usize].position = sound_pos;
+
+                    // Listener is positioned at the bottom center of the table,
+                    // at 0.5 height, so roughly a table half minus length.
+                    let player_pos = Vector3::new(0.5f32, 0.0f32, 0.5f32);
+                    let sound_pos_vec3 = Vector3 {
+                        x: sound_pos.x,
+                        y: sound_pos.y,
+                        z: 0.0f32,
+                    };
+                    let sound_dir = maths::vector_sub_vec3(&sound_pos_vec3, &player_pos);
+
+                    // Find sound angle from positive Y axis in clockwise direction with atan2
+                    // Remap atan2 output from (-Pi, Pi] to [0, 2 * Pi)
+                    let angle = f32::rem(
+                        f32::atan2(sound_dir.x, sound_dir.y) + PI * 2.0f32,
+                        PI * 2.0f32,
+                    );
+                    let angle_deg = angle.to_degrees();
+                    let angle_sdl = angle_deg as i16;
+
+                    // Distance from listener to the sound position is roughly in the [0, ~1.22] range.
+                    // Remap to [0, 122] by multiplying by 100 and cast to an integer.
+                    let distance = (100.0f32 * maths::magnitude(&sound_dir)) as u8; // tf?
+
+                    // Mix_SetPosition expects an angle in (Sint16)degrees, where
+                    // angle 0 is due north, and rotates clockwise as the value increases.
+                    // Mix_SetPosition expects a (Uint8)distance from 0 (near) to 255 (far).
+                    Mix_SetPosition(channel, angle_sdl, distance);
                 }
-
-                let channel = Mix_PlayChannelTimed(-1, wave, 0, -1);
-                if channel != -1 {
-                    self.channels[channel as usize].timestamp = time;
-                    // TODO: Implement options:: to continue
-                }
-            }
-        }
-    }
-
-    pub fn load_wave_file(&self, lp_name: &str) -> *mut Mix_Chunk {
-        if !self.mix_open {
-            return std::ptr::null_mut();
-        }
-
-        let lp_name_c_raw = CString::new(lp_name).unwrap().into_raw();
-        let mode_c_raw = CString::new("r").unwrap().into_raw();
-        if let Ok(wav_exists) = std::fs::exists(Path::new(lp_name)) {
-            if !wav_exists {
-                return std::ptr::null_mut();
-            }
-            unsafe { Mix_LoadWAV_RW(SDL_RWFromFile(lp_name_c_raw, mode_c_raw), 1) }
-        } else {
-            std::ptr::null_mut()
-        }
-    }
-
-    pub fn free_sound(&self, wave: *mut Mix_Chunk) {
-        if self.mix_open && !wave.is_null() {
-            unsafe {
-                Mix_FreeChunk(wave);
-            }
-        }
-    }
-
-    pub fn set_channels(&mut self, mut channels: i32) {
-        if channels <= 0 {
-            channels = 8;
-        }
-
-        self.num_channels = channels;
-        self.channels
-            .resize_with(channels as usize, ChannelInfo::default);
-        if self.mix_open {
-            unsafe {
-                Mix_AllocateChannels(self.num_channels);
-            }
-        }
-        self.set_volume(self.volume);
-    }
-
-    pub fn set_volume(&mut self, volume: i32) {
-        self.volume = volume;
-        if self.mix_open {
-            unsafe {
-                Mix_Volume(-1, volume);
             }
         }
     }
 }
 
-pub fn free_sound(wave: *mut Mix_Chunk, sound_state: &mut SoundState) {
-    if sound_state.mix_open && !wave.is_null() {
-        unsafe { Mix_FreeChunk(wave) };
+#[derive(Debug, Error)]
+pub enum SoundError {
+    #[error(transparent)]
+    NulError(#[from] NulError),
+}
+
+pub fn load_wave_file(
+    lp_name: &str,
+    state: &mut SoundState,
+) -> Result<Option<Mix_Chunk>, SoundError> {
+    if !state.mix_open {
+        return Ok(None);
+    }
+
+    let c_string = CString::new(lp_name)?;
+    let mode_c_raw = CString::new("r")?;
+    if let Ok(wav_exists) = std::fs::exists(Path::new(lp_name)) {
+        if !wav_exists {
+            return Ok(None);
+        }
+        unsafe {
+            let chunk = Mix_LoadWAV_RW(SDL_RWFromFile(c_string.as_ptr(), mode_c_raw.as_ptr()), 1);
+            if chunk.is_null() {
+                Ok(None)
+            } else {
+                Ok(Some(*chunk))
+            }
+        }
+    } else {
+        Ok(None)
     }
 }
 
-pub(crate) fn load_wave_file(p0: String) -> *const Mix_Chunk {
-    todo!()
+pub fn set_channels(state: &mut SoundState, mut channels: i32) {
+    if channels <= 0 {
+        channels = 8;
+    }
+
+    state.num_channels = channels;
+    state
+        .channels
+        .resize_with(channels as usize, ChannelInfo::default);
+    if state.mix_open {
+        unsafe {
+            Mix_AllocateChannels(state.num_channels);
+        }
+    }
+    set_volume(state, state.volume);
 }
 
-pub(crate) fn play_sound(p0: *const Mix_Chunk, p1: usize, p2: TPinballComponent, p3: &[u8]) {
-    todo!()
+pub fn set_volume(state: &mut SoundState, volume: i32) {
+    state.volume = volume;
+    if state.mix_open {
+        unsafe {
+            Mix_Volume(-1, volume);
+        }
+    }
 }
 
-pub(crate) fn init(p0: bool, p1: Setting<i32>, p2: Setting<bool>, p3: Setting<i32>) {
-    todo!()
+pub fn free_sound(wave: Option<Mix_Chunk>, sound_state: &mut SoundState) {
+    if sound_state.mix_open
+        && let Some(mut wv) = wave
+    {
+        unsafe { Mix_FreeChunk(&raw mut wv) };
+    }
 }
 
-pub(crate) fn set_volume(p0: i32) {
-    todo!()
-}
-
-pub(crate) fn set_channels(p0: i32) {
-    todo!()
-}
-
-pub(crate) fn activate() {
-    todo!()
-}
-
-pub(crate) fn deactivate() {
-    todo!()
-}
-
-pub(crate) fn enable(p0: Setting<bool>) {
-    todo!()
+pub(crate) fn init(
+    mix_open: bool,
+    channels: i32,
+    enable_flag: bool,
+    volume: i32,
+    state: &mut SoundState,
+) {
+    state.mix_open = mix_open;
+    state.volume = volume;
+    set_channels(state, channels);
+    enable(enable_flag, state);
 }
