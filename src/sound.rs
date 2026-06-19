@@ -184,3 +184,7 @@ pub(crate) fn activate() {
 pub(crate) fn deactivate() {
     todo!()
 }
+
+pub(crate) fn enable(p0: Setting<bool>) {
+    todo!()
+}
