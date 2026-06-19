@@ -366,8 +366,8 @@ impl TTextBox {
     }
 }
 
-struct LayoutResult {
-    start: &'static str,
-    end: &'static str,
+struct LayoutResult<'a> {
+    start: &'a str,
+    end: &'a str,
     width: i32,
 }
