@@ -24,6 +24,7 @@ use sdl2::sys::SDL_RendererFlags::{SDL_RENDERER_ACCELERATED, SDL_RENDERER_SOFTWA
 use sdl2::sys::SDL_WindowEventID::{
     SDL_WINDOWEVENT_FOCUS_GAINED, SDL_WINDOWEVENT_FOCUS_LOST, SDL_WINDOWEVENT_HIDDEN,
     SDL_WINDOWEVENT_RESIZED, SDL_WINDOWEVENT_SHOWN, SDL_WINDOWEVENT_SIZE_CHANGED,
+    SDL_WINDOWEVENT_TAKE_FOCUS,
 };
 use sdl2::sys::SDL_WindowFlags::{SDL_WINDOW_HIDDEN, SDL_WINDOW_RESIZABLE};
 use sdl2::sys::SDL_bool::SDL_FALSE;
@@ -1095,7 +1096,7 @@ unsafe fn event_handler(
 
         if (*event).type_ == SDL_WINDOWEVENT as u32 {
             if (*event).window.event == SDL_WINDOWEVENT_SHOWN as u8
-                || (*event).window.event == SDL_WINDOWEVENT_FOCUS_GAINED as u8
+                || (*event).window.event == SDL_WINDOWEVENT_TAKE_FOCUS as u8
                 || (*event).window.event == SDL_WINDOWEVENT_FOCUS_GAINED as u8
             {
                 state.main_state.activated = true;
