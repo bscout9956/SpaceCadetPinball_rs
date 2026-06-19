@@ -30,8 +30,116 @@ pub struct TTextBox {
     pub timer: i32,
     pub bg_bmp: Option<GdrvBitmap8>,
     pub font: Option<ScoreMessageFontType>,
-    pub current_message: Option<TTextBoxMessage>,
-    pub previous_message: Option<TTextBoxMessage>,
+    fn draw(&mut self, state: &mut PinballState) {
+        if let Some(v_screen) = state.render_state.v_screen.as_mut() {
+            if let Some(bg) = self.bg_bmp.as_mut() {
+                gdrv::copy_bitmap(
+                    v_screen,
+                    self.width,
+                    self.height,
+                    self.offset_x,
+                    self.offset_y,
+                    bg,
+                    self.offset_x,
+                    self.offset_y,
+                )
+            } else {
+                gdrv::fill_bitmap(
+                    v_screen,
+                    self.width,
+                    self.height,
+                    self.offset_x,
+                    self.offset_y,
+                    0,
+                    &mut state.pb_game_state,
+                )
+            }
+
+            let mut display = false;
+            while let Some(front_msg) = self.messages.front() {
+                if front_msg.time == -1.0f32 {
+                    if self.messages.len() <= 1 {
+                        self.timer = -1;
+                        display = true;
+                        break;
+                    }
+                } else if front_msg.time_left(state.pb_game_state.time_ticks) >= -2.0f32 {
+                    self.timer = timer::set(
+                        f32::max(front_msg.time_left(state.pb_game_state.time_ticks), 0.25f32),
+                        &raw const *self as *mut c_void,
+                        Self::timer_expired,
+                        state.pb_game_state.time_ticks,
+                    );
+                    display = true;
+                    break;
+                }
+
+                self.messages.pop_front();
+            }
+
+            if display {
+                let font = match self.font.as_ref() {
+                    None => return,
+                    Some(f) => f,
+                };
+
+                if let Some(front_msg) = self.messages.front() {
+                    let mut lines = Vec::new();
+                    let mut text_height = 0;
+                    let mut remaining_text = front_msg.text;
+
+                    while !remaining_text.is_empty() {
+                        if text_height + font.height > self.height {
+                            break;
+                        }
+
+                        let result = self.layout_text_line(remaining_text);
+                        let result_end = result.end;
+
+                        if result.start.is_empty() && result.end == remaining_text {
+                            break;
+                        }
+
+                        lines.push(result);
+                        remaining_text = result_end;
+                        text_height += font.height;
+                    }
+
+                    let mut off_y = self.offset_y;
+                    if state.pb_game_state.full_tilt_mode {
+                        off_y += (self.height - text_height) / 2;
+                    }
+                    for line in lines {
+                        let mut off_x = self.offset_x;
+                        if state.pb_game_state.full_tilt_mode {
+                            off_x += (self.width - line.width) / 2;
+                        }
+                        for &char_byte in line.start.as_bytes() {
+                            let masked_char = (char_byte & 0x7f) as usize;
+                            let char_bmp = &font.chars[masked_char];
+
+                            if char_bmp.height > 0 {
+                                let height = char_bmp.height;
+                                let width = char_bmp.width;
+                                if let Some(_bg_bmp) = state.render_state.background_bitmap.as_ref()
+                                {
+                                    gdrv::copy_bitmap_w_transparency(
+                                        v_screen, width, height, off_x, off_y, char_bmp, 0, 0,
+                                    );
+                                } else {
+                                    gdrv::copy_bitmap(
+                                        v_screen, width, height, off_x, off_y, char_bmp, 0, 0,
+                                    );
+                                }
+                                off_y += char_bmp.width + font.gap_width;
+                            }
+                        }
+                        off_y += font.height;
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl TTextBox {
