@@ -344,8 +344,12 @@ pub fn reset_table(pb_game_state: &mut PbGameState) -> Result<(), PbError> {
     }
 }
 
-pub fn first_time_setup(render_state: &mut RenderState, pb_game_state: &mut PbGameState) {
-    render::update(render_state, pb_game_state);
+pub fn first_time_setup(
+    render_state: &mut RenderState,
+    pb_game_state: &mut PbGameState,
+) -> Result<(), PbError> {
+    render::update(render_state, pb_game_state)?;
+    Ok(())
 }
 
 pub(crate) fn toggle_demo() {
@@ -359,7 +363,7 @@ pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<(), PbE
         &mut state.main_state,
         &mut state.pb_game_state,
     )?;
-    if *state.options_state.options.music == true {
+    if *state.options_state.options.music {
         midi::music_play();
     }
     let table = state.pb_game_state.main_table.as_mut().unwrap();

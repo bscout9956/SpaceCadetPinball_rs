@@ -1448,7 +1448,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             fullscrn::init(&mut state)?;
 
             pb::reset_table(&mut state.pb_game_state)?;
-            pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state);
+            pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state)?;
 
             let fullscreen = env::args().any(|arg| arg == "-fullscreen");
             if fullscreen {
