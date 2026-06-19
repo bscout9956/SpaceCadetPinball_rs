@@ -566,7 +566,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
                     true,
                 ) {
                     options::toggle(OnePlayer, state);
-                    // TODO: new_game();
+                    new_game(state)?;
                 }
 
                 if igMenuItem_Bool(
