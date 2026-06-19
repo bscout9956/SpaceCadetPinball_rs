@@ -352,8 +352,28 @@ pub fn first_time_setup(
     Ok(())
 }
 
-pub(crate) fn toggle_demo() {
-    todo!()
+pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<(), PbError> {
+    if state.pb_game_state.demo_mode {
+        state.pb_game_state.demo_mode = false;
+        if let Some(t) = state.pb_game_state.main_table.as_mut() {
+            t.message(MessageCode::RESET, 0.0);
+        }
+        mode_change(
+            GameModes::GameOver,
+            &mut state.main_state,
+            &mut state.pb_game_state,
+        )?;
+        if let Some(mtb) = state.pb_game_state.miss_text_box.as_mut() {
+            mtb.clear(false);
+        }
+        if let Some(mut itb) = state.pb_game_state.info_text_box.take() {
+            itb.display(get_rc_string(Msg::STRING125)?, -1.0f32, state, None);
+            state.pb_game_state.miss_text_box = Some(itb);
+        }
+    } else {
+        replay_level(true, state)?;
+    }
+    Ok(())
 }
 
 pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<(), PbError> {

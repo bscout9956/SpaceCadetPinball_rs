@@ -1473,8 +1473,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             let is_demo = env::args().any(|arg| arg == "-demo");
             if is_demo {
-                // TODO LOWPRIO: Implement me
-                pb::toggle_demo();
+                pb::toggle_demo(&mut state)?;
             } else {
                 pb::replay_level(false, &mut state)?;
             }
