@@ -30,6 +30,58 @@ pub struct TTextBox {
     pub timer: i32,
     pub bg_bmp: Option<GdrvBitmap8>,
     pub font: Option<ScoreMessageFontType>,
+    pub messages: VecDeque<TTextBoxMessage>,
+}
+
+impl TTextBox {
+    pub(crate) fn display(
+        &mut self,
+        text: &'static str,
+        time: f32,
+        state: &mut PinballState,
+        low_priority: Option<bool>,
+    ) {
+        let prio = low_priority.unwrap_or(false);
+        if text.is_empty() {
+            return;
+        }
+
+        let is_dupe = self.messages.back().map_or(false, |msg| msg.text == text);
+
+        if is_dupe {
+            if let Some(prev_msg) = self.messages.back_mut() {
+                prev_msg.refresh(time, state.pb_game_state.time_ticks);
+            }
+
+            if self.messages.len() == 1 {
+                if self.timer > 0 && self.timer != -1 {
+                    timer::kill_id(self.timer);
+                }
+                if time == -1.0f32 {
+                    self.timer = -1;
+                } else {
+                    self.timer = timer::set(
+                        time,
+                        &raw const *self as *mut c_void,
+                        Self::timer_expired,
+                        state.pb_game_state.time_ticks,
+                    );
+                }
+            }
+        } else {
+            if self.timer == -1 {
+                self.clear(false);
+            }
+            let new_message =
+                TTextBoxMessage::new(text, time, prio, state.pb_game_state.time_ticks);
+            self.messages.push_back(new_message);
+
+            if self.timer == 0 {
+                self.draw(state)
+            }
+        }
+    }
+
     pub unsafe extern "C" fn timer_expired(
         timer_id: i32,
         caller: *mut c_void,
