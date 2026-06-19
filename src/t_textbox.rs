@@ -30,6 +30,18 @@ pub struct TTextBox {
     pub timer: i32,
     pub bg_bmp: Option<GdrvBitmap8>,
     pub font: Option<ScoreMessageFontType>,
+    pub unsafe extern "C" fn timer_expired(
+        timer_id: i32,
+        caller: *mut c_void,
+        state: &mut PinballState,
+    ) {
+        let tb = unsafe { &mut *(caller as *mut TTextBox) };
+        (*tb).timer = 0;
+        if tb.messages.pop_front().is_some() {
+            tb.draw(state);
+            // TODO: contorl shit
+        }
+    }
     fn draw(&mut self, state: &mut PinballState) {
         if let Some(v_screen) = state.render_state.v_screen.as_mut() {
             if let Some(bg) = self.bg_bmp.as_mut() {
