@@ -231,7 +231,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
         let camera_data = t.field(camera_info_id, FieldTypes::FloatArray).unwrap();
 
         let camera_info = if let EntryBuffer::Raw(float_data) = camera_data {
-            read_camera_floats(&float_data)
+            read_camera_floats(float_data.as_slice())
         } else {
             Vec::new()
         };
@@ -277,7 +277,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
             background_bmp.height,
             background_bmp.x_position,
             background_bmp.y_position,
-            &mut background_bmp,
+            &background_bmp,
             0,
             0,
         );
@@ -352,19 +352,21 @@ pub(crate) fn toggle_demo() {
     todo!()
 }
 
-pub fn replay_level(
-    demo_mode: bool,
-    main_state: &mut MainState,
-    options_state: &mut OptionsState,
-    pb_game_state: &mut PbGameState,
-) -> Result<(), PbError> {
-    pb_game_state.demo_mode = demo_mode;
-    mode_change(GameModes::InGame, main_state, pb_game_state)?;
-    if *options_state.options.music == true {
+pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<(), PbError> {
+    state.pb_game_state.demo_mode = demo_mode;
+    mode_change(
+        GameModes::InGame,
+        &mut state.main_state,
+        &mut state.pb_game_state,
+    )?;
+    if *state.options_state.options.music == true {
         midi::music_play();
     }
-    let table = pb_game_state.main_table.as_mut().unwrap();
-    table.message(MessageCode::NEW_GAME, *options_state.options.players as f32);
+    let table = state.pb_game_state.main_table.as_mut().unwrap();
+    table.message(
+        MessageCode::NEW_GAME,
+        *state.options_state.options.players as f32,
+    );
     Ok(())
 }
 
@@ -600,9 +602,34 @@ fn push_cheat(name: &str) {
     }
 }
 
-pub(crate) fn pause_continue(main_state: &mut MainState) {
-    main_state.single_step ^= true;
-    //TODO continue
+pub(crate) fn pause_continue(state: &mut PinballState) -> Result<(), PbError> {
+    state.main_state.single_step ^= true;
+
+    if let Some(text_box) = state.pb_game_state.info_text_box.as_mut() {
+        text_box.clear(false);
+    }
+
+    if let Some(miss_text_box) = state.pb_game_state.miss_text_box.as_ref() {
+        miss_text_box.clear(false);
+    }
+    if state.main_state.single_step {
+        if let Some(t) = state.pb_game_state.main_table.as_mut() {
+            t.message(MessageCode::PAUSE, state.pb_game_state.time_now);
+        }
+    }
+    let rc_string = get_rc_string(Msg::STRING123)?;
+
+    let mut text_box = state
+        .pb_game_state
+        .info_text_box
+        .take()
+        .ok_or(PbError::NoTextBox)?;
+
+    text_box.display(rc_string, -1.0f32, state, None);
+
+    state.pb_game_state.info_text_box = Some(text_box);
+
+    Ok(())
 }
 
 pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<(), PbError> {
