@@ -30,7 +30,7 @@ use sdl2::sys::SDL_WindowFlags::{SDL_WINDOW_HIDDEN, SDL_WINDOW_RESIZABLE};
 use sdl2::sys::SDL_bool::SDL_FALSE;
 use sdl2::sys::mixer::{
     MIX_DEFAULT_FORMAT, MIX_DEFAULT_FREQUENCY, MIX_InitFlags_MIX_INIT_MID, MIX_MAJOR_VERSION,
-    MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_Init, Mix_OpenAudio,
+    MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_CloseAudio, Mix_Init, Mix_OpenAudio, Mix_Quit,
 };
 use sdl2::sys::*;
 use state::main_state::MainState;
@@ -754,7 +754,10 @@ unsafe fn create_audio_menu(state: &mut PinballState) {
                 c"%d".as_ptr(),
                 ImGuiSliderFlags_AlwaysClamp,
             ) {
-                sound::set_volume(*state.options_state.options.sound_volume);
+                sound::set_volume(
+                    &mut state.sound_state,
+                    *state.options_state.options.sound_volume,
+                );
             }
             igTextUnformatted(c"Sound Channels".as_ptr(), c"".as_ptr());
             if igSliderInt(
@@ -765,7 +768,10 @@ unsafe fn create_audio_menu(state: &mut PinballState) {
                 c"%d".as_ptr(),
                 ImGuiSliderFlags_AlwaysClamp,
             ) {
-                sound::set_channels(*state.options_state.options.sound_channels);
+                sound::set_channels(
+                    &mut state.sound_state,
+                    *state.options_state.options.sound_channels,
+                );
             }
             igSeparator();
 
@@ -1092,7 +1098,6 @@ unsafe fn event_handler(
                 state,
             )?;
         }
-        // TODO: There is a bunch of other events missing here!!!
 
         if (*event).type_ == SDL_WINDOWEVENT as u32 {
             if (*event).window.event == SDL_WINDOWEVENT_SHOWN as u8
@@ -1100,9 +1105,9 @@ unsafe fn event_handler(
                 || (*event).window.event == SDL_WINDOWEVENT_FOCUS_GAINED as u8
             {
                 state.main_state.activated = true;
-                //TODO: sound::activate();
+                sound::activate(&mut state.sound_state);
                 if *state.options_state.options.music && !state.main_state.single_step {
-                    //TODO: midi::music_play();
+                    //midi::music_play();
                 }
                 state.main_state.no_time_loss = true;
                 state.main_state.has_focus = true;
@@ -1118,7 +1123,7 @@ unsafe fn event_handler(
                     &mut state.main_state.main_window,
                 );
                 *state.options_state.options.full_screen = false;
-                //TODO: sound::deactivate();
+                sound::deactivate(&mut state.sound_state);
                 //TODO: midi::music_stop();
                 state.main_state.has_focus = false;
                 // TODO: pb::lose_focus();
@@ -1410,17 +1415,18 @@ fn main() -> Result<(), Box<dyn Error>> {
                 &mut state.options_state,
                 &mut state.pb_game_state,
                 &mut state.fullscrn_state,
-            );
+            )?;
 
-            // TODO: Implement sound, we're skipping for now to focus on PB:INIT();
-            // match OPTIONS.lock() {
-            //     Ok(options) => {
-            //         sound::init(mix_opened, options.sound_channels, options.sounds, options.sound_volume);
-            //     },
-            //     Err(e) => {
-            //         println!("Failed to lock options: {}", e);
-            //     }
-            // }
+            sound::init(
+                mix_opened,
+                *state.options_state.options.sound_channels,
+                *state.options_state.options.sounds,
+                *state.options_state.options.sound_volume,
+                &mut state.sound_state,
+            );
+            if !mix_opened {
+                *state.options_state.options.sounds = false;
+            }
 
             if !pb::init(&mut state)? {
                 let mut message = String::from(
@@ -1482,8 +1488,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             options::uninit(&mut state.options_state);
             // TODO: Implement sound midi::music_shutdown();
             // TODO: Implement sound stuff
-            //sound::close();
+            sound::close(&mut state.sound_state);
             pb::uninit(&mut state);
+
+            if !no_audio {
+                if mix_opened {
+                    Mix_CloseAudio();
+                }
+                Mix_Quit();
+            }
 
             if state.main_state.restart {
                 println!("Restarting");
