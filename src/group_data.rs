@@ -238,7 +238,7 @@ pub fn split_sliced_bitmap(
     zdrv::fill(zmap, zmap.width, zmap.height, 0, 0, 0xFFFF);
     zmap.resolution = src_bmp.resolution;
 
-    let table_width = (fullscrn_state.resolution_array)[src_bmp.resolution as usize].table_width;
+    let table_width = fullscrn_state.resolution_array[src_bmp.resolution as usize].table_width;
     let src = &src_bmp.indexed_bmp_data;
     let src_char = &src;
 

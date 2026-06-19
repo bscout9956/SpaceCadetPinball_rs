@@ -176,7 +176,7 @@ unsafe fn enable_fullscreen(
     if !fullscrn_state.display_changed {
         if let Some(window) = main_window {
             unsafe {
-                if (SDL_SetWindowFullscreen(window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32) == 0) {
+                if SDL_SetWindowFullscreen(window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32) == 0 {
                     fullscrn_state.display_changed = true;
                     return Ok(true);
                 }
@@ -195,7 +195,7 @@ fn disable_fullscreen(
     if fullscrn_state.display_changed {
         if let Some(mut window) = main_window.as_mut() {
             unsafe {
-                if (SDL_SetWindowFullscreen(window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32) == 0) {
+                if SDL_SetWindowFullscreen(window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32) == 0 {
                     fullscrn_state.display_changed = false;
                 }
             }
@@ -207,7 +207,7 @@ fn disable_fullscreen(
     Ok(false)
 }
 
-pub fn init(state: &mut PinballState)-> Result<(), FullscreenError> {
+pub fn init(state: &mut PinballState) -> Result<(), FullscreenError> {
     window_size_changed(state)?;
     Ok(())
 }

@@ -529,12 +529,12 @@ pub fn init_secondary(
 ) {
     let max_res = fullscrn::get_max_resolution(pb_game_state);
 
-    if (options_state.options.resolution.value >= 0
-        && options_state.options.resolution.value > max_res)
+    if options_state.options.resolution.value >= 0
+        && options_state.options.resolution.value > max_res
     {
         *options_state.options.resolution = max_res;
     }
-    if (options_state.options.resolution.value == -1) {
+    if options_state.options.resolution.value == -1 {
         fullscrn::set_resolution(max_res, fullscrn_state, pb_game_state);
     } else {
         fullscrn::set_resolution(

@@ -323,10 +323,10 @@ pub fn ray_intersect_line(ray: &RayType, line: &mut LineType) -> f32 {
 
     // Project line on ray perpendicular, no intersection if ray is pointing away from the line
     let v2_dot_v3 = dot_product(&v2, &v3);
-    if (v2_dot_v3 < 0.0) {
+    if v2_dot_v3 < 0.0 {
         // Distance to the intersect point: (V2 X V1) / (V2 dot V3)
         let distance = cross(&v2, &v1) / v2_dot_v3;
-        if (distance >= -ray.min_distance && distance <= ray.max_distance) {
+        if distance >= -ray.min_distance && distance <= ray.max_distance {
             line.ray_intersect.x = distance * ray.direction.x + ray.origin.x;
             line.ray_intersect.y = distance * ray.direction.y + ray.origin.y;
 
@@ -336,7 +336,7 @@ pub fn ray_intersect_line(ray: &RayType, line: &mut LineType) -> f32 {
             } else {
                 line.ray_intersect.y
             };
-            if (test_point >= line.min_coord && test_point <= line.max_coord) {
+            if test_point >= line.min_coord && test_point <= line.max_coord {
                 return distance;
             }
         }

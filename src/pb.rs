@@ -411,7 +411,7 @@ fn mode_change(
 
     match mode {
         GameModes::InGame => {
-            if (pb_game_state.demo_mode) {
+            if pb_game_state.demo_mode {
                 main_state.launch_ball_enabled = false;
                 main_state.high_scores_enabled = false;
                 main_state.demo_active = true;
@@ -526,7 +526,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
                 }
             }
             ball.last_active_time = pb_game_state.time_ticks;
-        } else if (pb_game_state.time_ticks - ball.last_active_time > 500) {
+        } else if pb_game_state.time_ticks - ball.last_active_time > 500 {
             let dist: Vector2 = Vector2 {
                 x: ball.position.x - ball.prev_position.x,
                 y: ball.position.y - ball.prev_position.y,

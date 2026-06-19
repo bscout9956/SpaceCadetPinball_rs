@@ -53,10 +53,10 @@ impl ColorRgba {
 
     pub const fn color_rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
         Self {
-            color: ((alpha as u32) << ALPHA_OFFSET
+            color: (alpha as u32) << ALPHA_OFFSET
                 | (red as u32) << RED_OFFSET
                 | (green as u32) << GREEN_OFFSET
-                | (blue as u32) << BLUE_OFFSET),
+                | (blue as u32) << BLUE_OFFSET,
         }
     }
 

@@ -385,7 +385,7 @@ fn main_loop(
             }
 
             unsafe {
-                if (x_mod != 0 || y_mod != 0) {
+                if x_mod != 0 || y_mod != 0 {
                     x = i32::abs(x - x_mod);
                     y = i32::abs(y - y_mod);
                     if let Some(window) = pb_state.main_state.main_window.as_ref() {
@@ -843,7 +843,7 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool, MainL
         let _window_bg = ui.push_style_color(StyleColor::WindowBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
         let _border_var = ui.push_style_var(StyleVar::WindowBorderSize(0.0));
 
-        if !(state.options_state.options.show_menu.value) && igBeginMainMenuBar() {
+        if !state.options_state.options.show_menu.value && igBeginMainMenuBar() {
             let menu_string = "Menu".to_string();
             let cstr_menu = CString::new(menu_string)?;
 
@@ -1161,14 +1161,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let sdl_context = sdl2::init()?;
     unsafe {
         SDL_SetMainReady();
-        if (SDL_Init(
+        if SDL_Init(
             SDL_INIT_TIMER
                 | SDL_INIT_AUDIO
                 | SDL_INIT_VIDEO
                 | SDL_INIT_EVENTS
                 | SDL_INIT_JOYSTICK
                 | SDL_INIT_GAMECONTROLLER,
-        ) < 0)
+        ) < 0
         {
             pb::show_message_box_cstr_message(
                 SDL_MESSAGEBOX_ERROR,
@@ -1275,9 +1275,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         let no_audio = env::args().any(|arg| arg.contains("-noaudio"));
         if !no_audio {
             println!("Audio enabled.");
-            if ((Mix_Init(MIX_InitFlags_MIX_INIT_MID as c_int)
-                & MIX_InitFlags_MIX_INIT_MID as c_int)
-                == 0)
+            if (Mix_Init(MIX_InitFlags_MIX_INIT_MID as c_int) & MIX_InitFlags_MIX_INIT_MID as c_int)
+                == 0
             {
                 println!(
                     "Could not initialize SDL MIDI, music might not work.\nSDL Error:{}",
@@ -1285,12 +1284,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
                 SDL_ClearError();
             }
-            if (Mix_OpenAudio(
+            if Mix_OpenAudio(
                 MIX_DEFAULT_FREQUENCY as c_int,
                 MIX_DEFAULT_FORMAT as u16,
                 2,
                 1024,
-            ) != 0)
+            ) != 0
             {
                 println!(
                     "Could not open audio device, continuing without audio.\nSDL Error:{}",

@@ -304,7 +304,7 @@ pub fn get_sound_id(
         return Ok(-1);
     }
 
-    while (loader_state.sound_list[sound_index as usize].group_index != group_index) {
+    while loader_state.sound_list[sound_index as usize].group_index != group_index {
         sound_index += 1;
         if sound_index as i32 >= loader_state.sound_count {
             error(25, 26);
@@ -312,10 +312,10 @@ pub fn get_sound_id(
         }
     }
 
-    if (!loader_state.sound_list[sound_index as usize].loaded
+    if !loader_state.sound_list[sound_index as usize].loaded
         && !loader_state.sound_list[sound_index as usize]
             .wave_ptr
-            .is_null())
+            .is_null()
     {
         let mut wave_header = WaveHeader::default();
 

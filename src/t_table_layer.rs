@@ -174,7 +174,7 @@ impl TTableLayer {
         let mut edge_manager = EDGE_MANAGER
             .lock()
             .map_err(|_| TTableLayerError::LockError)?;
-        (*edge_manager) = Some(TEdgeManager::new(
+        *edge_manager = Some(TEdgeManager::new(
             instance.x_min,
             instance.y_min,
             width,
