@@ -140,6 +140,62 @@ pub struct TTextBox {
             }
         }
     }
+
+    fn layout_text_line<'a>(&self, text: &'a str) -> LayoutResult<'a> {
+        let mut line_width = 0;
+        let word_width = 0;
+
+        let word_boundary: Option<usize> = None;
+        let mut end_index = text.len();
+
+        let bytes = text.as_bytes();
+
+        for (i, char_byte) in bytes.iter().enumerate() {
+            let masked_char = char_byte & 0x7F;
+            if masked_char == 0 || masked_char == b'\n' {
+                end_index = i;
+                break;
+            }
+
+            if let Some(ref fonts) = self.font {
+                let char_bmp = &fonts.chars[masked_char as usize];
+                if char_bmp.height == 0 {
+                    continue;
+                }
+
+                let width = line_width + char_bmp.width + fonts.gap_width;
+                if width > self.width {
+                    // Nudge needed here
+                    if let Some(boundary_idx) = word_boundary {
+                        end_index = boundary_idx;
+                        line_width = word_width;
+                    } else {
+                        end_index = i;
+                    }
+                    break;
+                }
+                line_width = width;
+            }
+        }
+
+        let mut next_start = end_index;
+        while next_start < bytes.len() && (bytes[next_start] & 0x7F) == b' ' {
+            next_start += 1;
+        }
+        if next_start < bytes.len() && bytes[next_start] == b'\n' {
+            next_start += 1;
+        }
+
+        LayoutResult {
+            start: &text[..end_index],
+            end: if next_start < text.len() {
+                &text[next_start..]
+            } else {
+                ""
+            },
+            width: line_width,
+        }
+    }
 }
 
 impl TTextBox {
