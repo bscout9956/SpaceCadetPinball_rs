@@ -7,9 +7,10 @@ use crate::t_ball::TBall;
 use crate::t_demo::TDemo;
 use crate::t_light_group::TLightGroup;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
+use crate::t_table_layer::TTableLayer;
 use crate::timer;
 use std::cell::RefCell;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 pub struct ScoreStructSuper {
     pub score_struct: ScoreStruct,
@@ -111,6 +112,12 @@ pub struct TPinballTable {
 }
 
 impl TPinballTable {
+    pub(crate) fn find_component(&self, p0: *const i16) {
+        todo!()
+    }
+}
+
+impl TPinballTable {
     // TODO: Trait
     pub(crate) fn port_draw(&self) {
         todo!()
@@ -197,15 +204,16 @@ impl TPinballTable {
         };
 
         let ball = instance.add_ball(Vector2::default(), state);
-        match ball {
-            Some(b) => {
-                b.borrow_mut().disable();
-            }
-            None => {}
+        if let Some(b) = ball {
+            b.borrow_mut().disable();
         }
 
-        //TODO: pass self, let table_layer = TTableLayer::new()
+        let table_weak = Rc::new(RefCell::new(instance));
 
+        let some_weak_table = Some(Rc::downgrade(&table_weak));
+        let table_layer = TTableLayer::new(some_weak_table, state).unwrap();
+        instance.light_group = TLightGroup::new(some_weak_table, 0);
+        // TODO: Come back here
         instance
     }
 
