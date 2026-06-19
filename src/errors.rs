@@ -55,20 +55,20 @@ pub enum LoaderError {
 pub enum PbError {
     #[error(transparent)]
     RecordLoadError(#[from] RecordLoadError),
-    #[error("Failed to get rc: `{0}`")]
-    GetRcError(#[from] TranslationError),
     #[error(transparent)]
     LoaderError(#[from] LoaderError),
-    #[error("Failed to lock main_table")]
-    TableLock(#[from] PoisonError<MutexGuard<'static, Option<TPinballTable>>>),
     #[error("Failed to convert string: `{0}`")]
     FailedStrConversion(#[from] NulError),
     #[error(transparent)]
     ScoreError(#[from] ScoreError),
     #[error(transparent)]
-    RenderLockError(#[from] RenderError),
+    RenderError(#[from] RenderError),
     #[error(transparent)]
     TimerError(#[from] TimerError),
+    #[error("No textbox found...")]
+    NoTextBox,
+    #[error(transparent)]
+    TranslationError(#[from] TranslationError),
 }
 
 #[derive(Error, Debug)]
@@ -89,14 +89,8 @@ pub enum FullscreenError {
     ResolutionOutOfBounds,
     #[error("Renderer is missing (possibly none)")]
     MissingRenderer,
-    #[error("Faild to lock OPTIONS: `{0}`")]
-    OptionsLock(#[from] PoisonError<MutexGuard<'static, OptionsStruct>>),
-    #[error("Failed to lock ResolutionArray: `{0}`")]
-    ResolutionArrayLock(#[from] PoisonError<MutexGuard<'static, [ResolutionInfo; 3]>>),
     #[error("Failed to lock Scale value: `{0}`")]
     FloatLock(#[from] PoisonError<MutexGuard<'static, f32>>),
-    #[error("Failed to lock Mutex")]
-    LockGeneric,
 }
 
 #[derive(Debug, Error)]
