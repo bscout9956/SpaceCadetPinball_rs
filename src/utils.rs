@@ -1,7 +1,7 @@
 // Equivalent to pch.h with some additions
 
-use std::io::Read;
 use sdl2::sys::{SDL_DestroyTexture, SDL_Renderer, SDL_Texture, SDL_Window};
+use std::io::Read;
 
 pub struct SdlWindowPtr(pub *mut SDL_Window);
 unsafe impl Sync for SdlWindowPtr {}
@@ -10,7 +10,7 @@ pub struct SdlRendererPtr(pub *mut SDL_Renderer);
 unsafe impl Send for SdlRendererPtr {}
 unsafe impl Sync for SdlRendererPtr {}
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct SdlTexturePtr(pub *mut SDL_Texture);
 
 impl Drop for SdlTexturePtr {
