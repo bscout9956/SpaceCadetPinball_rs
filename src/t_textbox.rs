@@ -2,26 +2,29 @@ use crate::errors::TTextBoxError;
 use crate::gdrv::GdrvBitmap8;
 use crate::score::ScoreMessageFontType;
 use crate::state::loader_state::LoaderState;
-use crate::state::pb_game_state::PbGameState;
+use crate::state::pinball_state::PinballState;
 use crate::state::render_state::RenderState;
 use crate::state::score_state::ScoreState;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox_message::TTextBoxMessage;
-use crate::{fullscrn, loader, pb};
+use crate::{fullscrn, gdrv, loader, timer};
+use dear_imgui_rs::Ui;
 use dear_imgui_rs::sys::{
-    ImGuiCol_Text, ImGuiViewportFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoBackground,
-    ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoInputs,
+    ImGuiCol_Text, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoDecoration,
+    ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoInputs,
     ImGuiWindowFlags_NoSavedSettings, ImU32, ImVec2, igBegin, igEnd, igPopStyleColor,
     igPushStyleColor_U32, igSetNextWindowPos, igSetNextWindowSize, igTextWrapped,
 };
-use dear_imgui_rs::{Context, Ui};
 use sdl2::sys::SDL_Rect;
 use std::cell::RefCell;
-use std::ffi::CString;
+use std::cmp::PartialEq;
+use std::collections::VecDeque;
+use std::ffi::{CString, c_void};
 use std::ptr::null_mut;
 use std::rc::Weak;
 use std::slice;
 
+#[derive(PartialEq)]
 pub struct TTextBox {
     pub offset_x: i32,
     pub offset_y: i32,
@@ -94,6 +97,7 @@ impl TTextBox {
             // TODO: contorl shit
         }
     }
+
     fn draw(&mut self, state: &mut PinballState) {
         if let Some(v_screen) = state.render_state.v_screen.as_mut() {
             if let Some(bg) = self.bg_bmp.as_mut() {
@@ -269,7 +273,7 @@ impl TTextBox {
         text_box_color: ImU32,
         ui: &mut Ui,
     ) {
-        if self.font.is_some() || !self.current_message.is_some() {
+        if self.font.is_some() || !self.messages.front().is_some() {
             return;
         }
 
@@ -300,11 +304,9 @@ impl TTextBox {
                 ui.set_window_font_scale(fullscrn::get_screen_to_pinball_ratio());
 
                 igPushStyleColor_U32(ImGuiCol_Text, text_box_color);
-                igTextWrapped(
-                    c"%s".as_ptr(),
-                    self.current_message.as_ref().unwrap().text.as_ptr(),
-                );
-                // TODO: Check if you need to remove this, might have...
+                if let Some(front_msg) = self.messages.front() {
+                    igTextWrapped(c"%s".as_ptr(), front_msg.text.as_ptr());
+                }
                 igPopStyleColor(1);
             }
             igEnd();
@@ -335,8 +337,7 @@ impl TTextBox {
             timer: 0,
             bg_bmp: background_bitmap.clone(),
             font: score_state.MSG_FONTP.clone(),
-            current_message: None,
-            previous_message: None,
+            messages: VecDeque::new(),
         };
 
         if group_index > 0 {
