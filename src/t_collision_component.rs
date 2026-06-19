@@ -1,7 +1,6 @@
 use crate::loader;
 use crate::loader::VisualStruct;
 use crate::maths::*;
-use crate::state::loader_state::LoaderState;
 use crate::t_ball::TBall;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};

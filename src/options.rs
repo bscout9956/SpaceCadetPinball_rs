@@ -23,10 +23,6 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::{CStr, CString, c_char, c_void};
 use std::ops::{Deref, DerefMut};
-use std::str::FromStr;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering::SeqCst;
-use std::sync::{LazyLock, Mutex};
 
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
 

@@ -1,5 +1,5 @@
 use crate::t_edge_manager::FieldEffectType;
-use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
+use crate::t_edge_segment::IEdgeSegment;
 use std::cell::RefCell;
 use std::rc::Rc;
 

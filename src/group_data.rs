@@ -2,13 +2,12 @@ use crate::embedded_data::PB_MSGFT_BIN_COMPRESSED_DATA_BASE85;
 use crate::errors::GroupDataError;
 use crate::gdrv::{BitmapTypes, GdrvBitmap8};
 use crate::state::fullscrn_state::FullscrnState;
+use crate::zdrv;
 use crate::zdrv::ZMapHeaderType;
-use crate::{fullscrn, pb, zdrv};
 use base85::Error;
 use num_derive::FromPrimitive;
 use std::array;
 use std::cmp::PartialOrd;
-use std::sync::atomic::Ordering::Relaxed;
 use thiserror::Error;
 
 #[derive(PartialEq, PartialOrd, Copy, Clone, FromPrimitive)]

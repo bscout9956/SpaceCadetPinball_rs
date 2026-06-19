@@ -14,7 +14,6 @@ use std::ffi::{CString, c_int, c_void};
 use std::fmt::Debug;
 use std::ptr::{null, null_mut};
 use std::slice;
-use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
 #[repr(u8)]

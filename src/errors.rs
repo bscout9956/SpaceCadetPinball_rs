@@ -6,10 +6,8 @@ use thiserror::Error;
 use crate::fullscrn::ResolutionInfo;
 use crate::group_data::DatFile;
 use crate::loader::SoundListStruct;
-use crate::options::OptionsStruct;
 use crate::render::RenderError;
 use crate::score::ScoreMessageFontType;
-use crate::t_pinball_table::TPinballTable;
 use crate::timer::TimerError;
 use crate::translations::TranslationError;
 

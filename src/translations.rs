@@ -3,7 +3,7 @@ use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use std::cmp::PartialEq;
 use std::ffi::NulError;
-use std::sync::{LazyLock, LockResult, Mutex, MutexGuard, PoisonError};
+use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, FromPrimitive)]

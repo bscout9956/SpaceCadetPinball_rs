@@ -1,12 +1,9 @@
-use crate::gdrv::GdrvBitmap8;
 use crate::maths::*;
 use crate::message_code::MessageCode;
 use crate::render::RenderSprite;
 use crate::state::loader_state::LoaderState;
-use crate::zdrv::ZMapHeaderType;
 use crate::{control::ComponentControl, loader, loader::VisualStruct};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
-use std::ffi::CStr;
 use std::{
     cell::{Cell, RefCell},
     rc::{Rc, Weak},
