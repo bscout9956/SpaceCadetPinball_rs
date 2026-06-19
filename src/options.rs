@@ -608,7 +608,7 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
         Menu::Exit => {}
         Menu::Sounds => {
             *state.options_state.options.sounds ^= true;
-            sound::enable(state.options_state.options.sounds);
+            sound::enable(*state.options_state.options.sounds, &mut state.sound_state);
         }
         Menu::Music => {
             *state.options_state.options.music ^= true;
@@ -645,7 +645,11 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
                     != fullscrn::get_max_resolution(&mut state.pb_game_state);
                 *state.options_state.options.resolution = -1;
             } else if new_resolution <= fullscrn::get_max_resolution(&mut state.pb_game_state) {
-                let resolution = if *state.options_state.options.resolution == -1 { fullscrn::get_max_resolution(&mut state.pb_game_state) } else {state.fullscrn_state.resolution};
+                let resolution = if *state.options_state.options.resolution == -1 {
+                    fullscrn::get_max_resolution(&mut state.pb_game_state)
+                } else {
+                    state.fullscrn_state.resolution
+                };
                 if new_resolution != resolution {
                     restart = new_resolution != resolution;
                 }
