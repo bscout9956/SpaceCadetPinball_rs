@@ -12,7 +12,7 @@ use dear_imgui_rs::sys::{
     igPopStyleVar, igPushStyleVar_Vec2, igRender, igSeparator, igSetMouseCursor, igSliderInt,
     igTextUnformatted,
 };
-use dear_imgui_rs::{ConfigFlags, Context, FontConfig, StyleColor, StyleVar, Ui};
+use dear_imgui_rs::{ConfigFlags, Context, FontConfig, Io, StyleColor, StyleVar, Ui};
 use errors::MainLoopError;
 use num_traits::FromPrimitive;
 use sdl2::sys::SDL_EventType::{
@@ -431,8 +431,13 @@ fn main_loop(
             unsafe {
                 imgui_sdl::impl_sdl2_new_frame(imgui_context.io_mut(), pb_state);
                 imgui_sdl::impl_sdl2_renderer_new_frame(imgui_context);
-                let ui = imgui_context.frame();
-                render_ui(ui, pb_state)?;
+
+                let mut reset_options = false;
+                {
+                    let ui = imgui_context.frame();
+                    reset_options = render_ui(ui, pb_state)?;
+                }
+
                 if let Some(renderer) = pb_state.main_state.renderer.as_ref() {
                     SDL_RenderClear(renderer.0);
                     SDL_RenderFillRect(renderer.0, null());
@@ -441,6 +446,14 @@ fn main_loop(
                 igRender();
                 let draw_data = igGetDrawData();
                 imgui_sdl::renderer::render_draw_data(imgui_context.io_mut(), draw_data);
+
+                if reset_options {
+                    options::reset_all_options(
+                        imgui_context.io_mut(),
+                        &mut pb_state.main_state,
+                        &mut pb_state.options_state,
+                    );
+                }
 
                 if let Some(renderer) = pb_state.main_state.renderer.as_mut() {
                     SDL_RenderPresent(renderer.0);
@@ -541,7 +554,8 @@ fn main_loop(
     Ok(())
 }
 
-unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopError> {
+unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool, MainLoopError> {
+    let mut reset_options = false;
     unsafe {
         let menu_string = pb::get_rc_string_cstring(Msg::Menu1Options)?;
         if igBeginMenu(menu_string.as_ptr(), true) {
@@ -576,7 +590,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
                     true,
                 ) {
                     options::toggle(TwoPlayers, state);
-                    // TODO: new_game();
+                    new_game(state)?;
                 }
 
                 if igMenuItem_Bool(
@@ -586,7 +600,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
                     true,
                 ) {
                     options::toggle(ThreePlayers, state);
-                    // TODO: new_game();
+                    new_game(state)?;
                 }
 
                 if igMenuItem_Bool(
@@ -596,7 +610,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
                     true,
                 ) {
                     options::toggle(FourPlayers, state);
-                    // TODO: new_game();
+                    new_game(state)?;
                 }
                 igEndMenu();
             }
@@ -618,7 +632,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
                     ) {
                         if current_language.language != item.language {
                             translations::set_current_language(item.short_name);
-                            //restart();
+                            restart(&mut state.main_state);
                         }
                     }
                 }
@@ -630,20 +644,19 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
 
             create_audio_menu(state);
             // create_graphics_menu();
-            create_resolution_menu(state);
+            create_resolution_menu(state)?;
             create_game_data_menu(state);
 
             igSeparator();
 
             if igMenuItem_Bool(c"Reset All Options".as_ptr(), null(), false, true) {
-                //TODO, needs io
-                // options::reset_all_options()
-                //restart();
+                reset_options = true;
+                restart(&mut state.main_state);
             }
             igEndMenu();
         }
 
-        Ok(())
+        Ok(reset_options)
     }
 }
 
@@ -792,7 +805,8 @@ unsafe fn create_game_data_menu(state: &mut PinballState) {
     }
 }
 
-unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<(), MainLoopError> {
+unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<bool, MainLoopError> {
+    let mut reset_options = false;
     unsafe {
         if *state.options_state.options.show_menu && igBeginMainMenuBar() {
             let current_menu_height = igGetWindowSize().y as i32;
@@ -803,7 +817,7 @@ unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<(), MainLoopE
             }
 
             // create_game_menu();
-            create_options_menu(state);
+            reset_options = create_options_menu(state)?;
             // create_help_menu();
 
             if state.main_state.disp_frame_rate && !state.main_state.fps_details.is_empty() {
@@ -817,10 +831,11 @@ unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<(), MainLoopE
         }
     }
 
-    Ok(())
+    Ok(reset_options)
 }
 
-unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoopError> {
+unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool, MainLoopError> {
+    let mut reset_options = false;
     unsafe {
         let _menu_bar_bg =
             ui.push_style_color(StyleColor::MenuBarBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
@@ -839,7 +854,7 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoo
             igEndMainMenuBar();
         }
 
-        create_main_menu_bar(state);
+        reset_options = create_main_menu_bar(state)?;
 
         // render_dialogs();
 
@@ -943,7 +958,7 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoo
         // Print game texts on the sidebar
         //TODO: gdrv::gr_text_draw_ttext_in_box(&mut state.render_state, &mut state.pb_game_state, ui);
     }
-    Ok(())
+    Ok(reset_options)
 }
 
 pub fn restart(main_state: &mut MainState) {
