@@ -1,6 +1,9 @@
+use std::cell::RefCell;
+use std::rc::Weak;
 use crate::message_code::MessageCode;
 use crate::t_ball::TBall;
 use crate::t_pinball_component::TPinballComponent;
+use crate::t_pinball_table::TPinballTable;
 
 pub fn table_control_handler(code: MessageCode) {
     todo!()
@@ -40,5 +43,9 @@ pub(crate) fn unstuck_ball(p0: &mut TBall, p1: usize) {
 }
 
 pub(crate) fn cheat_bump_rank() {
+    todo!()
+}
+
+pub(crate) fn make_links(p0: Option<Weak<RefCell<TPinballTable>>>) {
     todo!()
 }
