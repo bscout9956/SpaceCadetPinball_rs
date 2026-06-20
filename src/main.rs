@@ -304,7 +304,7 @@ impl Mul<Duration<1000000000>> for i32 {
 }
 
 fn main_loop(
-    imgui_context: &mut Context,
+    imgui_context: &mut dear_imgui_rs::Context,
     pb_state: &mut PinballState,
 ) -> Result<(), MainLoopError> {
     pb_state.main_state.b_quit = false;
@@ -860,7 +860,7 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool, MainL
 
             igEndMainMenuBar();
         }
-        
+
         menu_bar_bg.pop();
         window_bg.pop();
         border_var.pop();
@@ -992,7 +992,7 @@ fn pause(toggle: bool, state: &mut PinballState) -> Result<(), MainLoopError> {
 }
 
 fn process_window_messages(
-    imgui_context: &mut Context,
+    imgui_context: &mut dear_imgui_rs::Context,
     state: &mut PinballState,
 ) -> Result<bool, MainLoopError> {
     let mut idle_wait = 0i64;
@@ -1002,6 +1002,7 @@ fn process_window_messages(
         idle_wait = state.main_state.target_frametime.count();
         unsafe {
             while SDL_PollEvent(event.as_mut_ptr()) > 0 {
+                // TODO: Should we be using idle_wait for something?
                 if event_handler(event.as_mut_ptr(), imgui_context, state)? == false {
                     return Ok(false);
                 }
@@ -1015,6 +1016,7 @@ fn process_window_messages(
     idle_wait = i64::min(idle_wait + state.main_state.target_frametime.0, 500);
     unsafe {
         if SDL_WaitEventTimeout(event.as_mut_ptr(), idle_wait as c_int) > 0 {
+            // TODO: Should we be using idle_wait for something?
             idle_wait = state.main_state.target_frametime.count();
             return event_handler(event.as_mut_ptr(), imgui_context, state);
         }
@@ -1024,7 +1026,7 @@ fn process_window_messages(
 
 unsafe fn event_handler(
     event: *mut SDL_Event,
-    context: &mut Context,
+    context: &mut dear_imgui_rs::Context,
     state: &mut PinballState,
 ) -> Result<bool, MainLoopError> {
     let mut input_down = false;
@@ -1151,7 +1153,7 @@ fn end_pause(state: &mut PinballState) -> Result<(), MainLoopError> {
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<()> {
     let mut state = PinballState::new();
 
     println!("Game version: {}", VERSION);
@@ -1167,7 +1169,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
     println!(" ImGui TODO");
 
-    let sdl_context = sdl2::init()?;
+    let sdl_context = sdl2::init()
+        .map_err(anyhow::Error::msg)
+        .context("Failed to initialize SDL2")?;
     unsafe {
         SDL_SetMainReady();
         if SDL_Init(
@@ -1195,8 +1199,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     unsafe {
         println!("Creating window");
-        let rc_string = pb::get_rc_string(Msg::STRING139)?;
-        let c_string = CString::new(rc_string)?;
+        let rc_string = pb::get_rc_string(Msg::STRING139).context("Failed to obtain rc_string")?;
+        let c_string = CString::new(rc_string).context("Failed to create CString")?;
 
         let window = SDL_CreateWindow(
             c_string.as_ptr(),
@@ -1265,7 +1269,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             } else {
                 println!(
                     "Using SDL Renderer: {}",
-                    CStr::from_ptr(renderer_info.name).to_str()?
+                    CStr::from_ptr(renderer_info.name)
+                        .to_str()
+                        .context("Failed to convert renderer_info.name to str")?
                 );
             }
 
@@ -1330,7 +1336,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             state.main_state.restart = false;
 
             // ImGUi Init
-            let mut imgui_context = Context::create();
+            let mut imgui_context = dear_imgui_rs::Context::create();
             let io = imgui_context.io_mut();
             let mut cfg_flags = io.config_flags();
 
@@ -1340,7 +1346,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 CStr::from_ptr(pref_path).to_string_lossy().into_owned() + "imgui_pb.ini";
             let ini_path = PathBuf::from(pref_path_string);
 
-            imgui_context.set_ini_filename(Some(ini_path))?;
+            imgui_context
+                .set_ini_filename(Some(ini_path))
+                .context("Failed to set imgui context's ini filename")?;
 
             // First option initialization step: just load settings from .ini. Needs ImGui context.
             options::init_primary(
@@ -1402,8 +1410,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             // Data search order: WD, executable path, user pref path, platform specific paths.
             let search_paths: Vec<&str> = vec![
                 "",
-                CStr::from_ptr(base_path).to_str()?,
-                CStr::from_ptr(pref_path).to_str()?,
+                CStr::from_ptr(base_path)
+                    .to_str()
+                    .context("Failed to grab string from ptr for base_path")?,
+                CStr::from_ptr(pref_path)
+                    .to_str()
+                    .context("Failed to grab string from ptr for pref_path")?,
             ];
 
             #[cfg(not(target_os = "windows"))]
@@ -1419,8 +1431,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 &mut state.options_state,
                 &mut state.pb_game_state,
                 &mut state.fullscrn_state,
-            )?;
+            )
+            .context("Failed to initialize secondary options")?;
 
+            println!("Init for sound");
             sound::init(
                 mix_opened,
                 *state.options_state.options.sound_channels,
@@ -1432,7 +1446,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 *state.options_state.options.sounds = false;
             }
 
-            if !pb::init(&mut state)? {
+            println!("Init for pb");
+            if !pb::init(&mut state).context("Failed to initialize pb")? {
                 let mut message = String::from(
                     "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
                 );
@@ -1455,9 +1470,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             fullscrn::init(&mut state)?;
+            println!("Init for fullscrn, successful");
 
             pb::reset_table(&mut state.pb_game_state)?;
             pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state)?;
+            println!("First time setup done");
 
             let fullscreen = env::args().any(|arg| arg == "-fullscreen");
             if fullscreen {
