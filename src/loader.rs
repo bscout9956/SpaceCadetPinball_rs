@@ -845,11 +845,13 @@ pub fn query_visual(
         let short_arr_size = short_array_data.len();
         let mut i: usize = 0;
 
-        while i < short_arr_size / 2 {
+        // Loop runs as long as we have at least 4 bytes left, 2 for id then 2 for value
+        while i + 3 < short_arr_size {
             if i + 1 >= short_arr_size {
                 break;
             }
             let id = i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
+            let value = i16::from_le_bytes([short_array_data[i + 2], short_array_data[i + 3]]);
 
             match id {
                 100 => {
@@ -858,14 +860,8 @@ pub fn query_visual(
                     }
                 }
                 300 => {
-                    if i + 1 >= short_arr_size {
-                        return Ok(error(15, 18));
-                    }
-                    let material_value =
-                        i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                    i += 2;
                     if material(
-                        material_value as i32,
+                        value as i32,
                         visual as *mut _,
                         &mut state.pb_game_state,
                         &mut state.loader_state,
@@ -879,26 +875,16 @@ pub fn query_visual(
                     if i + 1 >= short_arr_size {
                         break;
                     }
-                    let sound_id =
-                        i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                    i += 2;
                     visual.soft_hit_sound_id = get_sound_id(
-                        sound_id as i32,
+                        value as i32,
                         &mut state.pb_game_state,
                         &mut state.loader_state,
                         &mut state.sound_state,
                     )?;
                 }
                 400 => {
-                    if i + 1 >= short_arr_size {
-                        break;
-                    }
-                    let kicker_val =
-                        i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                    i += 2;
-                    // VERIFY: Is the 0 check correct? Should it be not 0?
                     if kicker(
-                        kicker_val as i32,
+                        value as i32,
                         &mut visual.kicker,
                         &mut state.pb_game_state,
                         &mut state.loader_state,
@@ -909,65 +895,43 @@ pub fn query_visual(
                     }
                 }
                 406 => {
-                    if i + 1 >= short_arr_size {
-                        break;
-                    }
-
-                    let sound_id =
-                        i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                    i += 2;
                     visual.kicker.hard_hit_sound_id = get_sound_id(
-                        sound_id as i32,
+                        value as i32,
                         &mut state.pb_game_state,
                         &mut state.loader_state,
                         &mut state.sound_state,
                     )?;
                 }
                 602 => {
-                    if i + 1 >= short_arr_size {
-                        break;
-                    }
-                    let shift = i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                    i += 2;
-                    visual.collision_group |= 1 << shift;
+                    visual.collision_group |= 1 << value;
                 }
                 1100 => {
-                    if i + 1 >= short_arr_size {
-                        break;
-                    }
-                    let sound_id =
-                        i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                    i += 2;
                     visual.sound_index_4 = get_sound_id(
-                        sound_id as i32,
+                        value as i32,
                         &mut state.pb_game_state,
                         &mut state.loader_state,
                         &mut state.sound_state,
                     )?;
                 }
                 1101 => {
-                    if i + 1 >= short_arr_size {
-                        break;
-                    }
-                    let sound_id =
-                        i16::from_le_bytes([short_array_data[i], short_array_data[i + 1]]);
-                    i += 2;
                     visual.sound_index_3 = get_sound_id(
-                        sound_id as i32,
+                        value as i32,
                         &mut state.pb_game_state,
                         &mut state.loader_state,
                         &mut state.sound_state,
                     )?;
                 }
                 1500 => {
-                    // Skipping 7 shorts or 14 bytes
+                    // C++ does shortArr += 7. Since each element is 2 bytes,
+                    // we skip an additional 14 bytes here.
                     i += 14;
                 }
                 _ => {
                     return Ok(error(9, 18));
                 }
             }
-            i += 2
+            // Advance by 4 bytes to reach the next id/value pair
+            i += 4
         }
     }
 
