@@ -1493,7 +1493,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             // TODO: Implement sound midi::music_shutdown();
             // TODO: Implement sound stuff
             sound::close(&mut state.sound_state);
-            pb::uninit(&mut state);
+            pb::uninit(&mut state)?;
 
             if !no_audio {
                 if mix_opened {
