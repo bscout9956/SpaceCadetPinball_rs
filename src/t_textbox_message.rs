@@ -1,4 +1,4 @@
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub struct TTextBoxMessage {
     pub next_message: Option<Box<TTextBoxMessage>>,
     pub text: &'static str,

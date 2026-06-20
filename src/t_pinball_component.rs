@@ -4,6 +4,7 @@ use crate::render::RenderSprite;
 use crate::state::loader_state::LoaderState;
 use crate::{control::ComponentControl, loader, loader::VisualStruct};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
+use std::any::Any;
 use std::{
     cell::{Cell, RefCell},
     rc::{Rc, Weak},

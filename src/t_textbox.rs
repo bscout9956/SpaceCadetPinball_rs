@@ -24,7 +24,7 @@ use std::ptr::null_mut;
 use std::rc::Weak;
 use std::slice;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub struct TTextBox {
     pub offset_x: i32,
     pub offset_y: i32,
