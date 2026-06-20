@@ -455,22 +455,8 @@ pub fn get_translation(id: Msg) -> Result<&'static str, TranslationError> {
                 Ok(text?)
             }
         }
-        Err(e) => Err(TranslationError::FailedToLockLanguage(e)),
+        Err(e) => Err(TranslationError::FailedToLockLanguage),
     }
-}
-
-#[derive(Error, Debug)]
-pub enum TranslationError {
-    #[error("Message id out of bounds")]
-    MsgIdOutOfBounds,
-    #[error("Language id out of bounds")]
-    LangIdOutOfBounds,
-    #[error("Failed to acquire lock")]
-    FailedToLockLanguage(#[from] PoisonError<MutexGuard<'static, Lang>>),
-    #[error("Missing English text equivalent")]
-    MissingEnglishText,
-    #[error("String is null: `{0}`")]
-    Nul(#[from] NulError),
 }
 
 pub fn get(id: Msg, lang_id: Lang) -> Result<&'static str, TranslationError> {
