@@ -8,10 +8,10 @@ use crate::utils::{SdlRendererPtr, SdlWindowPtr};
 use anyhow::{Context, Result};
 use dear_imgui_rs::sys::{
     ImGuiFocusRequestFlags_None, ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp,
-    ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, ImWchar, igBeginMainMenuBar, igBeginMenu, igEnd,
-    igEndMainMenuBar, igEndMenu, igFocusWindow, igGetDrawData, igGetWindowSize, igMenuItem_Bool,
-    igPopStyleVar, igPushStyleVar_Vec2, igRender, igSeparator, igSetMouseCursor, igSliderInt,
-    igTextUnformatted,
+    ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, ImWchar, igBeginMainMenuBar, igBeginMenu,
+    igDestroyContext, igEnd, igEndMainMenuBar, igEndMenu, igFocusWindow, igGetDrawData,
+    igGetWindowSize, igMenuItem_Bool, igPopStyleVar, igPushStyleVar_Vec2, igRender, igSeparator,
+    igSetMouseCursor, igSliderInt, igTextUnformatted,
 };
 use dear_imgui_rs::{ConfigFlags, FontConfig, StyleColor, StyleVar, Ui};
 use errors::MainLoopError;
@@ -296,6 +296,7 @@ fn imgui_menu_item_w_shortcut(
 
 fn handle_game_binding(bind: GameBindings, p1: bool) {
     //todo implement me
+    println!("handle_game_binding TODO, vals are: {:?} {}", bind, p1);
 }
 
 impl Mul<Duration<1000000000>> for i32 {
