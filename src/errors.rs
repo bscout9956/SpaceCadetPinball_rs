@@ -9,6 +9,7 @@ use crate::loader::SoundListStruct;
 use crate::render::RenderError;
 use crate::score::ScoreMessageFontType;
 use crate::sound::SoundError;
+use crate::t_pinball_table::PinballTableError;
 use crate::timer::TimerError;
 use crate::translations::TranslationError;
 
@@ -70,6 +71,10 @@ pub enum PbError {
     NoTextBox,
     #[error(transparent)]
     TranslationError(#[from] TranslationError),
+    #[error("Error creating PinballTable: `{0}`")]
+    PinballTableError(#[from] PinballTableError),
+    #[error("We could find the pinball table")]
+    NoTable,
 }
 
 #[derive(Error, Debug)]
