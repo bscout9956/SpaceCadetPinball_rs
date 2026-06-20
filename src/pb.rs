@@ -156,7 +156,7 @@ fn read_camera_floats(float_data: &[u8]) -> Vec<f32> {
     data
 }
 
-pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
+pub fn init(state: &mut PinballState) -> Result<bool> {
     let fullscrn_state = &mut state.fullscrn_state;
 
     let mut projection_matrix: [f32; 12] = [0.0; 12];
@@ -349,8 +349,8 @@ pub fn reset_table(pb_game_state: &mut PbGameState) -> Result<(), PbError> {
 pub fn first_time_setup(
     render_state: &mut RenderState,
     pb_game_state: &mut PbGameState,
-) -> Result<(), PbError> {
-    render::update(render_state, pb_game_state)?;
+) -> Result<()> {
+    render::update(render_state, pb_game_state).context("Failed to update render state")?;
     Ok(())
 }
 
