@@ -168,19 +168,7 @@ impl PartialEq for RenderSprite {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum RenderError {
-    #[error("Failed to lock V_SCREEN")]
-    VScreen(#[from] PoisonError<MutexGuard<'static, Option<GdrvBitmap8>>>),
-    #[error("Failed to lock BALL_BITMAP")]
-    BallBitmap(#[from] PoisonError<MutexGuard<'static, Option<[GdrvBitmap8; 20]>>>),
-    #[error("Failed to lock Z_SCREEN")]
-    ZScreen(#[from] PoisonError<MutexGuard<'static, Option<ZMapHeaderType>>>),
-    #[error("Failed to lock RectangleType")]
-    Rectangle(#[from] PoisonError<MutexGuard<'static, RectangleType>>),
-    #[error("Failed to lock BALL_LIST")]
-    BallList(#[from] PoisonError<MutexGuard<'static, Vec<RenderSprite>>>),
-}
+use anyhow::Result;
 
 pub fn init(
     bmp: Option<GdrvBitmap8>,
