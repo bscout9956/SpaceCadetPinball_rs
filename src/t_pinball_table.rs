@@ -1,4 +1,4 @@
-use crate::errors::PbError;
+use crate::errors::{LoaderError, PbError};
 use crate::maths::{Vector2, Vector3};
 use crate::message_code::MessageCode;
 use crate::score::ScoreStruct;
@@ -8,10 +8,16 @@ use crate::t_demo::TDemo;
 use crate::t_light_group::TLightGroup;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_table_layer::TTableLayer;
-use crate::timer;
+use crate::t_textbox::TTextBox;
+use crate::{control, loader, pb, render, score, timer};
+use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_WARNING;
+use std::any::Any;
 use std::cell::RefCell;
+use std::ffi::{CString, NulError};
 use std::rc::{Rc, Weak};
+use thiserror::Error;
 
+#[derive(Default)]
 pub struct ScoreStructSuper {
     pub score_struct: ScoreStruct,
     pub score: i32,
@@ -69,7 +75,7 @@ pub struct TPinballTable {
     pub light_show_timer: i32,
     pub end_game_timeout_timer: i32,
     pub tilt_timeout_timer: i32,
-    pub player_scores: [ScoreStruct; 4],
+    pub player_scores: [ScoreStructSuper; 4],
     pub player_count: i32,
     pub current_player: i32,
     pub plunger: TPlunger,
@@ -112,15 +118,37 @@ pub struct TPinballTable {
 }
 
 impl TPinballTable {
-    pub(crate) fn find_component(&self, p0: *const i16) {
-        todo!()
-    }
-}
+    pub(crate) fn find_component(
+        &self,
+        group_index: i32,
+    ) -> Option<Rc<RefCell<dyn IPinballComponent>>> {
+        for cmp_ref in self.component_list.iter() {
+            if cmp_ref.borrow().group_index() == group_index {
+                return Some(cmp_ref.clone());
+            }
+        }
 
-impl TPinballTable {
-    // TODO: Trait
-    pub(crate) fn port_draw(&self) {
-        todo!()
+        let buffer = format!("{}", group_index);
+        pb::show_message_box(
+            SDL_MESSAGEBOX_WARNING,
+            "Table cant find (lh):",
+            &buffer,
+            &None,
+        )
+        .unwrap();
+        None
+    }
+
+    fn find_component_by_name(&self, component_name: &str) -> Option<&dyn IPinballComponent> {
+        for cmp_ref in self.component_list.iter() {
+            let group_name = cmp_ref.borrow().group_name();
+            if let Some(g_name) = group_name {
+                if g_name == component_name {
+                    return Some(cmp_ref);
+                }
+            }
+        }
+        return None;
     }
 }
 
@@ -131,7 +159,7 @@ impl TPinballTable {
 }
 
 impl TPinballTable {
-    pub(crate) fn ball_count_in_rect(&self, p0: Vector2, p1: f32) -> bool {
+    pub(crate) fn ball_count_in_rect(&self, p0: Vector2, p1: f32) -> i32 {
         todo!()
     }
 }
@@ -140,9 +168,20 @@ unsafe impl Sync for TPinballTable {}
 
 unsafe impl Send for TPinballTable {}
 
+#[derive(Debug, Error)]
+pub enum PinballTableError {
+    #[error("Error loading data: `{0}`")]
+    LoaderError(#[from] LoaderError),
+    #[error("Error creating string: `{0}`")]
+    NulError(#[from] NulError),
+    #[error("Unable to find score")]
+    NoScore,
+}
+
 impl TPinballTable {
-    pub fn new(state: &mut PinballState) -> Self {
+    pub fn new(state: &mut PinballState) -> Result<Rc<RefCell<Self>>, PinballTableError> {
         let base = TPinballComponent::new(None, -1, false, &mut state.loader_state);
+        let mut short_arr_length = 0;
 
         let mut instance = Self {
             base,
@@ -161,7 +200,7 @@ impl TPinballTable {
             light_show_timer: 0,
             end_game_timeout_timer: 0,
             tilt_timeout_timer: 0,
-            player_scores: std::array::from_fn(|_| ScoreStruct::default()),
+            player_scores: std::array::from_fn(|_| ScoreStructSuper::default()),
             player_count: 0,
             current_player: 0,
             plunger: TPlunger,
@@ -208,57 +247,86 @@ impl TPinballTable {
             b.borrow_mut().disable();
         }
 
-        let table_weak = Rc::new(RefCell::new(instance));
+        let table_rc = Rc::new(RefCell::new(instance));
+        let table_weak = Some(Rc::downgrade(&table_rc));
+        let _ = TTableLayer::new(table_weak.clone(), state).unwrap();
 
-        let some_weak_table = Some(Rc::downgrade(&table_weak));
-        let table_layer = TTableLayer::new(some_weak_table, state).unwrap();
-        instance.light_group = TLightGroup::new(some_weak_table, 0);
-        // TODO: Come back here
-        instance
-    }
+        let light_group = TLightGroup::new(table_weak.clone(), 0, &mut state.loader_state)?;
 
-    pub fn message(&mut self, code: MessageCode, value: f32) -> i32 {
-        let rc_text = String::new();
+        let table_borrow_mut = table_rc.borrow_mut();
+        table_borrow_mut.light_group = Some(light_group);
 
-        match code {
-            MessageCode::RESET => {
-                for component_rc in self.component_list.iter_mut() {
-                    let mut component = component_rc.borrow_mut();
-                    component.message(MessageCode::RESET, 0.0);
-                }
-                if self.replay_timer > 0 {
-                    timer::kill_id(self.replay_timer);
-                }
-                self.replay_timer = 0;
-                if self.light_show_timer > 0 {
-                    timer::kill_id(self.light_show_timer);
-                    if let Some(lg) = &self.light_group {
-                        lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0);
-                    }
-                }
-                self.light_show_timer = 0;
-                self.score_multiplier = 0;
-                self.score_added = 0;
-                self.reflex_shot_score = 0;
-                self.bonus_score = 10000;
-                self.bonus_score_flag = false;
-                self.jackpot_score = 20000;
-                self.jackpot_score_flag = false;
-                self.unknown_p71 = 0;
-                self.extra_balls = 0;
-                self.multiball_count = 0;
-                self.ball_locked_counter = 0;
-                self.multiball_flag = false;
-                self.unknown_p78 = 0;
-                self.replay_active_flag = 0;
-                self.replay_timer = 0;
-                self.tilt_lock_flag = false;
+        let base_score = score::create("score1", state.render_state.background_bitmap, state);
+        if let Some(sc) = base_score {
+            table_borrow_mut.cur_score_struct = Some(sc.clone());
+            table_borrow_mut.player_scores[0].score_struct = sc.clone();
+
+            for score_index in 1..4 {
+                table_borrow_mut.player_scores[score_index].score_struct =
+                    score::dup(Some(sc.clone()), score_index);
             }
-            _ => {}
+        } else {
+            return Err(PinballTableError::NoScore);
         }
-        // TODO: Implement me
-        //control::table_control_handler(code);
-        0
+
+        table_borrow_mut.current_player = 0;
+        table_borrow_mut.max_ball_count = 3;
+        table_borrow_mut.score_ball_count =
+            score::create("ballcount1", state.render_state.background_bitmap, state);
+        table_borrow_mut.score_player_number_1 = score::create(
+            "player_number1",
+            state.render_state.background_bitmap,
+            state,
+        );
+        let table_str = CString::new("table_objects".to_string())?;
+        let group_index_objects =
+            loader::query_handle(table_str.as_ptr(), &mut state.loader_state)?;
+
+        let short_arr = loader::query_int_attribute(
+            group_index_objects,
+            1025,
+            &mut short_arr_length,
+            &mut state.loader_state,
+        )?;
+
+        // TODO: Create all instances for all the objects of the table.
+        // TODO: THIS IS A BIG UNDERTAKING!
+        // if short_arr_length > 0 {
+        //     for i in 0..short_arr_length / 2 {
+        //         let object_type = *short_arr;
+        //         let short_arr_p1 = short_arr.add(1);
+        //         let group_index = *short_arr_p1;
+        //         short_arr = short_arr_p1.add(1);
+        //         match object_type {
+        //             1000 | 1010 => {
+        //                 let _ = TWall
+        //             }
+        //         }
+        //     }
+        // }
+
+        render::build_occlude_list();
+
+        if let Some(tbox) = table_borrow_mut.find_component_by_name("info_text_box") {
+            let text_box_downcase = tbox.as_any().downcast_ref::<TTextBox>();
+            if let Some(tbox_val) = text_box_downcase {
+                state.pb_game_state.info_text_box = Some(*tbox_val);
+            } else {
+                state.pb_game_state.info_text_box = None;
+            }
+        }
+
+        if let Some(mbox) = table_borrow_mut.find_component_by_name("mission_text_box") {
+            let mission_box_downcast = mbox.as_any().downcast_ref::<TTextBox>();
+            if let Some(mbox_val) = mission_box_downcast {
+                state.pb_game_state.mission_text_box = Some(*mbox_val);
+            } else {
+                state.pb_game_state.mission_text_box = None;
+            }
+        }
+
+        control::make_links(table_weak.clone());
+        Ok(table_rc)
     }
 
     pub(crate) fn add_ball(
@@ -315,5 +383,67 @@ impl TPinballTable {
         }
 
         Some(ball_rc)
+    }
+}
+
+impl IPinballComponent for TPinballTable {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn group_index(&self) -> i32 {
+        self.base.group_index
+    }
+
+    fn group_name(&self) -> Option<String> {
+        if let Some(name) = self.base.group_name.as_ref() {
+            let name_str = name.borrow().to_string();
+            return Some(name_str);
+        }
+        None
+    }
+
+    fn message(&mut self, code: MessageCode, value: f32) -> i32 {
+        let rc_text = String::new();
+
+        match code {
+            MessageCode::RESET => {
+                for component_rc in self.component_list.iter_mut() {
+                    let mut component = component_rc.borrow_mut();
+                    component.message(MessageCode::RESET, 0.0);
+                }
+                if self.replay_timer > 0 {
+                    timer::kill_id(self.replay_timer);
+                }
+                self.replay_timer = 0;
+                if self.light_show_timer > 0 {
+                    timer::kill_id(self.light_show_timer);
+                    if let Some(lg) = &self.light_group {
+                        lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0);
+                    }
+                }
+                self.light_show_timer = 0;
+                self.score_multiplier = 0;
+                self.score_added = 0;
+                self.reflex_shot_score = 0;
+                self.bonus_score = 10000;
+                self.bonus_score_flag = false;
+                self.jackpot_score = 20000;
+                self.jackpot_score_flag = false;
+                self.unknown_p71 = 0;
+                self.extra_balls = 0;
+                self.multiball_count = 0;
+                self.ball_locked_counter = 0;
+                self.multiball_flag = false;
+                self.unknown_p78 = 0;
+                self.replay_active_flag = 0;
+                self.replay_timer = 0;
+                self.tilt_lock_flag = false;
+            }
+            _ => {}
+        }
+        // TODO: Implement me
+        //control::table_control_handler(code);
+        0
     }
 }
