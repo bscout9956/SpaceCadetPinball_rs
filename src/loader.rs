@@ -959,7 +959,7 @@ pub fn query_visual(
         }
 
         visual.float_arr_count =
-            loader_table.field_size(group_index, FieldTypes::FloatArray) / 4 / 2 - 2;
+            loader_table.field_size(state_id, FieldTypes::FloatArray) / 4 / 2 - 2;
 
         let float_int = (f32::from_le_bytes([
             float_array_data[4],
