@@ -395,10 +395,6 @@ impl IPinballComponent for TPinballTable {
         self
     }
 
-    fn group_index(&self) -> i32 {
-        self.base.group_index
-    }
-
     fn group_name(&self) -> Option<String> {
         if let Some(name) = self.base.group_name.as_ref() {
             let name_str = name.borrow().to_string();
