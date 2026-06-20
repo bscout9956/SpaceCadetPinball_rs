@@ -12,6 +12,7 @@ use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::state::render_state::RenderState;
 use crate::t_collision_component::ICollisionComponent;
+use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::{Msg, TranslationError};
 use crate::{
@@ -21,8 +22,10 @@ use crate::{
 use rand::random;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_KeyCode, SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
+use std::cell::{Ref, RefCell};
 use std::ffi::{CStr, CString, c_char};
 use std::fs::File;
+use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
 #[derive(PartialEq, Eq, Ord, PartialOrd)]
@@ -159,7 +162,7 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
 
     let mut projection_matrix: [f32; 12] = [0.0; 12];
 
-    let mut data_file_path = String::new();
+    let data_file_path;
 
     if state.pb_game_state.dat_file_name.is_empty() {
         return Ok(false);
@@ -295,8 +298,8 @@ pub fn init(state: &mut PinballState) -> Result<(bool), PbError> {
     timer::init(150)?;
     score::init();
 
-    state.pb_game_state.main_table = Some(TPinballTable::new(state));
-    let table = state.pb_game_state.main_table.as_ref().unwrap();
+    state.pb_game_state.main_table = Some(TPinballTable::new(state)?);
+    let table = state.pb_game_state.main_table.as_ref().unwrap().borrow();
     let ball = &table.ball_list[0].borrow();
 
     state.pb_game_state.ball_max_speed = ball.radius * 200.0f32;
@@ -335,13 +338,13 @@ pub fn get_rc_int(u_id: Msg) -> Result<i32, TranslationError> {
 }
 
 pub fn reset_table(pb_game_state: &mut PbGameState) -> Result<(), PbError> {
-    match pb_game_state.main_table.as_mut() {
-        Some(mut main_table) => {
-            main_table.message(MessageCode::RESET, 0.0);
-            Ok(())
-        }
-        None => Ok(()),
-    }
+    pb_game_state
+        .main_table
+        .as_ref()
+        .unwrap()
+        .borrow_mut()
+        .message(MessageCode::RESET, 0.0);
+    Ok(())
 }
 
 pub fn first_time_setup(
@@ -355,20 +358,22 @@ pub fn first_time_setup(
 pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<(), PbError> {
     if state.pb_game_state.demo_mode {
         state.pb_game_state.demo_mode = false;
-        if let Some(t) = state.pb_game_state.main_table.as_mut() {
-            t.message(MessageCode::RESET, 0.0);
-        }
+        match state.pb_game_state.main_table.as_mut() {
+            Some(table) => table.borrow_mut().message(MessageCode::RESET, 0.0f32),
+            None => return Err(PbError::NoTable),
+        };
+
         mode_change(
             GameModes::GameOver,
             &mut state.main_state,
             &mut state.pb_game_state,
         )?;
-        if let Some(mtb) = state.pb_game_state.miss_text_box.as_mut() {
+        if let Some(mtb) = state.pb_game_state.mission_text_box.as_mut() {
             mtb.clear(false);
         }
         if let Some(mut itb) = state.pb_game_state.info_text_box.take() {
             itb.display(get_rc_string(Msg::STRING125)?, -1.0f32, state, None);
-            state.pb_game_state.miss_text_box = Some(itb);
+            state.pb_game_state.mission_text_box = Some(itb);
         }
     } else {
         replay_level(true, state)?;
@@ -386,11 +391,19 @@ pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<(), PbE
     if *state.options_state.options.music {
         midi::music_play();
     }
-    let table = state.pb_game_state.main_table.as_mut().unwrap();
-    table.message(
-        MessageCode::NEW_GAME,
-        *state.options_state.options.players as f32,
-    );
+
+    match state.pb_game_state.main_table.as_ref() {
+        None => {
+            return Err(PbError::NoTable);
+        }
+        Some(t) => {
+            t.borrow_mut().message(
+                MessageCode::NEW_GAME,
+                *state.options_state.options.players as f32,
+            );
+        }
+    }
+
     Ok(())
 }
 
@@ -399,7 +412,7 @@ fn mode_change(
     main_state: &mut MainState,
     pb_game_state: &mut PbGameState,
 ) -> Result<(), PbError> {
-    let miss_text_box = pb_game_state.miss_text_box.as_ref();
+    let miss_text_box = pb_game_state.mission_text_box.as_ref();
 
     if pb_game_state.credits_active
         && let Some(text_box) = miss_text_box
@@ -409,24 +422,24 @@ fn mode_change(
     pb_game_state.credits_active = false;
     pb_game_state.idle_timer_ms = 0.0;
 
+    let mut table = match pb_game_state.main_table.as_mut() {
+        Some(table) => table.borrow_mut(),
+        None => return Err(PbError::NoTable),
+    };
     match mode {
         GameModes::InGame => {
             if pb_game_state.demo_mode {
                 main_state.launch_ball_enabled = false;
                 main_state.high_scores_enabled = false;
                 main_state.demo_active = true;
-                if let Some(table) = pb_game_state.main_table.as_mut()
-                    && let Some(table_demo) = table.demo.as_mut()
-                {
+                if let Some(table_demo) = table.demo.as_mut() {
                     table_demo.active_flag = true;
                 }
             } else {
                 main_state.launch_ball_enabled = true;
                 main_state.high_scores_enabled = false;
                 main_state.demo_active = false;
-                if let Some(mut table) = pb_game_state.main_table.as_mut()
-                    && let Some(table_demo) = table.demo.as_mut()
-                {
+                if let Some(table_demo) = table.demo.as_mut() {
                     table_demo.active_flag = true;
                 }
             }
@@ -437,9 +450,7 @@ fn mode_change(
                 main_state.high_scores_enabled = true;
                 main_state.demo_active = false;
             }
-            if let Some(table) = pb_game_state.main_table.as_ref()
-                && let Some(light_group) = table.light_group.as_ref()
-            {
+            if let Some(light_group) = table.light_group.as_mut() {
                 light_group.message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
             }
         }
@@ -449,21 +460,21 @@ fn mode_change(
     Ok(())
 }
 
-pub(crate) fn uninit(state: &mut PinballState) -> i32 {
-    loader::unload(&mut state.loader_state, &mut state.sound_state);
+pub(crate) fn uninit(state: &mut PinballState) -> Result<i32, PbError> {
+    loader::unload(&mut state.loader_state, &mut state.sound_state)?;
     high_score::write(
         &mut state.high_score_state,
         &mut state.options_state.settings,
     );
-    state.pb_game_state.main_table = None;
+    // state.pb_game_state.main_table = Rc
     timer::uninit();
-    0
+    Ok(0)
 }
 
 pub fn ball_set(dx: f32, dy: f32, pb_game_state: &mut PbGameState) {
     // dx and dy are normalized to window, ideally in [-1, 1]
     const SENSITIVITY: f32 = 7000.0;
-    let table = pb_game_state.main_table.as_mut().unwrap();
+    let mut table = pb_game_state.main_table.as_ref().unwrap().borrow_mut(); // Lazy, if this caused you trouble then fix me
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
         if ball.base_component.active_flag.get() == true {
@@ -507,7 +518,10 @@ pub(crate) fn frame(mut dt_milli_sec: f32, pb_game_state: &mut PbGameState) -> R
 }
 
 fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), PbError> {
-    let table = pb_game_state.main_table.as_mut().unwrap();
+    let mut table = match pb_game_state.main_table.as_ref() {
+        Some(table) => table.borrow_mut(),
+        None => return Err(PbError::NoTable),
+    };
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
         if !ball.base_component.active_flag.take()
@@ -633,13 +647,15 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<(), PbError> {
         text_box.clear(false);
     }
 
-    if let Some(miss_text_box) = state.pb_game_state.miss_text_box.as_ref() {
+    if let Some(miss_text_box) = state.pb_game_state.mission_text_box.as_ref() {
         miss_text_box.clear(false);
     }
     if state.main_state.single_step {
-        if let Some(t) = state.pb_game_state.main_table.as_mut() {
-            t.message(MessageCode::PAUSE, state.pb_game_state.time_now);
-        }
+        let mut table = match state.pb_game_state.main_table.as_ref() {
+            Some(table) => table.borrow_mut(),
+            None => return Err(PbError::NoTable),
+        };
+        table.message(MessageCode::PAUSE, state.pb_game_state.time_now);
     }
     let rc_string = get_rc_string(Msg::STRING123)?;
 
@@ -665,44 +681,46 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<(),
     }
 
     let bindings = options::map_game_input(input, &mut state.options_state);
-    if let Some(table) = state.pb_game_state.main_table.as_mut() {
-        for binding in bindings {
-            match binding {
-                GameBindings::LeftFlipper => {
-                    table.message(
-                        MessageCode::LEFT_FLIPPER_INPUT_RELEASED,
-                        state.pb_game_state.time_now,
-                    );
-                }
-                GameBindings::RightFlipper => {
-                    table.message(
-                        MessageCode::RIGHT_FLIPPER_INPUT_RELEASED,
-                        state.pb_game_state.time_now,
-                    );
-                }
-                GameBindings::Plunger => {
-                    table.message(
-                        MessageCode::PLUNGER_INPUT_PRESSED,
-                        state.pb_game_state.time_now,
-                    );
-                }
-                GameBindings::LeftTableBump => {
-                    if !table.tilt_lock_flag {
-                        nudge::nudge_right();
-                    }
-                }
-                GameBindings::RightTableBump => {
-                    if !table.tilt_lock_flag {
-                        nudge::nudge_left();
-                    }
-                }
-                GameBindings::BottomTableBump => {
-                    if !table.tilt_lock_flag {
-                        nudge::nudge_up();
-                    }
-                }
-                _ => {}
+    for binding in bindings {
+        let mut table = match state.pb_game_state.main_table.as_ref() {
+            None => return Err(PbError::NoTable),
+            Some(t) => t.borrow_mut(),
+        };
+        match binding {
+            GameBindings::LeftFlipper => {
+                table.message(
+                    MessageCode::LEFT_FLIPPER_INPUT_RELEASED,
+                    state.pb_game_state.time_now,
+                );
             }
+            GameBindings::RightFlipper => {
+                table.message(
+                    MessageCode::RIGHT_FLIPPER_INPUT_RELEASED,
+                    state.pb_game_state.time_now,
+                );
+            }
+            GameBindings::Plunger => {
+                table.message(
+                    MessageCode::PLUNGER_INPUT_PRESSED,
+                    state.pb_game_state.time_now,
+                );
+            }
+            GameBindings::LeftTableBump => {
+                if !table.tilt_lock_flag {
+                    nudge::nudge_right();
+                }
+            }
+            GameBindings::RightTableBump => {
+                if !table.tilt_lock_flag {
+                    nudge::nudge_left();
+                }
+            }
+            GameBindings::BottomTableBump => {
+                if !table.tilt_lock_flag {
+                    nudge::nudge_up();
+                }
+            }
+            _ => {}
         }
     }
 
@@ -715,16 +733,25 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<(),
                 x: 6.0f32,
                 y: 7.0f32,
             };
-            // We're taking the table here, hopefully that isn't bad or anything
-            if let Some(mut table) = state.pb_game_state.main_table.take() {
-                if !table.ball_count_in_rect(pos, table.collision_comp_offset * 1.2f32)
-                    && table.add_ball(pos, state).as_mut().is_some()
-                {
-                    table.multiball_count += 1;
+
+            if let Some(table) = state.pb_game_state.main_table.as_ref() {
+                let table_rc = table.clone();
+                let col_comp_offset = table_rc.borrow().collision_comp_offset * 1.2f32;
+                let ball_count = table_rc.borrow().ball_count_in_rect(pos, col_comp_offset);
+
+                if ball_count == 0 {
+                    let was_added = table_rc.borrow_mut().add_ball(pos, state);
+                    if was_added.is_some() {
+                        table_rc.borrow_mut().multiball_count += 1;
+                    }
                 }
-                state.pb_game_state.main_table = Some(table);
             }
-        } else if let Some(table) = state.pb_game_state.main_table.as_mut() {
+        } else {
+            let table_rc = match state.pb_game_state.main_table.as_ref() {
+                None => return Err(PbError::NoTable),
+                Some(t) => t,
+            };
+            let mut table = table_rc.borrow_mut();
             match input.value {
                 0x68 => {
                     let entry = HighScore {
@@ -744,12 +771,12 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<(),
                     table.port_draw();
                 }
                 0x69 => {
-                    if let Some(lg) = table.light_group.as_ref() {
+                    if let Some(lg) = table.light_group.as_mut() {
                         lg.message(MessageCode::T_LIGHT_FT_TMP_OVERRIDE_ON, 1.0f32);
                     }
                 }
                 0x70 => {
-                    if let Some(lg) = table.light_group.as_ref() {
+                    if let Some(lg) = table.light_group.as_mut() {
                         lg.message(MessageCode::T_LIGHT_FT_TMP_OVERRIDE_OFF, 1.0f32);
                     }
                 }
@@ -763,9 +790,11 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<(),
 pub(crate) fn launch_ball(state: &mut PinballState) -> Result<(), PbError> {
     if let Some(table) = state.pb_game_state.main_table.as_ref() {
         table
+            .borrow_mut()
             .plunger
             .message(MessageCode::PLUNGER_LAUNCH_BALL, 0.0f32)?;
     }
+
     Ok(())
 }
 
