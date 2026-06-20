@@ -23,10 +23,8 @@ use anyhow::{Context, Result};
 use rand::random;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_KeyCode, SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
-use std::cell::{Ref, RefCell};
 use std::ffi::{CStr, CString, c_char};
 use std::fs::File;
-use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
 #[derive(PartialEq, Eq, Ord, PartialOrd)]

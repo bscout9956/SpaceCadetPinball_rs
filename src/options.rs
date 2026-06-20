@@ -8,7 +8,7 @@ use crate::state::pinball_state::PinballState;
 use crate::translations::Msg;
 use crate::utils::clamp;
 use crate::{fullscrn, midi, render, sound, translations, update_frame_rate};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use dear_imgui_rs::Io;
 use dear_imgui_rs::sys::{
     ImGuiContext, ImGuiSettingsHandler, ImGuiTextBuffer, ImGuiTextBuffer_append,

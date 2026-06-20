@@ -3,12 +3,11 @@ use crate::loader;
 use crate::maths::{Vector2, Vector2i};
 use crate::message_code::MessageCode;
 use crate::state::loader_state::LoaderState;
-use crate::t_light::TLight;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use std::any::Any;
 use std::cell::RefCell;
-use std::rc::{Rc, Weak};
+use std::rc::Weak;
 use thiserror::Error;
 
 #[derive(Default)]

@@ -14,8 +14,7 @@ use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_WARNING;
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::{CString, NulError};
-use std::ops::Deref;
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 use thiserror::Error;
 
 #[derive(Default)]

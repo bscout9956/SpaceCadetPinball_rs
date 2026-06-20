@@ -5,6 +5,7 @@ use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPl
 use crate::options::{GameBindings, GameInput, InputTypes, Menu};
 use crate::translations::Msg;
 use crate::utils::{SdlRendererPtr, SdlWindowPtr};
+use anyhow::{Context, Result};
 use dear_imgui_rs::sys::{
     ImGuiFocusRequestFlags_None, ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp,
     ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, ImWchar, igBeginMainMenuBar, igBeginMenu, igEnd,
@@ -37,7 +38,6 @@ use state::main_state::MainState;
 use state::options_state::OptionsState;
 use state::pinball_state::PinballState;
 use std::env;
-use std::error::Error;
 use std::ffi::{CStr, CString, c_int};
 use std::mem::MaybeUninit;
 use std::ops::{Mul, Neg, Sub};

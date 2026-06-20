@@ -2,7 +2,7 @@ use crate::maths;
 use crate::maths::{Vector2, Vector3};
 use crate::state::pinball_state::PinballState;
 use crate::state::sound_state::SoundState;
-use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
+use crate::t_pinball_component::IPinballComponent;
 use sdl2::sys::SDL_RWFromFile;
 use sdl2::sys::mixer::{
     Mix_AllocateChannels, Mix_Chunk, Mix_FreeChunk, Mix_HaltChannel, Mix_LoadWAV_RW, Mix_Pause,
