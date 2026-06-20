@@ -175,10 +175,16 @@ pub enum PinballTableError {
     NulError(#[from] NulError),
     #[error("Unable to find score")]
     NoScore,
+    #[error(transparent)]
+    TLightGroupError(#[from] TLightGroupError),
+    #[error(transparent)]
+    TTableLayerError(#[from] TTableLayerError),
 }
 
+use anyhow::{Result, bail};
+
 impl TPinballTable {
-    pub fn new(state: &mut PinballState) -> Result<Rc<RefCell<Self>>, PinballTableError> {
+    pub fn new(state: &mut PinballState) -> Result<Rc<RefCell<Self>>> {
         let base = TPinballComponent::new(None, -1, false, &mut state.loader_state);
         let mut short_arr_length = 0;
 
@@ -248,33 +254,39 @@ impl TPinballTable {
 
         let table_rc = Rc::new(RefCell::new(instance));
         let table_weak = Some(Rc::downgrade(&table_rc));
-        let _ = TTableLayer::new(table_weak.clone(), state).unwrap();
+        TTableLayer::new(table_weak.clone(), state)?;
 
         let light_group = TLightGroup::new(table_weak.clone(), 0, &mut state.loader_state)?;
 
-        let table_borrow_mut = table_rc.borrow_mut();
-        table_borrow_mut.light_group = Some(light_group);
+        table_rc.borrow_mut().light_group = Some(light_group);
 
-        let base_score = score::create("score1", state.render_state.background_bitmap, state);
+        let base_score = score::create(
+            "score1",
+            state.render_state.background_bitmap.clone(),
+            state,
+        );
         if let Some(sc) = base_score {
-            table_borrow_mut.cur_score_struct = Some(sc.clone());
-            table_borrow_mut.player_scores[0].score_struct = sc.clone();
+            table_rc.borrow_mut().cur_score_struct = Some(sc.clone());
+            table_rc.borrow_mut().player_scores[0].score_struct = sc.clone();
 
             for score_index in 1..4 {
-                table_borrow_mut.player_scores[score_index].score_struct =
+                table_rc.borrow_mut().player_scores[score_index].score_struct =
                     score::dup(Some(sc.clone()), score_index);
             }
         } else {
-            return Err(PinballTableError::NoScore);
+            bail!(PinballTableError::NoScore);
         }
 
-        table_borrow_mut.current_player = 0;
-        table_borrow_mut.max_ball_count = 3;
-        table_borrow_mut.score_ball_count =
-            score::create("ballcount1", state.render_state.background_bitmap, state);
-        table_borrow_mut.score_player_number_1 = score::create(
+        table_rc.borrow_mut().current_player = 0;
+        table_rc.borrow_mut().max_ball_count = 3;
+        table_rc.borrow_mut().score_ball_count = score::create(
+            "ballcount1",
+            state.render_state.background_bitmap.clone(),
+            state,
+        );
+        table_rc.borrow_mut().score_player_number_1 = score::create(
             "player_number1",
-            state.render_state.background_bitmap,
+            state.render_state.background_bitmap.clone(),
             state,
         );
         let table_str = CString::new("table_objects".to_string())?;
