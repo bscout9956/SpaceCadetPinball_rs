@@ -1,4 +1,4 @@
-use crate::errors::{LoaderError, PbError};
+use crate::errors::LoaderError;
 use crate::maths::{Vector2, Vector2i, Vector3};
 use crate::message_code::MessageCode;
 use crate::score::ScoreStruct;
@@ -27,36 +27,6 @@ pub struct ScoreStructSuper {
     pub extra_balls: i32,
     pub ball_locked_counter: i32,
 }
-
-// TODO: Temporary structs here \/
-pub struct TFlipper;
-
-// TODO: Implement me asap
-
-impl TFlipper {
-    pub(crate) fn update_sprite(&self) {
-        todo!()
-    }
-}
-
-// TODO: Implement me asap
-impl TFlipper {
-    pub(crate) fn get_flipper_step_angle(&self, p0: f32, p1: &mut f32) -> f32 {
-        todo!()
-    }
-}
-
-pub struct TPlunger;
-
-impl TPlunger {
-    pub(crate) fn message(&self, code: MessageCode, x: f32) -> Result<(), PbError> {
-        todo!()
-    }
-}
-
-struct TDrain;
-
-// End of temporary structs
 
 pub struct TPinballTable {
     base: TPinballComponent,
@@ -180,6 +150,9 @@ pub enum PinballTableError {
     TTableLayerError(#[from] TTableLayerError),
 }
 
+use crate::t_drain::TDrain;
+use crate::t_flipper::TFlipper;
+use crate::t_plunger::TPlunger;
 use anyhow::{Result, bail};
 
 impl TPinballTable {
