@@ -5,6 +5,7 @@ use crate::t_ball::TBall;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
+use std::any::Any;
 use std::{cell::RefCell, rc::Rc};
 
 #[derive(Default)]
@@ -226,6 +227,19 @@ impl ICollisionComponent for TCollisionComponent {
 }
 
 impl IPinballComponent for TCollisionComponent {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn group_name(&self) -> Option<String> {
+        match self.group_name.as_ref() {
+            None => None,
+            Some(name) => Some(name.borrow().to_string()),
+        }
+    }
+    fn group_index(&self) -> i32 {
+        self.base.group_index
+    }
+
     // TODO: Some remain unimplemented I suppose?? Maybe I should look into trait defaults
     fn sprite_set(&mut self, index: i32) {
         todo!()
@@ -250,7 +264,7 @@ impl IPinballComponent for TCollisionComponent {
         }
     }
 
-    fn message(&mut self, code: MessageCode, value: f32) -> MessageCode {
+    fn message(&mut self, code: MessageCode, value: f32) -> i32 {
         todo!()
     }
 }
