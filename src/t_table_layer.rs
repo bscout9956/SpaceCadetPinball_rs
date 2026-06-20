@@ -149,7 +149,7 @@ impl TTableLayer {
 
         let edge_points = f32_vec_to_vec2(&visual.float_arr)?; // throws error
 
-        let mut instance = Self {
+        let instance = Self {
             base_component: base.take(),
             vis_bmp: (*bmp).clone(),
             x_min: f32::min(
