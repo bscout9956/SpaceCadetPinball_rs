@@ -1517,7 +1517,7 @@ fn main() -> Result<()> {
             pb::uninit(&mut state)?;
 
             imgui_sdl::renderer::shutdown(&mut imgui_context);
-            imgui_sdl::impl_sdl2::shutdown();
+            imgui_sdl::impl_sdl2::shutdown(imgui_context.io_mut());
             igDestroyContext(imgui_context.as_raw());
 
             if !no_audio {

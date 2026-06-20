@@ -481,7 +481,7 @@ pub mod impl_sdl2 {
     use crate::state::pinball_state::PinballState;
     use dear_imgui_rs::sys::{
         ImGuiMouseCursor_COUNT, ImGuiMouseCursor_None, igGetDragDropPayload, igGetFrameCount,
-        igGetMainViewport, igGetMouseCursor,
+        igGetMainViewport, igGetMouseCursor, igMemFree,
     };
     use dear_imgui_rs::{BackendFlags, ConfigFlags, Context, Io, Key, MouseButton};
     use sdl2::keyboard::Keycode;
@@ -504,16 +504,16 @@ pub mod impl_sdl2 {
     use sdl2::sys::SDL_bool::{SDL_FALSE, SDL_TRUE};
     use sdl2::sys::{
         SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2,
-        SDL_CaptureMouse, SDL_CreateSystemCursor, SDL_Cursor, SDL_Event, SDL_GL_GetDrawableSize,
-        SDL_GetCurrentVideoDriver, SDL_GetGlobalMouseState, SDL_GetKeyboardFocus,
-        SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency, SDL_GetRendererOutputSize,
-        SDL_GetVersion, SDL_GetWindowFlags, SDL_GetWindowPosition, SDL_GetWindowSize,
-        SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE, SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH,
-        SDL_Renderer, SDL_SetCursor, SDL_SetHint, SDL_ShowCursor, SDL_SysWMinfo,
-        SDL_WarpMouseInWindow, SDL_Window, SDL_bool,
+        SDL_CaptureMouse, SDL_CreateSystemCursor, SDL_Cursor, SDL_Event, SDL_FreeCursor,
+        SDL_GL_GetDrawableSize, SDL_GetCurrentVideoDriver, SDL_GetGlobalMouseState,
+        SDL_GetKeyboardFocus, SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency,
+        SDL_GetRendererOutputSize, SDL_GetVersion, SDL_GetWindowFlags, SDL_GetWindowPosition,
+        SDL_GetWindowSize, SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE,
+        SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, SDL_Renderer, SDL_SetCursor, SDL_SetHint,
+        SDL_ShowCursor, SDL_SysWMinfo, SDL_WarpMouseInWindow, SDL_Window, SDL_bool, SDL_free,
     };
     use std::ffi::{CStr, c_char, c_int, c_void};
-    use std::ptr::{addr_of_mut, null_mut};
+    use std::ptr::{addr_of_mut, null, null_mut};
 
     pub fn update_key_modifiers(io: &mut Io, sdl_key_mods: u32) {
         io.add_key_event(Key::ModCtrl, (sdl_key_mods & KMOD_CTRL as u32) != 0);
@@ -870,7 +870,30 @@ pub mod impl_sdl2 {
         }
     }
 
-    pub fn shutdown() {}
+    pub fn shutdown(io: &mut Io) {
+        let mut bd = unsafe { get_backend_bd_from_io(io) };
+        if bd.is_null() {
+            panic!("No platform backend to shutdown, or already shutdown");
+        }
+
+        unsafe {
+            if !(*bd).clipboard_text_data.is_null() {
+                SDL_free((*bd).clipboard_text_data as *mut c_void);
+            }
+            println!("Clipboard's gone");
+
+            for cursor in (*bd).cursor {
+                SDL_FreeCursor(cursor);
+            }
+            println!("Cursor's gone");
+
+            io.set_backend_platform_user_data(null_mut());
+            println!("Backend's gone");
+            igMemFree(&raw mut bd as *mut c_void);
+            println!("Bd's gone");
+        }
+        println!("hee hee");
+    }
 
     unsafe fn update_mouse_cursor(io: &mut Io, bd: *mut ImplSdl2UserData) {
         if io
