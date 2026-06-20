@@ -1,17 +1,9 @@
-use std::ffi::{FromBytesUntilNulError, FromBytesWithNulError, NulError};
-use std::io::Error;
-use std::sync::{Arc, MutexGuard, PoisonError};
-use thiserror::Error;
-
-use crate::fullscrn::ResolutionInfo;
-use crate::group_data::DatFile;
-use crate::loader::SoundListStruct;
-use crate::render::RenderError;
-use crate::score::ScoreMessageFontType;
 use crate::sound::SoundError;
 use crate::t_pinball_table::PinballTableError;
 use crate::timer::TimerError;
-use crate::translations::TranslationError;
+use std::ffi::{FromBytesUntilNulError, FromBytesWithNulError, NulError};
+use std::io::Error;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum RecordLoadError {
@@ -33,20 +25,20 @@ pub enum RecordLoadError {
 
 #[derive(Error, Debug)]
 pub enum ScoreError {
-    #[error("Failed to lock RecordTable from PB: `{0}`")]
-    RecordTableLock(#[from] PoisonError<MutexGuard<'static, Option<Arc<DatFile>>>>),
-    #[error("Failed to lock MSG_FONTP from Score: `{0}`")]
-    MsgFontLock(#[from] PoisonError<MutexGuard<'static, Option<ScoreMessageFontType>>>),
+    #[error("Failed to lock RecordTable from PB")]
+    RecordTableLock,
+    #[error("Failed to lock MSG_FONTP from Score")]
+    MsgFontLock,
 }
 
 #[derive(Error, Debug)]
 pub enum LoaderError {
     #[error("Failed to lock LOADER_TABLE")]
-    TableLock(#[from] PoisonError<MutexGuard<'static, Option<Arc<DatFile>>>>),
+    TableLock,
     #[error("Failed to lock SOUND_LIST")]
-    SoundListLock(#[from] PoisonError<MutexGuard<'static, [SoundListStruct; 65]>>),
+    SoundListLock,
     #[error("Failed to lock SOUND_COUNT")]
-    SoundCountLock(#[from] PoisonError<MutexGuard<'static, i32>>),
+    SoundCountLock,
     #[error(transparent)]
     FromBytesWithNul(#[from] FromBytesWithNulError),
     #[error(transparent)]
@@ -64,8 +56,6 @@ pub enum PbError {
     #[error(transparent)]
     ScoreError(#[from] ScoreError),
     #[error(transparent)]
-    RenderError(#[from] RenderError),
-    #[error(transparent)]
     TimerError(#[from] TimerError),
     #[error("No textbox found...")]
     NoTextBox,
@@ -75,12 +65,14 @@ pub enum PbError {
     PinballTableError(#[from] PinballTableError),
     #[error("We could find the pinball table")]
     NoTable,
+    #[error("Failed set RwLock mode")]
+    RwLockError
 }
 
 #[derive(Error, Debug)]
 pub enum GroupDataError {
-    #[error("Failed to split spliced bitmap: `{0}`")]
-    Split(#[from] PoisonError<MutexGuard<'static, [ResolutionInfo; 3]>>),
+    #[error("Failed to split spliced bitmap")]
+    Split,
     #[error("There was a mismatch between the font widths")]
     FontWidthMismatch,
     #[error("Buffer length is not the correct size")]
@@ -95,8 +87,8 @@ pub enum FullscreenError {
     ResolutionOutOfBounds,
     #[error("Renderer is missing (possibly none)")]
     MissingRenderer,
-    #[error("Failed to lock Scale value: `{0}`")]
-    FloatLock(#[from] PoisonError<MutexGuard<'static, f32>>),
+    #[error("Failed to lock Scale value")]
+    FloatLock,
 }
 
 #[derive(Debug, Error)]
@@ -121,4 +113,18 @@ pub enum MainLoopError {
     Translation(#[from] TranslationError),
     #[error(transparent)]
     PbError(#[from] PbError),
+}
+
+#[derive(Error, Debug)]
+pub enum TranslationError {
+    #[error("Message id out of bounds")]
+    MsgIdOutOfBounds,
+    #[error("Language id out of bounds")]
+    LangIdOutOfBounds,
+    #[error("Failed to acquire lock")]
+    FailedToLockLanguage,
+    #[error("Missing English text equivalent")]
+    MissingEnglishText,
+    #[error("String is null: `{0}`")]
+    Nul(#[from] NulError),
 }
