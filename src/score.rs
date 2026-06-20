@@ -5,6 +5,7 @@ use crate::state::fullscrn_state::FullscrnState;
 use crate::state::score_state::ScoreState;
 use std::sync::{Arc, RwLock};
 
+#[derive(Clone)]
 pub struct ScoreStruct {
     pub score: i32,
     pub dirty_flag: bool,
