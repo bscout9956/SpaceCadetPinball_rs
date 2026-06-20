@@ -97,3 +97,61 @@ pub fn load_msg_font(
 pub fn init() -> i32 {
     1
 }
+
+pub(crate) fn create(
+    field_name: &str,
+    render_bg_bmp: Option<GdrvBitmap8>,
+    state: &mut PinballState,
+) -> Option<ScoreStruct> {
+    let mut score = ScoreStruct::default();
+    score.score = -9999;
+    score.background_bmp = render_bg_bmp?;
+
+    /*Full tilt: score box dimensions index is offset by resolution*/
+    // TODO: moved here issue
+    if let Some(rt_arc) = state.pb_game_state.record_table.as_ref()
+        && let Some(lt_arc) = state.loader_state.loader_table.as_ref()
+    {
+        let rt = rt_arc.read().unwrap();
+        let lt = lt_arc.read().unwrap();
+        let dimensions_id = rt.record_labeled(field_name);
+        let dimensions = lt.field(dimensions_id, FieldTypes::ShortArray);
+        if let Some(raw_data) = dimensions {
+            match raw_data {
+                EntryBuffer::Raw(vec_data) => {
+                    let mut group_index = vec_data[0] as i32;
+                    score.offset_x =
+                        i32::from_le_bytes([vec_data[0], vec_data[1], vec_data[2], vec_data[3]]);
+                    score.offset_y =
+                        i32::from_le_bytes([vec_data[4], vec_data[5], vec_data[6], vec_data[7]]);
+                    score.width =
+                        i32::from_le_bytes([vec_data[8], vec_data[9], vec_data[10], vec_data[11]]);
+                    score.height = i32::from_le_bytes([
+                        vec_data[12],
+                        vec_data[13],
+                        vec_data[14],
+                        vec_data[15],
+                    ]);
+
+                    for index in 0..10 {
+                        score.char_bmp[index] = lt
+                            .get_bitmap(group_index, state.fullscrn_state.resolution)
+                            .clone();
+                        group_index += 1;
+                    }
+                }
+                _ => {
+                    return None;
+                }
+            }
+        } else {
+            //TODO: score drop?
+            return None;
+        }
+    }
+    Some(score)
+}
+
+pub(crate) fn dup(score_struct: Option<ScoreStruct>, p1: usize) -> ScoreStruct {
+    ScoreStruct::from(score_struct.unwrap())
+}
