@@ -1,7 +1,7 @@
 use crate::errors::LoaderError;
 use crate::gdrv::GdrvBitmap8;
 use crate::loader::{VisualStruct, query_float_attribute_ptr};
-use crate::maths::{MathsError, RectangleType, Vector2, f32_vec_to_vec3};
+use crate::maths::{MathsError, RectangleType, Vector2, f32_vec_to_vec2};
 use crate::render::{RenderSprite, VisualTypes};
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
@@ -9,7 +9,7 @@ use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_manager::{FieldEffectType, TEdgeManager};
 use crate::t_pinball_table::TPinballTable;
 use crate::{loader, proj, render};
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use std::cell::RefCell;
 use std::f32::consts::FRAC_PI_2;
 use std::ffi::CString;
