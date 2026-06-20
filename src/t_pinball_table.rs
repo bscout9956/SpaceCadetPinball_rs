@@ -307,23 +307,28 @@ impl TPinballTable {
 
         render::build_occlude_list();
 
-        if let Some(tbox) = table_borrow_mut.find_component_by_name("info_text_box") {
-            let text_box_downcase = tbox.as_any().downcast_ref::<TTextBox>();
-            if let Some(tbox_val) = text_box_downcase {
-                state.pb_game_state.info_text_box = Some(*tbox_val);
-            } else {
-                state.pb_game_state.info_text_box = None;
-            }
-        }
+        state.pb_game_state.info_text_box = table_rc
+            .borrow_mut()
+            .find_component_by_name("info_text_box")
+            .and_then(|rc_comp| {
+                let borrowed_comp = rc_comp.borrow();
 
-        if let Some(mbox) = table_borrow_mut.find_component_by_name("mission_text_box") {
-            let mission_box_downcast = mbox.as_any().downcast_ref::<TTextBox>();
-            if let Some(mbox_val) = mission_box_downcast {
-                state.pb_game_state.mission_text_box = Some(*mbox_val);
-            } else {
-                state.pb_game_state.mission_text_box = None;
-            }
-        }
+                borrowed_comp
+                    .as_any()
+                    .downcast_ref::<TTextBox>()
+                    .map(|tbox| tbox.to_owned())
+            });
+
+        state.pb_game_state.mission_text_box = table_rc
+            .borrow_mut()
+            .find_component_by_name("mission_text_box")
+            .and_then(|rc_comp| {
+                let borrowed_comp = rc_comp.borrow();
+                borrowed_comp
+                    .as_any()
+                    .downcast_ref::<TTextBox>()
+                    .map(|tbox| tbox.to_owned())
+            });
 
         control::make_links(table_weak.clone());
         Ok(table_rc)
