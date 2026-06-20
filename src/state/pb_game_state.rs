@@ -4,6 +4,8 @@ use crate::pb::GameModes;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
 use dear_imgui_rs::sys::ImU32;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
 pub struct PbGameState {
@@ -15,7 +17,7 @@ pub struct PbGameState {
     pub demo_mode: bool,
     pub full_tilt_mode: bool,
     pub full_tilt_demo_mode: bool,
-    pub main_table: Option<TPinballTable>,
+    pub main_table: Option<Rc<RefCell<TPinballTable>>>,
     pub time_ticks: usize,
     pub time_next: f32,
     pub time_now: f32,
@@ -25,7 +27,7 @@ pub struct PbGameState {
     pub dat_file_name: String,
     pub base_path: String,
     pub idle_timer_ms: f32,
-    pub miss_text_box: Option<TTextBox>,
+    pub mission_text_box: Option<TTextBox>,
     pub info_text_box: Option<TTextBox>,
     pub text_box_color: ImU32,
     pub current_palette: [ColorRgba; 256],
@@ -52,7 +54,7 @@ impl PbGameState {
             dat_file_name: String::new(),
             base_path: String::new(),
             idle_timer_ms: 0.0f32,
-            miss_text_box: None,
+            mission_text_box: None,
             info_text_box: None,
             text_box_color: 0,
             current_palette: std::array::from_fn(|_| ColorRgba::black()),
