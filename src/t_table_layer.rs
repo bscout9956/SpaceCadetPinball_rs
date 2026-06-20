@@ -147,7 +147,7 @@ impl TTableLayer {
         base.borrow_mut().threshold = visual.kicker.threshold;
         base.borrow_mut().boost = 15.0f32;
 
-        let edge_points = f32_vec_to_vec3(&visual.float_arr)?;
+        let edge_points = f32_vec_to_vec2(&visual.float_arr)?; // throws error
 
         let mut instance = Self {
             base_component: base.take(),
