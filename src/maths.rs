@@ -575,3 +575,22 @@ pub enum FlipperIntersect {
     CircleBase = 2,
     CircleT1 = 3,
 }
+
+use anyhow::Result;
+
+pub(crate) fn f32_vec_to_vec2(f32_vec: &Vec<f32>) -> Result<Vec<Vector2>> {
+    if f32_vec.is_empty() || !f32_vec.len().is_multiple_of(2) {
+        bail!(MathsError::IncorrectF32VecSize(f32_vec.len()));
+    }
+
+    let mut result: Vec<Vector2> = Vec::new();
+
+    for idx in (0..f32_vec.len()).step_by(2) {
+        result.push(Vector2 {
+            x: f32_vec[idx],
+            y: f32_vec[idx + 1],
+        });
+    }
+
+    Ok(result)
+}
