@@ -39,7 +39,7 @@ impl Default for ScoreStruct {
 pub struct ScoreMessageFontType {
     pub gap_width: i32,
     pub height: i32,
-    pub chars: [GdrvBitmap8; 128],
+    pub chars: Vec<GdrvBitmap8>,
 }
 
 impl ScoreMessageFontType {
@@ -47,7 +47,7 @@ impl ScoreMessageFontType {
         Self {
             gap_width: 0,
             height: 0,
-            chars: std::array::from_fn(|_| GdrvBitmap8::default()),
+            chars: Vec::with_capacity(128),
         }
     }
 }
