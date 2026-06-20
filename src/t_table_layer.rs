@@ -9,8 +9,10 @@ use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_manager::{FieldEffectType, TEdgeManager};
 use crate::t_pinball_table::TPinballTable;
 use crate::{loader, proj, render};
+use anyhow::{bail, Context};
 use std::cell::RefCell;
 use std::f32::consts::FRAC_PI_2;
+use std::ffi::CString;
 use std::ptr::slice_from_raw_parts;
 use std::rc::Weak;
 use std::slice::from_raw_parts;
@@ -42,6 +44,8 @@ pub enum TTableLayerError {
     LockError,
 }
 
+use anyhow::Result;
+
 impl TTableLayer {
     pub fn field_effect(ball: Option<&mut TBall>, vec_dst: Option<&mut Vector2>) {
         todo!("I am never finished omg");
@@ -50,11 +54,12 @@ impl TTableLayer {
     pub fn new(
         table: Option<Weak<RefCell<TPinballTable>>>,
         state: &mut PinballState,
-    ) -> Result<Self, TTableLayerError> {
+    ) -> Result<Self> {
         let mut visual = VisualStruct::default();
         let mut rect = RectangleType::default();
 
-        let group_index = loader::query_handle(c"table".as_ptr(), &mut state.loader_state)?;
+        let table_str = CString::new("table").context("Faield to create table string")?;
+        let group_index = loader::query_handle(table_str.as_ptr(), &mut state.loader_state)?;
         loader::query_visual(group_index, 0, &mut visual, state)?;
         let sprite_data = visual.bitmap;
 
@@ -111,6 +116,7 @@ impl TTableLayer {
         let gravity_dir_x;
         let gravity_dir_y;
 
+        // TODO: Remove upgrades, breaks stuff
         if let Some(t) = table.as_ref().unwrap().upgrade() {
             gravity_dir_x = f32::cos(t.borrow().gravity_angle_y)
                 * f32::sin(t.borrow().gravity_angle_x)
@@ -125,7 +131,7 @@ impl TTableLayer {
                 t.borrow_mut().width = b.width;
             }
         } else {
-            return Err(TTableLayerError::InvalidTable);
+            return bail!(TTableLayerError::InvalidTable);
         }
 
         let gravity_mult: f32;
