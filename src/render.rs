@@ -540,7 +540,7 @@ pub(crate) fn present_v_screen(state: &mut PinballState) {
                 SDL_RenderCopy(renderer.0, tex.0, null(), dest_rect);
             } else {
                 if let Some(table) = state.pb_game_state.main_table.as_ref() {
-                    let table_width_coef = (table.width / v_screen.width) as f32;
+                    let table_width_coef = (table.borrow().width / v_screen.width) as f32;
                     let src_separation_x =
                         f32::round(v_screen.width as f32 * table_width_coef) as i32;
                     let src_board_rect = SDL_Rect {
