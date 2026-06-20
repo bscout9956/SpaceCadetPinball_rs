@@ -1,19 +1,20 @@
 use crate::errors::{LoaderError, PbError};
-use crate::maths::{Vector2, Vector3};
+use crate::maths::{Vector2, Vector2i, Vector3};
 use crate::message_code::MessageCode;
 use crate::score::ScoreStruct;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
 use crate::t_demo::TDemo;
-use crate::t_light_group::TLightGroup;
+use crate::t_light_group::{TLightGroup, TLightGroupError};
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
-use crate::t_table_layer::TTableLayer;
+use crate::t_table_layer::{TTableLayer, TTableLayerError};
 use crate::t_textbox::TTextBox;
 use crate::{control, loader, pb, render, score, timer};
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_WARNING;
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::{CString, NulError};
+use std::ops::Deref;
 use std::rc::{Rc, Weak};
 use thiserror::Error;
 

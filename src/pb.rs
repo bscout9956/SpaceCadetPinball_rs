@@ -1,4 +1,4 @@
-use crate::errors::PbError;
+use crate::errors::{PbError, TranslationError};
 use crate::gdrv::ColorRgba;
 use crate::group_data::{EntryBuffer, FieldTypes};
 use crate::high_score::{HighScore, HighScoreEntry};
@@ -14,11 +14,12 @@ use crate::state::render_state::RenderState;
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
-use crate::translations::{Msg, TranslationError};
+use crate::translations::Msg;
 use crate::{
     SdlWindowPtr, control, gdrv, high_score, loader, maths, midi, nudge, options, partman, proj,
     render, score, timer, translations,
 };
+use anyhow::{Context, Result};
 use rand::random;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_KeyCode, SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};

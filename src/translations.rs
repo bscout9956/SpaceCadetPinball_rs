@@ -1,10 +1,9 @@
+use crate::errors::TranslationError;
 use crate::text_array::TEXT_ARRAY;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use std::cmp::PartialEq;
-use std::ffi::NulError;
-use std::sync::{LazyLock, Mutex, MutexGuard, PoisonError};
-use thiserror::Error;
+use std::sync::{LazyLock, Mutex};
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, FromPrimitive)]
 pub enum Msg {

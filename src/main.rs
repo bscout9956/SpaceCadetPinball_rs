@@ -12,7 +12,7 @@ use dear_imgui_rs::sys::{
     igPopStyleVar, igPushStyleVar_Vec2, igRender, igSeparator, igSetMouseCursor, igSliderInt,
     igTextUnformatted,
 };
-use dear_imgui_rs::{ConfigFlags, Context, FontConfig, StyleColor, StyleVar, Ui};
+use dear_imgui_rs::{ConfigFlags, FontConfig, StyleColor, StyleVar, Ui};
 use errors::MainLoopError;
 use num_traits::FromPrimitive;
 use sdl2::sys::SDL_EventType::{
