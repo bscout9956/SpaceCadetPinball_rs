@@ -154,7 +154,7 @@ impl TTableLayer {
             vis_bmp: (*bmp).clone(),
             x_min: f32::min(
                 edge_points[0].x,
-                f32::min(edge_points[1].x, edge_points[2].y),
+                f32::min(edge_points[1].x, edge_points[2].x),
             ),
             y_min: f32::min(
                 edge_points[0].y,
