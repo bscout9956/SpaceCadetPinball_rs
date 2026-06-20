@@ -1,47 +1,21 @@
-use crate::state::pinball_state::PinballState;
-use dear_imgui_rs::sys::{
-    ImGuiMouseCursor_COUNT, ImGuiMouseCursor_None, igGetDragDropPayload, igGetFrameCount,
-    igGetMainViewport, igGetMouseCursor,
-};
-use dear_imgui_rs::{BackendFlags, ConfigFlags, Io, Key, MouseButton};
+use dear_imgui_rs::Io;
+use dear_imgui_rs::sys::{ImGuiMouseCursor_COUNT, igGetDragDropPayload};
 use dear_imgui_rs::{Context, TextureId};
-use sdl2::keyboard::Keycode;
 use sdl2::render::RenderTarget;
 use sdl2::sys::SDL_BlendMode::SDL_BLENDMODE_BLEND;
-use sdl2::sys::SDL_EventType::{
-    SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEMOTION,
-    SDL_MOUSEWHEEL, SDL_TEXTINPUT, SDL_WINDOWEVENT,
-};
-use sdl2::sys::SDL_Keymod::{KMOD_ALT, KMOD_CTRL, KMOD_GUI, KMOD_SHIFT};
 use sdl2::sys::SDL_PixelFormatEnum::SDL_PIXELFORMAT_ABGR8888;
 use sdl2::sys::SDL_ScaleMode::SDL_ScaleModeLinear;
-use sdl2::sys::SDL_SystemCursor::{
-    SDL_SYSTEM_CURSOR_ARROW, SDL_SYSTEM_CURSOR_HAND, SDL_SYSTEM_CURSOR_IBEAM, SDL_SYSTEM_CURSOR_NO,
-    SDL_SYSTEM_CURSOR_SIZEALL, SDL_SYSTEM_CURSOR_SIZENESW, SDL_SYSTEM_CURSOR_SIZENS,
-    SDL_SYSTEM_CURSOR_SIZENWSE, SDL_SYSTEM_CURSOR_SIZEWE, SDL_SYSTEM_CURSOR_WAIT,
-    SDL_SYSTEM_CURSOR_WAITARROW,
-};
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STATIC;
-use sdl2::sys::SDL_WindowEventID::{
-    SDL_WINDOWEVENT_ENTER, SDL_WINDOWEVENT_FOCUS_GAINED, SDL_WINDOWEVENT_FOCUS_LOST,
-    SDL_WINDOWEVENT_LEAVE,
-};
-use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_MINIMIZED;
 use sdl2::sys::SDL_bool::{SDL_FALSE, SDL_TRUE};
 use sdl2::sys::{
-    SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2,
-    SDL_CaptureMouse, SDL_CreateSystemCursor, SDL_CreateTexture, SDL_Cursor, SDL_DestroyTexture,
-    SDL_Event, SDL_FreeSurface, SDL_GL_GetDrawableSize, SDL_GetCurrentVideoDriver,
-    SDL_GetGlobalMouseState, SDL_GetKeyboardFocus, SDL_GetPerformanceCounter,
-    SDL_GetPerformanceFrequency, SDL_GetRendererOutputSize, SDL_GetVersion, SDL_GetWindowFlags,
-    SDL_GetWindowPosition, SDL_GetWindowSize, SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE,
-    SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, SDL_Renderer, SDL_SYSWM_TYPE, SDL_SetCursor, SDL_SetHint,
-    SDL_SetTextureBlendMode, SDL_SetTextureScaleMode, SDL_ShowCursor, SDL_Surface, SDL_SysWMinfo,
-    SDL_Texture, SDL_UpdateTexture, SDL_WarpMouseInWindow, SDL_Window, SDL_bool, SDL_version,
+    SDL_CaptureMouse, SDL_CreateTexture, SDL_Cursor, SDL_DestroyTexture, SDL_FreeSurface,
+    SDL_GetGlobalMouseState, SDL_GetKeyboardFocus, SDL_GetWindowPosition, SDL_Renderer,
+    SDL_SYSWM_TYPE, SDL_SetTextureBlendMode, SDL_SetTextureScaleMode, SDL_Surface, SDL_Texture,
+    SDL_UpdateTexture, SDL_WarpMouseInWindow, SDL_Window, SDL_version,
 };
-use std::ffi::{CStr, c_char, c_int, c_void};
+use std::ffi::{c_char, c_int, c_void};
 use std::ops::{Add, Mul};
-use std::ptr::{addr_of_mut, null, null_mut};
+use std::ptr::null;
 
 struct ClipRect {
     x: i32,
@@ -209,7 +183,9 @@ impl Drop for Texture {
 pub mod renderer {
     use std::sync::atomic::{AtomicBool, Ordering};
 
-    use crate::imgui_sdl::{ImplSdl2RenderData, get_renderer_bd_from_io};
+    use crate::imgui_sdl::{
+        ImplSdl2RenderData, get_renderer_bd_from_io, impl_sdl2_renderer_create_device_objects,
+    };
     use dear_imgui_rs::internal::{ImVector, imvector_cast_mut};
     use dear_imgui_rs::sys::{
         ImDrawCmd, ImDrawCmd_GetTexID, ImDrawData, ImDrawIdx, ImDrawVert, ImVec2,
@@ -280,7 +256,7 @@ pub mod renderer {
             panic!("No renderer backend to shutdown, or already shutdown?");
         }
 
-        let bd = get_renderer_bd_from_io(io);
+        let bd = unsafe { get_renderer_bd_from_io(io) };
 
         unsafe {
             if !(*bd).font_texture.is_null() {
@@ -295,8 +271,20 @@ pub mod renderer {
         io.set_backend_renderer_user_data(null_mut());
     }
 
+    pub(crate) fn new_frame(context: &mut Context) {
+        let bd = unsafe { get_renderer_bd_from_io(context.io_mut()) };
+        if bd.is_null() {
+            panic!("Did you call impl sdl renderer init?")
+        }
+        unsafe {
+            if (*bd).font_texture.is_null() {
+                impl_sdl2_renderer_create_device_objects(context);
+            }
+        }
+    }
+
     pub(crate) fn render_draw_data(io: &mut Io, draw_data: *mut ImDrawData) {
-        let bd = get_renderer_bd_from_io(io);
+        let bd = unsafe { get_renderer_bd_from_io(io) };
 
         let mut rsx = 1.0f32;
         let mut rsy = 1.0f32;
@@ -456,7 +444,7 @@ pub mod renderer {
     }
 
     fn setup_render_state(io: &mut Io) {
-        let bd = get_renderer_bd_from_io(io);
+        let bd = unsafe { get_renderer_bd_from_io(io) };
         unsafe {
             SDL_RenderSetViewport((*bd).renderer, null());
             SDL_RenderSetClipRect((*bd).renderer, null());
@@ -469,7 +457,7 @@ pub fn init_for_sdl_renderer(
     window: *mut SDL_Window,
     renderer: *mut SDL_Renderer,
 ) -> bool {
-    unsafe { impl_sdl2_init(context, window, renderer) }
+    unsafe { impl_sdl2::init(context, window, renderer) }
 }
 
 pub struct ImplSdl2UserData {
@@ -479,7 +467,7 @@ pub struct ImplSdl2UserData {
     mouse_buttons_down: i32,
     cursor: [*mut SDL_Cursor; ImGuiMouseCursor_COUNT as usize],
     pending_mouse_leave_frame: i32,
-    clipboard_text_data: *mut c_char,
+    clipboard_text_data: *mut c_char, // TODO: Why is this unused?
     mouse_can_use_global_state: bool,
 }
 
@@ -488,95 +476,490 @@ pub struct ImplSdl2RenderData {
     font_texture: *mut SDL_Texture,
 }
 
-unsafe fn impl_sdl2_init(
-    context: &mut Context,
-    window: *mut SDL_Window,
-    renderer: *mut SDL_Renderer,
-) -> bool {
-    let io = context.io_mut();
-    assert!(
-        io.backend_platform_user_data().is_null(),
-        "SDL_UserData is NULL"
-    ); // VERIFY: Is this what we want?
-    let mut mouse_can_use_global_state = false;
+pub mod impl_sdl2 {
+    use crate::imgui_sdl::{ImplSdl2UserData, SdlSysWminfoWindows, get_backend_bd_from_io};
+    use crate::state::pinball_state::PinballState;
+    use dear_imgui_rs::sys::{
+        ImGuiMouseCursor_COUNT, ImGuiMouseCursor_None, igGetDragDropPayload, igGetFrameCount,
+        igGetMainViewport, igGetMouseCursor,
+    };
+    use dear_imgui_rs::{BackendFlags, ConfigFlags, Context, Io, Key, MouseButton};
+    use sdl2::keyboard::Keycode;
+    use sdl2::sys::SDL_EventType::{
+        SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEMOTION,
+        SDL_MOUSEWHEEL, SDL_TEXTINPUT, SDL_WINDOWEVENT,
+    };
+    use sdl2::sys::SDL_Keymod::{KMOD_ALT, KMOD_CTRL, KMOD_GUI, KMOD_SHIFT};
+    use sdl2::sys::SDL_SystemCursor::{
+        SDL_SYSTEM_CURSOR_ARROW, SDL_SYSTEM_CURSOR_HAND, SDL_SYSTEM_CURSOR_IBEAM,
+        SDL_SYSTEM_CURSOR_NO, SDL_SYSTEM_CURSOR_SIZEALL, SDL_SYSTEM_CURSOR_SIZENESW,
+        SDL_SYSTEM_CURSOR_SIZENS, SDL_SYSTEM_CURSOR_SIZENWSE, SDL_SYSTEM_CURSOR_SIZEWE,
+        SDL_SYSTEM_CURSOR_WAIT, SDL_SYSTEM_CURSOR_WAITARROW,
+    };
+    use sdl2::sys::SDL_WindowEventID::{
+        SDL_WINDOWEVENT_ENTER, SDL_WINDOWEVENT_FOCUS_GAINED, SDL_WINDOWEVENT_FOCUS_LOST,
+        SDL_WINDOWEVENT_LEAVE,
+    };
+    use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_MINIMIZED;
+    use sdl2::sys::SDL_bool::{SDL_FALSE, SDL_TRUE};
+    use sdl2::sys::{
+        SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2,
+        SDL_CaptureMouse, SDL_CreateSystemCursor, SDL_Cursor, SDL_Event, SDL_GL_GetDrawableSize,
+        SDL_GetCurrentVideoDriver, SDL_GetGlobalMouseState, SDL_GetKeyboardFocus,
+        SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency, SDL_GetRendererOutputSize,
+        SDL_GetVersion, SDL_GetWindowFlags, SDL_GetWindowPosition, SDL_GetWindowSize,
+        SDL_GetWindowWMInfo, SDL_HINT_MOUSE_AUTO_CAPTURE, SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH,
+        SDL_Renderer, SDL_SetCursor, SDL_SetHint, SDL_ShowCursor, SDL_SysWMinfo,
+        SDL_WarpMouseInWindow, SDL_Window, SDL_bool,
+    };
+    use std::ffi::{CStr, c_char, c_int, c_void};
+    use std::ptr::{addr_of_mut, null_mut};
 
-    let sdl_backend = unsafe { SDL_GetCurrentVideoDriver() };
-    let sdl_backend_str = unsafe { CStr::from_ptr(sdl_backend).to_str().unwrap() };
+    pub fn update_key_modifiers(io: &mut Io, sdl_key_mods: u32) {
+        io.add_key_event(Key::ModCtrl, (sdl_key_mods & KMOD_CTRL as u32) != 0);
+        io.add_key_event(Key::ModShift, (sdl_key_mods & KMOD_SHIFT as u32) != 0);
+        io.add_key_event(Key::ModAlt, (sdl_key_mods & KMOD_ALT as u32) != 0);
+        io.add_key_event(Key::ModSuper, (sdl_key_mods & KMOD_GUI as u32) != 0);
+    }
 
-    let global_mouse_whitelist = ["windows", "cocoa", "x11", "DIVE", "VMAN"];
-    for mouse in global_mouse_whitelist {
-        if sdl_backend_str.eq(mouse) {
-            mouse_can_use_global_state = true;
+    // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
+    // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
+    // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
+    // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
+    // If you have multiple SDL events and some of them are not meant to be used by dear imgui, you may need to filter events based on their windowID field.
+    pub(crate) fn process_event(context: &mut Context, event: *mut SDL_Event) -> bool {
+        let io = context.io_mut();
+        let bd_ptr = io.backend_platform_user_data();
+
+        let mut bd: *mut ImplSdl2UserData = std::ptr::null_mut();
+
+        if bd_ptr.is_null() {
+            return false;
+        }
+
+        unsafe {
+            bd = &raw mut *bd_ptr.cast::<ImplSdl2UserData>();
+        }
+
+        unsafe {
+            if (*event).type_ == SDL_MOUSEMOTION as u32 {
+                io.add_mouse_pos_event([(*event).motion.x as f32, (*event).motion.y as f32]);
+                return true;
+            }
+            if (*event).type_ == SDL_MOUSEWHEEL as u32 {
+                let wheel_x = if (*event).wheel.x > 0 {
+                    1.0f32
+                } else if (*event).wheel.x < 0 {
+                    -1.0f32
+                } else {
+                    0.0f32
+                };
+
+                let wheel_y = if (*event).wheel.y > 0 {
+                    1.0f32
+                } else if (*event).wheel.y < 0 {
+                    -1.0f32
+                } else {
+                    0.0f32
+                };
+
+                io.add_mouse_wheel_event([wheel_x, wheel_y]);
+                return true;
+            }
+            if (*event).type_ == SDL_MOUSEBUTTONDOWN as u32
+                || (*event).type_ == SDL_MOUSEBUTTONUP as u32
+            {
+                let (mouse_button, button_index) = match u32::from((*event).button.button) {
+                    SDL_BUTTON_LEFT => (MouseButton::Left, 0),
+                    SDL_BUTTON_RIGHT => (MouseButton::Right, 1),
+                    SDL_BUTTON_MIDDLE => (MouseButton::Middle, 2),
+                    SDL_BUTTON_X1 => (MouseButton::Extra1, 3),
+                    SDL_BUTTON_X2 => (MouseButton::Extra2, 4),
+                    _ => return false,
+                };
+
+                let is_down = (*event).type_ == SDL_MOUSEBUTTONDOWN as u32;
+
+                io.add_mouse_button_event(
+                    mouse_button,
+                    (*event).type_ == SDL_MOUSEBUTTONDOWN as u32,
+                );
+
+                if is_down {
+                    (*bd).mouse_buttons_down |= 1 << button_index;
+                } else {
+                    (*bd).mouse_buttons_down &= !(1 << button_index);
+                }
+
+                return true;
+            }
+
+            if (*event).type_ == SDL_TEXTINPUT as u32 {
+                let c_str = CStr::from_ptr((*event).text.text.as_ptr());
+
+                if let Ok(text) = c_str.to_str() {
+                    for c in text.chars() {
+                        io.add_input_character(c);
+                    }
+                }
+                return true;
+            }
+
+            if (*event).type_ == SDL_KEYDOWN as u32 || (*event).type_ == SDL_KEYUP as u32 {
+                update_key_modifiers(io, u32::from((*event).key.keysym.mod_));
+                let key = keycode_to_imgui_key(Keycode::from_i32((*event).key.keysym.sym).unwrap());
+                io.add_key_event(key, (*event).type_ == SDL_KEYDOWN as u32);
+                return true;
+            }
+
+            if (*event).type_ == SDL_WINDOWEVENT as u32 {
+                // - When capturing mouse, SDL will send a bunch of conflicting LEAVE/ENTER event on every mouse move, but the final ENTER tends to be right.
+                // - However we won't get a correct LEAVE event for a captured window.
+                // - In some cases, when detaching a window from main viewport SDL may send SDL_WINDOWEVENT_ENTER one frame too late,
+                //   causing SDL_WINDOWEVENT_LEAVE on previous frame to interrupt drag operation by clear mouse position. This is why
+                //   we delay process the SDL_WINDOWEVENT_LEAVE events by one frame. See issue #5012 for details.
+                let window_event = (*event).window.event;
+                if window_event == SDL_WINDOWEVENT_ENTER as u8 {
+                    (*bd).pending_mouse_leave_frame = 0;
+                }
+                if window_event == SDL_WINDOWEVENT_LEAVE as u8 {
+                    (*bd).pending_mouse_leave_frame += igGetFrameCount() + 1;
+                }
+                if window_event == SDL_WINDOWEVENT_FOCUS_GAINED as u8 {
+                    io.add_focus_event(true);
+                } else if (*event).window.event == SDL_WINDOWEVENT_FOCUS_LOST as u8 {
+                    io.add_focus_event(false);
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    fn keycode_to_imgui_key(key: Keycode) -> Key {
+        match key {
+            Keycode::TAB => Key::Tab,
+            Keycode::LEFT => Key::LeftArrow,
+            Keycode::RIGHT => Key::RightArrow,
+            Keycode::UP => Key::UpArrow,
+            Keycode::DOWN => Key::DownArrow,
+            Keycode::PAGEUP => Key::PageUp,
+            Keycode::PAGEDOWN => Key::PageDown,
+            Keycode::HOME => Key::Home,
+            Keycode::END => Key::End,
+            Keycode::INSERT => Key::Insert,
+            Keycode::DELETE => Key::Delete,
+            Keycode::BACKSPACE => Key::Backspace,
+            Keycode::SPACE => Key::Space,
+            Keycode::RETURN => Key::Enter,
+            Keycode::ESCAPE => Key::Escape,
+            Keycode::QUOTE => Key::Apostrophe,
+            Keycode::COMMA => Key::Comma,
+            Keycode::MINUS => Key::Minus,
+            Keycode::PERIOD => Key::Period,
+            Keycode::SLASH => Key::Slash,
+            Keycode::SEMICOLON => Key::Semicolon,
+            Keycode::EQUALS => Key::Equal,
+            Keycode::LEFTBRACKET => Key::LeftBracket,
+            Keycode::BACKSLASH => Key::Backslash,
+            Keycode::RIGHTBRACKET => Key::RightBracket,
+            Keycode::BACKQUOTE => Key::GraveAccent,
+            Keycode::CAPSLOCK => Key::CapsLock,
+            Keycode::SCROLLLOCK => Key::ScrollLock,
+            Keycode::NUMLOCKCLEAR => Key::NumLock,
+            Keycode::PRINTSCREEN => Key::PrintScreen,
+            Keycode::PAUSE => Key::Pause,
+            Keycode::KP_0 => Key::Keypad0,
+            Keycode::KP_1 => Key::Keypad1,
+            Keycode::KP_2 => Key::Keypad2,
+            Keycode::KP_3 => Key::Keypad3,
+            Keycode::KP_4 => Key::Keypad4,
+            Keycode::KP_5 => Key::Keypad5,
+            Keycode::KP_6 => Key::Keypad6,
+            Keycode::KP_7 => Key::Keypad7,
+            Keycode::KP_8 => Key::Keypad8,
+            Keycode::KP_9 => Key::Keypad9,
+            Keycode::KP_PERIOD => Key::KeypadDecimal,
+            Keycode::KP_DIVIDE => Key::KeypadDivide,
+            Keycode::KP_MULTIPLY => Key::KeypadMultiply,
+            Keycode::KP_MINUS => Key::KeypadSubtract,
+            Keycode::KP_PLUS => Key::KeypadAdd,
+            Keycode::KP_ENTER => Key::KeypadEnter,
+            Keycode::KP_EQUALS => Key::KeypadEqual,
+            Keycode::LCTRL => Key::LeftCtrl,
+            Keycode::LSHIFT => Key::LeftShift,
+            Keycode::LALT => Key::LeftAlt,
+            Keycode::LGUI => Key::LeftSuper,
+            Keycode::RCTRL => Key::RightCtrl,
+            Keycode::RSHIFT => Key::RightShift,
+            Keycode::RALT => Key::RightAlt,
+            Keycode::RGUI => Key::RightSuper,
+            Keycode::APPLICATION => Key::Menu,
+            Keycode::NUM_0 => Key::Key0,
+            Keycode::NUM_1 => Key::Key1,
+            Keycode::NUM_2 => Key::Key2,
+            Keycode::NUM_3 => Key::Key3,
+            Keycode::NUM_4 => Key::Key4,
+            Keycode::NUM_5 => Key::Key5,
+            Keycode::NUM_6 => Key::Key6,
+            Keycode::NUM_7 => Key::Key7,
+            Keycode::NUM_8 => Key::Key8,
+            Keycode::NUM_9 => Key::Key9,
+            Keycode::A => Key::A,
+            Keycode::B => Key::B,
+            Keycode::C => Key::C,
+            Keycode::D => Key::D,
+            Keycode::E => Key::E,
+            Keycode::F => Key::F,
+            Keycode::G => Key::G,
+            Keycode::H => Key::H,
+            Keycode::I => Key::I,
+            Keycode::J => Key::J,
+            Keycode::K => Key::K,
+            Keycode::L => Key::L,
+            Keycode::M => Key::M,
+            Keycode::N => Key::N,
+            Keycode::O => Key::O,
+            Keycode::P => Key::P,
+            Keycode::Q => Key::Q,
+            Keycode::R => Key::R,
+            Keycode::S => Key::S,
+            Keycode::T => Key::T,
+            Keycode::U => Key::U,
+            Keycode::V => Key::V,
+            Keycode::W => Key::W,
+            Keycode::X => Key::X,
+            Keycode::Y => Key::Y,
+            Keycode::Z => Key::Z,
+            Keycode::F1 => Key::F1,
+            Keycode::F2 => Key::F2,
+            Keycode::F3 => Key::F3,
+            Keycode::F4 => Key::F4,
+            Keycode::F5 => Key::F5,
+            Keycode::F6 => Key::F6,
+            Keycode::F7 => Key::F7,
+            Keycode::F8 => Key::F8,
+            Keycode::F9 => Key::F9,
+            Keycode::F10 => Key::F10,
+            Keycode::F11 => Key::F11,
+            Keycode::F12 => Key::F12,
+            _ => Key::None,
         }
     }
 
-    let cursors: [*mut SDL_Cursor; ImGuiMouseCursor_COUNT as usize] = unsafe {
-        [
-            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW),
-            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM),
-            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL),
-            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENS),
-            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE),
-            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW),
-            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE),
-            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND),
-            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_WAIT),
-            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_WAITARROW),
-            SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NO),
-        ]
-    };
+    pub(crate) unsafe fn init(
+        context: &mut Context,
+        window: *mut SDL_Window,
+        renderer: *mut SDL_Renderer,
+    ) -> bool {
+        let io = context.io_mut();
+        assert!(
+            io.backend_platform_user_data().is_null(),
+            "SDL_UserData is NULL"
+        ); // VERIFY: Is this what we want?
+        let mut mouse_can_use_global_state = false;
 
-    //new(ImNewWrapper(), ImGui::MemAlloc(sizeof(_TYPE))) _TYPE
-    let bd = Box::new(ImplSdl2UserData {
-        window,
-        renderer,
-        time: 0,
-        mouse_buttons_down: 0,
-        cursor: cursors,
-        pending_mouse_leave_frame: 0,
-        clipboard_text_data: null_mut(),
-        mouse_can_use_global_state,
-    });
+        let sdl_backend = unsafe { SDL_GetCurrentVideoDriver() };
+        let sdl_backend_str = unsafe { CStr::from_ptr(sdl_backend).to_str().unwrap() };
 
-    let bd_ptr = Box::into_raw(bd);
+        let global_mouse_whitelist = ["windows", "cocoa", "x11", "DIVE", "VMAN"];
+        for mouse in global_mouse_whitelist {
+            if sdl_backend_str.eq(mouse) {
+                mouse_can_use_global_state = true;
+            }
+        }
 
-    io.set_backend_platform_user_data(bd_ptr.cast::<c_void>());
-    let current_flags = io.backend_flags();
-    io.set_backend_flags(
-        BackendFlags::HAS_MOUSE_CURSORS | current_flags | BackendFlags::HAS_SET_MOUSE_POS,
-    );
-    // TODO: Better check this properly
-    //    context.set_clipboard_backend();
+        let cursors: [*mut SDL_Cursor; ImGuiMouseCursor_COUNT as usize] = unsafe {
+            [
+                SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW),
+                SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM),
+                SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL),
+                SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENS),
+                SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE),
+                SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW),
+                SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE),
+                SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND),
+                SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_WAIT),
+                SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_WAITARROW),
+                SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NO),
+            ]
+        };
 
-    #[cfg(target_os = "windows")]
-    {
-        let mut info: SDL_SysWMinfo = unsafe { std::mem::zeroed() };
-        unsafe { SDL_GetVersion(&raw mut info.version) };
-        let info_ptr = addr_of_mut!(info);
+        //new(ImNewWrapper(), ImGui::MemAlloc(sizeof(_TYPE))) _TYPE
+        let bd = Box::new(ImplSdl2UserData {
+            window,
+            renderer,
+            time: 0,
+            mouse_buttons_down: 0,
+            cursor: cursors,
+            pending_mouse_leave_frame: 0,
+            clipboard_text_data: null_mut(),
+            mouse_can_use_global_state,
+        });
 
-        if unsafe { SDL_GetWindowWMInfo(window, info_ptr) } == SDL_bool::SDL_TRUE {
-            let viewport = unsafe { igGetMainViewport() };
+        let bd_ptr = Box::into_raw(bd);
 
-            let win_info = unsafe { &*(info_ptr as *const SdlSysWminfoWindows) };
-            let hwnd = win_info.window;
+        io.set_backend_platform_user_data(bd_ptr.cast::<c_void>());
+        let current_flags = io.backend_flags();
+        io.set_backend_flags(
+            BackendFlags::HAS_MOUSE_CURSORS | current_flags | BackendFlags::HAS_SET_MOUSE_POS,
+        );
+        // TODO: Better check this properly
+        //    context.set_clipboard_backend();
 
-            unsafe {
-                (*viewport).PlatformHandleRaw = hwnd;
+        #[cfg(target_os = "windows")]
+        {
+            let mut info: SDL_SysWMinfo = unsafe { std::mem::zeroed() };
+            unsafe { SDL_GetVersion(&raw mut info.version) };
+            let info_ptr = addr_of_mut!(info);
+
+            if unsafe { SDL_GetWindowWMInfo(window, info_ptr) } == SDL_bool::SDL_TRUE {
+                let viewport = unsafe { igGetMainViewport() };
+
+                let win_info = unsafe { &*(info_ptr as *const SdlSysWminfoWindows) };
+                let hwnd = win_info.window;
+
+                unsafe {
+                    (*viewport).PlatformHandleRaw = hwnd;
+                }
+            }
+        }
+        unsafe {
+            SDL_SetHint(
+                SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH.as_ptr().cast::<c_char>(),
+                c"1".as_ptr(),
+            );
+            SDL_SetHint(
+                SDL_HINT_MOUSE_AUTO_CAPTURE.as_ptr().cast::<c_char>(),
+                c"0".as_ptr(),
+            );
+        }
+
+        true
+    }
+
+    unsafe fn update_mouse_data(io: &mut Io, bd: *mut ImplSdl2UserData) {
+        unsafe {
+            let check = (*bd).mouse_buttons_down != 0 && igGetDragDropPayload().is_null();
+            SDL_CaptureMouse(if check { SDL_TRUE } else { SDL_FALSE });
+            let focused_window = SDL_GetKeyboardFocus();
+            let is_app_focused = (*bd).window == focused_window;
+            if is_app_focused {
+                if io.want_set_mouse_pos() {
+                    let mouse_pos = io.mouse_pos();
+                    SDL_WarpMouseInWindow(
+                        (*bd).window,
+                        mouse_pos[0] as c_int,
+                        mouse_pos[1] as c_int,
+                    );
+                }
+
+                if (*bd).mouse_can_use_global_state && (*bd).mouse_buttons_down == 0 {
+                    let mut window_x = 0 as c_int;
+                    let mut window_y = 0 as c_int;
+                    let mut mouse_x_global = 0 as c_int;
+                    let mut mouse_y_global = 0 as c_int;
+                    SDL_GetGlobalMouseState(&raw mut mouse_x_global, &raw mut mouse_y_global);
+                    SDL_GetWindowPosition((*bd).window, &raw mut window_x, &mut window_y);
+                    io.add_mouse_pos_event([
+                        (mouse_x_global - window_x) as f32,
+                        (mouse_y_global - window_y) as f32,
+                    ]);
+                }
             }
         }
     }
-    unsafe {
-        SDL_SetHint(
-            SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH.as_ptr().cast::<c_char>(),
-            c"1".as_ptr(),
-        );
-        SDL_SetHint(
-            SDL_HINT_MOUSE_AUTO_CAPTURE.as_ptr().cast::<c_char>(),
-            c"0".as_ptr(),
-        );
+
+    pub fn shutdown() {}
+
+    unsafe fn update_mouse_cursor(io: &mut Io, bd: *mut ImplSdl2UserData) {
+        if io
+            .config_flags()
+            .contains(ConfigFlags::NO_MOUSE_CURSOR_CHANGE)
+        {
+            return;
+        }
+
+        unsafe {
+            let cursor = igGetMouseCursor();
+            if io.mouse_draw_cursor() || cursor == ImGuiMouseCursor_None {
+                SDL_ShowCursor(SDL_FALSE as c_int);
+            } else {
+                let cursor = (*bd).cursor[cursor as usize];
+                SDL_SetCursor(cursor);
+                SDL_ShowCursor(SDL_TRUE as c_int);
+            }
+        }
     }
 
-    true
+    pub(crate) unsafe fn new_frame(io: &mut Io, state: &mut PinballState) {
+        let bd = get_backend_bd_from_io(io);
+
+        if bd.is_null() {
+            panic!("Did you call impl sdl2 init?");
+        }
+
+        let mut w = 0 as c_int;
+        let mut h = 0 as c_int;
+        let mut display_w = 0 as c_int;
+        let mut display_h = 0 as c_int;
+
+        if let Some(window) = state.main_state.main_window.as_ref() {
+            unsafe {
+                SDL_GetWindowSize(window.0, &raw mut w, &raw mut h);
+                if (SDL_GetWindowFlags(window.0) & SDL_WINDOW_MINIMIZED as u32) > 0 {
+                    h = 0;
+                    w = 0;
+                }
+                if !(*bd).renderer.is_null() {
+                    SDL_GetRendererOutputSize(
+                        (*bd).renderer,
+                        &raw mut display_w,
+                        &raw mut display_h,
+                    );
+                } else {
+                    println!("No renderer in BD!!!!!");
+                    SDL_GL_GetDrawableSize(window.0, &raw mut display_w, &raw mut display_h);
+                }
+                io.set_display_size([w as f32, h as f32]);
+                if w > 0 && h > 0 {
+                    io.set_display_framebuffer_scale([
+                        display_w as f32 / w as f32,
+                        display_h as f32 / h as f32,
+                    ]);
+                }
+
+                let frequency: u64 = SDL_GetPerformanceFrequency();
+                let current_time = SDL_GetPerformanceCounter();
+                let mut delta_time: f32 = if (*bd).time > 0 {
+                    let dt = (current_time - (*bd).time) as f64 / frequency as f64;
+                    dt as f32
+                } else {
+                    1.0f32 / 60.0f32
+                };
+                if delta_time <= 0.0 {
+                    delta_time = 1.0e-6;
+                }
+                io.set_delta_time(delta_time);
+                (*bd).time = current_time;
+
+                if (*bd).pending_mouse_leave_frame > 0
+                    && (*bd).pending_mouse_leave_frame >= igGetFrameCount()
+                    && (*bd).mouse_buttons_down == 0
+                {
+                    io.add_mouse_pos_event([-f32::MAX, -f32::MAX]);
+                    (*bd).pending_mouse_leave_frame = 0;
+                }
+
+                update_mouse_data(io, bd);
+                update_mouse_cursor(io, bd);
+
+                // TODO: Ignore for now
+                // Update game controllers (if enabled and available)
+                // impl_sdl2_update_game_pads();
+            }
+        }
+    }
 }
 
 // This is just so we can handle MSWin Properly.
@@ -590,266 +973,16 @@ struct SdlSysWminfoWindows {
     pub hdc: *mut c_void,
 }
 
-// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
-// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
-// Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-// If you have multiple SDL events and some of them are not meant to be used by dear imgui, you may need to filter events based on their windowID field.
-pub(crate) fn impl_sdl2_process_event(context: &mut Context, event: *mut SDL_Event) -> bool {
-    let io = context.io_mut();
-    let bd_ptr = io.backend_platform_user_data();
-
-    let mut bd: *mut ImplSdl2UserData = std::ptr::null_mut();
-
-    if bd_ptr.is_null() {
-        return false;
-    }
-
-    bd = &raw mut *bd_ptr.cast::<ImplSdl2UserData>();
-
-    unsafe {
-        if (*event).type_ == SDL_MOUSEMOTION as u32 {
-            io.add_mouse_pos_event([(*event).motion.x as f32, (*event).motion.y as f32]);
-            return true;
-        }
-        if (*event).type_ == SDL_MOUSEWHEEL as u32 {
-            let wheel_x = if (*event).wheel.x > 0 {
-                1.0f32
-            } else if (*event).wheel.x < 0 {
-                -1.0f32
-            } else {
-                0.0f32
-            };
-
-            let wheel_y = if (*event).wheel.y > 0 {
-                1.0f32
-            } else if (*event).wheel.y < 0 {
-                -1.0f32
-            } else {
-                0.0f32
-            };
-
-            io.add_mouse_wheel_event([wheel_x, wheel_y]);
-            return true;
-        }
-        if (*event).type_ == SDL_MOUSEBUTTONDOWN as u32
-            || (*event).type_ == SDL_MOUSEBUTTONUP as u32
-        {
-            let (mouse_button, button_index) = match u32::from((*event).button.button) {
-                SDL_BUTTON_LEFT => (MouseButton::Left, 0),
-                SDL_BUTTON_RIGHT => (MouseButton::Right, 1),
-                SDL_BUTTON_MIDDLE => (MouseButton::Middle, 2),
-                SDL_BUTTON_X1 => (MouseButton::Extra1, 3),
-                SDL_BUTTON_X2 => (MouseButton::Extra2, 4),
-                _ => return false,
-            };
-
-            let is_down = (*event).type_ == SDL_MOUSEBUTTONDOWN as u32;
-
-            io.add_mouse_button_event(mouse_button, (*event).type_ == SDL_MOUSEBUTTONDOWN as u32);
-
-            if is_down {
-                (*bd).mouse_buttons_down |= 1 << button_index;
-            } else {
-                (*bd).mouse_buttons_down &= !(1 << button_index);
-            }
-
-            return true;
-        }
-
-        if (*event).type_ == SDL_TEXTINPUT as u32 {
-            let c_str = CStr::from_ptr((*event).text.text.as_ptr());
-
-            if let Ok(text) = c_str.to_str() {
-                for c in text.chars() {
-                    io.add_input_character(c);
-                }
-            }
-            return true;
-        }
-
-        if (*event).type_ == SDL_KEYDOWN as u32 || (*event).type_ == SDL_KEYUP as u32 {
-            impl_sdl2_update_key_modifiers(io, u32::from((*event).key.keysym.mod_));
-            let key =
-                impl_sdl2_keycode_to_imgui_key(Keycode::from_i32((*event).key.keysym.sym).unwrap());
-            io.add_key_event(key, (*event).type_ == SDL_KEYDOWN as u32);
-            return true;
-        }
-
-        if (*event).type_ == SDL_WINDOWEVENT as u32 {
-            // - When capturing mouse, SDL will send a bunch of conflicting LEAVE/ENTER event on every mouse move, but the final ENTER tends to be right.
-            // - However we won't get a correct LEAVE event for a captured window.
-            // - In some cases, when detaching a window from main viewport SDL may send SDL_WINDOWEVENT_ENTER one frame too late,
-            //   causing SDL_WINDOWEVENT_LEAVE on previous frame to interrupt drag operation by clear mouse position. This is why
-            //   we delay process the SDL_WINDOWEVENT_LEAVE events by one frame. See issue #5012 for details.
-            let window_event = (*event).window.event;
-            if window_event == SDL_WINDOWEVENT_ENTER as u8 {
-                (*bd).pending_mouse_leave_frame = 0;
-            }
-            if window_event == SDL_WINDOWEVENT_LEAVE as u8 {
-                (*bd).pending_mouse_leave_frame += igGetFrameCount() + 1;
-            }
-            if window_event == SDL_WINDOWEVENT_FOCUS_GAINED as u8 {
-                io.add_focus_event(true);
-            } else if (*event).window.event == SDL_WINDOWEVENT_FOCUS_LOST as u8 {
-                io.add_focus_event(false);
-            }
-            return true;
-        }
-    }
-    false
-}
-
-fn impl_sdl2_keycode_to_imgui_key(key: Keycode) -> Key {
-    match key {
-        Keycode::TAB => Key::Tab,
-        Keycode::LEFT => Key::LeftArrow,
-        Keycode::RIGHT => Key::RightArrow,
-        Keycode::UP => Key::UpArrow,
-        Keycode::DOWN => Key::DownArrow,
-        Keycode::PAGEUP => Key::PageUp,
-        Keycode::PAGEDOWN => Key::PageDown,
-        Keycode::HOME => Key::Home,
-        Keycode::END => Key::End,
-        Keycode::INSERT => Key::Insert,
-        Keycode::DELETE => Key::Delete,
-        Keycode::BACKSPACE => Key::Backspace,
-        Keycode::SPACE => Key::Space,
-        Keycode::RETURN => Key::Enter,
-        Keycode::ESCAPE => Key::Escape,
-        Keycode::QUOTE => Key::Apostrophe,
-        Keycode::COMMA => Key::Comma,
-        Keycode::MINUS => Key::Minus,
-        Keycode::PERIOD => Key::Period,
-        Keycode::SLASH => Key::Slash,
-        Keycode::SEMICOLON => Key::Semicolon,
-        Keycode::EQUALS => Key::Equal,
-        Keycode::LEFTBRACKET => Key::LeftBracket,
-        Keycode::BACKSLASH => Key::Backslash,
-        Keycode::RIGHTBRACKET => Key::RightBracket,
-        Keycode::BACKQUOTE => Key::GraveAccent,
-        Keycode::CAPSLOCK => Key::CapsLock,
-        Keycode::SCROLLLOCK => Key::ScrollLock,
-        Keycode::NUMLOCKCLEAR => Key::NumLock,
-        Keycode::PRINTSCREEN => Key::PrintScreen,
-        Keycode::PAUSE => Key::Pause,
-        Keycode::KP_0 => Key::Keypad0,
-        Keycode::KP_1 => Key::Keypad1,
-        Keycode::KP_2 => Key::Keypad2,
-        Keycode::KP_3 => Key::Keypad3,
-        Keycode::KP_4 => Key::Keypad4,
-        Keycode::KP_5 => Key::Keypad5,
-        Keycode::KP_6 => Key::Keypad6,
-        Keycode::KP_7 => Key::Keypad7,
-        Keycode::KP_8 => Key::Keypad8,
-        Keycode::KP_9 => Key::Keypad9,
-        Keycode::KP_PERIOD => Key::KeypadDecimal,
-        Keycode::KP_DIVIDE => Key::KeypadDivide,
-        Keycode::KP_MULTIPLY => Key::KeypadMultiply,
-        Keycode::KP_MINUS => Key::KeypadSubtract,
-        Keycode::KP_PLUS => Key::KeypadAdd,
-        Keycode::KP_ENTER => Key::KeypadEnter,
-        Keycode::KP_EQUALS => Key::KeypadEqual,
-        Keycode::LCTRL => Key::LeftCtrl,
-        Keycode::LSHIFT => Key::LeftShift,
-        Keycode::LALT => Key::LeftAlt,
-        Keycode::LGUI => Key::LeftSuper,
-        Keycode::RCTRL => Key::RightCtrl,
-        Keycode::RSHIFT => Key::RightShift,
-        Keycode::RALT => Key::RightAlt,
-        Keycode::RGUI => Key::RightSuper,
-        Keycode::APPLICATION => Key::Menu,
-        Keycode::NUM_0 => Key::Key0,
-        Keycode::NUM_1 => Key::Key1,
-        Keycode::NUM_2 => Key::Key2,
-        Keycode::NUM_3 => Key::Key3,
-        Keycode::NUM_4 => Key::Key4,
-        Keycode::NUM_5 => Key::Key5,
-        Keycode::NUM_6 => Key::Key6,
-        Keycode::NUM_7 => Key::Key7,
-        Keycode::NUM_8 => Key::Key8,
-        Keycode::NUM_9 => Key::Key9,
-        Keycode::A => Key::A,
-        Keycode::B => Key::B,
-        Keycode::C => Key::C,
-        Keycode::D => Key::D,
-        Keycode::E => Key::E,
-        Keycode::F => Key::F,
-        Keycode::G => Key::G,
-        Keycode::H => Key::H,
-        Keycode::I => Key::I,
-        Keycode::J => Key::J,
-        Keycode::K => Key::K,
-        Keycode::L => Key::L,
-        Keycode::M => Key::M,
-        Keycode::N => Key::N,
-        Keycode::O => Key::O,
-        Keycode::P => Key::P,
-        Keycode::Q => Key::Q,
-        Keycode::R => Key::R,
-        Keycode::S => Key::S,
-        Keycode::T => Key::T,
-        Keycode::U => Key::U,
-        Keycode::V => Key::V,
-        Keycode::W => Key::W,
-        Keycode::X => Key::X,
-        Keycode::Y => Key::Y,
-        Keycode::Z => Key::Z,
-        Keycode::F1 => Key::F1,
-        Keycode::F2 => Key::F2,
-        Keycode::F3 => Key::F3,
-        Keycode::F4 => Key::F4,
-        Keycode::F5 => Key::F5,
-        Keycode::F6 => Key::F6,
-        Keycode::F7 => Key::F7,
-        Keycode::F8 => Key::F8,
-        Keycode::F9 => Key::F9,
-        Keycode::F10 => Key::F10,
-        Keycode::F11 => Key::F11,
-        Keycode::F12 => Key::F12,
-        _ => Key::None,
-    }
-}
-
-pub fn impl_sdl2_update_key_modifiers(io: &mut Io, sdl_key_mods: u32) {
-    io.add_key_event(Key::ModCtrl, (sdl_key_mods & KMOD_CTRL as u32) != 0);
-    io.add_key_event(Key::ModShift, (sdl_key_mods & KMOD_SHIFT as u32) != 0);
-    io.add_key_event(Key::ModAlt, (sdl_key_mods & KMOD_ALT as u32) != 0);
-    io.add_key_event(Key::ModSuper, (sdl_key_mods & KMOD_GUI as u32) != 0);
-}
-
-pub fn impl_sdl2_get_backend_data(io: &mut Io) -> Option<&mut ImplSdl2UserData> {
-    let ptr = io.backend_platform_user_data();
-
-    if ptr.is_null() {
-        None
-    } else {
-        Some(unsafe { &mut *ptr.cast::<ImplSdl2UserData>() })
-    }
-}
-
-fn get_backend_bd_from_io(io: &mut Io) -> *mut ImplSdl2UserData {
+unsafe fn get_backend_bd_from_io(io: &mut Io) -> *mut ImplSdl2UserData {
     let bd_ptr = io.backend_platform_user_data();
     let bd: *mut ImplSdl2UserData = &raw mut *bd_ptr.cast::<ImplSdl2UserData>();
     bd
 }
 
-fn get_renderer_bd_from_io(io: &mut Io) -> *mut ImplSdl2RenderData {
+unsafe fn get_renderer_bd_from_io(io: &mut Io) -> *mut ImplSdl2RenderData {
     let bd_ptr = io.backend_renderer_user_data();
     let bd: *mut ImplSdl2RenderData = &raw mut *bd_ptr.cast::<ImplSdl2RenderData>();
     bd
-}
-
-pub(crate) fn impl_sdl2_renderer_new_frame(context: &mut Context) {
-    let bd = get_renderer_bd_from_io(context.io_mut());
-    if bd.is_null() {
-        panic!("Did you call impl sdl renderer init?")
-    }
-    unsafe {
-        if (*bd).font_texture.is_null() {
-            impl_sdl2_renderer_create_device_objects(context);
-        }
-    }
 }
 
 fn impl_sdl2_renderer_create_device_objects(context: &mut Context) -> bool {
@@ -934,118 +1067,5 @@ unsafe fn impl_sdl2_renderer_create_fonts_texture(context: &mut Context) -> bool
         let texture_id = TextureId::new(raw_addr as u64);
         context.fonts().set_texture_id(texture_id);
         true
-    }
-}
-
-pub(crate) unsafe fn impl_sdl2_new_frame(io: &mut Io, state: &mut PinballState) {
-    let bd = get_backend_bd_from_io(io);
-
-    if bd.is_null() {
-        panic!("Did you call impl sdl2 init?");
-    }
-
-    let mut w = 0 as c_int;
-    let mut h = 0 as c_int;
-    let mut display_w = 0 as c_int;
-    let mut display_h = 0 as c_int;
-
-    if let Some(window) = state.main_state.main_window.as_ref() {
-        unsafe {
-            SDL_GetWindowSize(window.0, &raw mut w, &raw mut h);
-            if (SDL_GetWindowFlags(window.0) & SDL_WINDOW_MINIMIZED as u32) > 0 {
-                h = 0;
-                w = 0;
-            }
-            if !(*bd).renderer.is_null() {
-                SDL_GetRendererOutputSize((*bd).renderer, &raw mut display_w, &raw mut display_h);
-            } else {
-                println!("No renderer in BD!!!!!");
-                SDL_GL_GetDrawableSize(window.0, &raw mut display_w, &raw mut display_h);
-            }
-            io.set_display_size([w as f32, h as f32]);
-            if w > 0 && h > 0 {
-                io.set_display_framebuffer_scale([
-                    display_w as f32 / w as f32,
-                    display_h as f32 / h as f32,
-                ]);
-            }
-
-            let frequency: u64 = SDL_GetPerformanceFrequency();
-            let current_time = SDL_GetPerformanceCounter();
-            let mut delta_time: f32 = if (*bd).time > 0 {
-                let dt = (current_time - (*bd).time) as f64 / frequency as f64;
-                dt as f32
-            } else {
-                1.0f32 / 60.0f32
-            };
-            if delta_time <= 0.0 {
-                delta_time = 1.0e-6;
-            }
-            io.set_delta_time(delta_time);
-            (*bd).time = current_time;
-
-            if (*bd).pending_mouse_leave_frame > 0
-                && (*bd).pending_mouse_leave_frame >= igGetFrameCount()
-                && (*bd).mouse_buttons_down == 0
-            {
-                io.add_mouse_pos_event([-f32::MAX, -f32::MAX]);
-                (*bd).pending_mouse_leave_frame = 0;
-            }
-
-            impl_sdl2_update_mouse_data(io, bd);
-            impl_sdl2_update_mouse_cursor(io, bd);
-
-            // TODO: Ignore for now
-            // Update game controllers (if enabled and available)
-            // impl_sdl2_update_game_pads();
-        }
-    }
-}
-
-unsafe fn impl_sdl2_update_mouse_cursor(io: &mut Io, bd: *mut ImplSdl2UserData) {
-    if io
-        .config_flags()
-        .contains(ConfigFlags::NO_MOUSE_CURSOR_CHANGE)
-    {
-        return;
-    }
-
-    unsafe {
-        let cursor = igGetMouseCursor();
-        if io.mouse_draw_cursor() || cursor == ImGuiMouseCursor_None {
-            SDL_ShowCursor(SDL_FALSE as c_int);
-        } else {
-            let cursor = (*bd).cursor[cursor as usize];
-            SDL_SetCursor(cursor);
-            SDL_ShowCursor(SDL_TRUE as c_int);
-        }
-    }
-}
-
-unsafe fn impl_sdl2_update_mouse_data(io: &mut Io, bd: *mut ImplSdl2UserData) {
-    unsafe {
-        let check = (*bd).mouse_buttons_down != 0 && igGetDragDropPayload().is_null();
-        SDL_CaptureMouse(if check { SDL_TRUE } else { SDL_FALSE });
-        let focused_window = SDL_GetKeyboardFocus();
-        let is_app_focused = (*bd).window == focused_window;
-        if is_app_focused {
-            if io.want_set_mouse_pos() {
-                let mouse_pos = io.mouse_pos();
-                SDL_WarpMouseInWindow((*bd).window, mouse_pos[0] as c_int, mouse_pos[1] as c_int);
-            }
-
-            if (*bd).mouse_can_use_global_state && (*bd).mouse_buttons_down == 0 {
-                let mut window_x = 0 as c_int;
-                let mut window_y = 0 as c_int;
-                let mut mouse_x_global = 0 as c_int;
-                let mut mouse_y_global = 0 as c_int;
-                SDL_GetGlobalMouseState(&raw mut mouse_x_global, &raw mut mouse_y_global);
-                SDL_GetWindowPosition((*bd).window, &raw mut window_x, &mut window_y);
-                io.add_mouse_pos_event([
-                    (mouse_x_global - window_x) as f32,
-                    (mouse_y_global - window_y) as f32,
-                ]);
-            }
-        }
     }
 }

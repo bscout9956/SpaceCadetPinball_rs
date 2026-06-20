@@ -160,7 +160,7 @@ impl GameInput {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, PartialOrd, FromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, FromPrimitive)]
 pub enum GameBindings {
     Min = 0,
     LeftFlipper,

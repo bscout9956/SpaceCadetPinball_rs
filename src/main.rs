@@ -433,10 +433,10 @@ fn main_loop(
             }
 
             unsafe {
-                imgui_sdl::impl_sdl2_new_frame(imgui_context.io_mut(), pb_state);
-                imgui_sdl::impl_sdl2_renderer_new_frame(imgui_context);
+                imgui_sdl::impl_sdl2::new_frame(imgui_context.io_mut(), pb_state);
+                imgui_sdl::renderer::new_frame(imgui_context);
 
-                let mut reset_options = false;
+                let reset_options;
                 {
                     let ui = imgui_context.frame();
                     reset_options = render_ui(ui, pb_state)?;
@@ -1045,7 +1045,7 @@ unsafe fn event_handler(
     }
 
     if state.options_state.control_waiting_for_input.is_none() || !input_down {
-        imgui_sdl::impl_sdl2_process_event(context, event);
+        imgui_sdl::impl_sdl2::process_event(context, event);
     }
 
     let mouse_event: bool;
@@ -1514,6 +1514,10 @@ fn main() -> Result<()> {
             // TODO: Implement sound stuff
             sound::close(&mut state.sound_state);
             pb::uninit(&mut state)?;
+
+            imgui_sdl::renderer::shutdown(&mut imgui_context);
+            imgui_sdl::impl_sdl2::shutdown();
+            igDestroyContext(imgui_context.as_raw());
 
             if !no_audio {
                 if mix_opened {
