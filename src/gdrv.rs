@@ -420,7 +420,7 @@ pub(crate) fn gr_text_draw_ttext_in_box(
     ui: &mut Ui,
 ) {
     let text_boxes = [
-        pb_game_state.miss_text_box.as_mut().unwrap(),
+        pb_game_state.mission_text_box.as_mut().unwrap(),
         pb_game_state.info_text_box.as_mut().unwrap(),
     ];
 
