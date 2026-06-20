@@ -92,6 +92,21 @@ impl Drop for TPinballComponent {
 }
 
 impl IPinballComponent for TPinballComponent {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn group_name(&self) -> Option<String> {
+        if let Some(group_name) = self.group_name.as_ref() {
+            Some(group_name.borrow().clone())
+        } else {
+            None
+        }
+    }
+
+    fn group_index(&self) -> i32 {
+        self.group_index
+    }
     fn sprite_set(&mut self, index: i32) {
         if self.list_bitmap.is_empty() {
             return;
@@ -139,12 +154,13 @@ impl IPinballComponent for TPinballComponent {
         // TODO: Doesn't have an impl?
     }
 
-    fn message(&mut self, code: MessageCode, value: f32) -> MessageCode {
+    fn message(&mut self, code: MessageCode, value: f32) -> i32 {
+        // TODO?
         self.message_field = code;
         if code == MessageCode::RESET {
             self.message_field = MessageCode(0);
         }
 
-        MessageCode(0)
+        0
     }
 }
