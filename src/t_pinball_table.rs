@@ -139,16 +139,14 @@ impl TPinballTable {
         None
     }
 
-    fn find_component_by_name(&self, component_name: &str) -> Option<&dyn IPinballComponent> {
-        for cmp_ref in self.component_list.iter() {
-            let group_name = cmp_ref.borrow().group_name();
-            if let Some(g_name) = group_name {
-                if g_name == component_name {
-                    return Some(cmp_ref);
-                }
-            }
-        }
-        return None;
+    fn find_component_by_name(
+        &self,
+        component_name: &str,
+    ) -> Option<Rc<RefCell<dyn IPinballComponent>>> {
+        self.component_list
+            .iter()
+            .find(|cmp| cmp.borrow().group_name().as_deref() == Some(component_name))
+            .cloned()
     }
 }
 
