@@ -446,7 +446,7 @@ impl IPinballComponent for TPinballTable {
                 self.replay_timer = 0;
                 if self.light_show_timer > 0 {
                     timer::kill_id(self.light_show_timer);
-                    if let Some(lg) = &self.light_group {
+                    if let Some(lg) = &mut self.light_group {
                         lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0);
                     }
                 }
