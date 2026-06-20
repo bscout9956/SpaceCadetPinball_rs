@@ -407,6 +407,30 @@ impl IPinballComponent for TPinballTable {
         None
     }
 
+    fn group_index(&self) -> i32 {
+        self.base.group_index
+    }
+
+    fn sprite_set(&mut self, index: i32) {
+        todo!()
+    }
+
+    fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32) {
+        todo!()
+    }
+
+    fn get_coordinates(&self) -> Vector2 {
+        todo!()
+    }
+
+    fn get_scoring(&self, index: u32) -> i32 {
+        todo!()
+    }
+
+    fn port_draw(&self) {
+        todo!()
+    }
+
     fn message(&mut self, code: MessageCode, value: f32) -> i32 {
         let rc_text = String::new();
 
