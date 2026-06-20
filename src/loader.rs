@@ -942,7 +942,7 @@ pub fn query_visual(
     let table_arc = state.loader_state.loader_table.as_ref().unwrap();
     let loader_table = table_arc.read().unwrap();
 
-    let float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
+    let float_array_data = match loader_table.field(state_id, FieldTypes::FloatArray) {
         Some(EntryBuffer::Raw(float_array_data)) => float_array_data,
         _ => &vec![],
     };
@@ -978,6 +978,8 @@ pub fn query_visual(
                 }
             }
         }
+
+        visual.float_arr_count += 2;
 
         let mut arr = Vec::with_capacity(visual.float_arr_count as usize);
         for i in 0..visual.float_arr_count as usize {
