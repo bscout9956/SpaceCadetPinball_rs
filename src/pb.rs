@@ -171,6 +171,7 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
         &state.pb_game_state.base_path,
     );
 
+    println!("Loading records");
     let dat = partman::load_records(
         data_file_path,
         state.pb_game_state.full_tilt_mode,
@@ -221,9 +222,12 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
         gdrv::display_palette(Some(&palette_colors), &mut state.pb_game_state);
     }
 
-    let (mut background_bmp, camera_info) = {
+    let (background_bmp, camera_info) = {
         let table_arc = state.pb_game_state.record_table.as_ref().unwrap();
-        let t = table_arc.read().unwrap();
+        let t = table_arc
+            .read()
+            .map_err(|_| PbError::NoTable)
+            .context("Failure to set set Table RwLock to read")?;
 
         let background_bmp = t
             .get_bitmap(t.record_labeled("background"), fullscrn_state.resolution)
@@ -262,6 +266,7 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
         );
     }
 
+    println!("Time to init render");
     render::init(
         None,
         res_info.table_width,
@@ -287,6 +292,7 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
 
     loader::load_from(shared_dat, &mut state.loader_state)?;
 
+    println!("Changing to in-game");
     mode_change(
         GameModes::InGame,
         &mut state.main_state,
@@ -295,8 +301,10 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
 
     state.pb_game_state.time_ticks = 0;
     timer::init(150)?;
+    println!("Init'ing score");
     score::init();
 
+    println!("Creating table...");
     state.pb_game_state.main_table = Some(TPinballTable::new(state)?);
     let table = state.pb_game_state.main_table.as_ref().unwrap().borrow();
     let ball = &table.ball_list[0].borrow();
@@ -421,25 +429,25 @@ fn mode_change(
     pb_game_state.credits_active = false;
     pb_game_state.idle_timer_ms = 0.0;
 
-    let mut table = match pb_game_state.main_table.as_mut() {
-        Some(table) => table.borrow_mut(),
-        None => return Err(PbError::NoTable),
-    };
     match mode {
         GameModes::InGame => {
             if pb_game_state.demo_mode {
                 main_state.launch_ball_enabled = false;
                 main_state.high_scores_enabled = false;
                 main_state.demo_active = true;
-                if let Some(table_demo) = table.demo.as_mut() {
-                    table_demo.active_flag = true;
+                if let Some(table) = pb_game_state.main_table.as_mut() {
+                    if let Some(table_demo) = table.borrow_mut().demo.as_mut() {
+                        table_demo.active_flag = true;
+                    }
                 }
             } else {
                 main_state.launch_ball_enabled = true;
                 main_state.high_scores_enabled = false;
                 main_state.demo_active = false;
-                if let Some(table_demo) = table.demo.as_mut() {
-                    table_demo.active_flag = true;
+                if let Some(table) = pb_game_state.main_table.as_mut() {
+                    if let Some(table_demo) = table.borrow_mut().demo.as_mut() {
+                        table_demo.active_flag = true;
+                    }
                 }
             }
         }
@@ -449,8 +457,10 @@ fn mode_change(
                 main_state.high_scores_enabled = true;
                 main_state.demo_active = false;
             }
-            if let Some(light_group) = table.light_group.as_mut() {
-                light_group.message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
+            if let Some(table) = pb_game_state.main_table.as_mut() {
+                if let Some(light_group) = table.borrow_mut().light_group.as_mut() {
+                    light_group.message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
+                }
             }
         }
     }
