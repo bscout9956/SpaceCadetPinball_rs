@@ -193,7 +193,7 @@ impl TTableLayer {
             // line.place_in_grid(&instance.base_component.AABB);
         }
 
-        TTableLayer::new(table, state) // TODO: I'm unfinished, just so rustc can stfu
+        Ok(instance)
     }
 }
 
