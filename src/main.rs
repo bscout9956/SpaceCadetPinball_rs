@@ -650,7 +650,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool, MainLoop
             igSeparator();
 
             create_audio_menu(state);
-            // create_graphics_menu();
+            create_graphics_menu(state)?;
             create_resolution_menu(state)?;
             create_game_data_menu(state);
 
@@ -665,6 +665,138 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool, MainLoop
 
         Ok(reset_options)
     }
+}
+
+unsafe fn create_graphics_menu(state: &mut PinballState) -> Result<(), MainLoopError> {
+    unsafe {
+        if igBeginMenu(c"Graphics".as_ptr(), true) {
+            let scale_str = get_rc_string_cstring(Msg::Menu1WindowUniformScale)?;
+            if igMenuItem_Bool(
+                scale_str.as_ptr(),
+                null(),
+                *state.options_state.options.uniform_scaling,
+                true,
+            ) {
+                options::toggle(Menu::WindowUniformScale, state);
+            }
+            if igMenuItem_Bool(
+                c"Linear Filtering".as_ptr(),
+                null(),
+                *state.options_state.options.linear_filtering,
+                true,
+            ) {
+                options::toggle(Menu::WindowLinearFilter, state);
+            }
+
+            if igMenuItem_Bool(
+                c"Integer Scaling".as_ptr(),
+                null(),
+                *state.options_state.options.integer_scaling,
+                true,
+            ) {
+                options::toggle(Menu::WindowIntegerScale, state);
+            }
+
+            if igDragFloat(
+                c"UI Scale".as_ptr(),
+                &raw mut state.options_state.options.ui_scale.value,
+                0.005f32,
+                0.8f32,
+                5.0f32,
+                c"%.2f".as_ptr(),
+                ImGuiSliderFlags_AlwaysClamp,
+            ) {
+                // TODO: io font global scale = options.uiscale
+            }
+
+            igSeparator();
+
+            let buffer_text: String;
+            let mut changed = false;
+
+            if igMenuItem_Bool(c"Set Default UPS/FPS".as_ptr(), null(), false, true) {
+                changed = true;
+                *state.options_state.options.updates_per_second = DEF_UPS;
+                *state.options_state.options.frames_per_second = DEF_FPS;
+            }
+
+            if igSliderInt(
+                c"UPS".as_ptr(),
+                &raw mut state.options_state.options.updates_per_second.value,
+                options::MIN_UPS,
+                options::MAX_UPS,
+                c"%d".as_ptr(),
+                ImGuiSliderFlags_AlwaysClamp,
+            ) {
+                changed = true;
+                *state.options_state.options.frames_per_second = i32::min(
+                    *state.options_state.options.updates_per_second,
+                    *state.options_state.options.frames_per_second,
+                );
+            }
+
+            if igSliderInt(
+                c"FPS".as_ptr(),
+                &raw mut state.options_state.options.frames_per_second.value,
+                options::MIN_FPS,
+                options::MAX_FPS,
+                c"%d".as_ptr(),
+                ImGuiSliderFlags_AlwaysClamp,
+            ) {
+                changed = true;
+                *state.options_state.options.updates_per_second = i32::max(
+                    *state.options_state.options.updates_per_second,
+                    *state.options_state.options.frames_per_second,
+                );
+            }
+            buffer_text = format!(
+                "Uncapped FPS (FPS ratio {:02.2})",
+                state.main_state.update_to_frame_ratio
+            );
+            let cstr_bf_text = CString::new(buffer_text)?;
+
+            if igMenuItem_Bool(
+                cstr_bf_text.as_ptr(),
+                null(),
+                *state.options_state.options.uncapped_updates_per_second,
+                true,
+            ) {
+                *state.options_state.options.uncapped_updates_per_second ^= true;
+            }
+
+            if igMenuItem_Bool(
+                c"Precise Sleep".as_ptr(),
+                null(),
+                *state.options_state.options.hybrid_sleep,
+                true,
+            ) {
+                *state.options_state.options.hybrid_sleep ^= true;
+                state.main_state.sleep_state = WelfordState::new();
+                state.main_state.spin_threshold = Duration(0);
+            }
+
+            if changed {
+                update_frame_rate(&mut state.main_state, &mut state.options_state);
+            }
+            igSeparator();
+
+            if igMenuItem_Bool(
+                c"Hide Cursor".as_ptr(),
+                null(),
+                *state.options_state.options.hide_cursor,
+                true,
+            ) {
+                *state.options_state.options.hide_cursor ^= true;
+            }
+
+            if igMenuItem_Bool(c"Change Font".as_ptr(), null(), false, true) {
+                //TODO: font_selection::show_dialog();
+            }
+
+            igEndMenu();
+        }
+    }
+    Ok(())
 }
 
 fn new_game(state: &mut PinballState) -> Result<(), MainLoopError> {
