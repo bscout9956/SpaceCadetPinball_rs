@@ -314,7 +314,7 @@ pub fn get_sound_id(
         && !loader_state.sound_list[sound_index as usize].wave.is_none()
     {
         // TODO: Why am I unused?
-        let mut wave_header = WaveHeader::default();
+        let wave_header = WaveHeader::default();
 
         let sound_group_id = loader_state.sound_list[sound_index as usize].group_index;
         loader_state.sound_list[sound_index as usize].duration = 0.0;
@@ -390,7 +390,7 @@ pub fn query_visual_states(
     group_index: i32,
     loader_state: &mut LoaderState,
 ) -> Result<i16, LoaderError> {
-    let mut result: i16 = 0;
+    let result: i16 = 0;
 
     if group_index < 0 {
         // TODO REFACTOR, use actual errors and deal with them
@@ -942,7 +942,7 @@ pub fn query_visual(
     let table_arc = state.loader_state.loader_table.as_ref().unwrap();
     let loader_table = table_arc.read().unwrap();
 
-    let float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
+    let float_array_data = match loader_table.field(state_id, FieldTypes::FloatArray) {
         Some(EntryBuffer::Raw(float_array_data)) => float_array_data,
         _ => &vec![],
     };
@@ -959,7 +959,7 @@ pub fn query_visual(
         }
 
         visual.float_arr_count =
-            loader_table.field_size(group_index, FieldTypes::FloatArray) / 4 / 2 - 2;
+            loader_table.field_size(state_id, FieldTypes::FloatArray) / 4 / 2 - 2;
 
         let float_int = (f32::from_le_bytes([
             float_array_data[4],
@@ -978,6 +978,8 @@ pub fn query_visual(
                 }
             }
         }
+
+        visual.float_arr_count += 2;
 
         let mut arr = Vec::with_capacity(visual.float_arr_count as usize);
         for i in 0..visual.float_arr_count as usize {

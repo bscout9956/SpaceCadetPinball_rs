@@ -10,7 +10,7 @@ pub struct SdlRendererPtr(pub *mut SDL_Renderer);
 unsafe impl Send for SdlRendererPtr {}
 unsafe impl Sync for SdlRendererPtr {}
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct SdlTexturePtr(pub *mut SDL_Texture);
 
 impl Drop for SdlTexturePtr {

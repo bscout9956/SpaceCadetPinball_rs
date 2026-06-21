@@ -97,7 +97,7 @@ impl ColorRgba {
     }
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct GdrvBitmap8 {
     pub bmp_buffer_data: Vec<ColorRgba>,
     pub indexed_bmp_data: Vec<u8>,
@@ -420,12 +420,15 @@ pub(crate) fn gr_text_draw_ttext_in_box(
     ui: &mut Ui,
 ) {
     let text_boxes = [
-        pb_game_state.mission_text_box.as_mut().unwrap(),
-        pb_game_state.info_text_box.as_mut().unwrap(),
+        pb_game_state.mission_text_box.as_mut(),
+        pb_game_state.info_text_box.as_mut(),
     ];
 
     for text_box in text_boxes.into_iter() {
-        unsafe { text_box.draw_im_gui(render_state, pb_game_state.text_box_color, ui) };
+        if let Some(boxx) = text_box {
+            unsafe { boxx.draw_im_gui(render_state, pb_game_state.text_box_color, ui) };
+            
+        }
     }
 }
 

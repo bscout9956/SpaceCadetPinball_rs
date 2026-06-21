@@ -1,7 +1,7 @@
 use crate::errors::LoaderError;
 use crate::gdrv::GdrvBitmap8;
 use crate::loader::{VisualStruct, query_float_attribute_ptr};
-use crate::maths::{MathsError, RectangleType, Vector2, f32_vec_to_vec3};
+use crate::maths::{MathsError, RectangleType, Vector2, f32_vec_to_vec2};
 use crate::render::{RenderSprite, VisualTypes};
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
@@ -9,7 +9,7 @@ use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_manager::{FieldEffectType, TEdgeManager};
 use crate::t_pinball_table::TPinballTable;
 use crate::{loader, proj, render};
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use std::cell::RefCell;
 use std::f32::consts::FRAC_PI_2;
 use std::ffi::CString;
@@ -147,14 +147,14 @@ impl TTableLayer {
         base.borrow_mut().threshold = visual.kicker.threshold;
         base.borrow_mut().boost = 15.0f32;
 
-        let edge_points = f32_vec_to_vec3(&visual.float_arr)?;
+        let edge_points = f32_vec_to_vec2(&visual.float_arr)?; // throws error
 
-        let mut instance = Self {
+        let instance = Self {
             base_component: base.take(),
             vis_bmp: (*bmp).clone(),
             x_min: f32::min(
                 edge_points[0].x,
-                f32::min(edge_points[1].x, edge_points[2].y),
+                f32::min(edge_points[1].x, edge_points[2].x),
             ),
             y_min: f32::min(
                 edge_points[0].y,
@@ -193,7 +193,7 @@ impl TTableLayer {
             // line.place_in_grid(&instance.base_component.AABB);
         }
 
-        TTableLayer::new(table, state) // TODO: I'm unfinished, just so rustc can stfu
+        Ok(instance)
     }
 }
 

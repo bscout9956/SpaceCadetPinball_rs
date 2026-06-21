@@ -313,7 +313,7 @@ impl TPinballTable {
                     .map(|tbox| tbox.to_owned())
             });
 
-        control::make_links(table_weak.clone());
+        // control::make_links(table_weak.clone(), &mut state.control_state);
         Ok(table_rc)
     }
 

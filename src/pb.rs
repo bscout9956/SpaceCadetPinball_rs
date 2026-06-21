@@ -305,7 +305,15 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
     score::init();
 
     println!("Creating table...");
-    state.pb_game_state.main_table = Some(TPinballTable::new(state)?);
+
+    match TPinballTable::new(state) {
+        Ok(table) => state.pb_game_state.main_table = Some(table),
+        Err(e) => {
+            eprintln!("Failed to create TPinballTable: {:?}", e);
+            std::process::exit(-1);
+        }
+    }
+
     let table = state.pb_game_state.main_table.as_ref().unwrap().borrow();
     let ball = &table.ball_list[0].borrow();
 

@@ -6,16 +6,16 @@ use crate::state::pinball_state::PinballState;
 use crate::state::score_state::ScoreState;
 use std::sync::{Arc, RwLock};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ScoreStruct {
     pub score: i32,
     pub dirty_flag: bool,
-    pub background_bmp: GdrvBitmap8,
+    pub background_bmp: Option<GdrvBitmap8>,
     pub offset_x: i32,
     pub offset_y: i32,
     pub width: i32,
     pub height: i32,
-    pub char_bmp: [GdrvBitmap8; 10],
+    pub char_bmp: Vec<GdrvBitmap8>,
     pub msg_font: ScoreMessageFontType,
 }
 
@@ -24,30 +24,31 @@ impl Default for ScoreStruct {
         Self {
             score: 0,
             dirty_flag: false,
-            background_bmp: GdrvBitmap8::default(),
+            background_bmp: Some(GdrvBitmap8::default()),
             offset_x: 0,
             offset_y: 0,
             width: 0,
             height: 0,
-            char_bmp: std::array::from_fn(|_| GdrvBitmap8::default()),
+            char_bmp: (0..10).map(|_| GdrvBitmap8::default()).collect(),
             msg_font: ScoreMessageFontType::new(),
         }
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ScoreMessageFontType {
     pub gap_width: i32,
     pub height: i32,
-    pub chars: [GdrvBitmap8; 128],
+    pub chars: Vec<GdrvBitmap8>,
 }
 
 impl ScoreMessageFontType {
     fn new() -> Self {
+        println!("Initializing the score message font");
         Self {
             gap_width: 0,
             height: 0,
-            chars: std::array::from_fn(|_| GdrvBitmap8::default()),
+            chars: Vec::new(),
         }
     }
 }
@@ -104,35 +105,32 @@ pub(crate) fn create(
     render_bg_bmp: Option<GdrvBitmap8>,
     state: &mut PinballState,
 ) -> Option<ScoreStruct> {
-    let mut score = ScoreStruct::default();
-    score.score = -9999;
-    score.background_bmp = render_bg_bmp?;
+    let mut score = ScoreStruct {
+        score: -9999,
+        background_bmp: render_bg_bmp,
+        ..Default::default()
+    };
 
     /*Full tilt: score box dimensions index is offset by resolution*/
-    // TODO: moved here issue
     if let Some(rt_arc) = state.pb_game_state.record_table.as_ref()
         && let Some(lt_arc) = state.loader_state.loader_table.as_ref()
     {
         let rt = rt_arc.read().unwrap();
         let lt = lt_arc.read().unwrap();
-        let dimensions_id = rt.record_labeled(field_name);
+        let dimensions_id = rt.record_labeled(field_name) + state.fullscrn_state.resolution;
         let dimensions = lt.field(dimensions_id, FieldTypes::ShortArray);
         if let Some(raw_data) = dimensions {
             match raw_data {
                 EntryBuffer::Raw(vec_data) => {
                     let mut group_index = vec_data[0] as i32;
-                    score.offset_x =
-                        i32::from_le_bytes([vec_data[0], vec_data[1], vec_data[2], vec_data[3]]);
-                    score.offset_y =
-                        i32::from_le_bytes([vec_data[4], vec_data[5], vec_data[6], vec_data[7]]);
-                    score.width =
-                        i32::from_le_bytes([vec_data[8], vec_data[9], vec_data[10], vec_data[11]]);
-                    score.height = i32::from_le_bytes([
-                        vec_data[12],
-                        vec_data[13],
-                        vec_data[14],
-                        vec_data[15],
-                    ]);
+                    let read_i16 = |start: usize| -> i16 {
+                        i16::from_le_bytes(vec_data[start..start + 2].try_into().unwrap())
+                    };
+
+                    score.offset_x = read_i16(2) as i32;
+                    score.offset_y = read_i16(4) as i32;
+                    score.width = read_i16(6) as i32;
+                    score.height = read_i16(8) as i32;
 
                     for index in 0..10 {
                         score.char_bmp[index] = lt
@@ -142,13 +140,17 @@ pub(crate) fn create(
                     }
                 }
                 _ => {
+                    eprintln!("Invalid state, no score");
                     return None;
                 }
             }
         } else {
             //TODO: score drop?
+            eprintln!("Invalid state, no score");
             return None;
         }
+    } else {
+        eprintln!("Invalid state, no loader/record table?");
     }
     Some(score)
 }

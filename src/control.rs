@@ -29,7 +29,7 @@ pub struct ComponentControl {
     pub scores: Vec<i32>,
 }
 
-struct ComponentInfo {
+pub struct ComponentInfo {
     tag: ComponentTagBase,
     control: ComponentControl,
 }

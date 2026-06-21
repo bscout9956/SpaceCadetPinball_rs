@@ -54,7 +54,7 @@ impl TBall {
         );
 
         let mut visual = VisualStruct::default();
-        let mut ball_group_name = "ball";
+        let ball_group_name = "ball";
 
         let mut instance_data = Self {
             base_component,

@@ -1,5 +1,6 @@
 use crate::t_ball::TBall;
 use crate::t_flipper_edge::TFlipperEdge;
+use anyhow::bail;
 use thiserror::Error;
 
 #[derive(Copy, Clone, Debug, PartialOrd, Default)]
@@ -314,8 +315,8 @@ pub fn ray_intersect_line(ray: &RayType, line: &mut LineType) -> f32 {
     // V1 vector between ray origin and line origin
     // V2 ray direction
     // V3 line perpendicular clockwise
-    let mut v1 = vector_sub_vec2(&ray.origin, &line.origin);
-    let mut v2 = line.direction;
+    let v1 = vector_sub_vec2(&ray.origin, &line.origin);
+    let v2 = line.direction;
     let v3 = Vector2 {
         x: -ray.direction.y,
         y: ray.direction.x,
@@ -574,4 +575,23 @@ pub enum FlipperIntersect {
     LineB = 1,
     CircleBase = 2,
     CircleT1 = 3,
+}
+
+use anyhow::Result;
+
+pub(crate) fn f32_vec_to_vec2(f32_vec: &Vec<f32>) -> Result<Vec<Vector2>> {
+    if f32_vec.is_empty() || !f32_vec.len().is_multiple_of(2) {
+        bail!(MathsError::IncorrectF32VecSize(f32_vec.len()));
+    }
+
+    let mut result: Vec<Vector2> = Vec::new();
+
+    for idx in (0..f32_vec.len()).step_by(2) {
+        result.push(Vector2 {
+            x: f32_vec[idx],
+            y: f32_vec[idx + 1],
+        });
+    }
+
+    Ok(result)
 }
