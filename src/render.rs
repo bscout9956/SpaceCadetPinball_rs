@@ -585,5 +585,6 @@ pub(crate) fn present_v_screen(state: &mut PinballState) {
 }
 
 pub(crate) fn build_occlude_list() {
-    todo!()
+    println!("Bing bong, built");
+    // TODO: Implement me pls
 }
