@@ -69,7 +69,7 @@ pub fn fill(
 
 pub fn pad(width: i32) -> i32 {
     let mut result = width;
-    if (width & 3 != 0) {
+    if width & 3 != 0 {
         result = width - (width & 3) + 4;
     }
     result

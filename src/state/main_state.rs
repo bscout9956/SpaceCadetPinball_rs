@@ -1,7 +1,4 @@
 use crate::{Duration, SdlRendererPtr, SdlWindowPtr, WelfordState};
-use dear_imgui_rs::Io;
-use dear_imgui_rs::sys::ImGuiIO;
-use std::ptr::NonNull;
 
 #[allow(clippy::struct_excessive_bools)]
 pub struct MainState {

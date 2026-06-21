@@ -1,12 +1,10 @@
-use crate::gdrv::GdrvBitmap8;
 use crate::maths::*;
 use crate::message_code::MessageCode;
 use crate::render::RenderSprite;
 use crate::state::loader_state::LoaderState;
-use crate::zdrv::ZMapHeaderType;
 use crate::{control::ComponentControl, loader, loader::VisualStruct};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
-use std::ffi::CStr;
+use std::any::Any;
 use std::{
     cell::{Cell, RefCell},
     rc::{Rc, Weak},
@@ -29,12 +27,15 @@ pub struct TPinballComponent {
 }
 
 pub trait IPinballComponent {
+    fn as_any(&self) -> &dyn Any;
+    fn group_name(&self) -> Option<String>;
+    fn group_index(&self) -> i32;
     fn sprite_set(&mut self, index: i32);
     fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32);
     fn get_coordinates(&self) -> Vector2;
     fn get_scoring(&self, index: u32) -> i32;
     fn port_draw(&self);
-    fn message(&mut self, code: MessageCode, value: f32) -> MessageCode;
+    fn message(&mut self, code: MessageCode, value: f32) -> i32;
 }
 
 impl TPinballComponent {
@@ -95,6 +96,21 @@ impl Drop for TPinballComponent {
 }
 
 impl IPinballComponent for TPinballComponent {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn group_name(&self) -> Option<String> {
+        if let Some(group_name) = self.group_name.as_ref() {
+            Some(group_name.borrow().clone())
+        } else {
+            None
+        }
+    }
+
+    fn group_index(&self) -> i32 {
+        self.group_index
+    }
     fn sprite_set(&mut self, index: i32) {
         if self.list_bitmap.is_empty() {
             return;
@@ -142,12 +158,13 @@ impl IPinballComponent for TPinballComponent {
         // TODO: Doesn't have an impl?
     }
 
-    fn message(&mut self, code: MessageCode, value: f32) -> MessageCode {
+    fn message(&mut self, code: MessageCode, value: f32) -> i32 {
+        // TODO?
         self.message_field = code;
         if code == MessageCode::RESET {
             self.message_field = MessageCode(0);
         }
 
-        MessageCode(0)
+        0
     }
 }

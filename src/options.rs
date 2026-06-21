@@ -1,3 +1,4 @@
+use crate::errors::FullscreenError;
 use crate::options::InputTypes::{GameController, Keyboard, Mouse};
 use crate::state::fullscrn_state::FullscrnState;
 use crate::state::main_state::MainState;
@@ -6,7 +7,8 @@ use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::translations::Msg;
 use crate::utils::clamp;
-use crate::{fullscrn, midi, render, translations, update_frame_rate};
+use crate::{fullscrn, midi, render, sound, translations, update_frame_rate};
+use anyhow::Result;
 use dear_imgui_rs::Io;
 use dear_imgui_rs::sys::{
     ImGuiContext, ImGuiSettingsHandler, ImGuiTextBuffer, ImGuiTextBuffer_append,
@@ -22,11 +24,8 @@ use std::cmp::{PartialEq, PartialOrd, max};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::{CStr, CString, c_char, c_void};
-use std::ops::{Deref, DerefMut};
-use std::str::FromStr;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering::SeqCst;
-use std::sync::{LazyLock, Mutex};
+use std::ops::{Deref, DerefMut, Sub};
+use thiserror::Error;
 
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
 
@@ -526,27 +525,34 @@ pub unsafe fn init_primary(
     }
 }
 
+#[derive(Error, Debug)]
+pub enum OptionsError {
+    #[error(transparent)]
+    FullScreenError(#[from] FullscreenError),
+}
+
 pub fn init_secondary(
     options_state: &mut OptionsState,
     pb_game_state: &mut PbGameState,
     fullscrn_state: &mut FullscrnState,
-) {
+) -> Result<(), OptionsError> {
     let max_res = fullscrn::get_max_resolution(pb_game_state);
 
-    if (options_state.options.resolution.value >= 0
-        && options_state.options.resolution.value > max_res)
+    if options_state.options.resolution.value >= 0
+        && options_state.options.resolution.value > max_res
     {
         *options_state.options.resolution = max_res;
     }
-    if (options_state.options.resolution.value == -1) {
-        fullscrn::set_resolution(max_res, fullscrn_state, pb_game_state);
+    if options_state.options.resolution.value == -1 {
+        fullscrn::set_resolution(max_res, fullscrn_state, pb_game_state)?;
     } else {
         fullscrn::set_resolution(
             *options_state.options.resolution,
             fullscrn_state,
             pb_game_state,
-        );
+        )?;
     }
+    Ok(())
 }
 
 pub fn uninit(options_state: &mut OptionsState) {
@@ -587,7 +593,14 @@ pub fn set_input(
     }
 }
 
-// TODO: Implement all the unimplemented stuff
+impl Sub for Menu {
+    type Output = i32;
+
+    fn sub(self, rhs: Self) -> i32 {
+        self as i32 - rhs as i32
+    }
+}
+
 pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
     match u_id_check_item {
         Menu::NewGame => {}
@@ -595,25 +608,20 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
         Menu::HighScores => {}
         Menu::Exit => {}
         Menu::Sounds => {
-            *state.options_state.options.sounds = !(*state.options_state.options.sounds);
+            *state.options_state.options.sounds ^= true;
+            sound::enable(*state.options_state.options.sounds, &mut state.sound_state);
         }
         Menu::Music => {
-            *state.options_state.options.music = !(*state.options_state.options.music);
+            *state.options_state.options.music ^= true;
             if !(*state.options_state.options.music) {
                 midi::music_stop();
             } else {
                 midi::music_play();
             }
         }
-        Menu::SoundStereo => {
-            *state.options_state.options.sound_stereo =
-                !(*state.options_state.options.sound_stereo);
-        }
-        Menu::HelpTopics => {}
-        Menu::LaunchBall => {}
-        Menu::PauseResumeGame => {}
+        Menu::SoundStereo => *state.options_state.options.sound_stereo ^= true,
         Menu::FullScreen => {
-            *state.options_state.options.full_screen = !(*state.options_state.options.full_screen);
+            *state.options_state.options.full_screen ^= true;
             fullscrn::set_screen_mode(
                 *state.options_state.options.full_screen,
                 &mut state.fullscrn_state,
@@ -623,7 +631,9 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
         Menu::Demo => {}
         Menu::SelectTable => {}
         Menu::PlayerControls => {}
-        Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {}
+        Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {
+            *state.options_state.options.players = u_id_check_item - Menu::OnePlayer + 1;
+        }
         Menu::ShowMenu => {
             *state.options_state.options.show_menu = !(*state.options_state.options.show_menu);
             fullscrn::window_size_changed(state);
@@ -636,14 +646,15 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
                     != fullscrn::get_max_resolution(&mut state.pb_game_state);
                 *state.options_state.options.resolution = -1;
             } else if new_resolution <= fullscrn::get_max_resolution(&mut state.pb_game_state) {
-                let current_resolution;
-                if *state.options_state.options.resolution == -1 {
-                    current_resolution = fullscrn::get_max_resolution(&mut state.pb_game_state);
+                let resolution = if *state.options_state.options.resolution == -1 {
+                    fullscrn::get_max_resolution(&mut state.pb_game_state)
                 } else {
-                    current_resolution = state.fullscrn_state.resolution;
+                    state.fullscrn_state.resolution
+                };
+                if new_resolution != resolution {
+                    restart = new_resolution != resolution;
                 }
-
-                restart = new_resolution != current_resolution;
+                *state.options_state.options.resolution = new_resolution;
             }
 
             if restart {
@@ -651,13 +662,11 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             }
         }
         Menu::WindowUniformScale => {
-            *state.options_state.options.uniform_scaling =
-                !(*state.options_state.options.uniform_scaling);
+            *state.options_state.options.uniform_scaling ^= true;
             fullscrn::window_size_changed(state);
         }
         Menu::WindowLinearFilter => {
-            *state.options_state.options.linear_filtering =
-                !(*state.options_state.options.linear_filtering);
+            *state.options_state.options.linear_filtering ^= true;
             render::recreate_screen_texture(
                 &mut state.main_state,
                 &mut state.options_state,
@@ -665,15 +674,14 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             );
         }
         Menu::WindowIntegerScale => {
-            *state.options_state.options.integer_scaling =
-                !(*state.options_state.options.integer_scaling);
+            *state.options_state.options.integer_scaling ^= true;
             fullscrn::window_size_changed(state);
         }
         Menu::Prefer3DPBGameData => {
-            *(&mut state.options_state).options.prefer_3dpb_game_data =
-                !(*(&mut state.options_state).options.prefer_3dpb_game_data);
+            *(&mut state.options_state).options.prefer_3dpb_game_data ^= true;
             fullscrn::window_size_changed(state);
         }
+        _ => {}
     }
 }
 

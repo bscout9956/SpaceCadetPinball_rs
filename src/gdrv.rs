@@ -14,7 +14,6 @@ use std::ffi::{CString, c_int, c_void};
 use std::fmt::Debug;
 use std::ptr::{null, null_mut};
 use std::slice;
-use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
 #[repr(u8)]
@@ -54,10 +53,10 @@ impl ColorRgba {
 
     pub const fn color_rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
         Self {
-            color: ((alpha as u32) << ALPHA_OFFSET
+            color: (alpha as u32) << ALPHA_OFFSET
                 | (red as u32) << RED_OFFSET
                 | (green as u32) << GREEN_OFFSET
-                | (blue as u32) << BLUE_OFFSET),
+                | (blue as u32) << BLUE_OFFSET,
         }
     }
 
@@ -98,7 +97,7 @@ impl ColorRgba {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct GdrvBitmap8 {
     pub bmp_buffer_data: Vec<ColorRgba>,
     pub indexed_bmp_data: Vec<u8>,
@@ -171,7 +170,7 @@ impl GdrvBitmap8 {
         instance.y_position = header.y_position as i32;
         instance.resolution = header.resolution as u32;
 
-        let mut size_in_bytes: i32;
+        let size_in_bytes: i32;
         if instance.bitmap_type == BitmapTypes::Spliced {
             size_in_bytes = header.size;
         } else {
@@ -337,7 +336,11 @@ fn apply_palette(bmp: &mut GdrvBitmap8, palette: &[ColorRgba; 256]) {
     let height = bmp.height as usize;
 
     let dst_rows = bmp.bmp_buffer_data.chunks_exact_mut(dst_stride);
-    let src_rows = bmp.indexed_bmp_data.chunks_exact(src_stride).take(height).rev();
+    let src_rows = bmp
+        .indexed_bmp_data
+        .chunks_exact(src_stride)
+        .take(height)
+        .rev();
 
     for (dst_row, src_row) in dst_rows.zip(src_rows) {
         for (dst_pixel, &src_pixel) in dst_row.iter_mut().zip(src_row.iter()) {
@@ -352,7 +355,7 @@ pub fn copy_bitmap(
     height: i32,
     x_off: i32,
     y_off: i32,
-    src_bmp: &mut GdrvBitmap8,
+    src_bmp: &GdrvBitmap8,
     src_x_off: i32,
     src_y_off: i32,
 ) {
@@ -403,7 +406,7 @@ fn fill_bitmap_color_rgba(
 ) {
     let mut index = bmp.stride * y_off + x_off;
     for _ in 0..height {
-        for x in (0..width).rev() {
+        for _x in (0..width).rev() {
             bmp.bmp_buffer_data[index as usize] = fill_color;
             index += 1;
         }
@@ -417,11 +420,41 @@ pub(crate) fn gr_text_draw_ttext_in_box(
     ui: &mut Ui,
 ) {
     let text_boxes = [
-        pb_game_state.miss_text_box.as_mut().unwrap(),
+        pb_game_state.mission_text_box.as_mut().unwrap(),
         pb_game_state.info_text_box.as_mut().unwrap(),
     ];
 
     for text_box in text_boxes.into_iter() {
         unsafe { text_box.draw_im_gui(render_state, pb_game_state.text_box_color, ui) };
+    }
+}
+
+pub(crate) fn copy_bitmap_w_transparency(
+    dst_bmp: &mut GdrvBitmap8,
+    width: i32,
+    height: i32,
+    x_off: i32,
+    y_off: i32,
+    src_bmp: &GdrvBitmap8,
+    src_x_off: i32,
+    src_y_off: i32,
+) {
+    let mut src_index = (src_bmp.stride * src_y_off + src_x_off) as usize;
+    let mut dst_index = (dst_bmp.stride * y_off + x_off) as usize;
+
+    let mut y = height;
+    while y > 0 {
+        let mut x = width;
+        while x > 0 {
+            if src_bmp.bmp_buffer_data[src_index].color > 0 {
+                dst_bmp.bmp_buffer_data[dst_index] = src_bmp.bmp_buffer_data[src_index];
+            }
+            src_index += 1;
+            dst_index += 1;
+            x -= 1;
+        }
+        src_index += (src_bmp.stride - width) as usize;
+        dst_index += (dst_bmp.stride - height) as usize;
+        y -= 1;
     }
 }

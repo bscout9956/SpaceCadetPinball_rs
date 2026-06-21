@@ -2,13 +2,12 @@ use crate::embedded_data::PB_MSGFT_BIN_COMPRESSED_DATA_BASE85;
 use crate::errors::GroupDataError;
 use crate::gdrv::{BitmapTypes, GdrvBitmap8};
 use crate::state::fullscrn_state::FullscrnState;
+use crate::zdrv;
 use crate::zdrv::ZMapHeaderType;
-use crate::{fullscrn, pb, zdrv};
 use base85::Error;
 use num_derive::FromPrimitive;
 use std::array;
 use std::cmp::PartialOrd;
-use std::sync::atomic::Ordering::Relaxed;
 use thiserror::Error;
 
 #[derive(PartialEq, PartialOrd, Copy, Clone, FromPrimitive)]
@@ -239,7 +238,7 @@ pub fn split_sliced_bitmap(
     zdrv::fill(zmap, zmap.width, zmap.height, 0, 0, 0xFFFF);
     zmap.resolution = src_bmp.resolution;
 
-    let table_width = (fullscrn_state.resolution_array)[src_bmp.resolution as usize].table_width;
+    let table_width = fullscrn_state.resolution_array[src_bmp.resolution as usize].table_width;
     let src = &src_bmp.indexed_bmp_data;
     let src_char = &src;
 

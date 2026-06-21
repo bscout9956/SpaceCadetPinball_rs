@@ -5,6 +5,7 @@ use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPl
 use crate::options::{GameBindings, GameInput, InputTypes, Menu};
 use crate::translations::Msg;
 use crate::utils::{SdlRendererPtr, SdlWindowPtr};
+use anyhow::{Context, Result};
 use dear_imgui_rs::sys::{
     ImGuiFocusRequestFlags_None, ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp,
     ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, ImWchar, igBeginMainMenuBar, igBeginMenu, igEnd,
@@ -12,7 +13,7 @@ use dear_imgui_rs::sys::{
     igPopStyleVar, igPushStyleVar_Vec2, igRender, igSeparator, igSetMouseCursor, igSliderInt,
     igTextUnformatted,
 };
-use dear_imgui_rs::{ConfigFlags, Context, FontConfig, StyleColor, StyleVar, Ui};
+use dear_imgui_rs::{ConfigFlags, FontConfig, StyleColor, StyleVar, Ui};
 use errors::MainLoopError;
 use num_traits::FromPrimitive;
 use sdl2::sys::SDL_EventType::{
@@ -24,19 +25,19 @@ use sdl2::sys::SDL_RendererFlags::{SDL_RENDERER_ACCELERATED, SDL_RENDERER_SOFTWA
 use sdl2::sys::SDL_WindowEventID::{
     SDL_WINDOWEVENT_FOCUS_GAINED, SDL_WINDOWEVENT_FOCUS_LOST, SDL_WINDOWEVENT_HIDDEN,
     SDL_WINDOWEVENT_RESIZED, SDL_WINDOWEVENT_SHOWN, SDL_WINDOWEVENT_SIZE_CHANGED,
+    SDL_WINDOWEVENT_TAKE_FOCUS,
 };
 use sdl2::sys::SDL_WindowFlags::{SDL_WINDOW_HIDDEN, SDL_WINDOW_RESIZABLE};
 use sdl2::sys::SDL_bool::SDL_FALSE;
 use sdl2::sys::mixer::{
     MIX_DEFAULT_FORMAT, MIX_DEFAULT_FREQUENCY, MIX_InitFlags_MIX_INIT_MID, MIX_MAJOR_VERSION,
-    MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_Init, Mix_OpenAudio,
+    MIX_MINOR_VERSION, MIX_PATCHLEVEL, Mix_CloseAudio, Mix_Init, Mix_OpenAudio, Mix_Quit,
 };
 use sdl2::sys::*;
 use state::main_state::MainState;
 use state::options_state::OptionsState;
 use state::pinball_state::PinballState;
 use std::env;
-use std::error::Error;
 use std::ffi::{CStr, CString, c_int};
 use std::mem::MaybeUninit;
 use std::ops::{Mul, Neg, Sub};
@@ -79,11 +80,14 @@ pub mod proj;
 mod render;
 pub mod state;
 pub mod t_demo;
+mod t_drain;
 mod t_edge_box;
 mod t_edge_manager;
+mod t_flipper;
 pub mod t_light;
 mod t_light_group;
 pub mod t_line;
+mod t_plunger;
 pub mod t_table_layer;
 pub mod t_textbox;
 pub mod t_textbox_message;
@@ -244,7 +248,7 @@ fn hybrid_sleep(mut sleep_target: Duration<1000000000>, main_state: &mut MainSta
     // Sacrifices some CPU time for smaller frame time jitter
     while sleep_target > main_state.spin_threshold {
         let start = unsafe { SdlPerformanceClock::now() };
-        std::thread::sleep(std::time::Duration::from_nanos(start.0.count() as u64)); // TODO: Is this correct?
+        std::thread::sleep(std::time::Duration::from_nanos(start.0.count() as u64));
         let end = unsafe { SdlPerformanceClock::now() };
 
         let actual_duration = end - start;
@@ -303,7 +307,7 @@ impl Mul<Duration<1000000000>> for i32 {
 }
 
 fn main_loop(
-    imgui_context: &mut Context,
+    imgui_context: &mut dear_imgui_rs::Context,
     pb_state: &mut PinballState,
 ) -> Result<(), MainLoopError> {
     pb_state.main_state.b_quit = false;
@@ -384,7 +388,7 @@ fn main_loop(
             }
 
             unsafe {
-                if (x_mod != 0 || y_mod != 0) {
+                if x_mod != 0 || y_mod != 0 {
                     x = i32::abs(x - x_mod);
                     y = i32::abs(y - y_mod);
                     if let Some(window) = pb_state.main_state.main_window.as_ref() {
@@ -431,8 +435,13 @@ fn main_loop(
             unsafe {
                 imgui_sdl::impl_sdl2_new_frame(imgui_context.io_mut(), pb_state);
                 imgui_sdl::impl_sdl2_renderer_new_frame(imgui_context);
-                let ui = imgui_context.frame();
-                render_ui(ui, pb_state)?;
+
+                let mut reset_options = false;
+                {
+                    let ui = imgui_context.frame();
+                    reset_options = render_ui(ui, pb_state)?;
+                }
+
                 if let Some(renderer) = pb_state.main_state.renderer.as_ref() {
                     SDL_RenderClear(renderer.0);
                     SDL_RenderFillRect(renderer.0, null());
@@ -441,6 +450,14 @@ fn main_loop(
                 igRender();
                 let draw_data = igGetDrawData();
                 imgui_sdl::renderer::render_draw_data(imgui_context.io_mut(), draw_data);
+
+                if reset_options {
+                    options::reset_all_options(
+                        imgui_context.io_mut(),
+                        &mut pb_state.main_state,
+                        &mut pb_state.options_state,
+                    );
+                }
 
                 if let Some(renderer) = pb_state.main_state.renderer.as_mut() {
                     SDL_RenderPresent(renderer.0);
@@ -541,7 +558,8 @@ fn main_loop(
     Ok(())
 }
 
-unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopError> {
+unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool, MainLoopError> {
+    let mut reset_options = false;
     unsafe {
         let menu_string = pb::get_rc_string_cstring(Msg::Menu1Options)?;
         if igBeginMenu(menu_string.as_ptr(), true) {
@@ -566,7 +584,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
                     true,
                 ) {
                     options::toggle(OnePlayer, state);
-                    // TODO: new_game();
+                    new_game(state)?;
                 }
 
                 if igMenuItem_Bool(
@@ -576,7 +594,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
                     true,
                 ) {
                     options::toggle(TwoPlayers, state);
-                    // TODO: new_game();
+                    new_game(state)?;
                 }
 
                 if igMenuItem_Bool(
@@ -586,7 +604,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
                     true,
                 ) {
                     options::toggle(ThreePlayers, state);
-                    // TODO: new_game();
+                    new_game(state)?;
                 }
 
                 if igMenuItem_Bool(
@@ -596,7 +614,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
                     true,
                 ) {
                     options::toggle(FourPlayers, state);
-                    // TODO: new_game();
+                    new_game(state)?;
                 }
                 igEndMenu();
             }
@@ -618,7 +636,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
                     ) {
                         if current_language.language != item.language {
                             translations::set_current_language(item.short_name);
-                            //restart();
+                            restart(&mut state.main_state);
                         }
                     }
                 }
@@ -630,21 +648,26 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<(), MainLoopEr
 
             create_audio_menu(state);
             // create_graphics_menu();
-            create_resolution_menu(state);
+            create_resolution_menu(state)?;
             create_game_data_menu(state);
 
             igSeparator();
 
             if igMenuItem_Bool(c"Reset All Options".as_ptr(), null(), false, true) {
-                //TODO, needs io
-                // options::reset_all_options()
-                //restart();
+                reset_options = true;
+                restart(&mut state.main_state);
             }
             igEndMenu();
         }
 
-        Ok(())
+        Ok(reset_options)
     }
+}
+
+fn new_game(state: &mut PinballState) -> Result<(), MainLoopError> {
+    end_pause(state)?;
+    pb::replay_level(false, state)?;
+    Ok(())
 }
 
 unsafe fn create_resolution_menu(state: &mut PinballState) -> Result<(), MainLoopError> {
@@ -734,7 +757,10 @@ unsafe fn create_audio_menu(state: &mut PinballState) {
                 c"%d".as_ptr(),
                 ImGuiSliderFlags_AlwaysClamp,
             ) {
-                sound::set_volume(*state.options_state.options.sound_volume);
+                sound::set_volume(
+                    &mut state.sound_state,
+                    *state.options_state.options.sound_volume,
+                );
             }
             igTextUnformatted(c"Sound Channels".as_ptr(), c"".as_ptr());
             if igSliderInt(
@@ -745,7 +771,10 @@ unsafe fn create_audio_menu(state: &mut PinballState) {
                 c"%d".as_ptr(),
                 ImGuiSliderFlags_AlwaysClamp,
             ) {
-                sound::set_channels(*state.options_state.options.sound_channels);
+                sound::set_channels(
+                    &mut state.sound_state,
+                    *state.options_state.options.sound_channels,
+                );
             }
             igSeparator();
 
@@ -786,7 +815,8 @@ unsafe fn create_game_data_menu(state: &mut PinballState) {
     }
 }
 
-unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<(), MainLoopError> {
+unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<bool, MainLoopError> {
+    let mut reset_options = false;
     unsafe {
         if *state.options_state.options.show_menu && igBeginMainMenuBar() {
             let current_menu_height = igGetWindowSize().y as i32;
@@ -797,7 +827,7 @@ unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<(), MainLoopE
             }
 
             // create_game_menu();
-            create_options_menu(state);
+            reset_options = create_options_menu(state)?;
             // create_help_menu();
 
             if state.main_state.disp_frame_rate && !state.main_state.fps_details.is_empty() {
@@ -811,17 +841,18 @@ unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<(), MainLoopE
         }
     }
 
-    Ok(())
+    Ok(reset_options)
 }
 
-unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoopError> {
+unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool, MainLoopError> {
+    let mut reset_options = false;
     unsafe {
-        let _menu_bar_bg =
+        let menu_bar_bg =
             ui.push_style_color(StyleColor::MenuBarBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
-        let _window_bg = ui.push_style_color(StyleColor::WindowBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
-        let _border_var = ui.push_style_var(StyleVar::WindowBorderSize(0.0));
+        let window_bg = ui.push_style_color(StyleColor::WindowBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
+        let border_var = ui.push_style_var(StyleVar::WindowBorderSize(0.0));
 
-        if !(state.options_state.options.show_menu.value) && igBeginMainMenuBar() {
+        if !state.options_state.options.show_menu.value && igBeginMainMenuBar() {
             let menu_string = "Menu".to_string();
             let cstr_menu = CString::new(menu_string)?;
 
@@ -833,7 +864,11 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoo
             igEndMainMenuBar();
         }
 
-        create_main_menu_bar(state);
+        menu_bar_bg.pop();
+        window_bg.pop();
+        border_var.pop();
+
+        reset_options = create_main_menu_bar(state)?;
 
         // render_dialogs();
 
@@ -935,9 +970,9 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<(), MainLoo
         // }
 
         // Print game texts on the sidebar
-        //TODO: gdrv::gr_text_draw_ttext_in_box(&mut state.render_state, &mut state.pb_game_state, ui);
+        gdrv::gr_text_draw_ttext_in_box(&mut state.render_state, &mut state.pb_game_state, ui);
     }
-    Ok(())
+    Ok(reset_options)
 }
 
 pub fn restart(main_state: &mut MainState) {
@@ -951,15 +986,16 @@ pub fn restart(main_state: &mut MainState) {
     }
 }
 
-fn pause(toggle: bool, main_state: &mut MainState) {
-    if toggle || !main_state.single_step {
-        pb::pause_continue(main_state);
-        main_state.no_time_loss = true;
+fn pause(toggle: bool, state: &mut PinballState) -> Result<(), MainLoopError> {
+    if toggle || !state.main_state.single_step {
+        pb::pause_continue(state)?;
+        state.main_state.no_time_loss = true;
     }
+    Ok(())
 }
 
 fn process_window_messages(
-    imgui_context: &mut Context,
+    imgui_context: &mut dear_imgui_rs::Context,
     state: &mut PinballState,
 ) -> Result<bool, MainLoopError> {
     let mut idle_wait = 0i64;
@@ -969,6 +1005,7 @@ fn process_window_messages(
         idle_wait = state.main_state.target_frametime.count();
         unsafe {
             while SDL_PollEvent(event.as_mut_ptr()) > 0 {
+                // TODO: Should we be using idle_wait for something?
                 if event_handler(event.as_mut_ptr(), imgui_context, state)? == false {
                     return Ok(false);
                 }
@@ -982,6 +1019,7 @@ fn process_window_messages(
     idle_wait = i64::min(idle_wait + state.main_state.target_frametime.0, 500);
     unsafe {
         if SDL_WaitEventTimeout(event.as_mut_ptr(), idle_wait as c_int) > 0 {
+            // TODO: Should we be using idle_wait for something?
             idle_wait = state.main_state.target_frametime.count();
             return event_handler(event.as_mut_ptr(), imgui_context, state);
         }
@@ -991,7 +1029,7 @@ fn process_window_messages(
 
 unsafe fn event_handler(
     event: *mut SDL_Event,
-    context: &mut Context,
+    context: &mut dear_imgui_rs::Context,
     state: &mut PinballState,
 ) -> Result<bool, MainLoopError> {
     let mut input_down = false;
@@ -1056,7 +1094,7 @@ unsafe fn event_handler(
 
     unsafe {
         if (*event).type_ == SDL_QUIT as u32 {
-            end_pause(&mut state.main_state);
+            end_pause(state)?;
 
             state.main_state.b_quit = true;
             fullscrn::shutdown(&mut state.fullscrn_state, &mut state.main_state.main_window);
@@ -1067,19 +1105,18 @@ unsafe fn event_handler(
             pb::input_up(
                 GameInput::new(InputTypes::Keyboard, (*event).key.keysym.sym),
                 state,
-            );
+            )?;
         }
-        // TODO: There is a bunch of other events missing here!!!
 
         if (*event).type_ == SDL_WINDOWEVENT as u32 {
             if (*event).window.event == SDL_WINDOWEVENT_SHOWN as u8
-                || (*event).window.event == SDL_WINDOWEVENT_FOCUS_GAINED as u8
+                || (*event).window.event == SDL_WINDOWEVENT_TAKE_FOCUS as u8
                 || (*event).window.event == SDL_WINDOWEVENT_FOCUS_GAINED as u8
             {
                 state.main_state.activated = true;
-                //TODO: sound::activate();
+                sound::activate(&mut state.sound_state);
                 if *state.options_state.options.music && !state.main_state.single_step {
-                    //TODO: midi::music_play();
+                    //midi::music_play();
                 }
                 state.main_state.no_time_loss = true;
                 state.main_state.has_focus = true;
@@ -1095,7 +1132,7 @@ unsafe fn event_handler(
                     &mut state.main_state.main_window,
                 );
                 *state.options_state.options.full_screen = false;
-                //TODO: sound::deactivate();
+                sound::deactivate(&mut state.sound_state);
                 //TODO: midi::music_stop();
                 state.main_state.has_focus = false;
                 // TODO: pb::lose_focus();
@@ -1111,14 +1148,15 @@ unsafe fn event_handler(
     Ok(true)
 }
 
-fn end_pause(main_state: &mut MainState) {
-    if main_state.single_step == true {
-        pb::pause_continue(main_state);
-        main_state.no_time_loss = true;
+fn end_pause(state: &mut PinballState) -> Result<(), MainLoopError> {
+    if state.main_state.single_step {
+        pb::pause_continue(state)?;
+        state.main_state.no_time_loss = true;
     }
+    Ok(())
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<()> {
     let mut state = PinballState::new();
 
     println!("Game version: {}", VERSION);
@@ -1134,17 +1172,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
     println!(" ImGui TODO");
 
-    let sdl_context = sdl2::init()?;
+    let sdl_context = sdl2::init()
+        .map_err(anyhow::Error::msg)
+        .context("Failed to initialize SDL2")?;
     unsafe {
         SDL_SetMainReady();
-        if (SDL_Init(
+        if SDL_Init(
             SDL_INIT_TIMER
                 | SDL_INIT_AUDIO
                 | SDL_INIT_VIDEO
                 | SDL_INIT_EVENTS
                 | SDL_INIT_JOYSTICK
                 | SDL_INIT_GAMECONTROLLER,
-        ) < 0)
+        ) < 0
         {
             pb::show_message_box_cstr_message(
                 SDL_MESSAGEBOX_ERROR,
@@ -1162,8 +1202,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     unsafe {
         println!("Creating window");
-        let rc_string = pb::get_rc_string(Msg::STRING139)?;
-        let c_string = CString::new(rc_string)?;
+        let rc_string = pb::get_rc_string(Msg::STRING139).context("Failed to obtain rc_string")?;
+        let c_string = CString::new(rc_string).context("Failed to create CString")?;
 
         let window = SDL_CreateWindow(
             c_string.as_ptr(),
@@ -1232,7 +1272,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             } else {
                 println!(
                     "Using SDL Renderer: {}",
-                    CStr::from_ptr(renderer_info.name).to_str()?
+                    CStr::from_ptr(renderer_info.name)
+                        .to_str()
+                        .context("Failed to convert renderer_info.name to str")?
                 );
             }
 
@@ -1251,9 +1293,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         let no_audio = env::args().any(|arg| arg.contains("-noaudio"));
         if !no_audio {
             println!("Audio enabled.");
-            if ((Mix_Init(MIX_InitFlags_MIX_INIT_MID as c_int)
-                & MIX_InitFlags_MIX_INIT_MID as c_int)
-                == 0)
+            if (Mix_Init(MIX_InitFlags_MIX_INIT_MID as c_int) & MIX_InitFlags_MIX_INIT_MID as c_int)
+                == 0
             {
                 println!(
                     "Could not initialize SDL MIDI, music might not work.\nSDL Error:{}",
@@ -1261,12 +1302,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
                 SDL_ClearError();
             }
-            if (Mix_OpenAudio(
+            if Mix_OpenAudio(
                 MIX_DEFAULT_FREQUENCY as c_int,
                 MIX_DEFAULT_FORMAT as u16,
                 2,
                 1024,
-            ) != 0)
+            ) != 0
             {
                 println!(
                     "Could not open audio device, continuing without audio.\nSDL Error:{}",
@@ -1298,7 +1339,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             state.main_state.restart = false;
 
             // ImGUi Init
-            let mut imgui_context = Context::create();
+            let mut imgui_context = dear_imgui_rs::Context::create();
             let io = imgui_context.io_mut();
             let mut cfg_flags = io.config_flags();
 
@@ -1308,7 +1349,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 CStr::from_ptr(pref_path).to_string_lossy().into_owned() + "imgui_pb.ini";
             let ini_path = PathBuf::from(pref_path_string);
 
-            imgui_context.set_ini_filename(Some(ini_path))?;
+            imgui_context
+                .set_ini_filename(Some(ini_path))
+                .context("Failed to set imgui context's ini filename")?;
 
             // First option initialization step: just load settings from .ini. Needs ImGui context.
             options::init_primary(
@@ -1370,8 +1413,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             // Data search order: WD, executable path, user pref path, platform specific paths.
             let search_paths: Vec<&str> = vec![
                 "",
-                CStr::from_ptr(base_path).to_str()?,
-                CStr::from_ptr(pref_path).to_str()?,
+                CStr::from_ptr(base_path)
+                    .to_str()
+                    .context("Failed to grab string from ptr for base_path")?,
+                CStr::from_ptr(pref_path)
+                    .to_str()
+                    .context("Failed to grab string from ptr for pref_path")?,
             ];
 
             #[cfg(not(target_os = "windows"))]
@@ -1387,19 +1434,23 @@ fn main() -> Result<(), Box<dyn Error>> {
                 &mut state.options_state,
                 &mut state.pb_game_state,
                 &mut state.fullscrn_state,
+            )
+            .context("Failed to initialize secondary options")?;
+
+            println!("Init for sound");
+            sound::init(
+                mix_opened,
+                *state.options_state.options.sound_channels,
+                *state.options_state.options.sounds,
+                *state.options_state.options.sound_volume,
+                &mut state.sound_state,
             );
+            if !mix_opened {
+                *state.options_state.options.sounds = false;
+            }
 
-            // TODO: Implement sound, we're skipping for now to focus on PB:INIT();
-            // match OPTIONS.lock() {
-            //     Ok(options) => {
-            //         sound::init(mix_opened, options.sound_channels, options.sounds, options.sound_volume);
-            //     },
-            //     Err(e) => {
-            //         println!("Failed to lock options: {}", e);
-            //     }
-            // }
-
-            if !pb::init(&mut state)? {
+            println!("Init for pb");
+            if !pb::init(&mut state).context("Failed to initialize pb")? {
                 let mut message = String::from(
                     "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
                 );
@@ -1422,9 +1473,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             fullscrn::init(&mut state)?;
+            println!("Init for fullscrn, successful");
 
             pb::reset_table(&mut state.pb_game_state)?;
-            pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state);
+            pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state)?;
+            println!("First time setup done");
 
             let fullscreen = env::args().any(|arg| arg == "-fullscreen");
             if fullscreen {
@@ -1449,15 +1502,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             let is_demo = env::args().any(|arg| arg == "-demo");
             if is_demo {
-                // TODO LOWPRIO: Implement me
-                pb::toggle_demo();
+                pb::toggle_demo(&mut state)?;
             } else {
-                pb::replay_level(
-                    false,
-                    &mut state.main_state,
-                    &mut state.options_state,
-                    &mut state.pb_game_state,
-                )?;
+                pb::replay_level(false, &mut state)?;
             }
 
             main_loop(&mut imgui_context, &mut state)?;
@@ -1465,8 +1512,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             options::uninit(&mut state.options_state);
             // TODO: Implement sound midi::music_shutdown();
             // TODO: Implement sound stuff
-            //sound::close();
-            pb::uninit(&mut state);
+            sound::close(&mut state.sound_state);
+            pb::uninit(&mut state)?;
+
+            if !no_audio {
+                if mix_opened {
+                    Mix_CloseAudio();
+                }
+                Mix_Quit();
+            }
 
             if state.main_state.restart {
                 println!("Restarting");

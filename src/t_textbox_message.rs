@@ -1,6 +1,4 @@
-use crate::pb;
-use std::sync::atomic::Ordering::SeqCst;
-
+#[derive(PartialEq, Clone)]
 pub struct TTextBoxMessage {
     pub next_message: Option<Box<TTextBoxMessage>>,
     pub text: &'static str,
@@ -10,13 +8,7 @@ pub struct TTextBoxMessage {
 }
 
 impl TTextBoxMessage {
-    pub fn new(
-        text: &'static str,
-        time: f32,
-        end_ticks: i32,
-        low_priority: bool,
-        time_ticks: usize,
-    ) -> Self {
+    pub fn new(text: &'static str, time: f32, low_priority: bool, time_ticks: usize) -> Self {
         Self {
             next_message: None,
             time,

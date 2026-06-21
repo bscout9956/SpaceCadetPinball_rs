@@ -1,10 +1,9 @@
+use crate::errors::TranslationError;
 use crate::text_array::TEXT_ARRAY;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use std::cmp::PartialEq;
-use std::ffi::NulError;
-use std::sync::{LazyLock, LockResult, Mutex, MutexGuard, PoisonError};
-use thiserror::Error;
+use std::sync::{LazyLock, Mutex};
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, FromPrimitive)]
 pub enum Msg {
@@ -456,22 +455,8 @@ pub fn get_translation(id: Msg) -> Result<&'static str, TranslationError> {
                 Ok(text?)
             }
         }
-        Err(e) => Err(TranslationError::FailedToLockLanguage(e)),
+        Err(e) => Err(TranslationError::FailedToLockLanguage),
     }
-}
-
-#[derive(Error, Debug)]
-pub enum TranslationError {
-    #[error("Message id out of bounds")]
-    MsgIdOutOfBounds,
-    #[error("Language id out of bounds")]
-    LangIdOutOfBounds,
-    #[error("Failed to acquire lock")]
-    FailedToLockLanguage(#[from] PoisonError<MutexGuard<'static, Lang>>),
-    #[error("Missing English text equivalent")]
-    MissingEnglishText,
-    #[error("String is null: `{0}`")]
-    Nul(#[from] NulError),
 }
 
 pub fn get(id: Msg, lang_id: Lang) -> Result<&'static str, TranslationError> {

@@ -11,8 +11,7 @@ use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
 use sdl2::sys::{SDL_FRect, SDL_Rect, SDL_RenderCopy, SDL_RenderCopyF};
 use std::cmp::PartialEq;
 use std::ptr::null;
-use std::sync::{Arc, MutexGuard, PoisonError};
-use thiserror::Error;
+use std::sync::Arc;
 
 #[derive(PartialEq, Debug, PartialOrd, Ord, Eq, Default, Clone)]
 pub enum VisualTypes {
@@ -168,19 +167,7 @@ impl PartialEq for RenderSprite {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum RenderError {
-    #[error("Failed to lock V_SCREEN")]
-    VScreen(#[from] PoisonError<MutexGuard<'static, Option<GdrvBitmap8>>>),
-    #[error("Failed to lock BALL_BITMAP")]
-    BallBitmap(#[from] PoisonError<MutexGuard<'static, Option<[GdrvBitmap8; 20]>>>),
-    #[error("Failed to lock Z_SCREEN")]
-    ZScreen(#[from] PoisonError<MutexGuard<'static, Option<ZMapHeaderType>>>),
-    #[error("Failed to lock RectangleType")]
-    Rectangle(#[from] PoisonError<MutexGuard<'static, RectangleType>>),
-    #[error("Failed to lock BALL_LIST")]
-    BallList(#[from] PoisonError<MutexGuard<'static, Vec<RenderSprite>>>),
-}
+use anyhow::Result;
 
 pub fn init(
     bmp: Option<GdrvBitmap8>,
@@ -190,7 +177,7 @@ pub fn init(
     options_state: &mut OptionsState,
     render_state: &mut RenderState,
     pb_game_state: &mut PbGameState,
-) -> Result<(), RenderError> {
+) -> Result<()> {
     render_state.v_screen = Some(GdrvBitmap8::new_dims_indexed(
         width as i32,
         height as i32,
@@ -312,7 +299,7 @@ fn repaint(
     }
 }
 
-fn paint_balls(render_state: &mut RenderState) -> Result<(), RenderError> {
+fn paint_balls(render_state: &mut RenderState) -> Result<()> {
     let v_screen = render_state.v_screen.as_mut().unwrap();
     let z_screen = render_state.z_screen.as_ref().unwrap();
 
@@ -362,7 +349,7 @@ fn paint_balls(render_state: &mut RenderState) -> Result<(), RenderError> {
     Ok(())
 }
 
-fn unpaint_balls(render_state: &mut RenderState) -> Result<(), RenderError> {
+fn unpaint_balls(render_state: &mut RenderState) -> Result<()> {
     // Restore portions of v_screen saved during previous paint_balls call.
     let ball_list_size = render_state.ball_list.len();
 
@@ -390,10 +377,7 @@ fn unpaint_balls(render_state: &mut RenderState) -> Result<(), RenderError> {
     Ok(())
 }
 
-pub fn update(
-    render_state: &mut RenderState,
-    pb_game_state: &mut PbGameState,
-) -> Result<(), RenderError> {
+pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -> Result<()> {
     unpaint_balls(render_state)?;
 
     // Clip dirty sprites with vScreen, clear clipping (dirty) rectangles
@@ -540,7 +524,7 @@ pub(crate) fn present_v_screen(state: &mut PinballState) {
                 SDL_RenderCopy(renderer.0, tex.0, null(), dest_rect);
             } else {
                 if let Some(table) = state.pb_game_state.main_table.as_ref() {
-                    let table_width_coef = (table.width / v_screen.width) as f32;
+                    let table_width_coef = (table.borrow().width / v_screen.width) as f32;
                     let src_separation_x =
                         f32::round(v_screen.width as f32 * table_width_coef) as i32;
                     let src_board_rect = SDL_Rect {
@@ -598,4 +582,8 @@ pub(crate) fn present_v_screen(state: &mut PinballState) {
             }
         }
     }
+}
+
+pub(crate) fn build_occlude_list() {
+    todo!()
 }
