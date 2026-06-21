@@ -213,6 +213,10 @@ impl WelfordState {
     }
 
     pub fn get_std_dev(&self) -> f64 {
+        if self.count <= 1 {
+            return 0.0;
+        }
+
         f64::sqrt(self.m2 / (self.count - 1) as f64)
     }
 }
