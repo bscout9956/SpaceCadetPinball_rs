@@ -8,7 +8,7 @@ use crate::pb::get_rc_string_cstring;
 use crate::score::ScoreStruct;
 use crate::translations::Msg;
 use crate::utils::{SdlRendererPtr, SdlWindowPtr};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use dear_imgui_rs::sys::{
     ImGuiFocusRequestFlags_None, ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp,
     ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, ImWchar, igBeginMainMenuBar, igBeginMenu,
@@ -273,7 +273,10 @@ fn hybrid_sleep(mut sleep_target: Duration<1000000000>, main_state: &mut MainSta
     unsafe {
         // spin lock
         let start = SdlPerformanceClock::now();
-        while SdlPerformanceClock::now() - start < sleep_target {}
+        let max_spin_time = Duration(1_000_000_000); //1 second
+        while SdlPerformanceClock::now() - start < sleep_target
+            && (SdlPerformanceClock::now() - start) < max_spin_time
+        {}
     }
 }
 
@@ -318,7 +321,7 @@ impl Mul<Duration<1000000000>> for i32 {
 fn main_loop(
     imgui_context: &mut dear_imgui_rs::Context,
     pb_state: &mut PinballState,
-) -> Result<(), MainLoopError> {
+) -> Result<()> {
     pb_state.main_state.b_quit = false;
 
     let mut update_count: usize = 0;
@@ -352,7 +355,7 @@ fn main_loop(
                         SDL_SetWindowTitle(window.0, c_str_title.as_ptr());
                     };
                 } else {
-                    return Err(MainLoopError::NullWindow);
+                    return bail!(MainLoopError::NullWindow);
                 }
 
                 (&mut pb_state.main_state).update_fps_details(&title);
@@ -377,7 +380,7 @@ fn main_loop(
                 if let Some(window) = pb_state.main_state.main_window.as_ref() {
                     SDL_GetWindowSize(window.0, &mut w, &mut h);
                 } else {
-                    return Err(MainLoopError::NullWindow);
+                    return bail!(MainLoopError::NullWindow);
                 }
             }
             let dx = (pb_state.main_state.last_mouse_x - x) as f32 / w as f32;
@@ -448,7 +451,7 @@ fn main_loop(
                 let reset_options;
                 {
                     let ui = imgui_context.frame();
-                    reset_options = render_ui(ui, pb_state)?;
+                    reset_options = render_ui(ui, pb_state).context("Failed to render UI")?;
                 }
 
                 if let Some(renderer) = pb_state.main_state.renderer.as_ref() {
@@ -954,7 +957,7 @@ unsafe fn create_game_data_menu(state: &mut PinballState) {
     }
 }
 
-unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<bool, MainLoopError> {
+unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<bool> {
     let mut reset_options = false;
     unsafe {
         if *state.options_state.options.show_menu && igBeginMainMenuBar() {
@@ -965,9 +968,9 @@ unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<bool, MainLoo
                 fullscrn::window_size_changed(state)?;
             }
 
-            // create_game_menu();
+            create_game_menu(state).context("Failed to create game menu")?;
             reset_options = create_options_menu(state)?;
-            // create_help_menu();
+            create_help_menu(state).context("Failed to create help menu")?;
 
             if state.main_state.disp_frame_rate && !state.main_state.fps_details.is_empty() {
                 let cstr = CString::new(state.main_state.fps_details.as_str())?;
@@ -975,7 +978,6 @@ unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<bool, MainLoo
                     igEndMenu();
                 }
             }
-
             igEndMainMenuBar();
         }
     }
@@ -983,7 +985,203 @@ unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<bool, MainLoo
     Ok(reset_options)
 }
 
-unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool, MainLoopError> {
+fn create_help_menu(state: &mut PinballState) -> Result<()> {
+    let help_str =
+        pb::get_rc_string_cstring(Msg::Menu1Help).context("Failed to get help string")?;
+    unsafe {
+        if igBeginMenu(help_str.as_ptr(), true) {
+            if igMenuItem_Bool(
+                c"ImGui Demo".as_ptr(),
+                null(),
+                state.main_state.show_imgui_demo,
+                true,
+            ) {
+                state.main_state.show_imgui_demo ^= true;
+            }
+            if igMenuItem_Bool(
+                c"Sprite Viewer".as_ptr(),
+                null(),
+                state.main_state.show_sprite_viewer,
+                true,
+            ) {
+                if !state.main_state.show_sprite_viewer {
+                    pause(false, state).context("Failed to pause")?;
+                }
+                state.main_state.show_sprite_viewer ^= true;
+            }
+
+            if state.pb_game_state.cheat_mode
+                && igMenuItem_Bool(
+                    c"Frame Times".as_ptr(),
+                    null(),
+                    state.main_state.disp_gr_history,
+                    true,
+                )
+            {
+                state.main_state.disp_gr_history ^= true;
+            }
+            if igMenuItem_Bool(
+                c"Debug Overlay".as_ptr(),
+                null(),
+                *state.options_state.options.debug_overlay,
+                true,
+            ) {
+                *state.options_state.options.debug_overlay ^= true;
+            }
+
+            if *state.options_state.options.debug_overlay
+                && igBeginMenu(c"Overlay Options".as_ptr(), true)
+            {
+                let overlay_grid_str = c"Box Grid";
+                if igMenuItem_Bool(
+                    overlay_grid_str.as_ptr(),
+                    null(),
+                    *state.options_state.options.debug_overlay_grid,
+                    true,
+                ) {
+                    *state.options_state.options.debug_overlay_grid ^= true;
+                }
+
+                let ball_depth_grid_str = c"Ball Depth Grid";
+                if igMenuItem_Bool(
+                    ball_depth_grid_str.as_ptr(),
+                    null(),
+                    *state.options_state.options.debug_overlay_ball_depth_grid,
+                    true,
+                ) {
+                    *state.options_state.options.debug_overlay_ball_depth_grid ^= true;
+                }
+
+                let sprites_str = c"Sprite Positions";
+                if igMenuItem_Bool(
+                    sprites_str.as_ptr(),
+                    null(),
+                    *state.options_state.options.debug_overlay_sprites,
+                    true,
+                ) {
+                    *state.options_state.options.debug_overlay_sprites ^= true;
+                }
+
+                let all_edges_str = c"All Edges";
+                if igMenuItem_Bool(
+                    all_edges_str.as_ptr(),
+                    null(),
+                    *state.options_state.options.debug_overlay_all_edges,
+                    true,
+                ) {
+                    *state.options_state.options.debug_overlay_all_edges ^= true;
+                }
+
+                let aabb_str = c"Component AABB";
+                if igMenuItem_Bool(
+                    aabb_str.as_ptr(),
+                    null(),
+                    *state.options_state.options.debug_overlay_aabb,
+                    true,
+                ) {
+                    *state.options_state.options.debug_overlay_aabb ^= true;
+                }
+
+                let ball_position_str = c"Ball Position";
+                if igMenuItem_Bool(
+                    ball_position_str.as_ptr(),
+                    null(),
+                    *state.options_state.options.debug_overlay_ball_position,
+                    true,
+                ) {
+                    *state.options_state.options.debug_overlay_ball_position ^= true;
+                }
+
+                let ball_edges_str = c"Ball Box Edges";
+                if igMenuItem_Bool(
+                    ball_edges_str.as_ptr(),
+                    null(),
+                    *state.options_state.options.debug_overlay_ball_edges,
+                    true,
+                ) {
+                    *state.options_state.options.debug_overlay_ball_edges ^= true;
+                }
+
+                let sounds_str = c"Sound Positions";
+                if igMenuItem_Bool(
+                    sounds_str.as_ptr(),
+                    null(),
+                    *state.options_state.options.debug_overlay_sounds,
+                    true,
+                ) {
+                    *state.options_state.options.debug_overlay_sounds ^= true;
+                }
+
+                let collision_mask_str = c"Apply Collision Mask";
+                if igMenuItem_Bool(
+                    collision_mask_str.as_ptr(),
+                    null(),
+                    *state.options_state.options.debug_overlay_collision_mask,
+                    true,
+                ) {
+                    *state.options_state.options.debug_overlay_collision_mask ^= true;
+                }
+                igEndMenu();
+            }
+            // TODO: Add cheats menu here
+            igSeparator();
+            let about_str = pb::get_rc_string_cstring(Msg::Menu1AboutPinball)
+                .context("Failed to get about string")?;
+            if igMenuItem_Bool(about_str.as_ptr(), null(), false, true) {
+                pause(false, state).context("Failed to pause")?;
+                state.main_state.show_about_dialog = true;
+            }
+
+            igEndMenu();
+        }
+    }
+    Ok(())
+}
+
+unsafe fn create_game_menu(state: &mut PinballState) -> Result<()> {
+    let game_string = pb::get_rc_string_cstring(Msg::Menu1Game)?;
+    unsafe {
+        if igBeginMenu(game_string.as_ptr(), true) {
+            imgui_menu_item_w_shortcut(
+                GameBindings::NewGame,
+                Option::None,
+                &mut state.options_state,
+            );
+            let launch_ball_str = get_rc_string_cstring(Msg::Menu1LaunchBall)?;
+            if igMenuItem_Bool(
+                launch_ball_str.as_ptr(),
+                null(),
+                false,
+                state.main_state.launch_ball_enabled,
+            ) {
+                end_pause(state).context("Failed to end pause")?;
+                pb::launch_ball(state).context("Failed to launch ball")?;
+            }
+            imgui_menu_item_w_shortcut(
+                GameBindings::TogglePause,
+                Option::None,
+                &mut state.options_state,
+            );
+            igSeparator();
+            let score_str =
+                get_rc_string_cstring(Msg::Menu1HighScores).context("Failed to get score str")?;
+            if igMenuItem_Bool(
+                score_str.as_ptr(),
+                null(),
+                false,
+                state.main_state.high_scores_enabled,
+            ) {
+                pause(false, state).context("Failed to pause")?;
+                pb::high_scores(&mut state.high_score_state);
+            }
+            imgui_menu_item_w_shortcut(GameBindings::Exit, Option::None, &mut state.options_state);
+            igEndMenu();
+        }
+    }
+    Ok(())
+}
+
+unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool> {
     let mut reset_options = false;
     unsafe {
         let menu_bar_bg =
@@ -1007,7 +1205,7 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool, MainL
         window_bg.pop();
         border_var.pop();
 
-        reset_options = create_main_menu_bar(state)?;
+        reset_options = create_main_menu_bar(state).context("Failed to create main menu bar")?;
 
         // render_dialogs();
 
