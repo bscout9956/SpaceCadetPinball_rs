@@ -1291,7 +1291,13 @@ fn end_pause(state: &mut PinballState) -> Result<(), MainLoopError> {
     Ok(())
 }
 
-fn main() -> Result<()> {
+fn main_wrapper() -> Result<()> {
+    println!("Size: {}", std::mem::size_of::<GdrvBitmap8>());
+    println!(
+        "Size of ScoreStruct: {}",
+        std::mem::size_of::<ScoreStruct>()
+    );
+
     let mut state = PinballState::new();
 
     println!("Game version: {}", VERSION);
@@ -1667,6 +1673,11 @@ fn main() -> Result<()> {
             }
         }
     }
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    main_wrapper().context("Error in main")?;
+    Ok(())
 }
 
 fn build_glyph_ranges_from_translations() -> Vec<ImWchar> {
