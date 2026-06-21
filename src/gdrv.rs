@@ -97,7 +97,7 @@ impl ColorRgba {
     }
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct GdrvBitmap8 {
     pub bmp_buffer_data: Vec<ColorRgba>,
     pub indexed_bmp_data: Vec<u8>,
