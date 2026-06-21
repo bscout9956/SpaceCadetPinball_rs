@@ -473,34 +473,32 @@ fn main_loop(
 
         unsafe {
             let sdl_error = SDL_GetError();
-            let sdl_error_str = CStr::from_ptr(sdl_error);
-            let sdl_error_string = sdl_error_str.to_string_lossy().to_string();
+            let mut sdl_error_string: Option<String> = Option::None;
 
-            if !sdl_error_string.is_empty() || !pb_state.main_state.prev_sdl_error.is_empty() {
-                if !sdl_error.is_null() {
-                    SDL_ClearError();
-                }
-
+            if !sdl_error.is_null() {
                 let sdl_error_str = CStr::from_ptr(sdl_error);
-                let sdl_error_string = sdl_error_str.to_string_lossy().to_string();
-                if sdl_error_string != pb_state.main_state.prev_sdl_error {
-                    println!("SDL error: {}", sdl_error_string);
+                sdl_error_string = Some(sdl_error_str.to_string_lossy().to_string());
+
+                SDL_ClearError();
+            }
+
+            if sdl_error_string.is_some() || !pb_state.main_state.prev_sdl_error.is_empty() {
+                let current_error = sdl_error_string.unwrap_or_default();
+
+                if current_error != pb_state.main_state.prev_sdl_error {
+                    println!("SDL error: {}", current_error);
                     println!(
                         "SDL error (main_state): {}",
                         pb_state.main_state.prev_sdl_error
                     );
 
-                    pb_state.main_state.prev_sdl_error = String::from(&sdl_error_string);
+                    pb_state.main_state.prev_sdl_error = String::from(&current_error);
                     if pb_state.main_state.prev_sdl_error_count > 0 {
                         println!(
                             "SDL Error: ^ Previous error repeated {} times",
                             pb_state.main_state.prev_sdl_error_count + 1
                         );
                         pb_state.main_state.prev_sdl_error_count = 0;
-                    }
-
-                    if !sdl_error.is_null() {
-                        println!("SDL error: {}", &sdl_error_string);
                     }
                 } else {
                     pb_state.main_state.prev_sdl_error_count += 1;
