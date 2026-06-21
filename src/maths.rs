@@ -156,7 +156,7 @@ pub fn enclosing_box(rect1: &RectangleType, rect2: &RectangleType, dest_rect: &m
 pub fn rectangle_clip(
     rect1: &RectangleType,
     rect2: &RectangleType,
-    dest: &mut RectangleType,
+    dst_rect: Option<&mut RectangleType>,
 ) -> bool {
     let x_end_2 = rect2.x_position + rect2.width;
     if rect2.x_position >= rect1.x_position + rect1.width || rect1.x_position >= x_end_2 {
@@ -193,10 +193,12 @@ pub fn rectangle_clip(
         return false;
     }
 
-    dest.x_position = x_pos;
-    dest.y_position = y_pos;
-    dest.width = width;
-    dest.height = height;
+    if let Some(dest) = dst_rect {
+        dest.x_position = x_pos;
+        dest.y_position = y_pos;
+        dest.width = width;
+        dest.height = height;
+    }
 
     true
 }
