@@ -310,7 +310,7 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
         Ok(table) => state.pb_game_state.main_table = Some(table),
         Err(e) => {
             eprintln!("Failed to create TPinballTable: {:?}", e);
-            panic!("Initialization failed!");
+            std::process::exit(-1);
         }
     }
 
