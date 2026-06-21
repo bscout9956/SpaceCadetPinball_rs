@@ -1,17 +1,20 @@
 extern crate core;
 
 use crate::embedded_data::load_controller_db;
+use crate::gdrv::GdrvBitmap8;
 use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPlayers};
-use crate::options::{GameBindings, GameInput, InputTypes, Menu};
+use crate::options::{DEF_FPS, DEF_UPS, GameBindings, GameInput, InputTypes, Menu};
+use crate::pb::get_rc_string_cstring;
+use crate::score::ScoreStruct;
 use crate::translations::Msg;
 use crate::utils::{SdlRendererPtr, SdlWindowPtr};
 use anyhow::{Context, Result};
 use dear_imgui_rs::sys::{
     ImGuiFocusRequestFlags_None, ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp,
     ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, ImWchar, igBeginMainMenuBar, igBeginMenu,
-    igDestroyContext, igEnd, igEndMainMenuBar, igEndMenu, igFocusWindow, igGetDrawData,
-    igGetWindowSize, igMenuItem_Bool, igPopStyleVar, igPushStyleVar_Vec2, igRender, igSeparator,
-    igSetMouseCursor, igSliderInt, igTextUnformatted,
+    igDestroyContext, igDragFloat, igEnd, igEndMainMenuBar, igEndMenu, igFocusWindow,
+    igGetDrawData, igGetWindowSize, igMenuItem_Bool, igPopStyleVar, igPushStyleVar_Vec2, igRender,
+    igSeparator, igSetMouseCursor, igSliderInt, igTextUnformatted,
 };
 use dear_imgui_rs::{ConfigFlags, FontConfig, StyleColor, StyleVar, Ui};
 use errors::MainLoopError;
@@ -38,6 +41,7 @@ use state::main_state::MainState;
 use state::options_state::OptionsState;
 use state::pinball_state::PinballState;
 use std::env;
+use std::error::Error;
 use std::ffi::{CStr, CString, c_int};
 use std::mem::MaybeUninit;
 use std::ops::{Mul, Neg, Sub};
