@@ -47,7 +47,7 @@ pub enum TimerError {
 pub fn init(count: i32) -> Result<(), TimerError> {
     let mut data_buffer = Vec::with_capacity(count as usize);
     // TODO: Why is this unused?
-    let mut timer_buffer = TIMER_BUFFER.lock().map_err(|_| TimerError::LockPoisoned)?;
+    let timer_buffer = TIMER_BUFFER.lock().map_err(|_| TimerError::LockPoisoned)?;
 
     data_buffer = (0..count).map(|_| TimerStruct::new()).collect();
 
