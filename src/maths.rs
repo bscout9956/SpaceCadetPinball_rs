@@ -314,8 +314,8 @@ pub fn ray_intersect_line(ray: &RayType, line: &mut LineType) -> f32 {
     // V1 vector between ray origin and line origin
     // V2 ray direction
     // V3 line perpendicular clockwise
-    let mut v1 = vector_sub_vec2(&ray.origin, &line.origin);
-    let mut v2 = line.direction;
+    let v1 = vector_sub_vec2(&ray.origin, &line.origin);
+    let v2 = line.direction;
     let v3 = Vector2 {
         x: -ray.direction.y,
         y: ray.direction.x,
