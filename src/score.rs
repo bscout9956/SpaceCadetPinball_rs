@@ -104,35 +104,32 @@ pub(crate) fn create(
     render_bg_bmp: Option<GdrvBitmap8>,
     state: &mut PinballState,
 ) -> Option<ScoreStruct> {
-    let mut score = ScoreStruct::default();
-    score.score = -9999;
-    score.background_bmp = render_bg_bmp?;
+    let mut score = ScoreStruct {
+        score: -9999,
+        background_bmp: render_bg_bmp,
+        ..Default::default()
+    };
 
     /*Full tilt: score box dimensions index is offset by resolution*/
-    // TODO: moved here issue
     if let Some(rt_arc) = state.pb_game_state.record_table.as_ref()
         && let Some(lt_arc) = state.loader_state.loader_table.as_ref()
     {
         let rt = rt_arc.read().unwrap();
         let lt = lt_arc.read().unwrap();
-        let dimensions_id = rt.record_labeled(field_name);
+        let dimensions_id = rt.record_labeled(field_name) + state.fullscrn_state.resolution;
         let dimensions = lt.field(dimensions_id, FieldTypes::ShortArray);
         if let Some(raw_data) = dimensions {
             match raw_data {
                 EntryBuffer::Raw(vec_data) => {
                     let mut group_index = vec_data[0] as i32;
-                    score.offset_x =
-                        i32::from_le_bytes([vec_data[0], vec_data[1], vec_data[2], vec_data[3]]);
-                    score.offset_y =
-                        i32::from_le_bytes([vec_data[4], vec_data[5], vec_data[6], vec_data[7]]);
-                    score.width =
-                        i32::from_le_bytes([vec_data[8], vec_data[9], vec_data[10], vec_data[11]]);
-                    score.height = i32::from_le_bytes([
-                        vec_data[12],
-                        vec_data[13],
-                        vec_data[14],
-                        vec_data[15],
-                    ]);
+                    let read_i16 = |start: usize| -> i16 {
+                        i16::from_le_bytes(vec_data[start..start + 2].try_into().unwrap())
+                    };
+
+                    score.offset_x = read_i16(2) as i32;
+                    score.offset_y = read_i16(4) as i32;
+                    score.width = read_i16(6) as i32;
+                    score.height = read_i16(8) as i32;
 
                     for index in 0..10 {
                         score.char_bmp[index] = lt
@@ -142,13 +139,17 @@ pub(crate) fn create(
                     }
                 }
                 _ => {
+                    eprintln!("Invalid state, no score");
                     return None;
                 }
             }
         } else {
             //TODO: score drop?
+            eprintln!("Invalid state, no score");
             return None;
         }
+    } else {
+        eprintln!("Invalid state, no loader/record table?");
     }
     Some(score)
 }
