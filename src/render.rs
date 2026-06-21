@@ -274,7 +274,7 @@ fn repaint(
                 && let Some(z_screen) = z_screen.as_mut()
                 && !sprite.delete_flag
                 && sprite.bmp.is_some()
-                && maths::rectangle_clip(&sprite.bmp_rect, &sprite.dirty_rect, &mut clip_rectangle)
+                && maths::rectangle_clip(&sprite.bmp_rect, &sprite.dirty_rect, Some(&mut clip_rectangle))
                 && let Some(sprite_bmp) = sprite.bmp.as_ref()
                 && let Some(sprite_zmap) = sprite.zmap.as_ref()
             {
@@ -314,7 +314,11 @@ fn paint_balls(render_state: &mut RenderState) -> Result<()> {
         let dirty = &mut ball_sprite.dirty_rect;
 
         if let Some(src_bmp) = ball_sprite.bmp.as_ref()
-            && maths::rectangle_clip(&ball_sprite.bmp_rect, &render_state.v_screen_rect, dirty)
+            && maths::rectangle_clip(
+                &ball_sprite.bmp_rect,
+                &render_state.v_screen_rect,
+                Some(dirty),
+            )
         {
             let x_pos = dirty.x_position;
             let y_pos = dirty.y_position;
@@ -392,7 +396,7 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
                 let rec_clip = maths::rectangle_clip(
                     &sprite.bmp_rect,
                     &render_state.v_screen_rect,
-                    &mut sprite.dirty_rect,
+                    Some(&mut sprite.dirty_rect),
                 );
                 if rec_clip {
                     clear_sprite = sprite.bmp.is_some();
@@ -415,7 +419,7 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
                 let rec_clip = maths::rectangle_clip(
                     &dirty_rect,
                     &render_state.v_screen_rect,
-                    &mut clipped_rect,
+                    Some(&mut clipped_rect),
                 );
 
                 if rec_clip {
@@ -584,7 +588,43 @@ pub(crate) fn present_v_screen(state: &mut PinballState) {
     }
 }
 
-pub(crate) fn build_occlude_list() {
-    println!("Bing bong, built");
-    // TODO: Implement me pls
+pub(crate) fn build_occlude_list(state: &mut RenderState) {
+    for sprite in &mut state.sprite_list {
+        sprite.occluded_sprites = None;
+    }
+
+    let sprites = &state.sprite_list;
+    let mut occlusion_indices: Vec<(usize, usize)> = Vec::new();
+
+    for (i, sprite) in sprites.iter().enumerate() {
+        if sprite.delete_flag || sprite.bounding_rect.width == -1 {
+            continue;
+        }
+
+        for (j, other) in sprites.iter().enumerate() {
+            if i == j {
+                continue;
+            }
+            if other.delete_flag || other.bounding_rect.width == -1 {
+                continue;
+            }
+
+            if maths::rectangle_clip(&sprite.bounding_rect, &other.bounding_rect, None) {
+                occlusion_indices.push((i, j));
+            }
+        }
+    }
+
+    let mut occlusion_sprites: Vec<Option<RenderSprite>> =
+        Vec::with_capacity(occlusion_indices.len());
+
+    for (_, j) in occlusion_indices {
+        occlusion_sprites.push(Some(sprites[j].clone()));
+    }
+
+    for sprite in &mut state.sprite_list {
+        if !sprite.delete_flag && sprite.bounding_rect.width != -1 {
+            sprite.occluded_sprites = Some(occlusion_sprites.clone());
+        }
+    }
 }

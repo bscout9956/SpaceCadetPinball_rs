@@ -288,7 +288,7 @@ impl TPinballTable {
         //     }
         // }
 
-        render::build_occlude_list();
+        render::build_occlude_list(&mut state.render_state);
 
         state.pb_game_state.info_text_box = table_rc
             .borrow_mut()
