@@ -129,6 +129,7 @@ impl GroupData {
         self.entries.reserve(count);
     }
     pub fn add_entry(&mut self, entry: EntryData, fullscrn_state: &mut FullscrnState) {
+        let mut add_entry = true;
         match entry.entry_type {
             FieldTypes::Bitmap8bit => {
                 if let EntryBuffer::Bitmap8(src_bmp) = &entry.buffer {
@@ -142,6 +143,7 @@ impl GroupData {
                         let _ = split_sliced_bitmap(src_bmp, &mut bmp, &mut zmap, fullscrn_state);
 
                         self.needs_sort = true;
+                        add_entry = false;
                         self.add_entry(
                             EntryData::new(FieldTypes::Bitmap8bit, -1, EntryBuffer::Bitmap8(bmp)),
                             fullscrn_state,
@@ -154,11 +156,9 @@ impl GroupData {
                             ),
                             fullscrn_state,
                         );
-
-                        return;
+                    } else {
+                        self.set_bitmap(src_bmp.clone());
                     }
-
-                    self.set_bitmap(src_bmp.clone());
                 }
             }
             FieldTypes::GroupName => {
@@ -176,7 +176,9 @@ impl GroupData {
             _ => {}
         }
 
-        self.entries.push(entry);
+        if add_entry {
+            self.entries.push(entry);
+        }
     }
 
     pub fn set_bitmap(&mut self, bmp: GdrvBitmap8) {
