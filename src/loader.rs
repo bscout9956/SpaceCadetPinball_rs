@@ -314,7 +314,7 @@ pub fn get_sound_id(
         && !loader_state.sound_list[sound_index as usize].wave.is_none()
     {
         // TODO: Why am I unused?
-        let mut wave_header = WaveHeader::default();
+        let wave_header = WaveHeader::default();
 
         let sound_group_id = loader_state.sound_list[sound_index as usize].group_index;
         loader_state.sound_list[sound_index as usize].duration = 0.0;
@@ -390,7 +390,7 @@ pub fn query_visual_states(
     group_index: i32,
     loader_state: &mut LoaderState,
 ) -> Result<i16, LoaderError> {
-    let mut result: i16 = 0;
+    let result: i16 = 0;
 
     if group_index < 0 {
         // TODO REFACTOR, use actual errors and deal with them

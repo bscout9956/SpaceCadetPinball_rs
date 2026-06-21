@@ -44,6 +44,7 @@ pub struct ScoreMessageFontType {
 
 impl ScoreMessageFontType {
     fn new() -> Self {
+        println!("Initializing the score message font");
         Self {
             gap_width: 0,
             height: 0,
