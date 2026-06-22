@@ -153,6 +153,7 @@ pub enum PinballTableError {
 use crate::t_drain::TDrain;
 use crate::t_flipper::TFlipper;
 use crate::t_plunger::TPlunger;
+use crate::t_wall::TWall;
 use anyhow::{Result, bail};
 
 impl TPinballTable {
@@ -265,28 +266,31 @@ impl TPinballTable {
         let group_index_objects =
             loader::query_handle(table_str.as_ptr(), &mut state.loader_state)?;
 
-        let short_arr = loader::query_int_attribute(
+        let mut short_arr = loader::query_int_attribute(
             group_index_objects,
             1025,
             &mut short_arr_length,
             &mut state.loader_state,
         )?;
 
-        // TODO: Create all instances for all the objects of the table.
-        // TODO: THIS IS A BIG UNDERTAKING!
-        // if short_arr_length > 0 {
-        //     for i in 0..short_arr_length / 2 {
-        //         let object_type = *short_arr;
-        //         let short_arr_p1 = short_arr.add(1);
-        //         let group_index = *short_arr_p1;
-        //         short_arr = short_arr_p1.add(1);
-        //         match object_type {
-        //             1000 | 1010 => {
-        //                 let _ = TWall
-        //             }
-        //         }
-        //     }
-        // }
+        if short_arr_length > 0 {
+            for i in 0..short_arr_length / 2 {
+                unsafe {
+                    let object_type = *short_arr;
+                    let short_arr_p1 = short_arr.add(1);
+                    let group_index = *short_arr_p1;
+                    short_arr = short_arr_p1.add(1);
+                    match object_type {
+                        1000 | 1010 => {
+                            let _ = TWall::new(table_weak.clone(), group_index as i32, state);
+                        }
+                        _ => {
+                            println!("Unimplemented object type: {}", object_type);
+                        }
+                    }
+                }
+            }
+        }
 
         render::build_occlude_list(&mut state.render_state);
 

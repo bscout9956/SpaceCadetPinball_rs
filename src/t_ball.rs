@@ -196,23 +196,15 @@ impl ICollisionComponent for TBall {
         &mut self,
         ball: &mut TBall,
         next_position: &Vector2,
-        direction: &Vector2,
+        direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
+        time_ticks: usize,
     ) {
         todo!()
     }
 
     fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
-        todo!()
-    }
-
-    fn default_collision(
-        &mut self,
-        ball: &mut TBall,
-        next_position: &Vector2,
-        direction: &mut Vector2,
-    ) -> bool {
         todo!()
     }
 }

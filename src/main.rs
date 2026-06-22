@@ -95,6 +95,7 @@ mod t_plunger;
 pub mod t_table_layer;
 pub mod t_textbox;
 pub mod t_textbox_message;
+mod t_wall;
 pub mod text_array;
 pub mod timer;
 mod utils;

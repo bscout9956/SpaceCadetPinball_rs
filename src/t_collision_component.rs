@@ -27,17 +27,14 @@ pub trait ICollisionComponent {
         &mut self,
         ball: &mut TBall,
         next_position: &Vector2,
-        direction: &Vector2,
+        direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
+        time_ticks: usize,
     );
-    fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32;
-    fn default_collision(
-        &mut self,
-        ball: &mut TBall,
-        next_position: &Vector2,
-        direction: &mut Vector2,
-    ) -> bool;
+    fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
+        return 0;
+    }
 }
 
 use crate::message_code::MessageCode;
@@ -127,59 +124,8 @@ impl TCollisionComponent {
 
         instance
     }
-}
 
-impl ICollisionComponent for TCollisionComponent {
-    fn collision(
-        &mut self,
-        ball: &mut TBall,
-        next_position: &Vector2,
-        direction: &Vector2,
-        distance: f32,
-        edge: &TEdgeSegment,
-    ) {
-        //TODO: Undo borrow?
-        if let Some(pinball_table) = &self.base.pinball_table
-            && let Some(upgraded_table) = pinball_table.upgrade()
-        {
-            let table = upgraded_table.borrow();
-
-            if table.tilt_lock_flag {
-                basic_collision(
-                    ball,
-                    next_position,
-                    direction,
-                    self.elasticity,
-                    self.smoothness,
-                    1000000000.0,
-                    0.0,
-                );
-                return;
-            }
-        }
-
-        let proj_speed = basic_collision(
-            ball,
-            next_position,
-            direction,
-            self.elasticity,
-            self.smoothness,
-            self.threshold,
-            self.boost,
-        );
-        // TODO: Implement loader::play_sound
-        // if proj_speed > self.threshold {
-        //     loader::play_sound(self.hard_hit_sound_id, ball, "TCollisionComponent1");
-        // } else if proj_speed > 0.2 {
-        //     loader::play_sound(self.soft_hit_sound_id, ball, "TCollisionComponent2");
-        // }
-    }
-
-    fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
-        0 // wow
-    }
-
-    fn default_collision(
+    pub fn default_collision(
         &mut self,
         ball: &mut TBall,
         next_position: &Vector2,
@@ -223,6 +169,58 @@ impl ICollisionComponent for TCollisionComponent {
             // loader::play_sound(self.soft_hit_sound_id, ball, "TCollisionComponent2");
         }
         collision
+    }
+}
+
+impl ICollisionComponent for TCollisionComponent {
+    fn collision(
+        &mut self,
+        ball: &mut TBall,
+        next_position: &Vector2,
+        direction: &mut Vector2,
+        distance: f32,
+        edge: &TEdgeSegment,
+        time_ticks: usize,
+    ) {
+        //TODO: Undo borrow?
+        if let Some(pinball_table) = &self.base.pinball_table
+            && let Some(upgraded_table) = pinball_table.upgrade()
+        {
+            let table = upgraded_table.borrow();
+
+            if table.tilt_lock_flag {
+                basic_collision(
+                    ball,
+                    next_position,
+                    direction,
+                    self.elasticity,
+                    self.smoothness,
+                    1000000000.0,
+                    0.0,
+                );
+                return;
+            }
+        }
+
+        let proj_speed = basic_collision(
+            ball,
+            next_position,
+            direction,
+            self.elasticity,
+            self.smoothness,
+            self.threshold,
+            self.boost,
+        );
+        // TODO: Implement loader::play_sound
+        // if proj_speed > self.threshold {
+        //     loader::play_sound(self.hard_hit_sound_id, ball, "TCollisionComponent1");
+        // } else if proj_speed > 0.2 {
+        //     loader::play_sound(self.soft_hit_sound_id, ball, "TCollisionComponent2");
+        // }
+    }
+
+    fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
+        0 // wow
     }
 }
 
