@@ -8,18 +8,18 @@ use crate::t_pinball_table::TPinballTable;
 use std::any::Any;
 use std::{cell::RefCell, rc::Rc};
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 #[allow(non_snake_case)]
 pub struct TCollisionComponent {
     pub base: TPinballComponent,
-    pub edge_list: Vec<Rc<RefCell<TEdgeSegment>>>,
+    pub edge_list: Vec<Rc<RefCell<dyn IEdgeSegment>>>,
     pub elasticity: f32,
     pub smoothness: f32,
     pub boost: f32,
     pub threshold: f32,
     pub soft_hit_sound_id: i32,
     pub hard_hit_sound_id: i32,
-    pub AABB: RectF,
+    pub aabb: RectF,
 }
 
 pub trait ICollisionComponent {
