@@ -273,7 +273,6 @@ fn edges_insert_square(
                         edge_manager.add_edge_to_box(index_x, index_y, e).context("Failed to add edge to box")?;
                     }
                     if let Some(f) = field {
-                        let f_rc = Rc::new(RefCell::new(f.clone()));
                         edge_manager.add_field_to_box(index_x, index_y, f.clone()).context("Failed to add field to box")?;
                     }
                 }
