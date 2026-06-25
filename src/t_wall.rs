@@ -52,7 +52,9 @@ impl TWall {
         state: &mut PinballState,
     ) -> Self {
         let base_tcol = TCollisionComponent::new(table, group_index, true, state);
-        base_tcol.borrow_mut().sprite_set(-1);
+        if base_tcol.borrow_mut().base.render_sprite.is_some() {
+            base_tcol.borrow_mut().base.sprite_set(-1);
+        }
 
         let downgraded_col = Rc::downgrade(&base_tcol);
 
