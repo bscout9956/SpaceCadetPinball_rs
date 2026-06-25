@@ -204,10 +204,27 @@ impl ICollisionComponent for TBall {
         todo!()
     }
 
+    fn get_AABB(&self) -> Option<RectF> {
+        let rc = self.collision_comp.as_ref()?.upgrade()?;
+        Some(rc.borrow().aabb.clone())
+    }
+
+    fn set_AABB(&mut self, aabb: RectF) {
+        if let Some(rc) = self.collision_comp.as_ref().and_then(|weak| weak.upgrade()) {
+            rc.borrow_mut().aabb = aabb;
+        }
+    }
+
     fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
         todo!()
     }
+
+    fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
+        todo!()
+    }
 }
+
+use anyhow::Result;
 
 impl IEdgeSegment for TBall {
     fn edge_collision(&self, ball: &mut TBall, distance: f32) {
@@ -221,8 +238,8 @@ impl IEdgeSegment for TBall {
     fn place_in_grid(
         &self,
         aabb: &mut RectF,
-        this_rc: Rc<RefCell<dyn IEdgeSegment>>,
-    ) -> Result<(), EdgeSegmentError> {
+        this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
+    ) -> Result<()> {
         todo!()
     }
 
