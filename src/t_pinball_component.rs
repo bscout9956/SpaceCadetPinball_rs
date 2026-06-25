@@ -10,7 +10,7 @@ use std::{
     rc::{Rc, Weak},
 };
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct TPinballComponent {
     pub unused_base_flag: Rc<Cell<bool>>,
     pub active_flag: Rc<Cell<bool>>,
@@ -18,7 +18,7 @@ pub struct TPinballComponent {
     pub group_name: Option<Rc<RefCell<String>>>,
     pub control: Option<Weak<RefCell<ComponentControl>>>,
     pub group_index: i32,
-    pub render_sprite: RenderSprite,
+    pub render_sprite: Option<RenderSprite>,
     pub pinball_table: Option<Weak<RefCell<TPinballTable>>>,
     pub list_bitmap: Vec<SpriteData>,
 
@@ -54,7 +54,7 @@ impl TPinballComponent {
             group_name: Some(Rc::new(RefCell::new(String::new()))),
             control: None,
             group_index,
-            render_sprite: RenderSprite::default(),
+            render_sprite: None,
             pinball_table: None,
             list_bitmap: Vec::new(),
             visual_pos_norm_x: -1.0,
@@ -116,8 +116,8 @@ impl IPinballComponent for TPinballComponent {
             return;
         }
 
-        let mut x_pos = self.render_sprite.bmp_rect.x_position;
-        let mut y_pos = self.render_sprite.bmp_rect.y_position;
+        let mut x_pos = 0;
+        let mut y_pos = 0;
         let mut bmp = None;
         let mut zmap = None;
 
@@ -135,8 +135,20 @@ impl IPinballComponent for TPinballComponent {
                 x_pos = b.x_position - table_borrow.x_offset;
                 y_pos = b.y_position - table_borrow.y_offset;
             }
+        } else {
+            bmp = None;
+            zmap = None;
+            if let Some(rs) = self.render_sprite.as_ref() {
+                x_pos = rs.bmp_rect.x_position;
+                y_pos = rs.bmp_rect.y_position;
+            } else {
+                eprintln!("WARNING! Missing render sprite");
+            }
         }
-        self.render_sprite.set(bmp, zmap, x_pos, y_pos);
+
+        if let Some(rs) = self.render_sprite.as_mut() {
+            rs.set(bmp, zmap, x_pos, y_pos);
+        }
     }
 
     fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32) {
