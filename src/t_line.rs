@@ -182,4 +182,15 @@ impl TLine {
         );
         instance
     }
+
+    pub fn offset(&mut self, offset: f32) {
+        let off_x = offset * self.line.perpendicular.x;
+        let off_y = offset * self.line.perpendicular.y;
+
+        self.x0 += off_x;
+        self.y0 += off_y;
+        self.x1 += off_x;
+        self.y1 += off_y;
+        maths::line_init(&mut self.line, self.x0, self.y0, self.x1, self.y1);
+    }
 }
