@@ -181,19 +181,21 @@ impl TTableLayer {
         let height = instance.x_max;
         let width = instance.y_max;
 
-        let mut edge_manager = EDGE_MANAGER
-            .lock()
-            .map_err(|_| TTableLayerError::LockError)?;
-        *edge_manager = Some(TEdgeManager::new(
-            instance.x_min,
-            instance.y_min,
-            width,
-            height,
-        ));
+        {
+            let mut edge_manager = EDGE_MANAGER
+                .lock()
+                .map_err(|_| TTableLayerError::LockError)?;
+            *edge_manager = Some(TEdgeManager::new(
+                instance.x_min,
+                instance.y_min,
+                width,
+                height,
+            ));
+        }
 
         let rc_this = Rc::new(RefCell::new(instance));
 
-        for i in 0..visual.float_arr_count {
+        for i in 0..visual.float_arr_count as usize {
             let mut this_mut = rc_this.borrow_mut();
             let flag = this_mut.base_component.active_flag.clone();
             let weak_this: Weak<RefCell<dyn ICollisionComponent>> = Rc::downgrade(&rc_this) as _;
@@ -201,29 +203,32 @@ impl TTableLayer {
                 Some(weak_this),
                 flag,
                 visual.collision_group as u32,
-                edge_points[(i + 1) as usize].x,
-                edge_points[(i + 1) as usize].y,
-                edge_points[i as usize].x,
-                edge_points[i as usize].y,
+                edge_points[i + 1].x,
+                edge_points[i + 1].y,
+                edge_points[i].x,
+                edge_points[i].y,
             );
 
             line.place_in_grid(&mut this_mut.base_component.aabb, Option::None)
                 .context("Failed to place line in grid")?;
         }
 
-        rc_this.borrow_mut().field.collision_group = -1;
-        rc_this.borrow_mut().field.active_flag =
-            rc_this.borrow_mut().base_component.active_flag.clone();
-        let weak_this: Weak<RefCell<dyn ICollisionComponent>> = Rc::downgrade(&rc_this) as _;
-        rc_this.borrow_mut().field.collision_component = Some(weak_this);
-        edges_insert_square(
-            rc_this.borrow_mut().y_min,
-            rc_this.borrow().x_min,
-            rc_this.borrow().y_max,
-            rc_this.borrow().x_max,
-            Option::None,
-            Some(&rc_this.borrow().field)
-        );
+        {
+            let mut rc_borrow = rc_this.borrow_mut();
+            rc_borrow.field.collision_group = -1;
+            rc_borrow.field.active_flag = rc_borrow.base_component.active_flag.clone();
+            let weak_this: Weak<RefCell<dyn ICollisionComponent>> = Rc::downgrade(&rc_this) as _;
+            rc_borrow.field.collision_component = Some(weak_this);
+            edges_insert_square(
+                rc_borrow.y_min,
+                rc_borrow.x_min,
+                rc_borrow.y_max,
+                rc_borrow.x_max,
+                Option::None,
+                Some(&rc_borrow.field),
+            );
+        }
+
         Ok(rc_this)
     }
 }
@@ -235,8 +240,47 @@ fn edges_insert_square(
     x1: f32,
     edge_segment: Option<TEdgeSegment>,
     field: Option<&FieldEffectType>,
-) {
-    todo!()
+) -> Result<()> {
+    let mut mutex_guard = EDGE_MANAGER
+        .lock()
+        .map_err(|_| TTableLayerError::LockError)
+        .context("Failed to lock")?;
+
+    if let Some(edge_manager) = mutex_guard.as_mut() {
+        let width_m = edge_manager.advance_x * 0.001f32 as i32 as f32;
+        let height_m = edge_manager.advance_y * 0.001f32 as i32 as f32;
+        let x_min = x0 - width_m;
+        let x_max = x1 + width_m;
+        let y_min = y0 - height_m;
+        let y_max = y1 + height_m;
+
+        let x_min_box = edge_manager.box_x(x_min);
+        let y_min_box = edge_manager.box_y(y_min);
+        let x_max_box = edge_manager.box_x(x_max);
+        let y_max_box = edge_manager.box_y(y_max);
+
+        let box_x = (x_min_box as f32) * edge_manager.advance_x + edge_manager.min_x;
+
+        for index_x in x_min_box..=x_max_box {
+            let box_y = y_min_box as f32 * edge_manager.advance_y + edge_manager.min_y;
+            for index_y in y_min_box..=y_max_box {
+                if x_max >= box_x
+                    && x_min <= box_x + edge_manager.advance_x
+                    && y_max >= box_y
+                    && y_min <= box_y + edge_manager.advance_y
+                {
+                    if let Some(e) = edge_segment.as_ref() {
+                        edge_manager.add_edge_to_box(index_x, index_y, e).context("Failed to add edge to box")?;
+                    }
+                    if let Some(f) = field {
+                        edge_manager.add_field_to_box(index_x, index_y, f.clone()).context("Failed to add field to box")?;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 impl ICollisionComponent for TTableLayer {
