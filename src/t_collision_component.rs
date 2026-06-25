@@ -89,7 +89,7 @@ impl TCollisionComponent {
             hard_hit_sound_id: visual.kicker.hard_hit_sound_id,
             soft_hit_sound_id: visual.soft_hit_sound_id,
             edge_list: vec![],
-            AABB: RectF {
+            aabb: RectF {
                 x_max: -10000.0,
                 y_max: -10000.0,
                 x_min: 10000.0,
@@ -104,23 +104,35 @@ impl TCollisionComponent {
         let instance = Rc::new(RefCell::new(instance_data));
 
         if create_wall && group_index > 0 {
-            if let Some(tbl) = &instance.borrow().base.pinball_table {
-                let offset: f32 = tbl.upgrade().unwrap().borrow().collision_comp_offset;
+            let extraction = {
+                let instance_borrow = instance.borrow();
+
+                if let Some(tbl) = &instance_borrow.base.pinball_table {
+                    let offset = tbl.upgrade().unwrap().borrow().collision_comp_offset;
+                    let active_flag_clone = instance_borrow.base.active_flag.clone();
+                    Some((offset, active_flag_clone))
+                } else {
+                    None
+                }
+            };
+
+            if let Some((offset, active_flag)) = extraction {
                 let float_array =
                     loader::query_float_attribute_ptr(group_index, 0, 600, &mut state.loader_state);
+
                 match float_array {
                     Ok(array_ptr) => {
                         let weak_comp =
-                            Rc::downgrade(&instance) as Weak<RefCell<dyn IPinballComponent>>;
+                            Rc::downgrade(&instance) as Weak<RefCell<dyn ICollisionComponent>>;
 
-                        TEdgeSegment::install_wall(
+                        let _ = TEdgeSegment::install_wall(
                             array_ptr,
                             weak_comp,
-                            &instance.borrow().base.active_flag,
+                            &active_flag,
                             visual.collision_group as u32,
                             offset,
                             0,
-                        )
+                        );
                     }
                     Err(e) => {
                         panic!("failed to load float attr ptr {}", e);
@@ -232,6 +244,17 @@ impl ICollisionComponent for TCollisionComponent {
 
     fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
         0 // wow
+    }
+
+    #[allow(non_snake_case)]
+
+    fn set_AABB(&mut self, aabb: RectF) {
+        self.aabb = aabb;
+    }
+    #[allow(non_snake_case)]
+
+    fn get_AABB(&self) -> Option<RectF> {
+        Some(self.aabb.clone())
     }
 }
 
