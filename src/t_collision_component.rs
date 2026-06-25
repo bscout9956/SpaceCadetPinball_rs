@@ -226,6 +226,10 @@ impl ICollisionComponent for TCollisionComponent {
         // }
     }
 
+    fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
+        &mut self.edge_list
+    }
+
     fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
         0 // wow
     }
