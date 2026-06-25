@@ -62,6 +62,7 @@ pub struct RectangleType {
     pub height: i32,
 }
 
+#[derive(Default)]
 pub struct CircleType {
     pub center: Vector2,
     pub radius_sq: f32,
@@ -76,7 +77,7 @@ pub struct RayType {
     pub collision_mask: i32,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct LineType {
     pub perpendicular: Vector2,
     pub direction: Vector2,
@@ -102,7 +103,7 @@ pub struct RampPlaneType {
     pub field_force: Vector2,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct RectF {
     pub x_max: f32,
     pub y_max: f32,
