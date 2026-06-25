@@ -355,6 +355,12 @@ pub fn cross_mut(vec1: &Vector3, vec2: &Vector3, dst_vect: &mut Vector3) {
     dst_vect.z = vec1.x * vec2.y - vec2.x * vec1.y;
 }
 
+pub fn cross_vec3(vec1: &Vector3, vec2: &Vector3, dst_vect: &mut Vector3) {
+    dst_vect.x = vec2.z * vec1.y - vec2.y * vec1.z;
+    dst_vect.y = vec2.x * vec1.z - vec1.x * vec2.z;
+    dst_vect.z = vec1.x * vec2.y - vec2.x * vec1.y;
+}
+
 pub fn cross(vec1: &Vector2, vec2: &Vector2) -> f32 {
     vec1.x * vec2.y - vec1.y * vec2.x
 }
