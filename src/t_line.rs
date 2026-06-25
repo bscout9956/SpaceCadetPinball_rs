@@ -7,8 +7,9 @@ use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 use thiserror::Error;
 
+#[derive(Clone)]
 pub struct TLine {
-    pub t_edge_segment: TEdgeSegment,
+    pub base: TEdgeSegment,
     pub line: LineType,
     pub x0: f32,
     pub y0: f32,
@@ -28,6 +29,8 @@ pub enum EdgeSegmentError {
     DuplicateInBox,
 }
 
+use anyhow::{Context, Result};
+
 impl IEdgeSegment for TLine {
     fn edge_collision(&self, ball: &mut TBall, distance: f32) {
         todo!()
@@ -40,13 +43,13 @@ impl IEdgeSegment for TLine {
     fn place_in_grid(
         &self,
         aabb: &mut RectF,
-        this_rc: Rc<RefCell<dyn IEdgeSegment>>,
-    ) -> Result<(), EdgeSegmentError> {
+        this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
+    ) -> Result<()> {
         aabb.merge(&RectF {
             x_max: f32::max(self.x0, self.x1),
             y_max: f32::max(self.y0, self.y1),
             x_min: f32::min(self.x0, self.x1),
-            y_min: f32::min(self.y0, self.y0),
+            y_min: f32::min(self.y0, self.y1),
         });
         let mut edge_guard = t_table_layer::EDGE_MANAGER
             .lock()
@@ -64,29 +67,39 @@ impl IEdgeSegment for TLine {
         if y_box_0 == y_box_1 {
             if dir_x == 1 {
                 while x_box_0 <= x_box_1 {
-                    edge_man.add_edge_to_box(x_box_0, y_box_0, Rc::clone(&this_rc));
+                    edge_man
+                        .add_edge_to_box(x_box_0, y_box_0, this_rc.clone())
+                        .context("Failed to add edge to box")?;
                     x_box_0 += 1
                 }
             } else {
                 while x_box_1 >= x_box_0 {
-                    edge_man.add_edge_to_box(x_box_0, y_box_0, Rc::clone(&this_rc)); // :(
+                    edge_man
+                        .add_edge_to_box(x_box_0, y_box_0, this_rc.clone())
+                        .context("Failed to add edge to box")?; // :(
                     x_box_0 -= 1
                 }
             }
         } else if x_box_0 == x_box_1 {
             if dir_y == 1 {
                 while y_box_0 <= y_box_1 {
-                    edge_man.add_edge_to_box(x_box_0, y_box_0, Rc::clone(&this_rc));
+                    edge_man
+                        .add_edge_to_box(x_box_0, y_box_0, this_rc.clone())
+                        .context("Failed to add edge to box")?;
                     y_box_0 += 1
                 }
             } else {
                 while y_box_1 >= y_box_0 {
-                    edge_man.add_edge_to_box(x_box_0, y_box_0, Rc::clone(&this_rc));
+                    edge_man
+                        .add_edge_to_box(x_box_0, y_box_0, this_rc.clone())
+                        .context("Failed to add edge to box")?;
                     y_box_0 -= 1
                 }
             }
         } else {
-            edge_man.add_edge_to_box(x_box_0, y_box_0, Rc::clone(&this_rc));
+            edge_man
+                .add_edge_to_box(x_box_0, y_box_0, this_rc.clone())
+                .context("Failed to add edge to box")?;
             // Bresenham line formula: y = dYdX * (x - x0) + y0; dYdX = (y0 - y1) / (x0 - x1)
             let dy_dx = (self.y0 - self.y1) / (self.x0 - self.x1);
             // Precompute constant part: dYdX * (-x0) + y0
@@ -120,7 +133,9 @@ impl IEdgeSegment for TLine {
                     // Advance index_x otherwise
                     index_x += dir_x;
                 }
-                edge_man.add_edge_to_box(index_x, index_y, Rc::clone(&this_rc));
+                edge_man
+                    .add_edge_to_box(index_x, index_y, this_rc.clone())
+                    .context("Failed to add edge to box")?;
             }
         }
 
@@ -145,7 +160,7 @@ impl TLine {
         let edge = TEdgeSegment::new(coll_comp, active_flag, collision_group);
 
         let mut instance = Self {
-            t_edge_segment: edge,
+            base: edge,
             line: LineType::default(),
             x0,
             y0,
@@ -166,7 +181,7 @@ impl TLine {
         let edge = TEdgeSegment::new(coll_comp, active_flag, collision_group);
 
         let mut instance = Self {
-            t_edge_segment: edge,
+            base: edge,
             line: LineType::default(),
             x0: start.x,
             y0: start.y,
