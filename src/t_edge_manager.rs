@@ -1,14 +1,15 @@
-use crate::t_collision_component::TCollisionComponent;
+use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_box::TEdgeBox;
 use crate::t_edge_segment::IEdgeSegment;
 use crate::t_line::EdgeSegmentError;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::cell::{Cell, RefCell};
+use std::rc::{Rc, Weak};
 
+#[derive(Clone, Default)]
 pub struct FieldEffectType {
-    pub active_flag: bool,
+    pub active_flag: Rc<Cell<bool>>,
     pub collision_group: i32,
-    pub collision_component: Option<TCollisionComponent>,
+    pub collision_component: Option<Weak<RefCell<dyn ICollisionComponent>>>,
 }
 
 pub struct TEdgeManager {
@@ -38,7 +39,7 @@ impl TEdgeManager {
             max_y: min_y + height,
             width,
             height,
-            box_array: Vec::with_capacity(10 * 15),
+            box_array: vec![TEdgeBox::default(); 10 * 15],
             edge_array: Vec::new(),
         }
     }
@@ -75,20 +76,45 @@ impl TEdgeManager {
         &mut self,
         x: i32,
         y: i32,
-        edge: Rc<RefCell<dyn IEdgeSegment>>,
+        edge: Option<Rc<RefCell<dyn IEdgeSegment>>>,
     ) -> Result<(), EdgeSegmentError> {
         if x >= self.max_box_x || y >= self.max_box_y {
             return Err(EdgeSegmentError::BoxCoordsOutOfRange(x, y));
         }
 
+        println!("box array len is: {}", self.box_array.len());
         let list = &mut self.box_array[(x + y * self.max_box_x) as usize].edge_list;
 
-        let has_duplicate = list.iter().any(|e| Rc::ptr_eq(e, &edge));
+        if let Some(e_ref) = edge {
+            let has_duplicate = list.iter().any(|e| Rc::ptr_eq(e, &e_ref));
+            if has_duplicate {
+                return Err(EdgeSegmentError::DuplicateInBox);
+            }
+
+            list.push(e_ref);
+        }
+
+        Ok(())
+    }
+
+    pub fn add_field_to_box(
+        &mut self,
+        x: i32,
+        y: i32,
+        field: Rc<RefCell<FieldEffectType>>,
+    ) -> Result<(), EdgeSegmentError> {
+        if x >= self.max_box_x || y >= self.max_box_y {
+            return Err(EdgeSegmentError::BoxCoordsOutOfRange(x, y));
+        }
+
+        let list = &mut self.box_array[(x + y * self.max_box_x) as usize].field_list;
+
+        let has_duplicate = list.iter().any(|e| Rc::ptr_eq(e, &field));
         if has_duplicate {
             return Err(EdgeSegmentError::DuplicateInBox);
         }
 
-        list.push(edge);
+        list.push(field);
         Ok(())
     }
 }
