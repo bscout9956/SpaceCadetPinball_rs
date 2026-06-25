@@ -2,7 +2,7 @@ use crate::maths::*;
 use crate::message_code::MessageCode;
 use crate::t_ball::TBall;
 use crate::t_edge_segment::IEdgeSegment;
-use crate::t_line::EdgeSegmentError;
+use anyhow::Result;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -62,7 +62,11 @@ impl IEdgeSegment for TFlipperEdge {
         todo!()
     }
 
-    fn place_in_grid(&self, aabb: &mut RectF, this_rc: Rc<RefCell<dyn IEdgeSegment>>) -> Result<(), EdgeSegmentError> {
+    fn place_in_grid(
+        &self,
+        aabb: &mut RectF,
+        this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
+    ) -> Result<()> {
         todo!()
     }
 
