@@ -1,4 +1,4 @@
-use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
+use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_box::TEdgeBox;
 use crate::t_edge_segment::IEdgeSegment;
 use crate::t_line::EdgeSegmentError;

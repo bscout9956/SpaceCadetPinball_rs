@@ -1,10 +1,6 @@
 use crate::message_code::MessageCode;
-use crate::state::control_state::ControlState;
 use crate::t_ball::TBall;
 use crate::t_pinball_component::TPinballComponent;
-use crate::t_pinball_table::TPinballTable;
-use std::cell::RefCell;
-use std::rc::Weak;
 
 pub fn table_control_handler(code: MessageCode) {
     todo!()
@@ -52,7 +48,7 @@ pub(crate) fn cheat_bump_rank() {
 //     control_state: &mut ControlState,
 // ) {
 //     control_state.table_g = table_weak;
-// 
+//
 //     for score_component in control_state.score_components {
 //         let linked_comp = make_component_link(&score_component.tag);
 //         if let Some(lc) = linked_comp.as_mut() {
@@ -60,7 +56,7 @@ pub(crate) fn cheat_bump_rank() {
 //         }
 //     }
 // }
-// 
+//
 // fn make_component_link(base_tag: &ComponentTagBase) -> Option<TPinballComponent> {
 //     todo!()
 // }

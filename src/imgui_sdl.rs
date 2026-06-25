@@ -1,17 +1,15 @@
 use dear_imgui_rs::Io;
-use dear_imgui_rs::sys::{ImGuiMouseCursor_COUNT, igGetDragDropPayload};
+use dear_imgui_rs::sys::ImGuiMouseCursor_COUNT;
 use dear_imgui_rs::{Context, TextureId};
 use sdl2::render::RenderTarget;
 use sdl2::sys::SDL_BlendMode::SDL_BLENDMODE_BLEND;
 use sdl2::sys::SDL_PixelFormatEnum::SDL_PIXELFORMAT_ABGR8888;
 use sdl2::sys::SDL_ScaleMode::SDL_ScaleModeLinear;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STATIC;
-use sdl2::sys::SDL_bool::{SDL_FALSE, SDL_TRUE};
 use sdl2::sys::{
-    SDL_CaptureMouse, SDL_CreateTexture, SDL_Cursor, SDL_DestroyTexture, SDL_FreeSurface,
-    SDL_GetGlobalMouseState, SDL_GetKeyboardFocus, SDL_GetWindowPosition, SDL_Renderer,
+    SDL_CreateTexture, SDL_Cursor, SDL_DestroyTexture, SDL_FreeSurface, SDL_Renderer,
     SDL_SYSWM_TYPE, SDL_SetTextureBlendMode, SDL_SetTextureScaleMode, SDL_Surface, SDL_Texture,
-    SDL_UpdateTexture, SDL_WarpMouseInWindow, SDL_Window, SDL_version,
+    SDL_UpdateTexture, SDL_Window, SDL_version,
 };
 use std::ffi::{c_char, c_int, c_void};
 use std::ops::{Add, Mul};
@@ -481,7 +479,7 @@ pub mod impl_sdl2 {
     use crate::state::pinball_state::PinballState;
     use dear_imgui_rs::sys::{
         ImGuiMouseCursor_COUNT, ImGuiMouseCursor_None, igGetDragDropPayload, igGetFrameCount,
-        igGetMainViewport, igGetMouseCursor, igMemFree,
+        igGetMainViewport, igGetMouseCursor,
     };
     use dear_imgui_rs::{BackendFlags, ConfigFlags, Context, Io, Key, MouseButton};
     use sdl2::keyboard::Keycode;
@@ -513,7 +511,7 @@ pub mod impl_sdl2 {
         SDL_ShowCursor, SDL_SysWMinfo, SDL_WarpMouseInWindow, SDL_Window, SDL_bool, SDL_free,
     };
     use std::ffi::{CStr, c_char, c_int, c_void};
-    use std::ptr::{addr_of_mut, null, null_mut};
+    use std::ptr::{addr_of_mut, null_mut};
 
     pub fn update_key_modifiers(io: &mut Io, sdl_key_mods: u32) {
         io.add_key_event(Key::ModCtrl, (sdl_key_mods & KMOD_CTRL as u32) != 0);

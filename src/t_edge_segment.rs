@@ -1,8 +1,7 @@
 use crate::maths::{RayType, RectF, Vector2, Vector3};
 use crate::t_ball::TBall;
 use crate::t_collision_component::ICollisionComponent;
-use crate::t_line::{EdgeSegmentError, TLine};
-use crate::t_pinball_component::IPinballComponent;
+use crate::t_line::TLine;
 use std::cell::{Cell, RefCell};
 use std::ptr::slice_from_raw_parts;
 use std::rc::{Rc, Weak};

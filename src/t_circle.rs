@@ -1,10 +1,8 @@
 use crate::maths::{CircleType, RayType, RectF, Vector2};
 use crate::t_ball::TBall;
-use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
+use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
-use crate::t_line::EdgeSegmentError;
 use std::cell::{Cell, RefCell};
-use std::ptr::null;
 use std::rc::{Rc, Weak};
 
 pub struct TCircle {
@@ -13,7 +11,6 @@ pub struct TCircle {
 }
 
 use crate::t_table_layer;
-use crate::t_table_layer::TTableLayer;
 use anyhow::{Context, Result};
 
 impl IEdgeSegment for TCircle {
