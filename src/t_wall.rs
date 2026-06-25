@@ -1,9 +1,9 @@
-use crate::maths::Vector2;
+use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
-use crate::t_edge_segment::TEdgeSegment;
+use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::timer;
@@ -42,6 +42,22 @@ impl ICollisionComponent for TWall {
                 //TODO: control::handler(MessageCode::CONTROL_COLLISION, self);
             }
         }
+    }
+
+    fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
+        todo!()
+    }
+    #[allow(non_snake_case)]
+    fn set_AABB(&mut self, aabb: RectF) {
+        if let Some(rc) = self.base.upgrade() {
+            rc.borrow_mut().aabb = aabb;
+        }
+    }
+
+    #[allow(non_snake_case)]
+    fn get_AABB(&self) -> Option<RectF> {
+        let rc = self.base.upgrade()?;
+        Some(rc.borrow().aabb.clone())
     }
 }
 
