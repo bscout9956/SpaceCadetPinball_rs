@@ -32,9 +32,16 @@ pub trait ICollisionComponent {
         edge: &TEdgeSegment,
         time_ticks: usize,
     );
+
+    fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>>;
+
     fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
         return 0;
     }
+    #[allow(non_snake_case)]
+    fn set_AABB(&mut self, aabb: RectF);
+    #[allow(non_snake_case)]
+    fn get_AABB(&self) -> Option<RectF>;
 }
 
 use crate::message_code::MessageCode;
