@@ -83,6 +83,7 @@ mod pinball_state;
 pub mod proj;
 mod render;
 pub mod state;
+mod t_circle;
 pub mod t_demo;
 mod t_drain;
 mod t_edge_box;
