@@ -151,7 +151,7 @@ impl TBall {
             }
         }
 
-        instance_data.base_component.render_sprite = RenderSprite::new(
+        instance_data.base_component.render_sprite = Some(RenderSprite::new(
             VisualTypes::Ball,
             None,
             None,
@@ -159,7 +159,7 @@ impl TBall {
             0,
             None,
             &mut state.render_state,
-        );
+        ));
 
         if let Some(t_weak) = &instance_data.base_component.pinball_table {
             if let Some(t_rc) = t_weak.upgrade() {
