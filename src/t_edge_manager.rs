@@ -82,7 +82,6 @@ impl TEdgeManager {
             return Err(EdgeSegmentError::BoxCoordsOutOfRange(x, y));
         }
 
-        println!("box array len is: {}", self.box_array.len());
         let list = &mut self.box_array[(x + y * self.max_box_x) as usize].edge_list;
 
         if let Some(e_ref) = edge {
