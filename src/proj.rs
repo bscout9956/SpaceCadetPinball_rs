@@ -43,6 +43,8 @@ pub fn init(max4x3: [f32; 12], d: f32, cen_x: f32, cen_y: f32, zm: f32, zscaler:
     matrix.row1 = VectorType4::new(max4x3[4], max4x3[5], max4x3[6], max4x3[7]);
     matrix.row2 = VectorType4::new(max4x3[8], max4x3[9], max4x3[10], max4x3[11]);
     matrix.row3 = VectorType4::new(0.0, 0.0, 0.0, 1.0);
+    
+    *MATRIX.lock().unwrap() = matrix;
 
     let mut d_val = D.lock().unwrap();
     let mut center_x = CENTER_X.lock().unwrap();
