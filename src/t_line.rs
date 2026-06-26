@@ -73,7 +73,7 @@ impl IEdgeSegment for TLine {
                     x_box_0 += 1
                 }
             } else {
-                while x_box_1 >= x_box_0 {
+                while x_box_0 >= x_box_1 {
                     edge_man
                         .add_edge_to_box(x_box_0, y_box_0, this_rc.clone())
                         .context("Failed to add edge to box")?; // :(
@@ -89,7 +89,7 @@ impl IEdgeSegment for TLine {
                     y_box_0 += 1
                 }
             } else {
-                while y_box_1 >= y_box_0 {
+                while y_box_0 >= y_box_1 {
                     edge_man
                         .add_edge_to_box(x_box_0, y_box_0, this_rc.clone())
                         .context("Failed to add edge to box")?;
