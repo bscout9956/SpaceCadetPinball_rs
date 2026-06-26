@@ -69,7 +69,7 @@ impl TEdgeManager {
     }
 
     pub fn increment_box_y(&self, y: i32) -> i32 {
-        i32::min(y + 1, self.max_box_y + 1)
+        i32::min(y + 1, self.max_box_y - 1)
     }
 
     pub fn add_edge_to_box(
