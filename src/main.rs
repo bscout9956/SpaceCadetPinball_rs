@@ -1336,7 +1336,7 @@ fn pause(toggle: bool, state: &mut PinballState) -> Result<(), MainLoopError> {
 fn process_window_messages(
     imgui_context: &mut dear_imgui_rs::Context,
     state: &mut PinballState,
-) -> Result<bool, MainLoopError> {
+) -> Result<bool> {
     let mut idle_wait = 0i64;
     let mut event = MaybeUninit::<SDL_Event>::uninit();
 
@@ -1370,7 +1370,7 @@ unsafe fn event_handler(
     event: *mut SDL_Event,
     context: &mut dear_imgui_rs::Context,
     state: &mut PinballState,
-) -> Result<bool, MainLoopError> {
+) -> Result<bool> {
     let mut input_down = false;
 
     unsafe {
@@ -1543,7 +1543,7 @@ fn main_wrapper() -> Result<()> {
     }
 
     let quick_flag = args.iter().any(|arg| arg.contains("-quick"));
-    (&mut state.pb_game_state).quick_flag = quick_flag;
+    state.pb_game_state.quick_flag = quick_flag;
 
     unsafe {
         println!("Creating window");
@@ -1590,13 +1590,13 @@ fn main_wrapper() -> Result<()> {
             let renderer: *mut SDL_Renderer = SDL_CreateRenderer(window, -1, flags as u32);
 
             if !renderer.is_null() {
-                (&mut state.main_state).renderer = Some(SdlRendererPtr(renderer));
+                state.main_state.renderer = Some(SdlRendererPtr(renderer));
                 println!("Renderer successfully created and assigned.");
                 break;
             }
         }
 
-        if (&mut state.main_state).renderer.is_none() {
+        if state.main_state.renderer.is_none() {
             pb::show_message_box_cstr_message(
                 SDL_MESSAGEBOX_ERROR,
                 "Could not create renderer",
@@ -1609,7 +1609,7 @@ fn main_wrapper() -> Result<()> {
 
         let mut renderer_info: SDL_RendererInfo = std::mem::zeroed();
 
-        if let Some(renderer_ptr) = (&mut state.main_state).renderer.as_ref() {
+        if let Some(renderer_ptr) = state.main_state.renderer.as_ref() {
             let result = SDL_GetRendererInfo(renderer_ptr.0, &mut renderer_info);
 
             if result != 0 {

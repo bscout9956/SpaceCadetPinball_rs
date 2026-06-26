@@ -19,7 +19,7 @@ use crate::{
     SdlWindowPtr, control, gdrv, high_score, loader, maths, midi, nudge, options, partman, proj,
     render, score, timer, translations,
 };
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use rand::random;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_KeyCode, SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
@@ -689,7 +689,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<(), PbError> {
     Ok(())
 }
 
-pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<(), PbError> {
+pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()> {
     if state.pb_game_state.game_mode != GameModes::InGame
         || state.main_state.single_step
         || state.pb_game_state.demo_mode
@@ -700,7 +700,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<(),
     let bindings = options::map_game_input(input, &mut state.options_state);
     for binding in bindings {
         let mut table = match state.pb_game_state.main_table.as_ref() {
-            None => return Err(PbError::NoTable),
+            None => return bail!(PbError::NoTable),
             Some(t) => t.borrow_mut(),
         };
         match binding {
@@ -757,7 +757,10 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<(),
                 let ball_count = table_rc.borrow().ball_count_in_rect(pos, col_comp_offset);
 
                 if ball_count == 0 {
-                    let was_added = table_rc.borrow_mut().add_ball(pos, state);
+                    let was_added = table_rc
+                        .borrow_mut()
+                        .add_ball(pos, state)
+                        .context("Failed to add ball to table")?;
                     if was_added.is_some() {
                         table_rc.borrow_mut().multiball_count += 1;
                     }
@@ -765,7 +768,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<(),
             }
         } else {
             let table_rc = match state.pb_game_state.main_table.as_ref() {
-                None => return Err(PbError::NoTable),
+                None => return bail!(PbError::NoTable),
                 Some(t) => t,
             };
             let mut table = table_rc.borrow_mut();
