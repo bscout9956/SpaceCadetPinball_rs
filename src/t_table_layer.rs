@@ -7,6 +7,7 @@ use crate::maths::{
     CircleType, MathsError, RayType, RectF, RectangleType, Vector2, f32_vec_to_vec2,
 };
 use crate::render::{RenderSprite, VisualTypes};
+use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
@@ -182,10 +183,7 @@ impl TTableLayer {
         let width = instance.y_max;
 
         {
-            let mut edge_manager = EDGE_MANAGER
-                .lock()
-                .map_err(|_| TTableLayerError::LockError)?;
-            *edge_manager = Some(TEdgeManager::new(
+            state.pb_game_state.edge_manager = Some(TEdgeManager::new(
                 instance.x_min,
                 instance.y_min,
                 width,
@@ -209,8 +207,15 @@ impl TTableLayer {
                 edge_points[i].y,
             );
 
-            line.place_in_grid(&mut this_mut.base_component.aabb, Option::None)
-                .context("Failed to place line in grid")?;
+            line.place_in_grid(
+                &mut this_mut.base_component.aabb,
+                Option::None,
+                &mut state.pb_game_state,
+            )
+            .context("Failed to place line in grid")?;
+
+            let line_rc = Rc::new(RefCell::new(line));
+            this_mut.base_component.edge_list.push(line_rc);
         }
 
         {
@@ -227,6 +232,7 @@ impl TTableLayer {
                 rc_borrow.x_max,
                 Option::None,
                 Some(rc_field),
+                &mut state.pb_game_state,
             )
             .context("Failed to insert square")?;
         }
@@ -242,13 +248,9 @@ fn edges_insert_square(
     x1: f32,
     edge_segment: Option<Rc<RefCell<dyn IEdgeSegment>>>,
     field: Option<Rc<RefCell<FieldEffectType>>>,
+    state: &mut PbGameState,
 ) -> Result<()> {
-    let mut mutex_guard = EDGE_MANAGER
-        .lock()
-        .map_err(|_| TTableLayerError::LockError)
-        .context("Failed to lock")?;
-
-    if let Some(edge_manager) = mutex_guard.as_mut() {
+    if let Some(edge_manager) = state.edge_manager.as_mut() {
         let width_m = edge_manager.advance_x * 0.001f32 as i32 as f32;
         let height_m = edge_manager.advance_y * 0.001f32 as i32 as f32;
         let x_min = x0 - width_m;
@@ -321,17 +323,16 @@ pub fn edges_insert_circle(
     circle: &CircleType,
     edge: Option<Rc<RefCell<dyn IEdgeSegment>>>,
     field: Option<Rc<RefCell<FieldEffectType>>>,
+    state: &mut PbGameState,
 ) -> Result<()> {
     let mut ray: RayType = Default::default();
     let mut vec1: Vector2 = Default::default();
 
-    let mut mutex_guard = EDGE_MANAGER
-        .lock()
-        .map_err(|_| TTableLayerError::LockError)
-        .context("Failed to lock EDGE MANAGER Mutex")?;
-    let edge_manager = mutex_guard.as_mut().unwrap();
+    let mut radius_m: f32 = 0.0f32;
+    if let Some(edge_manager) = state.edge_manager.as_ref() {
+        radius_m = f32::sqrt(circle.radius_sq) + edge_manager.advance_x * 0.001;
+    }
 
-    let radius_m = f32::sqrt(circle.radius_sq) + edge_manager.advance_x * 0.001;
     let radius_m_sq = radius_m * radius_m;
 
     let x_min = circle.center.x - radius_m;
@@ -339,130 +340,140 @@ pub fn edges_insert_circle(
     let x_max = radius_m + circle.center.x;
     let y_max = radius_m + circle.center.y;
 
-    let x_min_box = edge_manager.box_x(x_min);
-    let y_min_box = edge_manager.box_y(y_min);
-    let mut x_max_box = edge_manager.box_x(x_max);
-    let mut y_max_box = edge_manager.box_y(y_max);
+    let mut x_min_box: i32 = 0;
+    let mut y_min_box: i32 = 0;
+    let mut x_max_box: i32 = 0;
+    let mut y_max_box: i32 = 0;
+
+    if let Some(edge_manager) = state.edge_manager.as_ref() {
+        x_min_box = edge_manager.box_x(x_min);
+        y_min_box = edge_manager.box_y(y_min);
+        x_max_box = edge_manager.box_x(x_max);
+        y_max_box = edge_manager.box_y(y_max);
+    }
 
     let dir_x = if x_min_box - 1 <= 0 { 0 } else { x_min_box - 1 };
     let dir_y = if y_min_box - 1 <= 0 { 0 } else { y_min_box - 1 };
 
-    x_max_box = edge_manager.increment_box_x(x_max_box);
-    y_max_box = edge_manager.increment_box_y(y_max_box);
+    if let Some(edge_manager) = state.edge_manager.as_ref() {
+        x_max_box = edge_manager.increment_box_x(x_max_box);
+        y_max_box = edge_manager.increment_box_y(y_max_box);
+    }
 
-    vec1.x = dir_x as f32 * edge_manager.advance_x + edge_manager.min_x;
-    for index_x in dir_x..=x_max_box {
-        vec1.y = dir_y as f32 * edge_manager.advance_y + edge_manager.min_y;
-        for index_y in dir_y..=y_max_box {
-            let vec1_x_adv = vec1.x + edge_manager.advance_x;
-            let vec1_y_adv = vec1.y + edge_manager.advance_y;
+    if let Some(edge_manager) = state.edge_manager.as_mut() {
+        vec1.x = dir_x as f32 * edge_manager.advance_x + edge_manager.min_x;
+        for index_x in dir_x..=x_max_box {
+            vec1.y = dir_y as f32 * edge_manager.advance_y + edge_manager.min_y;
+            for index_y in dir_y..=y_max_box {
+                let vec1_x_adv = vec1.x + edge_manager.advance_x;
+                let vec1_y_adv = vec1.y + edge_manager.advance_y;
 
-            if x_max >= vec1.x && x_min <= vec1_x_adv && y_max >= vec1.y && y_min <= vec1_y_adv {
-                let mut collision = true;
+                if x_max >= vec1.x && x_min <= vec1_x_adv && y_max >= vec1.y && y_min <= vec1_y_adv
                 {
-                    if circle.center.x <= vec1_x_adv
-                        && circle.center.x >= vec1.x
-                        && circle.center.y <= vec1_y_adv
-                        && circle.center.y >= vec1.y
+                    let mut collision = true;
                     {
-                        break;
+                        if circle.center.x <= vec1_x_adv
+                            && circle.center.x >= vec1.x
+                            && circle.center.y <= vec1_y_adv
+                            && circle.center.y >= vec1.y
+                        {
+                            break;
+                        }
+
+                        let mut vec2 = vec1;
+                        if maths::distance_squared(&vec1, &circle.center) <= radius_m_sq {
+                            break;
+                        }
+
+                        vec2.x += edge_manager.advance_x;
+                        if maths::distance_squared(&vec2, &circle.center) <= radius_m_sq {
+                            break;
+                        }
+
+                        vec2.y += edge_manager.advance_y;
+                        if maths::distance_squared(&vec2, &circle.center) <= radius_m_sq {
+                            break;
+                        }
+
+                        vec2.x -= edge_manager.advance_x;
+                        if maths::distance_squared(&vec2, &circle.center) <= radius_m_sq {
+                            break;
+                        }
+
+                        ray.origin = vec1;
+                        ray.direction.x = 1.0;
+                        ray.direction.y = 1.0;
+                        ray.max_distance = edge_manager.advance_x;
+                        if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
+                            break;
+                        }
+
+                        ray.direction.x = -1.0f32;
+                        ray.origin.x = ray.origin.x + edge_manager.advance_x;
+                        if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
+                            break;
+                        }
+
+                        ray.direction.x = 0.0;
+                        ray.direction.y = 1.0;
+                        ray.max_distance = edge_manager.advance_y;
+                        if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
+                            break;
+                        }
+
+                        ray.direction.y = -1.0;
+                        ray.origin.y += edge_manager.advance_y;
+                        if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
+                            break;
+                        }
+
+                        ray.direction.y = 0.0;
+                        ray.direction.x = -1.0;
+                        ray.max_distance = edge_manager.advance_x;
+                        if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
+                            break;
+                        };
+
+                        ray.direction.x = 1.0;
+                        ray.origin.x = ray.origin.x - edge_manager.advance_x;
+                        if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
+                            break;
+                        }
+
+                        ray.direction.x = 0.0;
+                        ray.direction.y = -1.0;
+                        ray.max_distance = edge_manager.advance_y;
+                        if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
+                            break;
+                        }
+
+                        ray.direction.y = 1.0;
+                        ray.origin.y -= edge_manager.advance_y;
+                        if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
+                            break;
+                        }
+
+                        collision = false;
                     }
+                    if collision {
+                        if let Some(e) = edge.as_ref() {
+                            edge_manager
+                                .add_edge_to_box(index_x, index_y, Some(e.clone()))
+                                .context("Failed to add edge to box")?;
+                        }
 
-                    let mut vec2 = vec1;
-                    if maths::distance_squared(&vec1, &circle.center) <= radius_m_sq {
-                        break;
+                        if let Some(f) = field.as_ref() {
+                            edge_manager
+                                .add_field_to_box(index_x, index_y, f.clone())
+                                .context("Failed to add field to box")?;
+                        }
                     }
-
-                    vec2.x += edge_manager.advance_x;
-                    if maths::distance_squared(&vec2, &circle.center) <= radius_m_sq {
-                        break;
-                    }
-
-                    vec2.y += edge_manager.advance_y;
-                    if maths::distance_squared(&vec2, &circle.center) <= radius_m_sq {
-                        break;
-                    }
-
-                    vec2.x -= edge_manager.advance_x;
-                    if maths::distance_squared(&vec2, &circle.center) <= radius_m_sq {
-                        break;
-                    }
-
-                    ray.origin = vec1;
-                    ray.direction.x = 1.0;
-                    ray.direction.y = 1.0;
-                    ray.max_distance = edge_manager.advance_x;
-                    if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
-                        break;
-                    }
-
-                    ray.direction.x = -1.0f32;
-                    ray.origin.x = ray.origin.x + edge_manager.advance_x;
-                    if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
-                        break;
-                    }
-
-                    ray.direction.x = 0.0;
-                    ray.direction.y = 1.0;
-                    ray.max_distance = edge_manager.advance_y;
-                    if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
-                        break;
-                    }
-
-                    ray.direction.y = -1.0;
-                    ray.origin.y += edge_manager.advance_y;
-                    if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
-                        break;
-                    }
-
-                    ray.direction.y = 0.0;
-                    ray.direction.x = -1.0;
-                    ray.max_distance = edge_manager.advance_x;
-                    if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
-                        break;
-                    };
-
-                    ray.direction.x = 1.0;
-                    ray.origin.x = ray.origin.x - edge_manager.advance_x;
-                    if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
-                        break;
-                    }
-
-                    ray.direction.x = 0.0;
-                    ray.direction.y = -1.0;
-                    ray.max_distance = edge_manager.advance_y;
-                    if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
-                        break;
-                    }
-
-                    ray.direction.y = 1.0;
-                    ray.origin.y -= edge_manager.advance_y;
-                    if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
-                        break;
-                    }
-
-                    collision = false;
                 }
-                if collision {
-                    if let Some(e) = edge.as_ref() {
-                        edge_manager
-                            .add_edge_to_box(index_x, index_y, Some(e.clone()))
-                            .context("Failed to add edge to box")?;
-                    }
-
-                    if let Some(f) = field.as_ref() {
-                        edge_manager
-                            .add_field_to_box(index_x, index_y, f.clone())
-                            .context("Failed to add field to box")?;
-                    }
-                }
+                vec1.y += edge_manager.advance_y;
             }
-            vec1.y += edge_manager.advance_y;
+            vec1.x += edge_manager.advance_x;
         }
-        vec1.x += edge_manager.advance_x;
     }
 
     Ok(())
 }
-
-pub static EDGE_MANAGER: Mutex<Option<TEdgeManager>> = Mutex::new(None);

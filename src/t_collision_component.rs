@@ -132,6 +132,7 @@ impl TCollisionComponent {
                             visual.collision_group as u32,
                             offset,
                             0,
+                            &mut state.pb_game_state,
                         );
                     }
                     Err(e) => {

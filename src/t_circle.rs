@@ -12,6 +12,7 @@ pub struct TCircle {
 
 use crate::t_table_layer;
 use anyhow::{Context, Result};
+use crate::state::pb_game_state::PbGameState;
 
 impl IEdgeSegment for TCircle {
     fn edge_collision(&self, ball: &mut TBall, distance: f32) {
@@ -26,6 +27,7 @@ impl IEdgeSegment for TCircle {
         &self,
         aabb: &mut RectF,
         this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
+        state: &mut PbGameState
     ) -> Result<()> {
         let radius = f32::sqrt(self.circle.radius_sq);
         aabb.merge(&RectF {
@@ -35,7 +37,7 @@ impl IEdgeSegment for TCircle {
             y_min: self.circle.center.y - radius,
         });
 
-        t_table_layer::edges_insert_circle(&self.circle, this_rc, None)
+        t_table_layer::edges_insert_circle(&self.circle, this_rc, None, state)
             .context("Failed to insert circle")?;
 
         Ok(())

@@ -5,6 +5,7 @@ use crate::t_edge_segment::IEdgeSegment;
 use anyhow::Result;
 use std::cell::RefCell;
 use std::rc::Rc;
+use crate::state::pb_game_state::PbGameState;
 
 pub struct TFlipperEdge {
     pub flipper_flag: MessageCode,
@@ -66,6 +67,7 @@ impl IEdgeSegment for TFlipperEdge {
         &self,
         aabb: &mut RectF,
         this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
+        state: &mut PbGameState,
     ) -> Result<()> {
         todo!()
     }

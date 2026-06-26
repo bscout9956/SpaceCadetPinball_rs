@@ -582,9 +582,11 @@ pub(crate) fn present_v_screen(state: &mut PinballState) {
             }
 
             if *state.options_state.options.debug_overlay {
-                debug_overlay::draw_overlay();
+                debug_overlay::draw_overlay(state);
             }
         }
+    } else {
+        eprintln!("No vscreen to present");
     }
 }
 

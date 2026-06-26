@@ -28,6 +28,7 @@ pub struct TEdgeSegment {
 }
 
 use crate::maths;
+use crate::state::pb_game_state::PbGameState;
 use crate::t_circle::TCircle;
 use anyhow::{Context, Result};
 
@@ -38,6 +39,7 @@ pub trait IEdgeSegment {
         &self,
         aabb: &mut RectF,
         this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
+        pb_game_state: &mut PbGameState,
     ) -> Result<()>;
     fn find_collision_distance(&self, ray: &RayType) -> f32;
 }
@@ -54,6 +56,7 @@ impl IEdgeSegment for TEdgeSegment {
         &self,
         aabb: &mut RectF,
         this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
+        pb_game_state: &mut PbGameState,
     ) -> Result<()> {
         todo!()
     }
@@ -85,6 +88,7 @@ impl TEdgeSegment {
         collision_group: u32,
         offset: f32,
         wall_value: usize,
+        state: &mut PbGameState,
     ) -> Result<Option<Rc<RefCell<dyn IEdgeSegment>>>> {
         let mut center: Vector2 = Default::default();
         let mut start: Vector2 = Default::default();
@@ -140,7 +144,7 @@ impl TEdgeSegment {
                         let mut comp_borrow = comp.borrow_mut();
                         if let Some(mut aabb) = comp_borrow.get_AABB() {
                             circle
-                                .place_in_grid(&mut aabb, None)
+                                .place_in_grid(&mut aabb, None, state)
                                 .context("Failed to place in grid")?;
                             comp_borrow.set_AABB(aabb);
                         }
@@ -172,7 +176,7 @@ impl TEdgeSegment {
                     if let Some(comp) = coll_comp.upgrade().as_mut() {
                         let mut comp_borrow = comp.borrow_mut();
                         if let Some(mut aabb) = comp_borrow.get_AABB() {
-                            line.place_in_grid(&mut aabb, Option::None)
+                            line.place_in_grid(&mut aabb, Option::None, state)
                                 .context("Failed to place in grid")?;
                             comp_borrow.set_AABB(aabb);
                         }
@@ -234,7 +238,7 @@ impl TEdgeSegment {
                                     let mut comp_borrow = comp.borrow_mut();
                                     if let Some(mut aabb) = comp_borrow.get_AABB() {
                                         circle
-                                            .place_in_grid(&mut aabb, Option::None)
+                                            .place_in_grid(&mut aabb, Option::None, state)
                                             .context("Failed to place in grid")?;
                                         comp_borrow.set_AABB(aabb);
                                     }
@@ -267,7 +271,7 @@ impl TEdgeSegment {
                             let mut comp_borrow = comp.borrow_mut(); //RefCell already borrowed
 
                             if let Some(mut aabb) = comp_borrow.get_AABB() {
-                                line.place_in_grid(&mut aabb, None)
+                                line.place_in_grid(&mut aabb, None, state)
                                     .context("Failed to place in grid")?;
                                 comp_borrow.set_AABB(aabb);
                             }

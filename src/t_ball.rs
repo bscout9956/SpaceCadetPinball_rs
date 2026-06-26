@@ -223,7 +223,8 @@ impl ICollisionComponent for TBall {
     }
 }
 
-use anyhow::Result;
+use crate::state::pb_game_state::PbGameState;
+use anyhow::{Context, Result};
 
 impl IEdgeSegment for TBall {
     fn edge_collision(&self, ball: &mut TBall, distance: f32) {
@@ -238,6 +239,7 @@ impl IEdgeSegment for TBall {
         &self,
         aabb: &mut RectF,
         this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
+        state: &mut PbGameState,
     ) -> Result<()> {
         todo!()
     }
