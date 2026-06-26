@@ -887,8 +887,8 @@ pub mod impl_sdl2 {
 
             io.set_backend_platform_user_data(null_mut());
             println!("Backend's gone");
-            //igMemFree(&raw mut bd as *mut c_void);
-            //println!("Bd's gone");
+            let _ = Box::from_raw(bd);
+            println!("Bd's gone");
         }
         println!("hee hee");
     }
