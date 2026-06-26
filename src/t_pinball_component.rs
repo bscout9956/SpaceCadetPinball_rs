@@ -1,10 +1,12 @@
 use crate::maths::*;
 use crate::message_code::MessageCode;
-use crate::render::RenderSprite;
+use crate::render::{RenderSprite, VisualTypes};
 use crate::state::loader_state::LoaderState;
-use crate::{control::ComponentControl, loader, loader::VisualStruct};
+use crate::{control::ComponentControl, loader, loader::VisualStruct, maths};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
+use anyhow::Context;
 use std::any::Any;
+use std::ops::Index;
 use std::{
     cell::{Cell, RefCell},
     rc::{Rc, Weak},
@@ -38,14 +40,17 @@ pub trait IPinballComponent {
     fn message(&mut self, code: MessageCode, value: f32) -> i32;
 }
 
+use crate::state::pinball_state::PinballState;
+use anyhow::Result;
+
 impl TPinballComponent {
     pub fn new(
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         load_visuals: bool,
-        loader_state: &mut LoaderState,
-    ) -> Self {
-        let visual: VisualStruct;
+        state: &mut PinballState,
+    ) -> Result<Self> {
+        let mut visual: VisualStruct = Default::default();
 
         let mut instance = Self {
             unused_base_flag: Rc::new(Cell::new(false)),
@@ -67,17 +72,76 @@ impl TPinballComponent {
         }
 
         if group_index >= 0 {
-            let name = loader::query_name(group_index, loader_state).unwrap();
+            let name = loader::query_name(group_index, &mut state.loader_state)
+                .context("Failed to query name for TPinballComponent")?;
             instance.group_name = Some(Rc::new(RefCell::new(name)))
         }
 
         if load_visuals && group_index >= 0 {
-            // TODO: Create module
-            //let visual_count = loader::query_visual_states(group_index);
-            // TODO: For loop L#33...
+            let visual_count = loader::query_visual_states(group_index, &mut state.loader_state)
+                .context("Failed to query visual count for TPinballComponent")?;
+            for index in 0..visual_count {
+                loader::query_visual(group_index, index as i32, &mut visual, state)
+                    .context("Failed to query visual for init on TPinballComponent")?;
+
+                if visual.bitmap.bmp.as_ref().is_some() {
+                    if visual.bitmap.zmap.as_ref().is_none() {
+                        panic!("Bitmap/zMap pairing is mandatory");
+                    }
+                    if instance.list_bitmap.is_empty() {
+                        instance.list_bitmap = Vec::new();
+                    }
+                    instance.list_bitmap.push(visual.bitmap.clone());
+                }
+            }
+
+            if !instance.list_bitmap.is_empty() {
+                let mut bmp_1_rect: RectangleType = Default::default();
+                let mut tmp_rect: RectangleType = Default::default();
+
+                let root_sprite = instance.list_bitmap.get(0);
+
+                if let Some(rs) = root_sprite {
+                    let root_bmp_opt = &rs.bmp;
+                    if let Some(root_bmp) = root_bmp_opt
+                        && let Some(t) = instance.pinball_table.as_ref()
+                    {
+                        let table = t.upgrade().unwrap();
+                        bmp_1_rect.x_position = root_bmp.x_position - table.borrow().x_offset;
+                        bmp_1_rect.y_position = root_bmp.y_position - table.borrow().y_offset;
+                        bmp_1_rect.width = root_bmp.width;
+                        bmp_1_rect.height = root_bmp.height;
+
+                        for index in 1..instance.list_bitmap.len() {
+                            let bmp_opt = &instance.list_bitmap.index(index).bmp;
+                            if let Some(bmp) = bmp_opt {
+                                tmp_rect.x_position = bmp.x_position - table.borrow().x_offset;
+                                tmp_rect.y_position = bmp.y_position - table.borrow().y_offset;
+                                tmp_rect.width = bmp.width;
+                                tmp_rect.height = bmp.height;
+                                let mut copy_rect = RectangleType::default();
+                                maths::enclosing_box(&bmp_1_rect, &tmp_rect, &mut copy_rect);
+                                bmp_1_rect = copy_rect;
+                            }
+                        }
+
+                        instance.render_sprite = Some(RenderSprite::new(
+                            VisualTypes::Sprite,
+                            Some(root_bmp.clone()),
+                            root_sprite.unwrap().zmap.clone(),
+                            root_bmp.x_position - table.borrow().x_offset,
+                            root_bmp.y_position - table.borrow().y_offset,
+                            Some(bmp_1_rect),
+                            &mut state.render_state,
+                        ));
+
+                        //TODO: Continue from here, l76 of cpp
+                    }
+                }
+            }
         }
 
-        instance
+        Ok(instance)
     }
 }
 
