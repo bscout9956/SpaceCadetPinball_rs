@@ -290,7 +290,7 @@ impl TPinballTable {
                             let _ = TWall::new(table_weak.clone(), group_index as i32, state);
                         }
                         _ => {
-                            println!("Unimplemented object type: {}", object_type);
+                            println!("Unimplemented/unknown object type: {}", object_type);
                         }
                     }
                 }
@@ -334,7 +334,7 @@ impl TPinballTable {
         &mut self,
         position: Vector2,
         state: &mut PinballState,
-    ) -> Option<Rc<RefCell<TBall>>> {
+    ) -> Result<Option<Rc<RefCell<TBall>>>> {
         let mut target_ball_rc: Option<Rc<RefCell<TBall>>> = None;
 
         for rc_ball in &self.ball_list {
@@ -352,7 +352,7 @@ impl TPinballTable {
             found_rc
         } else {
             if self.ball_list.len() >= 20 {
-                return None;
+                return Ok(None);
             }
 
             let table_weak = self.base.pinball_table.clone();
