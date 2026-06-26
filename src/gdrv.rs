@@ -220,7 +220,7 @@ impl GdrvBitmap8 {
         }
     }
 
-    fn new_dims_indexed_buff(width: i32, height: i32, indexed: bool, bmp_buff: bool) -> Self {
+    pub fn new_dims_indexed_buff(width: i32, height: i32, indexed: bool, bmp_buff: bool) -> Self {
         assert!(width >= 0 && height >= 0, "Negative bitmap8 dimensions");
         let stride = width;
 
@@ -427,7 +427,6 @@ pub(crate) fn gr_text_draw_ttext_in_box(
     for text_box in text_boxes.into_iter() {
         if let Some(boxx) = text_box {
             unsafe { boxx.draw_im_gui(render_state, pb_game_state.text_box_color, ui) };
-            
         }
     }
 }
