@@ -507,8 +507,7 @@ pub fn remove_sprite(sprite: &RenderSprite, render_state: &mut RenderState) {
         &mut render_state.sprite_list
     };
 
-    // TODO: Arc::ptr_eq
-    if let Some(pos) = list.iter().position(|s| std::ptr::eq(s, sprite)) {
+    if let Some(pos) = list.iter().position(|s| s == sprite) {
         list.remove(pos);
     }
 }
