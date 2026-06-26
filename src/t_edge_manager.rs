@@ -117,6 +117,3 @@ impl TEdgeManager {
         Ok(())
     }
 }
-
-unsafe impl Send for TEdgeManager {}
-unsafe impl Sync for TEdgeManager {}
