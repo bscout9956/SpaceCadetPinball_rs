@@ -5,6 +5,7 @@
 // Until this notice is removed, it may not hold all possible states.
 
 pub mod control_state;
+pub mod debug_state;
 pub mod fullscrn_state;
 pub mod high_score_state;
 pub mod loader_state;

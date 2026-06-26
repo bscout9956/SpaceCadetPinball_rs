@@ -7,6 +7,7 @@ use dear_imgui_rs::sys::ImU32;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
+use crate::t_edge_manager::TEdgeManager;
 
 pub struct PbGameState {
     pub ball_max_speed: f32,
@@ -31,6 +32,7 @@ pub struct PbGameState {
     pub info_text_box: Option<TTextBox>,
     pub text_box_color: ImU32,
     pub current_palette: [ColorRgba; 256],
+    pub edge_manager: Option<TEdgeManager>,
 }
 
 impl PbGameState {
@@ -58,6 +60,7 @@ impl PbGameState {
             info_text_box: None,
             text_box_color: 0,
             current_palette: std::array::from_fn(|_| ColorRgba::black()),
+            edge_manager: None,
         }
     }
 }

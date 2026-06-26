@@ -1,4 +1,5 @@
 use crate::state::control_state::ControlState;
+use crate::state::debug_state::DebugState;
 use crate::state::fullscrn_state::FullscrnState;
 use crate::state::high_score_state::HighScoreState;
 use crate::state::loader_state::LoaderState;
@@ -20,6 +21,7 @@ pub struct PinballState {
     pub sound_state: SoundState,
     pub score_state: ScoreState,
     pub control_state: ControlState,
+    pub debug_state: DebugState,
 }
 
 impl PinballState {
@@ -35,6 +37,7 @@ impl PinballState {
             sound_state: SoundState::default(),
             score_state: ScoreState::new(),
             control_state: ControlState::new(),
+            debug_state: DebugState::new(),
         }
     }
 }
