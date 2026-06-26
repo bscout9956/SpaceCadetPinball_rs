@@ -299,6 +299,8 @@ impl TPinballTable {
 
         render::build_occlude_list(&mut state.render_state);
 
+        // TODO: Potential bug where we modify the copy instead of the reference
+        // TODO: Move stuff to game state?
         state.pb_game_state.info_text_box = table_rc
             .borrow_mut()
             .find_component_by_name("info_text_box")
@@ -311,6 +313,8 @@ impl TPinballTable {
                     .map(|tbox| tbox.to_owned())
             });
 
+        // TODO: Potential bug where we modify the copy instead of the reference
+        // TODO: Move stuff to game state?
         state.pb_game_state.mission_text_box = table_rc
             .borrow_mut()
             .find_component_by_name("mission_text_box")
