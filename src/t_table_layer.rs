@@ -101,20 +101,22 @@ impl TTableLayer {
             &mut state.render_state,
         );
 
+        // TODO: Missing sound index1,2,3 from L38 in CPP
+
         let table_angle_array =
             query_float_attribute_ptr(group_index, 0, 305, &mut state.loader_state)?;
-        let table_slice = unsafe { from_raw_parts(table_angle_array, 3) };
         if !table_angle_array.is_null() {
             if let Some(t) = table.as_ref().unwrap().upgrade() {
+                let table_slice = unsafe { from_raw_parts(table_angle_array, 3) };
                 t.borrow_mut().gravity_dir_vect_mult = table_slice[0];
-                t.borrow_mut().gravity_dir_vect_mult = table_slice[1];
-                t.borrow_mut().gravity_dir_vect_mult = table_slice[2];
+                t.borrow_mut().gravity_angle_x = table_slice[1];
+                t.borrow_mut().gravity_angle_y = table_slice[2];
             }
         } else {
             if let Some(t) = table.as_ref().unwrap().upgrade() {
                 t.borrow_mut().gravity_dir_vect_mult = 25.0f32;
-                t.borrow_mut().gravity_dir_vect_mult = 0.5f32;
-                t.borrow_mut().gravity_dir_vect_mult = FRAC_PI_2; // 1.570796f in the original
+                t.borrow_mut().gravity_angle_x = 0.5f32;
+                t.borrow_mut().gravity_angle_y = FRAC_PI_2; // 1.570796f in the original
             }
         }
 
