@@ -384,7 +384,7 @@ impl TPinballTable {
             ball.last_active_time = state.pb_game_state.time_ticks;
         }
 
-        Some(ball_rc)
+        Ok(Some(ball_rc))
     }
 }
 
