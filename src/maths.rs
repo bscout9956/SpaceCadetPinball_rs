@@ -453,10 +453,11 @@ pub fn basic_collision(
     let rebound_speed = rebound_proj * ball.speed;
     ball.speed -= (1.0 - elasticity) * rebound_speed;
 
-    if rebound_speed > threshold {
+    if rebound_speed >= threshold {
         // Change ball direction if rebound speed is above threshold
         ball.direction.x = ball.speed * ball.direction.x + direction.x * boost;
         ball.direction.y = ball.speed * ball.direction.y + direction.y * boost;
+        ball.speed = normalize_3d(&mut ball.direction);
     }
 
     rebound_speed
@@ -516,7 +517,7 @@ pub fn distance_to_flipper(flipper: &mut TFlipperEdge, ray1: &RayType, ray2: &mu
     match distance_type {
         FlipperIntersect::LineA => {
             ray2.direction = flipper.line_a.perpendicular;
-            ray2.origin = flipper.line_b.ray_intersect;
+            ray2.origin = flipper.line_a.ray_intersect;
         }
         FlipperIntersect::LineB => {
             ray2.direction = flipper.line_b.perpendicular;
