@@ -158,7 +158,7 @@ use anyhow::{Result, bail, Context};
 
 impl TPinballTable {
     pub fn new(state: &mut PinballState) -> Result<Rc<RefCell<Self>>> {
-        let base = TPinballComponent::new(None, -1, false, &mut state.loader_state);
+        let base = TPinballComponent::new(None, -1, false, state)?;
         base.active_flag.set(true);
 
         let mut short_arr_length = 0;
@@ -234,7 +234,7 @@ impl TPinballTable {
 
         TTableLayer::new(table_weak.clone(), state)?;
 
-        let light_group = TLightGroup::new(table_weak.clone(), 0, &mut state.loader_state)?;
+        let light_group = TLightGroup::new(table_weak.clone(), 0, state)?;
 
         table_rc.borrow_mut().light_group = Some(light_group);
 
