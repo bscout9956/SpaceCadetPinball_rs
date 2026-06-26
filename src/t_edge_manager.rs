@@ -78,7 +78,7 @@ impl TEdgeManager {
         y: i32,
         edge: Option<Rc<RefCell<dyn IEdgeSegment>>>,
     ) -> Result<(), EdgeSegmentError> {
-        if x >= self.max_box_x || y >= self.max_box_y {
+        if x < 0 || x >= self.max_box_x || y < 0 || y >= self.max_box_y {
             return Err(EdgeSegmentError::BoxCoordsOutOfRange(x, y));
         }
 
@@ -102,7 +102,7 @@ impl TEdgeManager {
         y: i32,
         field: Rc<RefCell<FieldEffectType>>,
     ) -> Result<(), EdgeSegmentError> {
-        if x >= self.max_box_x || y >= self.max_box_y {
+        if x < 0 || x >= self.max_box_x || y < 0 || y >= self.max_box_y {
             return Err(EdgeSegmentError::BoxCoordsOutOfRange(x, y));
         }
 
