@@ -179,8 +179,8 @@ impl TTableLayer {
             field: Default::default(),
         };
 
-        let height = instance.x_max;
-        let width = instance.y_max;
+        let height = instance.y_max - instance.y_min;
+        let width = instance.x_max - instance.x_min;
 
         {
             state.pb_game_state.edge_manager = Some(TEdgeManager::new(
