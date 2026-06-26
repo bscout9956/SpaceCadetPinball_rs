@@ -3,6 +3,7 @@ use crate::loader;
 use crate::maths::{Vector2, Vector2i};
 use crate::message_code::MessageCode;
 use crate::state::loader_state::LoaderState;
+use crate::state::pinball_state::PinballState;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use std::any::Any;
@@ -77,13 +78,15 @@ pub enum TLightGroupError {
     LoaderError(#[from] LoaderError),
 }
 
+use anyhow::Result;
+
 impl TLightGroup {
     pub(crate) fn new(
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
-        loader_state: &mut LoaderState,
-    ) -> Result<TLightGroup, TLightGroupError> {
-        let base = TPinballComponent::new(table, group_index, false, loader_state);
+        state: &mut PinballState,
+    ) -> Result<TLightGroup> {
+        let base = TPinballComponent::new(table, group_index, false, state)?;
 
         let mut instance = Self {
             base,
@@ -100,10 +103,15 @@ impl TLightGroup {
         if group_index > 0 {
             let mut count = 0;
             // TODO: Remove unwrap and deref
-            instance.timer1time_default =
-                unsafe { *loader::query_float_attribute_ptr(group_index, 0, 903, loader_state)? };
-            let mut group_idx_ptr =
-                loader::query_int_attribute(group_index, 1027, &raw mut count, loader_state)?;
+            instance.timer1time_default = unsafe {
+                *loader::query_float_attribute_ptr(group_index, 0, 903, &mut state.loader_state)?
+            };
+            let mut group_idx_ptr = loader::query_int_attribute(
+                group_index,
+                1027,
+                &raw mut count,
+                &mut state.loader_state,
+            )?;
             for _ in 0..count {
                 let light_idx = unsafe { (*group_idx_ptr) as i32 };
                 instance.id_list.push(light_idx);
