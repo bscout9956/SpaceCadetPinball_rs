@@ -404,7 +404,7 @@ pub fn edges_insert_circle(
 
                         ray.origin = vec1;
                         ray.direction.x = 1.0;
-                        ray.direction.y = 1.0;
+                        ray.direction.y = 0.0;
                         ray.max_distance = edge_manager.advance_x;
                         if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
                             break;
