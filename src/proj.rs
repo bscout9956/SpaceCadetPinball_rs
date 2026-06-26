@@ -1,5 +1,5 @@
 use crate::maths;
-use crate::maths::Vector3;
+use crate::maths::{Vector2, Vector2i, Vector3};
 use std::sync::{LazyLock, Mutex};
 
 #[derive(Default, Clone, Copy, PartialEq)]
@@ -86,4 +86,33 @@ pub fn recenter(center_x: &f32, center_y: &f32) {
 
     *cx = *center_x;
     *cy = *center_y;
+}
+
+pub(crate) fn x_form_to_2d(vec: &Vector2) -> Vector2i {
+    let vec3 = Vector3 {
+        x: vec.x,
+        y: vec.y,
+        z: 0.0f32,
+    };
+    x_form_to_2d_vec3(vec3)
+}
+
+fn x_form_to_2d_vec3(vec: Vector3) -> Vector2i {
+    let proj_coef: f32;
+
+    let matrix = MATRIX.lock().unwrap();
+    let proj_vec = matrix_vector_multiply(&(*matrix), &vec);
+    if proj_vec.z == 0.0f32 {
+        proj_coef = 999999.88f32; // magic number?
+    } else {
+        let d_ = D.lock().unwrap();
+        proj_coef = *d_ / proj_vec.z;
+    }
+
+    let center_x = CENTER_X.lock().unwrap();
+    let center_y = CENTER_Y.lock().unwrap();
+    Vector2i {
+        x: (proj_vec.x * proj_coef + *center_x) as i32,
+        y: (proj_vec.y * proj_coef + *center_y) as i32,
+    }
 }
