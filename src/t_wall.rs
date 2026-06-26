@@ -61,23 +61,25 @@ impl ICollisionComponent for TWall {
     }
 }
 
+use anyhow::Result;
+
 impl TWall {
     pub fn new(
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         state: &mut PinballState,
-    ) -> Self {
-        let base_tcol = TCollisionComponent::new(table, group_index, true, state);
+    ) -> Result<Self> {
+        let base_tcol = TCollisionComponent::new(table, group_index, true, state)?;
         if base_tcol.borrow_mut().base.render_sprite.is_some() {
             base_tcol.borrow_mut().base.sprite_set(-1);
         }
 
         let downgraded_col = Rc::downgrade(&base_tcol);
 
-        Self {
+        Ok(Self {
             base: downgraded_col,
             timer: 0,
-        }
+        })
     }
 }
 unsafe extern "C" fn timer_expired(timer_id: i32, caller: *mut c_void, state: &mut PinballState) {
