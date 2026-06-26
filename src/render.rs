@@ -560,8 +560,8 @@ pub(crate) fn present_v_screen(state: &mut PinballState) {
                                 + state.render_state.offset_x as f32 * state.fullscrn_state.scale_x,
                             y: destination_rect.y as f32
                                 + state.render_state.offset_y as f32 * state.fullscrn_state.scale_y,
-                            w: 0.0,
-                            h: 0.0,
+                            w: dst_separation_x,
+                            h: destination_rect.h as f32,
                         };
                         let dst_sidebar_rect = SDL_FRect {
                             x: destination_rect.x as f32 + dst_separation_x,
