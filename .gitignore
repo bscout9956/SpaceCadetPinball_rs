@@ -306,3 +306,4 @@ build.ninja
 
 /target
 result.mp4
+.aider*

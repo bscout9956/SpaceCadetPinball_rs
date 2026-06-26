@@ -181,7 +181,7 @@ pub struct SpriteData {
 pub struct VisualStruct {
     pub smoothness: f32,
     pub elasticity: f32,
-    pub float_arr_count: i32,
+    pub float_arr_count: i32, // WARNING! If you use this in a loop, multiply by two, or rather use float_arr.len()
     pub float_arr: Vec<f32>,
     pub soft_hit_sound_id: i32,
     pub kicker: VisualKickerStruct,
@@ -979,10 +979,9 @@ pub fn query_visual(
             }
         }
 
-        visual.float_arr_count += 2;
-
-        let mut arr = Vec::with_capacity(visual.float_arr_count as usize);
-        for i in 0..visual.float_arr_count as usize {
+        let num_floats = (visual.float_arr_count * 2) as usize + 2;
+        let mut arr = Vec::with_capacity(num_floats);
+        for i in 0..num_floats {
             let base = 8 + (i * 4);
             let val = f32::from_le_bytes(float_array_data[base..base + 4].try_into().unwrap());
             arr.push(val);

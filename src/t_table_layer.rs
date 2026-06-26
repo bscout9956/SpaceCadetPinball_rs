@@ -259,24 +259,30 @@ fn edges_insert_square(
         let x_max_box = edge_manager.box_x(x_max);
         let y_max_box = edge_manager.box_y(y_max);
 
-        let box_x = (x_min_box as f32) * edge_manager.advance_x + edge_manager.min_x;
+        let mut box_x = (x_min_box as f32) * edge_manager.advance_x + edge_manager.min_x;
 
         for index_x in x_min_box..=x_max_box {
-            let box_y = y_min_box as f32 * edge_manager.advance_y + edge_manager.min_y;
+            let mut box_y = y_min_box as f32 * edge_manager.advance_y + edge_manager.min_y;
             for index_y in y_min_box..=y_max_box {
                 if x_max >= box_x
                     && x_min <= box_x + edge_manager.advance_x
                     && y_max >= box_y
                     && y_min <= box_y + edge_manager.advance_y
                 {
-                    if let Some(e) = edge_segment.as_ref() {
-                        edge_manager.add_edge_to_box(index_x, index_y, e).context("Failed to add edge to box")?;
+                    if let Some(edge) = edge_segment.as_ref() {
+                        edge_manager
+                            .add_edge_to_box(index_x, index_y, Some(edge.clone()))
+                            .context("Failed to add edge to box")?;
                     }
-                    if let Some(f) = field {
-                        edge_manager.add_field_to_box(index_x, index_y, f.clone()).context("Failed to add field to box")?;
+                    if let Some(f) = field.as_ref() {
+                        edge_manager
+                            .add_field_to_box(index_x, index_y, f.clone())
+                            .context("Failed to add field to box")?;
                     }
                 }
+                box_y += edge_manager.advance_y;
             }
+            box_x += edge_manager.advance_x;
         }
     }
 
