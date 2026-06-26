@@ -394,7 +394,7 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
 
     // Clip dirty sprites with vScreen, clear clipping (dirty) rectangles
     for sprite in render_state.sprite_list.iter_mut() {
-        if sprite.dirty_flag {
+        if !sprite.dirty_flag {
             continue;
         }
 
