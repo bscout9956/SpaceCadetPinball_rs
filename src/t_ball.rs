@@ -43,8 +43,7 @@ impl TBall {
         mut group_index: i32,
         state: &mut PinballState,
     ) -> Result<Rc<RefCell<Self>>> {
-        let base_component =
-            TPinballComponent::new(table_weak, group_index, false, &mut state.loader_state);
+        let base_component = TPinballComponent::new(table_weak, group_index, false, state)?;
 
         let base_segment = TEdgeSegment::new(
             None,
