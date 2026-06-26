@@ -219,14 +219,16 @@ impl TTableLayer {
             rc_borrow.field.active_flag = rc_borrow.base_component.active_flag.clone();
             let weak_this: Weak<RefCell<dyn ICollisionComponent>> = Rc::downgrade(&rc_this) as _;
             rc_borrow.field.collision_component = Some(weak_this);
+            let rc_field = Rc::new(RefCell::new(rc_borrow.field.clone()));
             edges_insert_square(
                 rc_borrow.y_min,
                 rc_borrow.x_min,
                 rc_borrow.y_max,
                 rc_borrow.x_max,
                 Option::None,
-                Some(&rc_borrow.field),
-            );
+                Some(rc_field),
+            )
+            .context("Failed to insert square")?;
         }
 
         Ok(rc_this)
@@ -238,8 +240,8 @@ fn edges_insert_square(
     x0: f32,
     y1: f32,
     x1: f32,
-    edge_segment: Option<TEdgeSegment>,
-    field: Option<&FieldEffectType>,
+    edge_segment: Option<Rc<RefCell<dyn IEdgeSegment>>>,
+    field: Option<Rc<RefCell<FieldEffectType>>>,
 ) -> Result<()> {
     let mut mutex_guard = EDGE_MANAGER
         .lock()
