@@ -407,7 +407,7 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
                     Some(&mut sprite.dirty_rect),
                 );
                 if rec_clip {
-                    clear_sprite = sprite.bmp.is_some();
+                    clear_sprite = sprite.bmp.is_none();
                 } else {
                     sprite.dirty_rect.width = -1;
                 }
