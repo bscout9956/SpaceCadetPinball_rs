@@ -154,14 +154,16 @@ use crate::t_drain::TDrain;
 use crate::t_flipper::TFlipper;
 use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
-use anyhow::{Result, bail};
+use anyhow::{Result, bail, Context};
 
 impl TPinballTable {
     pub fn new(state: &mut PinballState) -> Result<Rc<RefCell<Self>>> {
         let base = TPinballComponent::new(None, -1, false, &mut state.loader_state);
+        base.active_flag.set(true);
+
         let mut short_arr_length = 0;
 
-        let mut instance = Self {
+        let instance = Self {
             base,
             flipper_l: TFlipper,
             flipper_r: TFlipper,
