@@ -63,14 +63,16 @@ impl DerefMut for TCollisionComponent {
     }
 }
 
+use anyhow::Result;
+
 impl TCollisionComponent {
     pub fn new(
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         create_wall: bool,
         state: &mut PinballState,
-    ) -> Rc<RefCell<Self>> {
-        let base = TPinballComponent::new(table, group_index, true, &mut state.loader_state);
+    ) -> Result<Rc<RefCell<Self>>> {
+        let base = TPinballComponent::new(table, group_index, true, state)?;
 
         let mut visual = VisualStruct::default();
 
@@ -142,7 +144,7 @@ impl TCollisionComponent {
             }
         }
 
-        instance
+        Ok(instance)
     }
 
     pub fn default_collision(
