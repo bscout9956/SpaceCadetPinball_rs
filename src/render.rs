@@ -33,7 +33,7 @@ pub struct RenderSprite {
     z_map_offset_y: i32,
     z_map_offset_x: i32,
     dirty_rect: RectangleType,
-    occluded_sprites: Option<Vec<Option<RenderSprite>>>, // TODO: Is this really it?
+    occluded_sprites: Option<Vec<Option<RenderSprite>>>,
     bounding_rect: RectangleType,
     dirty_flag: bool,
 }
@@ -274,7 +274,11 @@ fn repaint(
                 && let Some(z_screen) = z_screen.as_mut()
                 && !sprite.delete_flag
                 && sprite.bmp.is_some()
-                && maths::rectangle_clip(&sprite.bmp_rect, &sprite.dirty_rect, Some(&mut clip_rectangle))
+                && maths::rectangle_clip(
+                    &sprite.bmp_rect,
+                    &sprite.dirty_rect,
+                    Some(&mut clip_rectangle),
+                )
                 && let Some(sprite_bmp) = sprite.bmp.as_ref()
                 && let Some(sprite_zmap) = sprite.zmap.as_ref()
             {
