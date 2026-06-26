@@ -253,8 +253,8 @@ fn edges_insert_square(
     state: &mut PbGameState,
 ) -> Result<()> {
     if let Some(edge_manager) = state.edge_manager.as_mut() {
-        let width_m = edge_manager.advance_x * 0.001f32 as i32 as f32;
-        let height_m = edge_manager.advance_y * 0.001f32 as i32 as f32;
+        let width_m = ((edge_manager.advance_x * 0.001) as i32) as f32;
+        let height_m = ((edge_manager.advance_y * 0.001) as i32) as f32;
         let x_min = x0 - width_m;
         let x_max = x1 + width_m;
         let y_min = y0 - height_m;
