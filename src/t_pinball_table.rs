@@ -222,13 +222,16 @@ impl TPinballTable {
             score_multipliers: vec![],
         };
 
-        let ball = instance.add_ball(Vector2::default(), state);
+        let table_rc = Rc::new(RefCell::new(instance));
+        let table_weak = Some(Rc::downgrade(&table_rc));
+
+        table_rc.borrow_mut().base.pinball_table = table_weak.clone();
+
+        let ball = table_rc.borrow_mut().add_ball(Vector2::default(), state).context("Failed to add ball to table")?;
         if let Some(b) = ball {
             b.borrow_mut().disable();
         }
 
-        let table_rc = Rc::new(RefCell::new(instance));
-        let table_weak = Some(Rc::downgrade(&table_rc));
         TTableLayer::new(table_weak.clone(), state)?;
 
         let light_group = TLightGroup::new(table_weak.clone(), 0, &mut state.loader_state)?;
