@@ -1,5 +1,6 @@
 use crate::gdrv::{BitmapTypes, GdrvBitmap8};
 use sdl2::sys::SDL_Texture;
+use std::fmt;
 
 #[derive(Clone)]
 pub struct ZMapHeaderType {
@@ -9,6 +10,25 @@ pub struct ZMapHeaderType {
     pub resolution: u32,
     pub z_map_data: Vec<u16>,
     pub texture: Option<SDL_Texture>,
+}
+
+impl fmt::Debug for ZMapHeaderType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ZMapHeaderType")
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .field("stride", &self.stride)
+            .field("resolution", &self.resolution)
+            .field("z_map_data", &self.z_map_data)
+            .field(
+                "texture",
+                &match &self.texture {
+                    Some(_) => "Some(SDL_Texture)",
+                    None => "None",
+                },
+            )
+            .finish()
+    }
 }
 
 unsafe impl Send for ZMapHeaderType {}
