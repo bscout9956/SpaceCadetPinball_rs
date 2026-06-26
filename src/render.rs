@@ -353,6 +353,8 @@ fn paint_balls(render_state: &mut RenderState) -> Result<()> {
                 y_pos - ball_sprite.bmp_rect.y_position,
                 ball_sprite.depth,
             )
+        } else {
+            dirty.width = -1;
         }
     }
 
@@ -430,6 +432,8 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
 
                 if rec_clip {
                     clear_sprite = true;
+                } else {
+                    sprite.dirty_rect.width = -1;
                 }
             }
             _ => {}
