@@ -42,7 +42,7 @@ impl TBall {
         table_weak: Option<Weak<RefCell<TPinballTable>>>,
         mut group_index: i32,
         state: &mut PinballState,
-    ) -> Rc<RefCell<Self>> {
+    ) -> Result<Rc<RefCell<Self>>> {
         let base_component =
             TPinballComponent::new(table_weak, group_index, false, &mut state.loader_state);
 
@@ -85,7 +85,8 @@ impl TBall {
             instance_data.collision_mask = 1;
         } else {
             instance_data.has_group_flag = true;
-            loader::query_visual(group_index, 0, &mut visual, state);
+            loader::query_visual(group_index, 0, &mut visual, state)
+                .context("Failed querying visual in TBall")?;
             instance_data.collision_mask = visual.collision_group;
             let float_arr_ptr =
                 loader::query_float_attribute_ptr(group_index, 0, 408, &mut state.loader_state)
@@ -105,28 +106,31 @@ impl TBall {
         let name_bytes = ball_group_name.as_bytes().to_vec();
 
         let c_name = CString::new(name_bytes.clone()).expect("Null byte found");
-        group_index = loader::query_handle(c_name.as_ptr(), &mut state.loader_state).unwrap();
+        group_index = loader::query_handle(c_name.as_ptr(), &mut state.loader_state)
+            .context("Failed to query handle in TBall")?;
 
         if group_index < 0 {
             let new_name = format!("ball{}", state.fullscrn_state.resolution);
 
-            let new_c_name = CString::new(new_name).unwrap();
-            group_index =
-                loader::query_handle(new_c_name.as_ptr(), &mut state.loader_state).unwrap();
+            let new_c_name =
+                CString::new(new_name).context("Failed to create new name string in TBall")?;
+            group_index = loader::query_handle(new_c_name.as_ptr(), &mut state.loader_state)
+                .context("Failed to query handle in TBall")?;
         }
 
         let radius_val =
             loader::query_float_attribute_ptr(group_index, 0, 500, &mut state.loader_state)
-                .unwrap();
+                .context("Failed to query float attribute ptr in TBall")?;
         unsafe {
             instance_data.radius = *(radius_val);
         }
 
-        let visual_count =
-            loader::query_visual_states(group_index, &mut state.loader_state).unwrap();
+        let visual_count = loader::query_visual_states(group_index, &mut state.loader_state)
+            .context("Failed to query visual state in TBall::new()")?;
 
         for index in 0..visual_count {
-            loader::query_visual(group_index, index as i32, &mut visual, state);
+            loader::query_visual(group_index, index as i32, &mut visual, state)
+                .context("Querying visual")?;
             instance_data
                 .base_component
                 .list_bitmap
@@ -137,7 +141,7 @@ impl TBall {
                 501,
                 &mut state.loader_state,
             )
-            .unwrap();
+            .context("Failed to query visual in TBall")?;
             let vis_vec_slice = slice_from_raw_parts(vis_vec_ptr, 3);
             unsafe {
                 let vis_vec = Vector3 {
@@ -160,12 +164,6 @@ impl TBall {
             &mut state.render_state,
         ));
 
-        if let Some(t_weak) = &instance_data.base_component.pinball_table {
-            if let Some(t_rc) = t_weak.upgrade() {
-                t_rc.borrow_mut().collision_comp_offset = instance_data.radius;
-            }
-        }
-
         instance_data.position.z = instance_data.radius;
         instance_data.base_component.group_index = group_index;
 
@@ -175,7 +173,7 @@ impl TBall {
 
         rc_instance.borrow_mut().base_segment.collision_component = Some(weak_rc_instance);
 
-        rc_instance
+        Ok(rc_instance)
     }
 
     pub fn disable(&mut self) {
