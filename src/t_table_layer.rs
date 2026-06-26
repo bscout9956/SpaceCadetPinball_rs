@@ -150,7 +150,7 @@ impl TTableLayer {
             gravity_mult = 0.2f32;
         }
 
-        let mut base = TCollisionComponent::new(table.clone(), -1, false, state);
+        let mut base = TCollisionComponent::new(table.clone(), -1, false, state)?;
         base.borrow_mut().threshold = visual.kicker.threshold;
         base.borrow_mut().boost = 15.0f32;
 
