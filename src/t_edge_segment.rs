@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::maths::{RayType, RectF, Vector2, Vector3};
 use crate::t_ball::TBall;
 use crate::t_collision_component::ICollisionComponent;
@@ -42,6 +43,10 @@ pub trait IEdgeSegment {
         pb_game_state: &mut PbGameState,
     ) -> Result<()>;
     fn find_collision_distance(&self, ray: &RayType) -> f32;
+    
+    fn collision_group(&self) -> u32;
+    
+    fn as_any(&self) -> &dyn Any;
 }
 
 impl IEdgeSegment for TEdgeSegment {
@@ -63,6 +68,14 @@ impl IEdgeSegment for TEdgeSegment {
 
     fn find_collision_distance(&self, ray: &RayType) -> f32 {
         todo!()
+    }
+    
+    fn collision_group(&self) -> u32 {
+        self.collision_group
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
