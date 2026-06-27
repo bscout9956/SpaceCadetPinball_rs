@@ -808,11 +808,10 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
 }
 
 pub(crate) fn launch_ball(state: &mut PinballState) -> Result<(), PbError> {
-    if let Some(table) = state.pb_game_state.main_table.as_ref() {
-        table
-            .borrow_mut()
-            .plunger
-            .message(MessageCode::PLUNGER_LAUNCH_BALL, 0.0f32)?;
+    if let Some(table) = state.pb_game_state.main_table.as_mut() {
+        let mut table_borrow = table.borrow_mut();
+        let plunger = table_borrow.plunger.as_mut().unwrap();
+        plunger.message(MessageCode::PLUNGER_LAUNCH_BALL, 0.0f32)?;
     }
 
     Ok(())
