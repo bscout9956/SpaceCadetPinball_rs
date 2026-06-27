@@ -32,6 +32,10 @@ pub struct TLightGroup {
 }
 
 impl IPinballComponent for TLightGroup {
+    fn render_sprite(&self) -> Option<&RenderSprite> {
+        self.base.render_sprite.as_ref()
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -79,6 +83,7 @@ pub enum TLightGroupError {
 }
 
 use anyhow::Result;
+use crate::render::RenderSprite;
 
 impl TLightGroup {
     pub(crate) fn new(

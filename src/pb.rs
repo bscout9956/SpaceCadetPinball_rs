@@ -642,7 +642,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
     }
 
     for ball_rc in table.ball_list.iter() {
-        let ball = ball_rc.borrow_mut();
+        let mut ball = ball_rc.borrow_mut();
         if ball.base_component.active_flag.take() {
             ball.repaint();
         }
