@@ -4,6 +4,7 @@ use crate::gdrv::{BitmapTypes, GdrvBitmap8};
 use crate::state::fullscrn_state::FullscrnState;
 use crate::zdrv;
 use crate::zdrv::ZMapHeaderType;
+use anyhow::{Context, Result};
 use base85::Error;
 use num_derive::FromPrimitive;
 use std::array;
@@ -387,19 +388,15 @@ impl DatFile {
         }
     }
 
-    pub fn finalize(
-        &mut self,
-        full_tilt: bool,
-        fullscrn_state: &mut FullscrnState,
-    ) -> Result<(), DatFileError> {
+    pub fn finalize(&mut self, full_tilt: bool, fullscrn_state: &mut FullscrnState) -> Result<()> {
         if !full_tilt {
             let group_index = self.record_labeled("pbmsg_ft");
             assert!(group_index < 0, "DatFile: pbmsg_ft is already in .dat");
         }
 
-        let rc_data = base85::decode(PB_MSGFT_BIN_COMPRESSED_DATA_BASE85)?; //TODO: use result yadda yadda
+        let rc_data = base85::decode(PB_MSGFT_BIN_COMPRESSED_DATA_BASE85).context("Failed to decode Base85 compressed data")?;
 
-        self.add_msg_font(&rc_data, "pbmsg_ft", fullscrn_state);
+        self.add_msg_font(&rc_data, "pbmsg_ft", fullscrn_state).context("Failed to add MSG font")?;
 
         for group in &mut self.groups {
             group.finalize_group();
