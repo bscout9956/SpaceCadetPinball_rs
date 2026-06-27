@@ -297,8 +297,10 @@ fn repaint(
                     clip_rectangle.y_position - ref_sprite.bmp_rect.y_position,
                     sprite_zmap,
                     // TODO: Original code does this, shouldn't it be using X X X instead of X Y X??
-                    clip_rectangle.x_position + ref_sprite.z_map_offset_y - ref_sprite.bmp_rect.x_position,
-                    clip_rectangle.y_position + ref_sprite.z_map_offset_x - ref_sprite.bmp_rect.y_position,
+                    clip_rectangle.x_position + ref_sprite.z_map_offset_y
+                        - ref_sprite.bmp_rect.x_position,
+                    clip_rectangle.y_position + ref_sprite.z_map_offset_x
+                        - ref_sprite.bmp_rect.y_position,
                 );
             }
         }
