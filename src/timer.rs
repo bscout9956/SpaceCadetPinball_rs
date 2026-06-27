@@ -46,7 +46,7 @@ pub enum TimerError {
 }
 
 pub fn init(count: i32) -> Result<(), TimerError> {
-    let mut data_buffer = Vec::with_capacity(count as usize);
+    let mut data_buffer: Vec<TimerStruct>;
 
     data_buffer = (0..count).map(|_| TimerStruct::new()).collect();
 

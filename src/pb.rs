@@ -754,7 +754,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
             if let Some(table) = state.pb_game_state.main_table.as_ref() {
                 let table_rc = table.clone();
                 let col_comp_offset = table_rc.borrow().collision_comp_offset * 1.2f32;
-                let ball_count = table_rc.borrow().ball_count_in_rect(pos, col_comp_offset);
+                let ball_count = table_rc.borrow().ball_count_in_rect(&pos, col_comp_offset);
 
                 if ball_count == 0 {
                     let was_added = table_rc
