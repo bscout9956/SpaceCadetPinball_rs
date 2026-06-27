@@ -183,9 +183,31 @@ impl TBall {
         self.base_component.sprite_set(-1);
     }
 
-    // TODO: Is this part of a trait?
-    pub(crate) fn repaint(&self) {
-        todo!()
+    pub(crate) fn repaint(&mut self) {
+        if self.collision_flag > 0 {
+            self.position.z = self.collision_offset.x * self.position.x
+                + self.collision_offset.y * self.position.y
+                + self.radius
+                + self.collision_offset.z;
+        }
+
+        let pos = Vector2 {
+            x: self.position.x,
+            y: self.position.y,
+        };
+        let pos_2d = proj::x_form_to_2d(&pos);
+        let z_depth = proj::z_distance(&self.position);
+
+        let mut index_set = 0;
+        for index in 0..self.base_component.list_bitmap.len() - 1 {
+            if self.visual_z_array[index] <= z_depth {
+                index_set += 1;
+                break;
+            }
+        }
+
+        self.base_component
+            .sprite_set_ball(index_set, pos_2d, z_depth);
     }
 }
 
