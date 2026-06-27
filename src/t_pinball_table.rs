@@ -1,5 +1,5 @@
 use crate::errors::LoaderError;
-use crate::maths::{Vector2, Vector2i, Vector3};
+use crate::maths::{RectF, Vector2, Vector2i, Vector3};
 use crate::message_code::MessageCode;
 use crate::score::ScoreStruct;
 use crate::state::pinball_state::PinballState;
@@ -127,8 +127,31 @@ impl TPinballTable {
 }
 
 impl TPinballTable {
-    pub(crate) fn ball_count_in_rect(&self, p0: Vector2, p1: f32) -> i32 {
-        todo!()
+    fn ball_count_in_rect_base(&self, rect: &RectF) -> i32 {
+        let mut count = 0;
+        for ball in self.ball_list.iter() {
+            let ball_borrow = ball.borrow();
+            if ball_borrow.base_component.active_flag.get()
+                && ball_borrow.position.x >= rect.x_min
+                && ball_borrow.position.y >= rect.y_min
+                && ball_borrow.position.x <= rect.x_max
+                && ball_borrow.position.y <= rect.y_max
+            {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub(crate) fn ball_count_in_rect(&self, pos: &Vector2, margin: f32) -> i32 {
+        let rect = RectF {
+            x_min: pos.x - margin,
+            x_max: pos.x + margin,
+            y_min: pos.y - margin,
+            y_max: pos.y + margin,
+        };
+
+        self.ball_count_in_rect_base(&rect)
     }
 }
 
@@ -150,12 +173,12 @@ pub enum PinballTableError {
     TTableLayerError(#[from] TTableLayerError),
 }
 
+use crate::render::RenderSprite;
 use crate::t_drain::TDrain;
 use crate::t_flipper::TFlipper;
 use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
-use anyhow::{Result, bail, Context};
-use crate::render::RenderSprite;
+use anyhow::{Context, Result, bail};
 
 impl TPinballTable {
     pub fn new(state: &mut PinballState) -> Result<Rc<RefCell<Self>>> {
@@ -228,7 +251,10 @@ impl TPinballTable {
 
         table_rc.borrow_mut().base.pinball_table = table_weak.clone();
 
-        let ball = table_rc.borrow_mut().add_ball(Vector2::default(), state).context("Failed to add ball to table")?;
+        let ball = table_rc
+            .borrow_mut()
+            .add_ball(Vector2::default(), state)
+            .context("Failed to add ball to table")?;
         if let Some(b) = ball {
             b.borrow_mut().disable();
         }
