@@ -18,7 +18,6 @@ use dear_imgui_rs::sys::{
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use sdl2::sys::SDL_GameControllerButton::*;
-use sdl2::sys::SDL_KeyCode::*;
 use sdl2::sys::*;
 use std::cmp::{PartialEq, PartialOrd, max};
 use std::collections::HashMap;
@@ -89,7 +88,7 @@ impl GameInput {
         Self { input_type, value }
     }
     pub unsafe fn get_full_input_description(&self) -> String {
-        let mut prefix = String::new();
+        let prefix;
         match self.input_type {
             InputTypes::None => {
                 return String::from("Unused");
@@ -355,7 +354,7 @@ impl ControlOption {
     }
 
     pub fn get_shortcut_description(&self) -> String {
-        let mut result: String = String::new();
+        let result: String = String::new();
         for input in self.inputs {
             if input.input_type != InputTypes::None {
                 return unsafe { input.get_short_input_description() };
@@ -760,7 +759,7 @@ pub unsafe extern "C" fn MyUserData_ReadLine(
     }
 }
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, unused_variables)]
 pub unsafe extern "C" fn MyUserData_ReadOpen(
     ctx: *mut ImGuiContext,
     handler: *mut ImGuiSettingsHandler,
@@ -775,7 +774,7 @@ pub unsafe extern "C" fn MyUserData_ReadOpen(
     }
 }
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, unused_variables)]
 pub unsafe extern "C" fn MyUserData_WriteAll(
     ctx: *mut ImGuiContext,
     handler: *mut ImGuiSettingsHandler,
