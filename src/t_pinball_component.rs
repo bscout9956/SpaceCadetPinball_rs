@@ -29,6 +29,7 @@ pub struct TPinballComponent {
 }
 
 pub trait IPinballComponent {
+    fn render_sprite(&self) -> Option<&RenderSprite>;
     fn as_any(&self) -> &dyn Any;
     fn group_name(&self) -> Option<String>;
     fn group_index(&self) -> i32;
@@ -160,6 +161,10 @@ impl Drop for TPinballComponent {
 }
 
 impl IPinballComponent for TPinballComponent {
+    fn render_sprite(&self) -> Option<&RenderSprite> {
+        self.render_sprite.as_ref()
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }
