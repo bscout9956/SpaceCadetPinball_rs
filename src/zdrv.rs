@@ -120,6 +120,7 @@ pub fn flip_zmap_horizontally(zmap: &mut ZMapHeaderType) {
 }
 
 // TODO: Check
+// Check what?
 pub fn paint_flat(
     width: i32,
     height: i32,
