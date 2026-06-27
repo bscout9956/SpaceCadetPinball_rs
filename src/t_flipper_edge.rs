@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::maths::*;
 use crate::message_code::MessageCode;
 use crate::t_ball::TBall;
@@ -74,5 +75,13 @@ impl IEdgeSegment for TFlipperEdge {
 
     fn find_collision_distance(&self, ray: &RayType) -> f32 {
         todo!()
+    }
+
+    fn collision_group(&self) -> u32 {
+        todo!()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
