@@ -248,10 +248,6 @@ pub fn split_sliced_bitmap(
     let mut src_idx = 0;
     let mut dst_idx = 0;
 
-    // This was translated by an LLM,
-    // go look at the original code
-    // if you think you can make sense of it...
-    // TODO: Rewrite this by hand like I did flip_zmap_horizontally?
     loop {
         if src_idx + 2 > src.len() {
             break;
@@ -394,9 +390,11 @@ impl DatFile {
             assert!(group_index < 0, "DatFile: pbmsg_ft is already in .dat");
         }
 
-        let rc_data = base85::decode(PB_MSGFT_BIN_COMPRESSED_DATA_BASE85).context("Failed to decode Base85 compressed data")?;
+        let rc_data = base85::decode(PB_MSGFT_BIN_COMPRESSED_DATA_BASE85)
+            .context("Failed to decode Base85 compressed data")?;
 
-        self.add_msg_font(&rc_data, "pbmsg_ft", fullscrn_state).context("Failed to add MSG font")?;
+        self.add_msg_font(&rc_data, "pbmsg_ft", fullscrn_state)
+            .context("Failed to add MSG font")?;
 
         for group in &mut self.groups {
             group.finalize_group();
