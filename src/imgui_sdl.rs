@@ -465,7 +465,7 @@ pub struct ImplSdl2UserData {
     mouse_buttons_down: i32,
     cursor: [*mut SDL_Cursor; ImGuiMouseCursor_COUNT as usize],
     pending_mouse_leave_frame: i32,
-    clipboard_text_data: *mut c_char, // TODO: Why is this unused?
+    clipboard_text_data: *mut c_char,
     mouse_can_use_global_state: bool,
 }
 
