@@ -2,6 +2,7 @@ use crate::message_code::MessageCode;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use std::any::Any;
 use crate::maths::{Vector2, Vector2i};
+use crate::render::RenderSprite;
 
 pub struct TlightPlayerBackup {
     message_field: i32,
@@ -31,6 +32,10 @@ pub struct TLight {
 }
 
 impl IPinballComponent for TLight {
+    fn render_sprite(&self) -> Option<&RenderSprite> {
+        self.base.render_sprite.as_ref()
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }
