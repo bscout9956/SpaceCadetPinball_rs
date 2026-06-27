@@ -7,11 +7,13 @@ use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use crate::{loader, proj};
+use std::any::Any;
 use std::cell::{Cell, RefCell};
 use std::ffi::CString;
 use std::ptr::slice_from_raw_parts;
 use std::rc::{Rc, Weak};
 
+#[derive(Clone)]
 pub struct TBall {
     pub base_component: TPinballComponent,
     pub base_segment: TEdgeSegment,
