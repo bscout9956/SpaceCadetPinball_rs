@@ -1,7 +1,107 @@
 use crate::errors::PbError;
+use crate::loader;
+use crate::loader::VisualStruct;
+use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
+use crate::state::pinball_state::PinballState;
+use crate::t_ball::TBall;
+use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
+use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
+use crate::t_pinball_table::TPinballTable;
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
 
-pub struct TPlunger;
+pub struct TPlunger {
+    base: TCollisionComponent,
+    pub pullback_timer_: i32,
+    pub ballfeed_timer_: i32,
+    pub max_pull_back: f32,
+    pub pullback_increment: f32,
+    pub pullback_delay: f32,
+    pub sound_index_p1: i32,
+    pub sound_index_p2: i32,
+    pub pullback_started_flag: bool,
+    pub some_counter: i32, // really?
+}
+
+impl ICollisionComponent for TPlunger {
+    fn collision(
+        &mut self,
+        ball: &mut TBall,
+        next_position: &Vector2,
+        direction: &mut Vector2,
+        distance: f32,
+        edge: &TEdgeSegment,
+        time_ticks: usize,
+    ) {
+        todo!()
+    }
+
+    fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
+        &mut self.base.edge_list
+    }
+
+    fn set_AABB(&mut self, aabb: RectF) {
+        self.base.set_AABB(aabb);
+    }
+
+    fn get_AABB(&self) -> Option<RectF> {
+        self.base.get_AABB()
+    }
+}
+
+use anyhow::Result;
+
+impl TPlunger {
+    pub(crate) fn new(
+        table: Option<Weak<RefCell<TPinballTable>>>,
+        group_index: i32,
+        state: &mut PinballState,
+    ) -> Result<Self> {
+        let mut visual: VisualStruct = VisualStruct::default();
+
+        let base = TCollisionComponent::new(table, group_index, true, state)?;
+        let mut owned_comp = Rc::unwrap_or_clone(base).into_inner();
+        loader::query_visual(group_index, 0, &mut visual, state)?;
+        owned_comp.hard_hit_sound_id = visual.kicker.hard_hit_sound_id;
+        owned_comp.threshold = 1000000000.0;
+        owned_comp.elasticity = 0.5;
+        owned_comp.smoothness = 0.5;
+
+        let mut instance = Self {
+            base: owned_comp,
+            pullback_timer_: 0,
+            ballfeed_timer_: 0,
+            max_pull_back: 0.0,
+            pullback_increment: 0.0,
+            pullback_delay: 0.025,
+            sound_index_p1: visual.sound_index_4,
+            sound_index_p2: visual.sound_index_3,
+            pullback_started_flag: false,
+            some_counter: 0,
+        };
+
+        if state.pb_game_state.full_tilt_mode {
+            instance.max_pull_back = 50.0f32;
+            instance.pullback_increment = 50.0f32 / instance.base.list_bitmap.len() as f32 * 8.0f32;
+        } else {
+            instance.max_pull_back = 100.0f32;
+            instance.pullback_increment =
+                f32::floor(100.0f32 / instance.base.list_bitmap.len() as f32 * 8.0f32);
+        }
+
+        let float_arr =
+            loader::query_float_attribute_ptr(group_index, 0, 601, &mut state.loader_state)?;
+        unsafe {
+            let (pos_x, pos_y) = ((*float_arr), (*float_arr.add(1))); // Lazy
+            if let Some(t) = state.pb_game_state.main_table.as_ref() {
+                t.borrow_mut().plunger_position = Vector2 { x: pos_x, y: pos_y };
+            }
+        }
+
+        Ok(instance)
+    }
+}
 
 impl TPlunger {
     pub(crate) fn message(&self, code: MessageCode, x: f32) -> anyhow::Result<(), PbError> {
