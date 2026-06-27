@@ -155,6 +155,7 @@ use crate::t_flipper::TFlipper;
 use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
 use anyhow::{Result, bail, Context};
+use crate::render::RenderSprite;
 
 impl TPinballTable {
     pub fn new(state: &mut PinballState) -> Result<Rc<RefCell<Self>>> {
@@ -389,6 +390,10 @@ impl TPinballTable {
 }
 
 impl IPinballComponent for TPinballTable {
+    fn render_sprite(&self) -> Option<&RenderSprite> {
+        self.base.render_sprite.as_ref()
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }
