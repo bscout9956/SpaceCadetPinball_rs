@@ -3,6 +3,7 @@ use crate::t_ball::TBall;
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::{maths, t_table_layer};
+use std::any::Any;
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 use thiserror::Error;
@@ -145,6 +146,14 @@ impl IEdgeSegment for TLine {
 
     fn find_collision_distance(&self, ray: &RayType) -> f32 {
         todo!()
+    }
+
+    fn collision_group(&self) -> u32 {
+        self.base.collision_group
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
