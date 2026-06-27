@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::maths::{CircleType, RayType, RectF, Vector2};
 use crate::t_ball::TBall;
 use crate::t_collision_component::ICollisionComponent;
@@ -44,6 +45,15 @@ impl IEdgeSegment for TCircle {
     }
 
     fn find_collision_distance(&self, ray: &RayType) -> f32 {
+        todo!()
+    }
+
+    fn collision_group(&self) -> u32 {
+        // TODO: What the actual fuck
+        self.base.upgrade().unwrap().borrow().collision_group()
+    }
+
+    fn as_any(&self) -> &dyn Any {
         todo!()
     }
 }
