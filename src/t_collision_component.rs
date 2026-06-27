@@ -64,6 +64,7 @@ impl DerefMut for TCollisionComponent {
 }
 
 use anyhow::Result;
+use crate::render::RenderSprite;
 
 impl TCollisionComponent {
     pub fn new(
@@ -262,6 +263,10 @@ impl ICollisionComponent for TCollisionComponent {
 }
 
 impl IPinballComponent for TCollisionComponent {
+    fn render_sprite(&self) -> Option<&RenderSprite> {
+        self.render_sprite.as_ref()
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }
