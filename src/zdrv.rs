@@ -83,7 +83,7 @@ pub fn fill(
         let mut x = width;
         while x > 0 {
             if dst_ptr > zmap.z_map_data.len() {
-                bail!("Destination index out of bounds");
+                bail!("Destination index out of bounds: {} >= {}", dst_ptr, zmap.z_map_data.len());
             }
 
             zmap.z_map_data[dst_ptr] = fill_pattern;
