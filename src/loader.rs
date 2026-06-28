@@ -809,20 +809,22 @@ pub fn query_visual(
     group_index_offset: i32,
     visual: &mut VisualStruct,
     state: &mut PinballState,
-) -> Result<i32, LoaderError> {
+) -> Result<i32> {
     default_vsi(visual);
     if group_index < 0 {
-        return Ok(error(0, 18));
+        return Ok(error(0, 18)?);
     }
     let state_id = state_id(group_index, group_index_offset, &mut state.loader_state)?;
     if state_id < 0 {
-        return Ok(error(16, 18));
+        return Ok(error(16, 18)?);
     }
 
     let mut short_array_data = Vec::new();
+    let mut float_array_data = Vec::new();
+    let mut float_arr_count = 0;
 
     if let Some(table_arc) = state.loader_state.loader_table.as_ref() {
-        let loader_table = table_arc.read().unwrap();
+        let loader_table = table_arc.read().map_err(|_| LoaderError::TableLock)?;
 
         let bmp = loader_table
             .get_bitmap(state_id, state.fullscrn_state.resolution)
@@ -839,6 +841,13 @@ pub fn query_visual(
             Some(EntryBuffer::Raw(data)) => data.to_vec(),
             _ => vec![],
         };
+
+        float_array_data = match loader_table.field(state_id, FieldTypes::FloatArray) {
+            Some(EntryBuffer::Raw(data)) => data.to_vec(),
+            _ => vec![],
+        };
+
+        float_arr_count = loader_table.field_size(state_id, FieldTypes::FloatArray) / 4 / 2 - 2;
     }
 
     if !short_array_data.is_empty() {
@@ -856,7 +865,7 @@ pub fn query_visual(
             match id {
                 100 => {
                     if group_index_offset > 0 {
-                        return Ok(error(7, 18));
+                        return Ok(error(7, 18)?);
                     }
                 }
                 300 => {
@@ -868,7 +877,7 @@ pub fn query_visual(
                         &mut state.sound_state,
                     )? != 0
                     {
-                        return Ok(error(15, 18));
+                        return Ok(error(15, 18)?);
                     }
                 }
                 304 => {
@@ -891,7 +900,7 @@ pub fn query_visual(
                         &mut state.sound_state,
                     )? != 0
                     {
-                        return Ok(error(14, 18));
+                        return Ok(error(14, 18)?);
                     }
                 }
                 406 => {
@@ -927,7 +936,7 @@ pub fn query_visual(
                     i += 14;
                 }
                 _ => {
-                    return Ok(error(9, 18));
+                    return Ok(error(9, 18)?);
                 }
             }
             // Advance by 4 bytes to reach the next id/value pair
@@ -939,54 +948,31 @@ pub fn query_visual(
         visual.collision_group = 1;
     }
 
-    let table_arc = state.loader_state.loader_table.as_ref().unwrap();
-    let loader_table = table_arc.read().unwrap();
-
-    let float_array_data = match loader_table.field(state_id, FieldTypes::FloatArray) {
-        Some(EntryBuffer::Raw(float_array_data)) => float_array_data,
-        _ => &vec![],
-    };
     if !float_array_data.is_empty() {
-        let float_val = f32::from_le_bytes([
-            float_array_data[0],
-            float_array_data[1],
-            float_array_data[2],
-            float_array_data[3],
-        ]);
+        let floats: Vec<f32> = float_array_data
+            .chunks_exact(4)
+            .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+            .collect();
 
-        if float_val != 600.0 {
+        if floats.is_empty() || floats[0] != 600.0 {
             return Ok(0);
         }
 
-        visual.float_arr_count =
-            loader_table.field_size(state_id, FieldTypes::FloatArray) / 4 / 2 - 2;
+        visual.float_arr_count = float_arr_count;
 
-        let float_int = (f32::from_le_bytes([
-            float_array_data[4],
-            float_array_data[5],
-            float_array_data[6],
-            float_array_data[7],
-        ])
-        .floor()
-            - 1.0) as i32;
-        match float_int {
+        let float_pair_count = (floats[1].floor() - 1.0f32) as i32;
+        match float_pair_count {
             0 => visual.float_arr_count = 1,
             1 => visual.float_arr_count = 2,
             _ => {
-                if float_int != visual.float_arr_count {
-                    return Ok(error(8, 18));
+                if float_pair_count != visual.float_arr_count {
+                    return error(8, 18);
                 }
             }
         }
 
-        let num_floats = (visual.float_arr_count * 2) as usize + 2;
-        let mut arr = Vec::with_capacity(num_floats);
-        for i in 0..num_floats {
-            let base = 8 + (i * 4);
-            let val = f32::from_le_bytes(float_array_data[base..base + 4].try_into().unwrap());
-            arr.push(val);
-        }
-        visual.float_arr = arr;
+        let limit = (float_pair_count as usize + 2) * 2; // cnt = 10? limit: 12?
+        visual.float_arr = floats[2..limit].to_vec();
     }
 
     Ok(0)
