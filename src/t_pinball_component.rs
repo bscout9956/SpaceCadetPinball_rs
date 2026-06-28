@@ -69,7 +69,7 @@ impl TPinballComponent {
 
         if let Some(table_result) = table {
             instance.pinball_table = Some(table_result)
-            // TODO: table.component_list.push_back();
+            // TODO: IMPORTANT: PLEASE: table.component_list.push_back();
         }
 
         if group_index >= 0 {

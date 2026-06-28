@@ -316,7 +316,15 @@ impl TPinballTable {
                         1000 | 1010 => {
                             let _ = TWall::new(table_weak.clone(), group_index as i32, state);
                         }
+                        1001 => {
+                            let plunger =
+                                TPlunger::new(table_weak.clone(), group_index as i32, state)
+                                    .context("Failed to create plunger")?;
+                            table_rc.borrow_mut().plunger = Some(plunger);
+                            break;
+                        }
                         _ => {
+                            // TODO: Implement the rest of the objects
                             println!("Unimplemented/unknown object type: {}", object_type);
                         }
                     }
