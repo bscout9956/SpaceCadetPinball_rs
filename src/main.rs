@@ -1691,7 +1691,7 @@ fn space_cadet_pinball() -> Result<(), Box<dyn Error>> {
             let font_cfg = FontConfig::new().oversample_v(2).oversample_h(4);
 
             let pref_path_string =
-                CStr::from_ptr(pref_path).to_string_lossy().into_owned() + "imgui_pb.ini";
+                CStr::from_ptr(pref_path).to_string_lossy().into_owned() + "imgui_pb_rs.ini";
             let ini_path = PathBuf::from(pref_path_string);
 
             imgui_context
