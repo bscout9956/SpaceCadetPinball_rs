@@ -12,7 +12,8 @@ bytemuck = "1.25.0"
 thiserror = "2.0.18"
 base85 = "2.0.0"
 rand = "0.10.1"
-anyhow = "1.0.102"
+anyhow = { version = "1.0.103", features = ["backtrace"]}
+log = "0.4.32"
 
 # [lints.clippy]
 # pedantic = "warn"
