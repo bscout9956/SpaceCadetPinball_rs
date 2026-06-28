@@ -589,7 +589,7 @@ pub enum FlipperIntersect {
 
 use anyhow::Result;
 
-pub(crate) fn f32_vec_to_vec2(f32_vec: &Vec<f32>) -> Result<Vec<Vector2>> {
+pub(crate) fn f32_vec_to_vec2(f32_vec: &[f32]) -> Result<Vec<Vector2>> {
     if f32_vec.is_empty() || !f32_vec.len().is_multiple_of(2) {
         bail!(MathsError::IncorrectF32VecSize(f32_vec.len()));
     }
