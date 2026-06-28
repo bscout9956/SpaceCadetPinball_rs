@@ -1,20 +1,18 @@
 extern crate core;
 
 use crate::embedded_data::load_controller_db;
-use crate::gdrv::GdrvBitmap8;
 use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPlayers};
 use crate::options::{DEF_FPS, DEF_UPS, GameBindings, GameInput, InputTypes, Menu};
 use crate::pb::get_rc_string_cstring;
-use crate::score::ScoreStruct;
 use crate::translations::Msg;
 use crate::utils::{SdlRendererPtr, SdlWindowPtr};
 use anyhow::{Context, Result, bail};
 use dear_imgui_rs::sys::{
     ImGuiFocusRequestFlags_None, ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp,
     ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, ImWchar, igBeginMainMenuBar, igBeginMenu,
-    igDestroyContext, igDragFloat, igEnd, igEndMainMenuBar, igEndMenu, igFocusWindow,
-    igGetDrawData, igGetWindowSize, igMenuItem_Bool, igPopStyleVar, igPushStyleVar_Vec2, igRender,
-    igSeparator, igSetMouseCursor, igSliderInt, igTextUnformatted,
+    igDragFloat, igEnd, igEndMainMenuBar, igEndMenu, igFocusWindow, igGetDrawData, igGetWindowSize,
+    igMenuItem_Bool, igPopStyleVar, igPushStyleVar_Vec2, igRender, igSeparator, igSetMouseCursor,
+    igSliderInt, igTextUnformatted,
 };
 use dear_imgui_rs::{ConfigFlags, FontConfig, StyleColor, StyleVar, Ui};
 use errors::MainLoopError;
@@ -42,7 +40,7 @@ use state::options_state::OptionsState;
 use state::pinball_state::PinballState;
 use std::env;
 use std::error::Error;
-use std::ffi::{CStr, CString, c_int};
+use std::ffi::{CStr, CString, c_char, c_int};
 use std::mem::MaybeUninit;
 use std::ops::{Mul, Neg, Sub};
 use std::path::PathBuf;
@@ -357,10 +355,10 @@ fn main_loop(
                         SDL_SetWindowTitle(window.0, c_str_title.as_ptr());
                     };
                 } else {
-                    return bail!(MainLoopError::NullWindow);
+                    bail!(MainLoopError::NullWindow);
                 }
 
-                (&mut pb_state.main_state).update_fps_details(&title);
+                pb_state.main_state.update_fps_details(&title);
                 update_count = 0;
                 frame_counter = update_count;
                 prev_time = cur_time;
@@ -382,7 +380,7 @@ fn main_loop(
                 if let Some(window) = pb_state.main_state.main_window.as_ref() {
                     SDL_GetWindowSize(window.0, &mut w, &mut h);
                 } else {
-                    return bail!(MainLoopError::NullWindow);
+                    bail!(MainLoopError::NullWindow);
                 }
             }
             let dx = (pb_state.main_state.last_mouse_x - x) as f32 / w as f32;
@@ -476,7 +474,7 @@ fn main_loop(
                 if let Some(renderer) = pb_state.main_state.renderer.as_mut() {
                     SDL_RenderPresent(renderer.0);
                 } else {
-                    panic!("No renderer")
+                    bail!("No renderer present");
                 }
 
                 frame_counter += 1;
@@ -570,7 +568,7 @@ fn main_loop(
     Ok(())
 }
 
-unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool, MainLoopError> {
+unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool> {
     let mut reset_options = false;
     unsafe {
         let menu_string = pb::get_rc_string_cstring(Msg::Menu1Options)?;
@@ -595,8 +593,9 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool, MainLoop
                     *state.options_state.options.players == 1,
                     true,
                 ) {
-                    options::toggle(OnePlayer, state);
-                    new_game(state)?;
+                    options::toggle(OnePlayer, state)
+                        .context("Failed to toggle One Player state")?;
+                    new_game(state).context("Failed to start new game")?;
                 }
 
                 if igMenuItem_Bool(
@@ -605,8 +604,8 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool, MainLoop
                     *state.options_state.options.players == 2,
                     true,
                 ) {
-                    options::toggle(TwoPlayers, state);
-                    new_game(state)?;
+                    options::toggle(TwoPlayers, state).context("Failed to toggle two players")?;
+                    new_game(state).context("Failed to start new game")?;
                 }
 
                 if igMenuItem_Bool(
@@ -615,8 +614,9 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool, MainLoop
                     *state.options_state.options.players == 3,
                     true,
                 ) {
-                    options::toggle(ThreePlayers, state);
-                    new_game(state)?;
+                    options::toggle(ThreePlayers, state)
+                        .context("Failed to toggle three players")?;
+                    new_game(state).context("Failed to start new game")?;
                 }
 
                 if igMenuItem_Bool(
@@ -676,7 +676,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool, MainLoop
     }
 }
 
-unsafe fn create_graphics_menu(state: &mut PinballState) -> Result<(), MainLoopError> {
+unsafe fn create_graphics_menu(state: &mut PinballState) -> Result<()> {
     unsafe {
         if igBeginMenu(c"Graphics".as_ptr(), true) {
             let scale_str = get_rc_string_cstring(Msg::Menu1WindowUniformScale)?;
@@ -686,7 +686,8 @@ unsafe fn create_graphics_menu(state: &mut PinballState) -> Result<(), MainLoopE
                 *state.options_state.options.uniform_scaling,
                 true,
             ) {
-                options::toggle(Menu::WindowUniformScale, state);
+                options::toggle(Menu::WindowUniformScale, state)
+                    .context("Failed to toggle WindowUniformScale state")?;
             }
             if igMenuItem_Bool(
                 c"Linear Filtering".as_ptr(),
@@ -694,7 +695,8 @@ unsafe fn create_graphics_menu(state: &mut PinballState) -> Result<(), MainLoopE
                 *state.options_state.options.linear_filtering,
                 true,
             ) {
-                options::toggle(Menu::WindowLinearFilter, state);
+                options::toggle(Menu::WindowLinearFilter, state)
+                    .context("Failed to toggle WindowLinearFilter state")?;
             }
 
             if igMenuItem_Bool(
@@ -703,7 +705,8 @@ unsafe fn create_graphics_menu(state: &mut PinballState) -> Result<(), MainLoopE
                 *state.options_state.options.integer_scaling,
                 true,
             ) {
-                options::toggle(Menu::WindowIntegerScale, state);
+                options::toggle(Menu::WindowIntegerScale, state)
+                    .context("Failed to toggle WindowIntegerScale state")?;
             }
 
             if igDragFloat(
@@ -808,8 +811,8 @@ unsafe fn create_graphics_menu(state: &mut PinballState) -> Result<(), MainLoopE
     Ok(())
 }
 
-fn new_game(state: &mut PinballState) -> Result<(), MainLoopError> {
-    end_pause(state)?;
+fn new_game(state: &mut PinballState) -> Result<()> {
+    end_pause(state).context("Failed to end pause")?;
     pb::replay_level(false, state)?;
     Ok(())
 }
@@ -1325,9 +1328,9 @@ pub fn restart(main_state: &mut MainState) {
     }
 }
 
-fn pause(toggle: bool, state: &mut PinballState) -> Result<(), MainLoopError> {
+fn pause(toggle: bool, state: &mut PinballState) -> Result<()> {
     if toggle || !state.main_state.single_step {
-        pb::pause_continue(state)?;
+        pb::pause_continue(state).context("Failed to pause_continue while trying to pause:")?;
         state.main_state.no_time_loss = true;
     }
     Ok(())
@@ -1345,7 +1348,7 @@ fn process_window_messages(
         unsafe {
             while SDL_PollEvent(event.as_mut_ptr()) > 0 {
                 // TODO: Should we be using idle_wait for something?
-                if event_handler(event.as_mut_ptr(), imgui_context, state)? == false {
+                if !event_handler(event.as_mut_ptr(), imgui_context, state)? {
                     return Ok(false);
                 }
             }
@@ -1487,21 +1490,15 @@ unsafe fn event_handler(
     Ok(true)
 }
 
-fn end_pause(state: &mut PinballState) -> Result<(), MainLoopError> {
+fn end_pause(state: &mut PinballState) -> Result<()> {
     if state.main_state.single_step {
-        pb::pause_continue(state)?;
+        pb::pause_continue(state).context("Failed to end pause:")?;
         state.main_state.no_time_loss = true;
     }
     Ok(())
 }
 
-fn main_wrapper() -> Result<()> {
-    println!("Size: {}", std::mem::size_of::<GdrvBitmap8>());
-    println!(
-        "Size of ScoreStruct: {}",
-        std::mem::size_of::<ScoreStruct>()
-    );
-
+fn space_cadet_pinball() -> Result<(), Box<dyn Error>> {
     let mut state = PinballState::new();
 
     println!("Game version: {}", VERSION);
@@ -1536,7 +1533,8 @@ fn main_wrapper() -> Result<()> {
                 "Could not initialize SDL2",
                 SDL_GetError(),
                 &state.main_state.main_window,
-            );
+            )
+            .context("Failed to show message box")?;
             println!("OOPS!! No init, closing");
             exit(1);
         }
@@ -1572,7 +1570,8 @@ fn main_wrapper() -> Result<()> {
                 "Could not create window",
                 SDL_GetError(),
                 &state.main_state.main_window,
-            );
+            )
+            .context("Failed to show message box")?;
             println!("Could not create window");
             exit(1);
         }
@@ -1602,7 +1601,8 @@ fn main_wrapper() -> Result<()> {
                 "Could not create renderer",
                 SDL_GetError(),
                 &state.main_state.main_window,
-            );
+            )
+            .context("Failed to show message box")?;
             println!("Could not create renderer, is null");
             exit(1);
         }
@@ -1680,11 +1680,11 @@ fn main_wrapper() -> Result<()> {
         let mut reset_all_options = env::args().any(|arg| arg.contains("-reset"));
 
         println!("Entering loop");
+        let mut imgui_context = dear_imgui_rs::Context::create();
+
         loop {
             state.main_state.restart = false;
-
             // ImGUi Init
-            let mut imgui_context = dear_imgui_rs::Context::create();
             let io = imgui_context.io_mut();
             let mut cfg_flags = io.config_flags();
 
@@ -1755,104 +1755,19 @@ fn main_wrapper() -> Result<()> {
 
             cfg_flags |= ConfigFlags::NAV_ENABLE_KEYBOARD | ConfigFlags::NAV_ENABLE_GAMEPAD;
 
-            // Data search order: WD, executable path, user pref path, platform specific paths.
-            let search_paths: Vec<&str> = vec![
-                "",
-                CStr::from_ptr(base_path)
-                    .to_str()
-                    .context("Failed to grab string from ptr for base_path")?,
-                CStr::from_ptr(pref_path)
-                    .to_str()
-                    .context("Failed to grab string from ptr for pref_path")?,
-            ];
-
-            #[cfg(not(target_os = "windows"))]
-            search_paths.extend_from_slice(&PLATFORM_DATA_PATHS);
-            pb::select_dat_file(
-                &search_paths,
-                &mut state.options_state,
-                &mut state.pb_game_state,
-            );
-
-            // Second step: run updates that depend on .DAT file selection
-            options::init_secondary(
-                &mut state.options_state,
-                &mut state.pb_game_state,
-                &mut state.fullscrn_state,
-            )
-            .context("Failed to initialize secondary options")?;
-
-            println!("Init for sound");
-            sound::init(
+            let session_result = run_game_session(
+                &mut imgui_context,
+                &mut state,
+                window,
+                base_path,
+                pref_path,
                 mix_opened,
-                *state.options_state.options.sound_channels,
-                *state.options_state.options.sounds,
-                *state.options_state.options.sound_volume,
-                &mut state.sound_state,
             );
-            if !mix_opened {
-                *state.options_state.options.sounds = false;
-            }
 
-            println!("Init for pb");
-            if !pb::init(&mut state).context("Failed to initialize pb")? {
-                let mut message = String::from(
-                    "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
-                );
-                for path in search_paths {
-                    let str_push = if !path.is_empty() {
-                        path
-                    } else {
-                        "working directory\n"
-                    };
-                    message += str_push;
-                }
-                println!("Could not load game data");
-                pb::show_message_box(
-                    SDL_MESSAGEBOX_ERROR,
-                    "Could not load game data",
-                    &message,
-                    &state.main_state.main_window,
-                )?;
+            if let (Err(e)) = session_result {
+                eprintln!("Error during main game logic: {:?}", e);
                 exit(1);
             }
-
-            fullscrn::init(&mut state)?;
-            println!("Init for fullscrn, successful");
-
-            pb::reset_table(&mut state.pb_game_state)?;
-            pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state)?;
-            println!("First time setup done");
-
-            let fullscreen = env::args().any(|arg| arg == "-fullscreen");
-            if fullscreen {
-                *state.options_state.options.full_screen = true;
-            }
-
-            let res_val = state.fullscrn_state.resolution;
-            if !*state.options_state.options.full_screen {
-                let res_info = &state.fullscrn_state.resolution_array[res_val as usize];
-                SDL_SetWindowSize(
-                    window,
-                    res_info.table_width as c_int,
-                    res_info.table_height as c_int,
-                );
-            }
-            SDL_ShowWindow(window);
-            fullscrn::set_screen_mode(
-                *state.options_state.options.full_screen,
-                &mut state.fullscrn_state,
-                &mut state.main_state.main_window,
-            );
-
-            let is_demo = env::args().any(|arg| arg == "-demo");
-            if is_demo {
-                pb::toggle_demo(&mut state)?;
-            } else {
-                pb::replay_level(false, &mut state)?;
-            }
-
-            main_loop(&mut imgui_context, &mut state)?;
 
             options::uninit(&mut state.options_state);
             // TODO: Implement sound midi::music_shutdown();
@@ -1862,7 +1777,6 @@ fn main_wrapper() -> Result<()> {
 
             imgui_sdl::renderer::shutdown(&mut imgui_context);
             imgui_sdl::impl_sdl2::shutdown(imgui_context.io_mut());
-            igDestroyContext(imgui_context.as_raw());
 
             if !no_audio {
                 if mix_opened {
@@ -1873,15 +1787,130 @@ fn main_wrapper() -> Result<()> {
 
             if state.main_state.restart {
                 println!("Restarting");
-                restart(&mut state.main_state);
+                //restart(&mut state.main_state);
+            } else {
+                break;
             }
         }
-    }
+    };
+
+    Ok(())
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    main_wrapper().context("Error in main")?;
+fn run_game_session(
+    imgui_context: &mut dear_imgui_rs::Context,
+    state: &mut PinballState,
+    window: *mut SDL_Window,
+    base_path: *mut c_char,
+    pref_path: *mut c_char,
+    mix_opened: bool,
+) -> Result<()> {
+    // Data search order: WD, executable path, user pref path, platform specific paths.
+    let search_paths: Vec<&str> =
+        vec!["", unsafe { CStr::from_ptr(base_path).to_str()? }, unsafe {
+            CStr::from_ptr(pref_path).to_str()?
+        }];
+
+    #[cfg(not(target_os = "windows"))]
+    search_paths.extend_from_slice(&PLATFORM_DATA_PATHS);
+    pb::select_dat_file(
+        &search_paths,
+        &mut state.options_state,
+        &mut state.pb_game_state,
+    );
+
+    // Second step: run updates that depend on .DAT file selection
+    options::init_secondary(
+        &mut state.options_state,
+        &mut state.pb_game_state,
+        &mut state.fullscrn_state,
+    )
+    .context("Failed to initialize secondary options")?;
+
+    println!("Init for sound");
+    sound::init(
+        mix_opened,
+        *state.options_state.options.sound_channels,
+        *state.options_state.options.sounds,
+        *state.options_state.options.sound_volume,
+        &mut state.sound_state,
+    );
+    if !mix_opened {
+        *state.options_state.options.sounds = false;
+    }
+
+    println!("Init for pb");
+    if !pb::init(state).context("Failed to initialize pb")? {
+        let mut message = String::from(
+            "The .dat file is missing.\nMake sure that the game data is present in any of the following locations:",
+        );
+        for path in search_paths {
+            let str_push = if !path.is_empty() {
+                path
+            } else {
+                "working directory\n"
+            };
+            message += str_push;
+        }
+        println!("Could not load game data");
+        pb::show_message_box(
+            SDL_MESSAGEBOX_ERROR,
+            "Could not load game data",
+            &message,
+            &state.main_state.main_window,
+        )?;
+        exit(1);
+    }
+
+    fullscrn::init(state).context("Failed to init fullscrn")?;
+
+    pb::reset_table(&mut state.pb_game_state).context("Failed to reset table")?;
+    pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state)
+        .context("Failed to perform first time setup")?;
+
+    let fullscreen = env::args().any(|arg| arg == "-fullscreen");
+    if fullscreen {
+        *state.options_state.options.full_screen = true;
+    }
+
+    let res_val = state.fullscrn_state.resolution;
+    if !*state.options_state.options.full_screen {
+        let res_info = &state.fullscrn_state.resolution_array[res_val as usize];
+        unsafe {
+            SDL_SetWindowSize(
+                window,
+                res_info.table_width as c_int,
+                res_info.table_height as c_int,
+            );
+        }
+    }
+    unsafe {
+        SDL_ShowWindow(window);
+    }
+    fullscrn::set_screen_mode(
+        *state.options_state.options.full_screen,
+        &mut state.fullscrn_state,
+        &mut state.main_state.main_window,
+    )
+    .context("Failed to set screen mode")?;
+
+    let is_demo = env::args().any(|arg| arg == "-demo");
+    if is_demo {
+        pb::toggle_demo(state).context("Failed to toggle demo")?;
+    } else {
+        pb::replay_level(false, state).context("Failed to replay level")?;
+    }
+
+    main_loop(imgui_context, state)?;
+
     Ok(())
+}
+
+fn main() {
+    if let Err(e) = space_cadet_pinball() {
+        eprintln!("Error initializing Space Cadet Pinball: {:?}", e);
+        std::process::exit(1);
+    }
 }
 
 fn build_glyph_ranges_from_translations() -> Vec<ImWchar> {
