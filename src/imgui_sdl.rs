@@ -878,19 +878,14 @@ pub mod impl_sdl2 {
             if !(*bd).clipboard_text_data.is_null() {
                 SDL_free((*bd).clipboard_text_data as *mut c_void);
             }
-            println!("Clipboard's gone");
 
             for cursor in (*bd).cursor {
                 SDL_FreeCursor(cursor);
             }
-            println!("Cursor's gone");
 
             io.set_backend_platform_user_data(null_mut());
-            println!("Backend's gone");
             let _ = Box::from_raw(bd);
-            println!("Bd's gone");
         }
-        println!("hee hee");
     }
 
     unsafe fn update_mouse_cursor(io: &mut Io, bd: *mut ImplSdl2UserData) {
