@@ -435,6 +435,7 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
 
                 if rec_clip {
                     clear_sprite = true;
+                    sprite.dirty_rect = clipped_rect;
                 } else {
                     sprite.dirty_rect.width = -1;
                 }
