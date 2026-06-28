@@ -2,6 +2,8 @@ use crate::partman::{Bmp8Flags, Dat8BitBmpHeader};
 use crate::state::pb_game_state::PbGameState;
 use crate::state::render_state::RenderState;
 use crate::utils::{SdlRendererPtr, SdlTexturePtr};
+use anyhow::bail;
+use anyhow::{Context, Result};
 use dear_imgui_rs::Ui;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::sys::SDL_BlendMode::SDL_BLENDMODE_NONE;
@@ -385,7 +387,7 @@ pub fn fill_bitmap(
     y_off: i32,
     fill_char: u8,
     pb_game_state: &mut PbGameState,
-) {
+) -> Result<()> {
     fill_bitmap_color_rgba(
         bmp,
         width,
@@ -393,7 +395,9 @@ pub fn fill_bitmap(
         x_off,
         y_off,
         pb_game_state.current_palette[fill_char as usize],
-    );
+    )
+    .context("Failed to fill bitmap based on color rgba data")?;
+    Ok(())
 }
 
 fn fill_bitmap_color_rgba(
@@ -403,15 +407,19 @@ fn fill_bitmap_color_rgba(
     x_off: i32,
     y_off: i32,
     fill_color: ColorRgba,
-) {
+) -> Result<()> {
     let mut index = bmp.stride * y_off + x_off;
     for _ in 0..height {
         for _x in (0..width).rev() {
+            if index as usize > bmp.bmp_buffer_data.len() {
+                bail!("BMP Buffer Data index out of bounds {}", index);
+            }
             bmp.bmp_buffer_data[index as usize] = fill_color;
             index += 1;
         }
         index += bmp.stride - width;
     }
+    Ok(())
 }
 
 pub(crate) fn gr_text_draw_ttext_in_box(
