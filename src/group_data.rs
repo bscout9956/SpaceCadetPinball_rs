@@ -226,7 +226,7 @@ pub fn split_sliced_bitmap(
     bmp: &mut GdrvBitmap8,
     zmap: &mut ZMapHeaderType,
     fullscrn_state: &mut FullscrnState,
-) -> Result<(), GroupDataError> {
+) -> Result<()> {
     assert_eq!(
         src_bmp.bitmap_type,
         BitmapTypes::Spliced,
@@ -238,7 +238,8 @@ pub fn split_sliced_bitmap(
     bmp.y_position = src_bmp.y_position;
     bmp.resolution = src_bmp.resolution;
 
-    zdrv::fill(zmap, zmap.width, zmap.height, 0, 0, 0xFFFF);
+    zdrv::fill(zmap, zmap.width, zmap.height, 0, 0, 0xFFFF)
+        .context("Failed to fill zmap when splitting splice bitmap")?;
     zmap.resolution = src_bmp.resolution;
 
     let table_width = fullscrn_state.resolution_array[src_bmp.resolution as usize].table_width;
@@ -358,6 +359,7 @@ impl DatFile {
         );
 
         let group = self.groups.get(group_index as usize)?;
+        // TODO: Do we need skip_count?
         let mut skip_count = 0;
         for entry in group.get_entries() {
             if entry.entry_type > target_entry_type {
@@ -419,7 +421,7 @@ impl DatFile {
         let mut char_widths = [0u8; 128];
         char_widths.copy_from_slice(&font_data[6..134]); // 128
 
-        let mut cursor = &font_data[134..];
+        let cursor = &font_data[134..];
         let mut group_id = self.groups.last().map(|g| g.group_id).unwrap_or(0) + 1;
 
         for char_index in 32..128 {

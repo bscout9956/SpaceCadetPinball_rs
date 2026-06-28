@@ -43,6 +43,8 @@ pub enum LoaderError {
     FromBytesWithNul(#[from] FromBytesWithNulError),
     #[error(transparent)]
     SoundError(#[from] SoundError),
+    #[error("Array Index out of bounds. Tried to reach for `{0}` but the array length is `{1}`")]
+    ArrayIndexOutOfBounds(usize, usize),
 }
 
 #[derive(Error, Debug)]

@@ -1,4 +1,5 @@
 use crate::gdrv::{BitmapTypes, GdrvBitmap8};
+use anyhow::bail;
 use sdl2::sys::SDL_Texture;
 use std::fmt;
 
@@ -64,20 +65,27 @@ impl ZMapHeaderType {
     }
 }
 
+use anyhow::Result;
+
 pub fn fill(
-    mut zmap: &mut ZMapHeaderType,
+    zmap: &mut ZMapHeaderType,
     width: i32,
     height: i32,
     x_off: i32,
     y_off: i32,
     fill_pattern: u16,
-) {
+) -> Result<()> {
     let mut dst_ptr = (zmap.stride * y_off + x_off) as usize;
 
     let mut y = height;
+
     while y > 0 {
         let mut x = width;
         while x > 0 {
+            if dst_ptr > zmap.z_map_data.len() {
+                bail!("Destination index out of bounds");
+            }
+
             zmap.z_map_data[dst_ptr] = fill_pattern;
             dst_ptr += 1;
             x -= 1;
@@ -85,6 +93,8 @@ pub fn fill(
         dst_ptr += (zmap.stride - width) as usize;
         y -= 1;
     }
+
+    Ok(())
 }
 
 pub fn pad(width: i32) -> i32 {
@@ -203,7 +213,7 @@ pub(crate) fn paint(
             dst_idx_z += 1;
             x -= 1;
         }
-        src_idx += (src_bmp.stride - width) as usize;
+        src_idx = (src_idx as i32 + (src_bmp.stride - width)) as usize;
         dst_idx += (dst_bmp.stride - width) as usize;
         src_idx_z += (src_z_map.stride - width) as usize;
         dst_idx_z += (dst_z_map.stride - width) as usize;

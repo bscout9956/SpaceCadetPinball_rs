@@ -8,6 +8,8 @@ use crate::state::score_state::ScoreState;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox_message::TTextBoxMessage;
 use crate::{fullscrn, gdrv, loader, timer};
+use anyhow::Context;
+use anyhow::Result;
 use dear_imgui_rs::Ui;
 use dear_imgui_rs::sys::{
     ImGuiCol_Text, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoDecoration,
@@ -43,10 +45,10 @@ impl TTextBox {
         time: f32,
         state: &mut PinballState,
         low_priority: Option<bool>,
-    ) {
+    ) -> Result<()> {
         let prio = low_priority.unwrap_or(false);
         if text.is_empty() {
-            return;
+            return Ok(());
         }
 
         let is_dupe = self.messages.back().map_or(false, |msg| msg.text == text);
@@ -80,9 +82,10 @@ impl TTextBox {
             self.messages.push_back(new_message);
 
             if self.timer == 0 {
-                self.draw(state)
+                self.draw(state).context("Failed to draw TTextBox")?;
             }
         }
+        Ok(())
     }
 
     pub unsafe extern "C" fn timer_expired(
@@ -93,12 +96,12 @@ impl TTextBox {
         let tb = unsafe { &mut *(caller as *mut TTextBox) };
         (*tb).timer = 0;
         if tb.messages.pop_front().is_some() {
-            tb.draw(state);
+            let _ =tb.draw(state).context("Failed to draw textbox");
             // TODO: contorl shit
         }
     }
 
-    fn draw(&mut self, state: &mut PinballState) {
+    fn draw(&mut self, state: &mut PinballState) -> Result<()> {
         if let Some(v_screen) = state.render_state.v_screen.as_mut() {
             if let Some(bg) = self.bg_bmp.as_mut() {
                 gdrv::copy_bitmap(
@@ -121,6 +124,7 @@ impl TTextBox {
                     0,
                     &mut state.pb_game_state,
                 )
+                .context("Failed to fill bitmap for TTextBox")?;
             }
 
             let mut display = false;
@@ -147,7 +151,7 @@ impl TTextBox {
 
             if display {
                 let font = match self.font.as_ref() {
-                    None => return,
+                    None => return Ok(()),
                     Some(f) => f,
                 };
 
@@ -207,6 +211,7 @@ impl TTextBox {
                 }
             }
         }
+        Ok(())
     }
 
     fn layout_text_line<'a>(&self, text: &'a str) -> LayoutResult<'a> {
@@ -328,7 +333,7 @@ impl TTextBox {
         background_bitmap: Option<GdrvBitmap8>,
         loader_state: &mut LoaderState,
         score_state: &mut ScoreState,
-    ) -> Result<TTextBox, TTextBoxError> {
+    ) -> Result<TTextBox> {
         let mut instance = Self {
             offset_x: 0,
             offset_y: 0,

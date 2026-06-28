@@ -4,6 +4,7 @@ use crate::state::fullscrn_state::FullscrnState;
 use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::state::render_state::RenderState;
+use anyhow::{Context, Result};
 use sdl2::sys::SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP;
 use sdl2::sys::{SDL_GetRendererOutputSize, SDL_Rect, SDL_SetWindowFullscreen};
 
@@ -43,11 +44,11 @@ pub fn set_screen_mode(
     is_fullscreen: bool,
     fullscrn_state: &mut FullscrnState,
     main_window: &mut Option<SdlWindowPtr>,
-) -> bool {
+) -> Result<bool> {
     let result = is_fullscreen;
 
     if is_fullscreen == fullscrn_state.screen_mode {
-        return result;
+        return Ok(result);
     }
     fullscrn_state.screen_mode = is_fullscreen;
 
@@ -57,15 +58,15 @@ pub fn set_screen_mode(
                 Ok(enabled) => enabled,
                 Err(e) => {
                     println!("Failed to enable fullscreen: {}", e);
-                    return false;
+                    return Ok(false);
                 }
             }
         };
-        return true;
+        return Ok(true);
     }
 
-    disable_fullscreen(main_window, fullscrn_state);
-    result
+    disable_fullscreen(main_window, fullscrn_state).context("Failed to disable fullscreen")?;
+    Ok(result)
 }
 
 pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenError> {
