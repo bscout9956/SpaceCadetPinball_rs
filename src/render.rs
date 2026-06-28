@@ -167,7 +167,7 @@ impl PartialEq for RenderSprite {
     }
 }
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 pub fn init(
     bmp: Option<GdrvBitmap8>,
@@ -194,7 +194,7 @@ pub fn init(
     let z_width = z_unwrap.width;
     let z_height = z_unwrap.height;
 
-    zdrv::fill(z_unwrap, z_width, z_height, 0, 0, 0xFFFF);
+    zdrv::fill(z_unwrap, z_width, z_height, 0, 0, 0xFFFF)?;
 
     render_state.v_screen_rect.x_position = 0;
     render_state.v_screen_rect.y_position = 0;
@@ -226,7 +226,8 @@ pub fn init(
         false => {
             let v_width = v_screen_unwrap.width;
             let v_height = v_screen_unwrap.height;
-            gdrv::fill_bitmap(v_screen_unwrap, v_width, v_height, 0, 0, 0, pb_game_state);
+            gdrv::fill_bitmap(v_screen_unwrap, v_width, v_height, 0, 0, 0, pb_game_state)
+                .context("Failed to fill bitmap for render init")?;
         }
     }
 
@@ -448,7 +449,8 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
             let height = sprite.dirty_rect.height;
 
             let z_screen_mut = render_state.z_screen.as_mut().unwrap();
-            zdrv::fill(z_screen_mut, width, height, x_pos, y_pos, 0xFFFF);
+            zdrv::fill(z_screen_mut, width, height, x_pos, y_pos, 0xFFFF)
+                .context("Failed to fill zdrv for render update")?;
             if let Some(mut background_bmp) = render_state.background_bitmap.clone() {
                 gdrv::copy_bitmap(
                     render_state.v_screen.as_mut().unwrap(),
@@ -469,7 +471,8 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
                     y_pos,
                     0,
                     pb_game_state,
-                );
+                )
+                .context("Failed to fill sprite bitmap for render update:")?;
             }
         }
     }

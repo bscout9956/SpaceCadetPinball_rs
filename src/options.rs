@@ -8,7 +8,7 @@ use crate::state::pinball_state::PinballState;
 use crate::translations::Msg;
 use crate::utils::clamp;
 use crate::{fullscrn, midi, render, sound, translations, update_frame_rate};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use dear_imgui_rs::Io;
 use dear_imgui_rs::sys::{
     ImGuiContext, ImGuiSettingsHandler, ImGuiTextBuffer, ImGuiTextBuffer_append,
@@ -600,15 +600,16 @@ impl Sub for Menu {
     }
 }
 
-pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
+pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) -> Result<()> {
     match u_id_check_item {
-        Menu::NewGame => {}
-        Menu::AboutPinball => {}
-        Menu::HighScores => {}
-        Menu::Exit => {}
+        Menu::NewGame => Ok(()),
+        Menu::AboutPinball => Ok(()),
+        Menu::HighScores => Ok(()),
+        Menu::Exit => Ok(()),
         Menu::Sounds => {
             *state.options_state.options.sounds ^= true;
             sound::enable(*state.options_state.options.sounds, &mut state.sound_state);
+            Ok(())
         }
         Menu::Music => {
             *state.options_state.options.music ^= true;
@@ -617,25 +618,30 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             } else {
                 midi::music_play();
             }
+            Ok(())
         }
-        Menu::SoundStereo => *state.options_state.options.sound_stereo ^= true,
+        Menu::SoundStereo => Ok(*state.options_state.options.sound_stereo ^= true),
         Menu::FullScreen => {
             *state.options_state.options.full_screen ^= true;
             fullscrn::set_screen_mode(
                 *state.options_state.options.full_screen,
                 &mut state.fullscrn_state,
                 &mut state.main_state.main_window,
-            );
+            )
+            .context("Failed to set screen mode")?;
+            Ok(())
         }
-        Menu::Demo => {}
-        Menu::SelectTable => {}
-        Menu::PlayerControls => {}
+        Menu::Demo => Ok(()),
+        Menu::SelectTable => Ok(()),
+        Menu::PlayerControls => Ok(()),
         Menu::OnePlayer | Menu::TwoPlayers | Menu::ThreePlayers | Menu::FourPlayers => {
             *state.options_state.options.players = u_id_check_item - Menu::OnePlayer + 1;
+            Ok(())
         }
         Menu::ShowMenu => {
             *state.options_state.options.show_menu = !(*state.options_state.options.show_menu);
-            fullscrn::window_size_changed(state);
+            fullscrn::window_size_changed(state).context("Failed to change window size")?;
+            Ok(())
         }
         Menu::MaximumResolution | Menu::R640x480 | Menu::R800x600 | Menu::R1024x768 => {
             let mut restart = false;
@@ -659,10 +665,12 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
             if restart {
                 crate::restart(&mut state.main_state);
             }
+            Ok(())
         }
         Menu::WindowUniformScale => {
             *state.options_state.options.uniform_scaling ^= true;
-            fullscrn::window_size_changed(state);
+            fullscrn::window_size_changed(state).context("Failed to change window size")?;
+            Ok(())
         }
         Menu::WindowLinearFilter => {
             *state.options_state.options.linear_filtering ^= true;
@@ -671,16 +679,19 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) {
                 &mut state.options_state,
                 &mut state.render_state,
             );
+            Ok(())
         }
         Menu::WindowIntegerScale => {
             *state.options_state.options.integer_scaling ^= true;
-            fullscrn::window_size_changed(state);
+            fullscrn::window_size_changed(state).context("Failed to change window size")?;
+            Ok(())
         }
         Menu::Prefer3DPBGameData => {
             *(&mut state.options_state).options.prefer_3dpb_game_data ^= true;
-            fullscrn::window_size_changed(state);
+            fullscrn::window_size_changed(state).context("Failed to change window size")?;
+            Ok(())
         }
-        _ => {}
+        _ => Ok(()),
     }
 }
 

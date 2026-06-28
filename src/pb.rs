@@ -82,9 +82,11 @@ pub fn show_message_box_cstr_message(
     title: &str,
     message: *const c_char,
     main_window: &Option<SdlWindowPtr>,
-) {
-    let message_str = unsafe { CStr::from_ptr(message).to_str().unwrap() };
-    show_message_box(flags, title, message_str, main_window);
+) -> Result<()> {
+    let message_str = unsafe { CStr::from_ptr(message).to_str()? };
+    show_message_box(flags, title, message_str, main_window)
+        .context("Failed to show message box")?;
+    Ok(())
 }
 
 pub fn select_dat_file(
@@ -370,12 +372,12 @@ pub fn first_time_setup(
     Ok(())
 }
 
-pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<(), PbError> {
+pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
     if state.pb_game_state.demo_mode {
         state.pb_game_state.demo_mode = false;
         match state.pb_game_state.main_table.as_mut() {
             Some(table) => table.borrow_mut().message(MessageCode::RESET, 0.0f32),
-            None => return Err(PbError::NoTable),
+            None => bail!(PbError::NoTable),
         };
 
         mode_change(
@@ -387,7 +389,8 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<(), PbError> {
             mtb.clear(false);
         }
         if let Some(mut itb) = state.pb_game_state.info_text_box.take() {
-            itb.display(get_rc_string(Msg::STRING125)?, -1.0f32, state, None);
+            itb.display(get_rc_string(Msg::STRING125)?, -1.0f32, state, None)
+                .context("Failed to obtain RC String when toggling demo")?;
             state.pb_game_state.mission_text_box = Some(itb);
         }
     } else {
@@ -657,7 +660,7 @@ fn push_cheat(name: &str) {
     }
 }
 
-pub(crate) fn pause_continue(state: &mut PinballState) -> Result<(), PbError> {
+pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
     state.main_state.single_step ^= true;
 
     if let Some(text_box) = state.pb_game_state.info_text_box.as_mut() {
@@ -670,7 +673,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<(), PbError> {
     if state.main_state.single_step {
         let mut table = match state.pb_game_state.main_table.as_ref() {
             Some(table) => table.borrow_mut(),
-            None => return Err(PbError::NoTable),
+            None => bail!(PbError::NoTable),
         };
         table.message(MessageCode::PAUSE, state.pb_game_state.time_now);
     }
@@ -682,7 +685,9 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<(), PbError> {
         .take()
         .ok_or(PbError::NoTextBox)?;
 
-    text_box.display(rc_string, -1.0f32, state, None);
+    text_box
+        .display(rc_string, -1.0f32, state, None)
+        .context("Failed to display textbox in pause_continue")?;
 
     state.pb_game_state.info_text_box = Some(text_box);
 
