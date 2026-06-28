@@ -610,38 +610,54 @@ pub(crate) fn build_occlude_list(state: &mut RenderState) {
         sprite.occluded_sprites = None;
     }
 
-    let sprites = &state.sprite_list;
-    let mut occlusion_indices: Vec<(usize, usize)> = Vec::new();
+    let num_sprites = state.sprite_list.len();
 
-    for (i, sprite) in sprites.iter().enumerate() {
-        if sprite.delete_flag || sprite.bounding_rect.width == -1 {
+    let mut all_occlusions: Vec<Option<Vec<usize>>> = vec![None; num_sprites];
+
+    let mut current_occlusions: Vec<usize> = Vec::new();
+
+    for i in 0..num_sprites {
+        let main_sprite = &state.sprite_list[i];
+
+        if main_sprite.delete_flag || main_sprite.bounding_rect.width == -1 {
             continue;
         }
 
-        for (j, other) in sprites.iter().enumerate() {
-            if i == j {
-                continue;
-            }
-            if other.delete_flag || other.bounding_rect.width == -1 {
-                continue;
-            }
+        current_occlusions.clear();
 
-            if maths::rectangle_clip(&sprite.bounding_rect, &other.bounding_rect, None) {
-                occlusion_indices.push((i, j));
+        for j in 0..num_sprites {
+            let ref_sprite = &state.sprite_list[j];
+
+            if !ref_sprite.delete_flag
+                && ref_sprite.bounding_rect.width != -1
+                && maths::rectangle_clip(
+                    &main_sprite.bounding_rect,
+                    &ref_sprite.bounding_rect,
+                    None,
+                )
+            {
+                current_occlusions.push(j);
             }
+        }
+
+        let has_bmp = main_sprite.bmp.is_some();
+        if has_bmp && current_occlusions.len() < 2 {
+            current_occlusions.clear();
+        }
+
+        if !current_occlusions.is_empty() {
+            all_occlusions[i] = Some(current_occlusions.clone());
         }
     }
 
-    let mut occlusion_sprites: Vec<Option<RenderSprite>> =
-        Vec::with_capacity(occlusion_indices.len());
+    for i in 0..state.sprite_list.len() {
+        if let Some(indices) = all_occlusions[i].take() {
+            let cloned_sprites: Vec<Option<RenderSprite>> = indices
+                .into_iter()
+                .map(|idx| Some(state.sprite_list[idx].clone()))
+                .collect();
 
-    for (_, j) in occlusion_indices {
-        occlusion_sprites.push(Some(sprites[j].clone()));
-    }
-
-    for sprite in &mut state.sprite_list {
-        if !sprite.delete_flag && sprite.bounding_rect.width != -1 {
-            sprite.occluded_sprites = Some(occlusion_sprites.clone());
+            state.sprite_list[i].occluded_sprites = Some(cloned_sprites);
         }
     }
 }
