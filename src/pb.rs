@@ -786,7 +786,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                     high_score::show_and_set_high_score_dialog(HighScoreEntry {
                         entry,
                         position: 1,
-                    })
+                    }, &mut state.high_score_state)
                 }
                 0x72 => {
                     control::cheat_bump_rank();
