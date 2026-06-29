@@ -2,6 +2,12 @@
 pub struct TFlipper;
 
 impl TFlipper {
+    pub(crate) fn flipper_collision(&self, p0: f32) {
+        todo!()
+    }
+}
+
+impl TFlipper {
     pub(crate) fn update_sprite(&self) {
         todo!()
     }
