@@ -656,6 +656,37 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
     Ok(())
 }
 
+fn ball_to_ball_collision(
+    ray: &RayType,
+    ball: &Rc<RefCell<TBall>>,
+    edge: &mut Rc<RefCell<dyn IEdgeSegment>>,
+    collision_distance: &mut f32,
+    table: &RefMut<TPinballTable>,
+    ball_to_ball_collision_dist: f32,
+) -> f32 {
+    for cur_ball in table.ball_list.iter() {
+        if cur_ball.borrow().active_flag().get()
+            && !std::ptr::eq(cur_ball, ball)
+            && (cur_ball.borrow().collision_mask & ball.borrow().collision_mask) != 0
+            && f32::abs(cur_ball.borrow().position.x - ball.borrow().position.x)
+                < ball_to_ball_collision_dist
+            && f32::abs(cur_ball.borrow().position.y - ball.borrow().position.y)
+                < ball_to_ball_collision_dist
+        {
+            let mut distance = cur_ball.borrow().find_collision_distance(&ray);
+            if distance < 1e9f32 {
+                distance = f32::max(0.0f32, distance - 0.002f32);
+                if distance < *collision_distance {
+                    *collision_distance = distance;
+                    *edge = cur_ball.clone();
+                }
+            }
+        }
+    }
+
+    *collision_distance
+}
+
 pub(crate) fn push_cheat(name: &str) {
     for ch in name.as_bytes() {
         control::pbctrl_bdoor_controller(ch);
