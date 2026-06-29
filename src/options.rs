@@ -13,7 +13,7 @@ use dear_imgui_rs::Io;
 use dear_imgui_rs::sys::{
     ImGuiContext, ImGuiSettingsHandler, ImGuiTextBuffer, ImGuiTextBuffer_append,
     ImGuiTextBuffer_appendf, igAddSettingsHandler, igGetCurrentContext, igImHashStr,
-    igLoadIniSettingsFromDisk,
+    igLoadIniSettingsFromDisk, igMarkIniSettingsDirty_Nil,
 };
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -193,7 +193,12 @@ pub fn get_setting(
         Entry::Occupied(entry) => entry.get().clone(),
         Entry::Vacant(entry) => {
             let new_value = entry.insert(default_value.to_string());
-            // TODO: Add Imgui check
+            unsafe {
+                let ctx = igGetCurrentContext();
+                if !ctx.is_null() {
+                    igMarkIniSettingsDirty_Nil();
+                }
+            }
             new_value.clone()
         }
     }
