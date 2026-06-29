@@ -1517,7 +1517,7 @@ unsafe fn event_handler(
                 sound::deactivate(&mut state.sound_state);
                 //TODO: midi::music_stop();
                 state.main_state.has_focus = false;
-                // TODO: pb::lose_focus();
+                pb::lose_focus(&mut state.pb_game_state.main_table, state.pb_game_state.time_now)?;
             }
 
             if (*event).window.event == SDL_WINDOWEVENT_SIZE_CHANGED as u8

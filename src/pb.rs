@@ -23,8 +23,10 @@ use anyhow::{Context, Result, bail};
 use rand::random;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_KeyCode, SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
+use std::cell::RefCell;
 use std::ffi::{CStr, CString, c_char};
 use std::fs::File;
+use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
 #[derive(PartialEq, Eq, Ord, PartialOrd)]
@@ -783,10 +785,10 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                         name: get_rc_string(Msg::STRING127)?,
                         score: 1000000000,
                     };
-                    high_score::show_and_set_high_score_dialog(HighScoreEntry {
-                        entry,
-                        position: 1,
-                    }, &mut state.high_score_state)
+                    high_score::show_and_set_high_score_dialog(
+                        HighScoreEntry { entry, position: 1 },
+                        &mut state.high_score_state,
+                    )
                 }
                 0x72 => {
                     control::cheat_bump_rank();
@@ -824,4 +826,17 @@ pub(crate) fn launch_ball(state: &mut PinballState) -> Result<(), PbError> {
 
 pub(crate) fn high_scores(high_score_state: &mut HighScoreState) {
     high_score::show_high_score_dialog(high_score_state);
+}
+
+pub(crate) fn lose_focus(
+    table_option: &mut Option<Rc<RefCell<TPinballTable>>>,
+    time_now: f32,
+) -> Result<()> {
+    if let Some(table) = table_option {
+        table
+            .borrow_mut()
+            .message(MessageCode::LOOSE_FOCUS, time_now);
+    } else {
+        bail!(PbError::NoTable);
+    }
 }
