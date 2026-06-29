@@ -639,7 +639,67 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
     ray.min_distance = 0.002f32;
 
     for step in 0..=max_step {
-        // TODO: I'm tired continue here from L417 in pb.cpp
+        for ball_index in 0..table.ball_list.len() {
+            let ball = &table.ball_list[ball_index];
+            if !ball.borrow().collision_disabled_flag && ball_steps[ball_index] >= step {
+                ray.collision_mask = ball.borrow().collision_mask;
+
+                let mut distance_sum = 0.0f32;
+                while distance_sum < pb_game_state.ball_half_radius {
+                    ray.origin = Vector2::from_vec3(ball.borrow().position);
+                    ray.direction = Vector2::from_vec3(ball.borrow().direction);
+                    if ball_steps[ball_index] <= step {
+                        ray.max_distance = ball_steps_distance[ball_index]
+                            - ball_steps[ball_index] as f32 * pb_game_state.ball_half_radius;
+                    } else {
+                        ray.max_distance = pb_game_state.ball_half_radius;
+                    }
+
+                    let mut edge: Rc<RefCell<dyn IEdgeSegment>> = Rc::new(RefCell::new(
+                        TEdgeSegment::new(None, Rc::new(Cell::new(false)), 0),
+                    ));
+
+                    let mut distance = 0.0f32;
+                    if let Some(edge_man) = pb_game_state.edge_manager.as_mut() {
+                        distance = edge_man.find_collision_distance(&mut ray, ball, &mut edge);
+                    }
+                    if distance > 0.0f32 {
+                        distance = ball_to_ball_collision(
+                            &ray,
+                            ball,
+                            &mut edge,
+                            &mut distance,
+                            &table,
+                            pb_game_state.ball_to_ball_collision_distance,
+                        );
+                    }
+                    if ball.borrow().edge_collision_reset_flag {
+                        ball.borrow_mut().edge_collision_reset_flag = false;
+                    } else {
+                        ball.borrow_mut().edge_collision_count = 0;
+                        ball.borrow_mut().edge_collision_reset_flag = true;
+                    }
+
+                    if distance >= 1e9f32 {
+                        ball.borrow_mut().position.x += ray.max_distance * ray.direction.x;
+                        ball.borrow_mut().position.y += ray.max_distance * ray.direction.y;
+                        break;
+                    }
+
+                    edge.borrow().edge_collision(ball, distance);
+                    if distance <= 0.0f32 || ball.borrow().collision_disabled_flag {
+                        break;
+                    }
+                    distance_sum += distance;
+                }
+            }
+        }
+
+        for flip_index in 0..table.flipper_list.len() {
+            if flipper_steps[flip_index] >= step {
+                table.flipper_list[flip_index].flipper_collision(delta_angle[flip_index]);
+            }
+        }
     }
 
     for flipper in &table.flipper_list {
