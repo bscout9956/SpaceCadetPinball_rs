@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use crate::high_score::{HighScore, HighScoreEntry};
 
 pub struct HighScoreState {
@@ -5,7 +6,7 @@ pub struct HighScoreState {
     pub dlg_enter_name: bool,
     pub dlg_data: HighScoreEntry,
     pub show_dialog: bool,
-    pub score_queue: Vec<HighScore>,
+    pub score_queue: VecDeque<HighScoreEntry>,
 }
 
 impl HighScoreState {
@@ -15,7 +16,7 @@ impl HighScoreState {
             dlg_enter_name: false,
             dlg_data: HighScoreEntry::default(),
             show_dialog: false,
-            score_queue: Vec::new(),
+            score_queue: VecDeque::new(),
         }
     }
 }
