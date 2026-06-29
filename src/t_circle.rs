@@ -1,8 +1,8 @@
-use std::any::Any;
 use crate::maths::{CircleType, RayType, RectF, Vector2};
 use crate::t_ball::TBall;
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
+use std::any::Any;
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
@@ -11,12 +11,17 @@ pub struct TCircle {
     pub circle: CircleType,
 }
 
+use crate::state::pb_game_state::PbGameState;
 use crate::t_table_layer;
 use anyhow::{Context, Result};
-use crate::state::pb_game_state::PbGameState;
 
 impl IEdgeSegment for TCircle {
-    fn edge_collision(&self, ball: &mut TBall, distance: f32) {
+    fn active_flag(&self) -> Rc<Cell<bool>> {
+        // TODO: What the actual fuck
+        self.base.upgrade().unwrap().borrow().active_flag()
+    }
+
+    fn edge_collision(&self, ball: &Rc<RefCell<TBall>>, distance: f32) {
         todo!()
     }
 
@@ -28,7 +33,7 @@ impl IEdgeSegment for TCircle {
         &self,
         aabb: &mut RectF,
         this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
-        state: &mut PbGameState
+        state: &mut PbGameState,
     ) -> Result<()> {
         let radius = f32::sqrt(self.circle.radius_sq);
         aabb.merge(&RectF {
@@ -51,6 +56,10 @@ impl IEdgeSegment for TCircle {
     fn collision_group(&self) -> u32 {
         // TODO: What the actual fuck
         self.base.upgrade().unwrap().borrow().collision_group()
+    }
+
+    fn processed_flag(&self) -> Rc<Cell<bool>> {
+        todo!()
     }
 
     fn as_any(&self) -> &dyn Any {
