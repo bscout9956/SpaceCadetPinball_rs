@@ -654,7 +654,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
     Ok(())
 }
 
-fn push_cheat(name: &str) {
+pub(crate) fn push_cheat(name: &str) {
     for ch in name.as_bytes() {
         control::pbctrl_bdoor_controller(ch);
     }
