@@ -1,12 +1,12 @@
-use std::any::Any;
 use crate::maths::*;
 use crate::message_code::MessageCode;
+use crate::state::pb_game_state::PbGameState;
 use crate::t_ball::TBall;
 use crate::t_edge_segment::IEdgeSegment;
 use anyhow::Result;
-use std::cell::RefCell;
+use std::any::Any;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
-use crate::state::pb_game_state::PbGameState;
 
 pub struct TFlipperEdge {
     pub flipper_flag: MessageCode,
@@ -56,7 +56,11 @@ pub struct TFlipperEdge {
 }
 
 impl IEdgeSegment for TFlipperEdge {
-    fn edge_collision(&self, ball: &mut TBall, distance: f32) {
+    fn active_flag(&self) -> Rc<Cell<bool>> {
+        todo!(); // MISSSING BASE COMP
+    }
+
+    fn edge_collision(&self, ball: &Rc<RefCell<TBall>>, distance: f32) {
         todo!()
     }
 
@@ -78,6 +82,10 @@ impl IEdgeSegment for TFlipperEdge {
     }
 
     fn collision_group(&self) -> u32 {
+        todo!()
+    }
+
+    fn processed_flag(&self) -> Rc<Cell<bool>> {
         todo!()
     }
 
