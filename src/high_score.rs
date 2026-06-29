@@ -55,6 +55,11 @@ pub(crate) fn show_high_score_dialog(high_score_state: &mut HighScoreState) {
     high_score_state.show_dialog = true;
 }
 
-pub(crate) fn show_and_set_high_score_dialog(entry: HighScoreEntry) {
-    todo!()
+pub(crate) fn show_and_set_high_score_dialog(
+    score: HighScoreEntry,
+    high_score_state: &mut HighScoreState,
+) {
+    // push to 0?
+    high_score_state.score_queue.push_back(score);
+    high_score_state.show_dialog = true;
 }
