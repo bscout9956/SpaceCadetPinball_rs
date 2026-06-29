@@ -1,8 +1,8 @@
-use std::any::Any;
 use crate::maths::{RayType, RectF, Vector2, Vector3};
 use crate::t_ball::TBall;
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_line::TLine;
+use std::any::Any;
 use std::cell::{Cell, RefCell};
 use std::ptr::slice_from_raw_parts;
 use std::rc::{Rc, Weak};
@@ -34,7 +34,8 @@ use crate::t_circle::TCircle;
 use anyhow::{Context, Result};
 
 pub trait IEdgeSegment {
-    fn edge_collision(&self, ball: &mut TBall, distance: f32);
+    fn active_flag(&self) -> Rc<Cell<bool>>;
+    fn edge_collision(&self, ball: &Rc<RefCell<TBall>>, distance: f32);
     fn port_draw(&self);
     fn place_in_grid(
         &self,
@@ -43,14 +44,20 @@ pub trait IEdgeSegment {
         pb_game_state: &mut PbGameState,
     ) -> Result<()>;
     fn find_collision_distance(&self, ray: &RayType) -> f32;
-    
+
     fn collision_group(&self) -> u32;
-    
+
+    fn processed_flag(&self) -> Rc<Cell<bool>>;
+
     fn as_any(&self) -> &dyn Any;
 }
 
 impl IEdgeSegment for TEdgeSegment {
-    fn edge_collision(&self, ball: &mut TBall, distance: f32) {
+    fn active_flag(&self) -> Rc<Cell<bool>> {
+        self.active_flag.clone()
+    }
+
+    fn edge_collision(&self, ball: &Rc<RefCell<TBall>>, distance: f32) {
         todo!()
     }
 
@@ -69,9 +76,13 @@ impl IEdgeSegment for TEdgeSegment {
     fn find_collision_distance(&self, ray: &RayType) -> f32 {
         todo!()
     }
-    
+
     fn collision_group(&self) -> u32 {
         self.collision_group
+    }
+
+    fn processed_flag(&self) -> Rc<Cell<bool>> {
+        self.processed_flag.clone()
     }
 
     fn as_any(&self) -> &dyn Any {
