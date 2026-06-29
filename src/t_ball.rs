@@ -209,6 +209,19 @@ impl TBall {
         self.base_component
             .sprite_set_ball(index_set, pos_2d, z_depth);
     }
+
+    pub(crate) fn already_hit(&self, edge: &Rc<RefCell<dyn IEdgeSegment>>) -> bool {
+        for i in 0..self.edge_collision_count {
+            let downgrade = Rc::downgrade(&edge);
+            if let Some(col) = self.collisions[i as usize].as_ref() {
+                if col.ptr_eq(&downgrade) {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
 }
 
 impl ICollisionComponent for TBall {
