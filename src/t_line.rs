@@ -1,8 +1,8 @@
+use crate::maths;
 use crate::maths::{LineType, RayType, RectF, Vector2};
 use crate::t_ball::TBall;
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
-use crate::{maths, t_table_layer};
 use std::any::Any;
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
@@ -34,7 +34,11 @@ use crate::state::pb_game_state::PbGameState;
 use anyhow::{Context, Result};
 
 impl IEdgeSegment for TLine {
-    fn edge_collision(&self, ball: &mut TBall, distance: f32) {
+    fn active_flag(&self) -> Rc<Cell<bool>> {
+        self.base.active_flag()
+    }
+
+    fn edge_collision(&self, ball: &Rc<RefCell<TBall>>, distance: f32) {
         todo!()
     }
 
@@ -150,6 +154,10 @@ impl IEdgeSegment for TLine {
 
     fn collision_group(&self) -> u32 {
         self.base.collision_group
+    }
+
+    fn processed_flag(&self) -> Rc<Cell<bool>> {
+        todo!()
     }
 
     fn as_any(&self) -> &dyn Any {
