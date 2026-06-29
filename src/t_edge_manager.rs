@@ -1,3 +1,5 @@
+use crate::maths::RayType;
+use crate::t_ball::TBall;
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_box::TEdgeBox;
 use crate::t_edge_segment::IEdgeSegment;
@@ -115,5 +117,172 @@ impl TEdgeManager {
 
         list.push(field);
         Ok(())
+    }
+
+    pub fn find_collision_distance(
+        &mut self,
+        ray: &mut RayType,
+        ball: &Rc<RefCell<TBall>>,
+        edge: &mut Rc<RefCell<dyn IEdgeSegment>>,
+    ) -> f32 {
+        let mut distance = 1000000000.0f32;
+        let mut edge_index = 0;
+
+        let x0 = ray.origin.x;
+        let y0 = ray.origin.y;
+        let x1 = ray.direction.x * ray.max_distance + ray.origin.x;
+        let y1 = ray.direction.y * ray.max_distance + ray.origin.y;
+
+        let x_box_0 = self.box_x(x0);
+        let y_box_0 = self.box_y(y0);
+        let x_box_1 = self.box_x(x1);
+        let y_box_1 = self.box_y(y1);
+
+        let dir_x = if x0 >= x1 { -1 } else { 1 };
+        let dir_y = if y0 >= y1 { -1 } else { 1 };
+
+        if (y_box_0 == y_box_1) {
+            if (dir_x == 1) {
+                for index_x in x_box_0..=x_box_1 {
+                    edge_index = self.test_grid_box(
+                        index_x,
+                        y_box_0,
+                        &mut distance,
+                        edge,
+                        ray,
+                        ball,
+                        edge_index,
+                    );
+                }
+            } else {
+                let mut index_x = x_box_0;
+                while index_x >= x_box_1 {
+                    edge_index = self.test_grid_box(
+                        index_x,
+                        y_box_0,
+                        &mut distance,
+                        edge,
+                        ray,
+                        ball,
+                        edge_index,
+                    );
+                    index_x -= 1;
+                }
+            }
+        } else if (x_box_0 == x_box_1) {
+            if (dir_y == 1) {
+                for index_y in y_box_0..=y_box_1 {
+                    edge_index = self.test_grid_box(
+                        x_box_0,
+                        index_y,
+                        &mut distance,
+                        edge,
+                        ray,
+                        ball,
+                        edge_index,
+                    );
+                }
+            } else {
+                let mut index_y = y_box_0;
+                while index_y >= y_box_1 {
+                    edge_index = self.test_grid_box(
+                        x_box_0,
+                        index_y,
+                        &mut distance,
+                        edge,
+                        ray,
+                        ball,
+                        edge_index,
+                    );
+
+                    index_y -= 1;
+                }
+            }
+        } else {
+            let mut edge_index = 0;
+            edge_index = self.test_grid_box(x_box_0, y_box_0, &mut distance, edge, ray, ball, 0);
+
+            // Bresenham line formula: y = dYdX * (x - x0) + y0; dYdX = (y0 - y1) / (x0 - x1)
+            let dy_dx = (y0 - y1) / (x0 - x1);
+            // Precompute constant part: dYdX * (-x0) + y0
+            let pre_comp = -x0 * dy_dx + y0;
+            // X and Y indexes are offset by one when going forwards, not sure why
+            let x_bias = if dir_x == 1 { 1 } else { 0 };
+            let y_bias = if dir_y == 1 { 1 } else { 0 };
+
+            let mut index_x = x_box_0;
+            let mut index_y = y_box_0;
+            while index_x != x_box_1 || index_y != y_box_1 {
+                let y_discrete = (index_y + y_bias) as f32 * self.advance_y + self.min_y;
+                let y_linear =
+                    ((index_x + x_bias) as f32 * self.advance_x + self.min_x) * dy_dx + pre_comp;
+                // :)
+                let check = if dir_y == 1 {
+                    y_linear >= y_discrete
+                } else {
+                    y_linear <= y_discrete
+                };
+                if check {
+                    index_y += dir_y;
+                    if y_linear == y_discrete {
+                        // Advance indexY when discrete value is ahead/behind
+                        // Advance indexX when discrete value matches linear value
+                        index_x += dir_x;
+                    }
+                } else {
+                    // Advance indexX otherwise
+                    index_x += dir_x;
+                }
+
+                edge_index = self.test_grid_box(
+                    index_x,
+                    index_y,
+                    &mut distance,
+                    edge,
+                    ray,
+                    ball,
+                    edge_index,
+                );
+            }
+        }
+
+        distance
+    }
+
+    fn test_grid_box(
+        &self,
+        x: i32,
+        y: i32,
+        dist_val: &mut f32,
+        edge_dst: &mut Rc<RefCell<dyn IEdgeSegment>>,
+        ray: &RayType,
+        ball: &Rc<RefCell<TBall>>,
+        mut edge_index: i32,
+    ) -> i32 {
+        if x >= 0 && x < self.max_box_x && y >= 0 && y < self.max_box_y {
+            let edge_box = &self.box_array[(x + y * self.max_box_x) as usize];
+            let mut edge_segment = &self.edge_array[edge_index as usize];
+            for edge_entry in edge_box.edge_list.iter() {
+                // TODO: As usize? sure this isn't going to break something?
+                if !edge_entry.borrow().processed_flag().get()
+                    && edge_entry.borrow().active_flag().get()
+                    && (edge_entry.borrow().collision_group() as usize
+                        & ray.collision_mask as usize)
+                        != 0
+                {
+                    if ball.borrow().already_hit(edge_entry) {
+                        edge_index += 1;
+                        edge_segment = edge_entry;
+                        edge_entry.borrow_mut().processed_flag().set(true);
+                        let dist = edge_entry.borrow().find_collision_distance(ray);
+                        if dist < *dist_val {
+                            *dist_val = dist;
+                            *edge_dst = edge_entry.clone();
+                        }
+                    }
+                }
+            }
+        }
+        edge_index
     }
 }
