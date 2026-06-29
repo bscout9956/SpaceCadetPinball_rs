@@ -836,6 +836,7 @@ pub(crate) fn lose_focus(
         table
             .borrow_mut()
             .message(MessageCode::LOOSE_FOCUS, time_now);
+        Ok(())
     } else {
         bail!(PbError::NoTable);
     }
