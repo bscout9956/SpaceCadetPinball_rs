@@ -359,7 +359,6 @@ impl DatFile {
         );
 
         let group = self.groups.get(group_index as usize)?;
-        // TODO: Do we need skip_count?
         let mut skip_count = 0;
         for entry in group.get_entries() {
             if entry.entry_type > target_entry_type {

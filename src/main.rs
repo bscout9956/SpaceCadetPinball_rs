@@ -1128,7 +1128,49 @@ fn create_help_menu(state: &mut PinballState) -> Result<()> {
                 }
                 igEndMenu();
             }
-            // TODO: Add cheats menu here
+
+            if igBeginMenu(c"Cheats".as_ptr(), true) {
+                if igMenuItem_Bool(
+                    c"hidden test".as_ptr(),
+                    null(),
+                    state.pb_game_state.cheat_mode,
+                    true,
+                ) {
+                    pb::push_cheat("hidden test");
+                }
+                if igMenuItem_Bool(c"1max".as_ptr(), null(), false, true) {
+                    pb::push_cheat("1max");
+                }
+                if igMenuItem_Bool(
+                    c"bmax".as_ptr(),
+                    null(),
+                    state.control_state.table_unlimited_balls,
+                    true,
+                ) {
+                    pb::push_cheat("bmax");
+                }
+                if igMenuItem_Bool(c"gmax".as_ptr(), null(), false, true) {
+                    pb::push_cheat("gmax");
+                }
+                if igMenuItem_Bool(c"rmax".as_ptr(), null(), false, true) {
+                    pb::push_cheat("rmax");
+                }
+                if state.pb_game_state.full_tilt_mode
+                    && igMenuItem_Bool(c"quote".as_ptr(), null(), false, true)
+                {
+                    pb::push_cheat("quote");
+                }
+                if igMenuItem_Bool(
+                    c"easy mode".as_ptr(),
+                    null(),
+                    state.control_state.easy_mode,
+                    true,
+                ) {
+                    pb::push_cheat("easy mode");
+                }
+                igEndMenu();
+            }
+
             igSeparator();
             let about_str = pb::get_rc_string_cstring(Msg::Menu1AboutPinball)
                 .context("Failed to get about string")?;
@@ -1347,7 +1389,6 @@ fn process_window_messages(
         idle_wait = state.main_state.target_frametime.count();
         unsafe {
             while SDL_PollEvent(event.as_mut_ptr()) > 0 {
-                // TODO: Should we be using idle_wait for something?
                 if !event_handler(event.as_mut_ptr(), imgui_context, state)? {
                     return Ok(false);
                 }
@@ -1361,7 +1402,6 @@ fn process_window_messages(
     idle_wait = i64::min(idle_wait + state.main_state.target_frametime.0, 500);
     unsafe {
         if SDL_WaitEventTimeout(event.as_mut_ptr(), idle_wait as c_int) > 0 {
-            // TODO: Should we be using idle_wait for something?
             idle_wait = state.main_state.target_frametime.count();
             return event_handler(event.as_mut_ptr(), imgui_context, state);
         }
