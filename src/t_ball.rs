@@ -26,7 +26,7 @@ pub struct TBall {
     pub ramp_field_force: Vector2,
     pub collision_comp: Option<Weak<RefCell<TCollisionComponent>>>,
     pub collision_mask: i32,
-    pub collisions: [Option<Weak<RefCell<TEdgeSegment>>>; 16],
+    pub collisions: [Option<Weak<RefCell<dyn IEdgeSegment>>>; 16],
     pub edge_collision_count: i32,
     pub edge_collision_reset_flag: bool,
     pub collision_offset: Vector3,
@@ -248,7 +248,11 @@ use crate::state::pb_game_state::PbGameState;
 use anyhow::{Context, Result};
 
 impl IEdgeSegment for TBall {
-    fn edge_collision(&self, ball: &mut TBall, distance: f32) {
+    fn active_flag(&self) -> Rc<Cell<bool>> {
+        self.base_segment.active_flag()
+    }
+
+    fn edge_collision(&self, ball: &Rc<RefCell<TBall>>, distance: f32) {
         todo!()
     }
 
@@ -271,6 +275,10 @@ impl IEdgeSegment for TBall {
 
     fn collision_group(&self) -> u32 {
         self.base_segment.collision_group
+    }
+
+    fn processed_flag(&self) -> Rc<Cell<bool>> {
+        todo!()
     }
 
     fn as_any(&self) -> &dyn Any {
