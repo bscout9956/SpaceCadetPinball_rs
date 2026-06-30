@@ -414,6 +414,33 @@ impl TPinballTable {
 
         Ok(Some(ball_rc))
     }
+
+    pub(crate) fn add_score(&mut self, score: i32, full_tilt_mode: bool) -> Result<i32> {
+        if self.jackpot_score_flag {
+            self.jackpot_score += score;
+            let jackpot_limit = if !full_tilt_mode { 5000000 } else { 10000000 };
+            if self.jackpot_score > jackpot_limit {
+                self.jackpot_score = jackpot_limit;
+            }
+        }
+
+        if self.bonus_score_flag {
+            self.bonus_score += score;
+            if self.bonus_score > 5000000 {
+                self.bonus_score = 5000000;
+            }
+        }
+        let added_score =
+            self.score_added + score * self.score_multipliers[self.score_multiplier as usize];
+        self.cur_score += added_score;
+        if self.cur_score > 1000000000 {
+            self.cur_score_e9 += 1;
+            self.cur_score = self.cur_score - 1000000000;
+        }
+
+        score::set(&mut self.cur_score_struct, self.cur_score);
+        return Ok(added_score);
+    }
 }
 
 impl IPinballComponent for TPinballTable {
