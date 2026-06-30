@@ -36,6 +36,14 @@ pub struct PbGameState {
 }
 
 impl PbGameState {
+    pub(crate) fn increment_table_balls(&self) {
+        if let Some(table) = &self.main_table {
+            table.borrow_mut().extra_balls += 1;
+        }
+    }
+}
+
+impl PbGameState {
     pub fn new() -> Self {
         Self {
             ball_max_speed: 0.0,
