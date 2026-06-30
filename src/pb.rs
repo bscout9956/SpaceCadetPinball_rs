@@ -749,9 +749,9 @@ fn ball_to_ball_collision(
     *collision_distance
 }
 
-pub(crate) fn push_cheat(name: &str) {
+pub(crate) fn push_cheat(name: &str, state: &mut PinballState) {
     for ch in name.as_bytes() {
-        control::pbctrl_bdoor_controller(ch);
+        control::pbctrl_bdoor_controller(ch.clone(), state);
     }
 }
 
