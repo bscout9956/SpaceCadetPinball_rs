@@ -41,7 +41,7 @@ pub struct TTextBox {
 impl TTextBox {
     pub(crate) fn display(
         &mut self,
-        text: &'static str,
+        text: &str,
         time: f32,
         state: &mut PinballState,
         low_priority: Option<bool>,
@@ -96,7 +96,7 @@ impl TTextBox {
         let tb = unsafe { &mut *(caller as *mut TTextBox) };
         (*tb).timer = 0;
         if tb.messages.pop_front().is_some() {
-            let _ =tb.draw(state).context("Failed to draw textbox");
+            let _ = tb.draw(state).context("Failed to draw textbox");
             // TODO: contorl shit
         }
     }
@@ -158,14 +158,14 @@ impl TTextBox {
                 if let Some(front_msg) = self.messages.front() {
                     let mut lines = Vec::new();
                     let mut text_height = 0;
-                    let mut remaining_text = front_msg.text;
+                    let mut remaining_text = front_msg.text.as_str();
 
                     while !remaining_text.is_empty() {
                         if text_height + font.height > self.height {
                             break;
                         }
 
-                        let result = self.layout_text_line(remaining_text);
+                        let result = self.layout_text_line(&remaining_text);
                         let result_end = result.end;
 
                         if result.start.is_empty() && result.end == remaining_text {
