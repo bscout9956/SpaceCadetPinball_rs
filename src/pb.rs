@@ -18,8 +18,8 @@ use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::Msg;
 use crate::{
-    SdlWindowPtr, control, gdrv, high_score, loader, maths, midi, nudge, options, partman, proj,
-    render, score, timer, translations,
+    SdlWindowPtr, control, gdrv, handle_game_binding, high_score, loader, maths, midi, nudge,
+    options, partman, proj, render, score, timer, translations,
 };
 use anyhow::{Context, Result, bail};
 use rand::random;
