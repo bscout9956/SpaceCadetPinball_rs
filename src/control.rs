@@ -1,7 +1,6 @@
 use crate::message_code::MessageCode;
 use crate::pb;
-use crate::state::component_state::ComponentState;
-use crate::state::control_state::{CHEAT_LEN, ControlState};
+use crate::state::control_state::CHEAT_LEN;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};

@@ -11,7 +11,6 @@ use crate::zdrv::ZMapHeaderType;
 use crate::{pb, sound};
 use anyhow::bail;
 use anyhow::{Context, Result};
-use log::error;
 use num_traits::Float;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::mixer::Mix_Chunk;

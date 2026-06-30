@@ -2,7 +2,6 @@ use crate::errors::LoaderError;
 use crate::loader;
 use crate::maths::{Vector2, Vector2i};
 use crate::message_code::MessageCode;
-use crate::state::loader_state::LoaderState;
 use crate::state::pinball_state::PinballState;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
@@ -86,8 +85,8 @@ pub enum TLightGroupError {
     LoaderError(#[from] LoaderError),
 }
 
-use anyhow::Result;
 use crate::render::RenderSprite;
+use anyhow::Result;
 
 impl TLightGroup {
     pub(crate) fn new(

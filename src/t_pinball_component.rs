@@ -1,7 +1,6 @@
 use crate::maths::*;
 use crate::message_code::MessageCode;
 use crate::render::{RenderSprite, VisualTypes};
-use crate::state::loader_state::LoaderState;
 use crate::{control::ComponentControl, loader, loader::VisualStruct, maths};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
 use anyhow::Context;

@@ -1,4 +1,3 @@
-use crate::errors::TTextBoxError;
 use crate::gdrv::GdrvBitmap8;
 use crate::score::ScoreMessageFontType;
 use crate::state::loader_state::LoaderState;

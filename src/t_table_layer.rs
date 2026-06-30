@@ -21,7 +21,7 @@ use std::ffi::CString;
 use std::ptr::slice_from_raw_parts;
 use std::rc::{Rc, Weak};
 use std::slice::from_raw_parts;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use thiserror::Error;
 
 pub struct TTableLayer {
