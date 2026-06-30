@@ -366,14 +366,8 @@ pub fn cross(vec1: &Vector2, vec2: &Vector2) -> f32 {
 }
 
 pub fn magnitude(vec: &Vector3) -> f32 {
-    let result;
     let mag_sq = vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
-    if mag_sq == 0.0 {
-        result = 0.0;
-    } else {
-        result = mag_sq.sqrt();
-    }
-    result
+    if mag_sq == 0.0 { 0.0 } else { mag_sq.sqrt() }
 }
 
 pub fn magnitude_sq(vec: &Vector2) -> f32 {

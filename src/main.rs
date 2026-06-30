@@ -1969,7 +1969,7 @@ fn main() {
 
 fn build_glyph_ranges_from_translations() -> Vec<ImWchar> {
     let mut cps: Vec<u32> = Vec::new();
-    for i in 0..(Msg::MAX as i32) {
+    for i in 0..(Msg::Max as i32) {
         if let Some(msg) = Msg::from_i32(i)
             && let Ok(s) = translations::get_translation(msg)
         {

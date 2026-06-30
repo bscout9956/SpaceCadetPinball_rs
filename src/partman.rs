@@ -4,6 +4,7 @@ use crate::group_data::{DatFile, EntryBuffer, EntryData, FieldTypes, GroupData};
 use crate::state::fullscrn_state::FullscrnState;
 use crate::utils;
 use crate::zdrv::ZMapHeaderType;
+use anyhow::{Result, bail};
 use num_traits::FromPrimitive;
 use std::ffi::CStr;
 use std::fs::File;
@@ -135,7 +136,7 @@ pub fn load_records(
     file_name: String,
     full_tilt_mode: bool,
     fullscrn_state: &mut FullscrnState,
-) -> Result<DatFile, RecordLoadError> {
+) -> Result<DatFile> {
     let mut header: DatFileHeader = Default::default();
     let mut bmp_header: Dat8BitBmpHeader = Default::default();
     let mut zmap_header: Dat16BitBmpHeader = Default::default();
@@ -145,7 +146,7 @@ pub fn load_records(
     reader.read_exact(bytemuck::bytes_of_mut(&mut header))?;
 
     if header.file_signature != *b"PARTOUT(4.0)RESOURCE\0" {
-        return Err(RecordLoadError::IncorrectFileSignature);
+        bail!(RecordLoadError::IncorrectFileSignature);
     }
 
     let mut dat_file = DatFile::new();
@@ -257,8 +258,8 @@ pub fn load_records(
     }
 
     if dat_file.groups.len() == header.number_of_groups as usize {
-        dat_file.finalize(full_tilt_mode, fullscrn_state);
+        dat_file.finalize(full_tilt_mode, fullscrn_state)?;
         return Ok(dat_file);
     }
-    Err(RecordLoadError::Unknown)
+    bail!(RecordLoadError::Unknown)
 }

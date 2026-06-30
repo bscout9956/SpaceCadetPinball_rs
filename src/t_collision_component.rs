@@ -63,8 +63,8 @@ impl DerefMut for TCollisionComponent {
     }
 }
 
-use anyhow::Result;
 use crate::render::RenderSprite;
+use anyhow::Result;
 
 impl TCollisionComponent {
     pub fn new(
@@ -80,10 +80,10 @@ impl TCollisionComponent {
         if group_index <= 0 {
             loader::default_vsi(&mut visual);
         } else {
-            loader::query_visual(group_index, 0, &mut visual, state);
+            loader::query_visual(group_index, 0, &mut visual, state)?;
         }
 
-        let mut instance_data = Self {
+        let instance_data = Self {
             base,
             threshold: visual.kicker.threshold,
             elasticity: visual.elasticity,
@@ -100,8 +100,8 @@ impl TCollisionComponent {
             },
         };
         instance_data.active_flag.set(true);
-        if (*instance_data).group_name.is_none() {
-            (*instance_data).unused_base_flag.set(true);
+        if instance_data.group_name.is_none() {
+            instance_data.unused_base_flag.set(true);
         }
 
         let instance = Rc::new(RefCell::new(instance_data));
@@ -251,12 +251,11 @@ impl ICollisionComponent for TCollisionComponent {
     }
 
     #[allow(non_snake_case)]
-
     fn set_AABB(&mut self, aabb: RectF) {
         self.aabb = aabb;
     }
-    #[allow(non_snake_case)]
 
+    #[allow(non_snake_case)]
     fn get_AABB(&self) -> Option<RectF> {
         Some(self.aabb.clone())
     }
@@ -270,12 +269,13 @@ impl IPinballComponent for TCollisionComponent {
     fn as_any(&self) -> &dyn Any {
         self
     }
+
     fn group_name(&self) -> Option<String> {
-        match self.group_name.as_ref() {
-            None => None,
-            Some(name) => Some(name.borrow().to_string()),
-        }
+        self.group_name
+            .as_ref()
+            .map(|name| name.borrow().to_string())
     }
+
     fn group_index(&self) -> i32 {
         self.base.group_index
     }

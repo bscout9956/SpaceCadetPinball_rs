@@ -127,19 +127,14 @@ impl TEdgeSegment {
         let mut dest_vec: Vector3 = Default::default();
 
         let wall_type = unsafe { (f32::floor(*float_arr) - 1.0f32) as i32 };
-        let mut slice_length = 0usize;
-        match wall_type {
+        let slice_length = match wall_type {
             0 => {
                 // Circle
-                slice_length = 4;
+                4
             }
-            1 => {
-                slice_length = 5;
-            }
-            _ => {
-                slice_length = std::cmp::max((2 * wall_type) + 1, 4) as usize;
-            }
-        }
+            1 => 5,
+            _ => std::cmp::max((2 * wall_type) + 1, 4) as usize,
+        };
 
         let float_arr_slice = slice_from_raw_parts(float_arr, slice_length);
 
