@@ -529,7 +529,7 @@ pub mod impl_sdl2 {
         let io = context.io_mut();
         let bd_ptr = io.backend_platform_user_data();
 
-        let mut bd: *mut ImplSdl2UserData = std::ptr::null_mut();
+        let bd: *mut ImplSdl2UserData;
 
         if bd_ptr.is_null() {
             return false;
@@ -869,7 +869,7 @@ pub mod impl_sdl2 {
     }
 
     pub fn shutdown(io: &mut Io) {
-        let mut bd = unsafe { get_backend_bd_from_io(io) };
+        let bd = unsafe { get_backend_bd_from_io(io) };
         if bd.is_null() {
             panic!("No platform backend to shutdown, or already shutdown");
         }

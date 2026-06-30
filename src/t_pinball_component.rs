@@ -170,11 +170,7 @@ impl IPinballComponent for TPinballComponent {
     }
 
     fn group_name(&self) -> Option<String> {
-        if let Some(group_name) = self.group_name.as_ref() {
-            Some(group_name.borrow().clone())
-        } else {
-            None
-        }
+        self.group_name.as_ref().map(|group_name| group_name.borrow().clone())
     }
 
     fn group_index(&self) -> i32 {
@@ -187,8 +183,8 @@ impl IPinballComponent for TPinballComponent {
 
         let mut x_pos = 0;
         let mut y_pos = 0;
-        let mut bmp = None;
-        let mut zmap = None;
+        let bmp;
+        let zmap;
 
         if index >= 0
             && let Some(sprite_data) = self.list_bitmap.get(index as usize)

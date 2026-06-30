@@ -165,6 +165,7 @@ pub fn kill_callback(callback: unsafe extern "C" fn(i32, *mut c_void, &mut Pinba
             break;
         }
 
+        // TODO: Check this about func ptr comparisons, might not work
         if buffer[current_idx as usize].callback == Some(callback) {
             kill_count += 1;
 
