@@ -7,7 +7,7 @@ use std::sync::{LazyLock, Mutex};
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, FromPrimitive)]
 pub enum Msg {
-    MIN,
+    Min,
     STRING101,
     STRING102,
     STRING103,
@@ -225,38 +225,38 @@ pub enum Msg {
     Menu1UseMaxResolution640x480,
     Menu1UseMaxResolution800x600,
     Menu1UseMaxResolution1024x768,
-    MAX,
+    Max,
 }
 
 #[derive(Copy, Clone, PartialEq, Default)]
 pub enum Lang {
-    MIN,
-    ARABIC,
-    CZECH,
-    DANISH,
-    GERMAN,
-    GREEK,
+    Min,
+    Arabic,
+    Czech,
+    Danish,
+    German,
+    Greek,
     #[default]
-    ENGLISH,
-    SPANISH,
-    FINNISH,
-    FRENCH,
-    HEBREW,
-    HUNGARIAN,
-    ITALIAN,
-    JAPANESE,
-    KOREAN,
-    NORWEGIAN,
-    DUTCH,
-    POLISH,
+    English,
+    Spanish,
+    Finnish,
+    French,
+    Hebrew,
+    Hungarian,
+    Italian,
+    Japanese,
+    Korean,
+    Norwegian,
+    Dutch,
+    Polish,
     BrazilianPortuguese,
-    PORTUGUESE,
-    RUSSIAN,
-    SWEDISH,
-    TURKISH,
+    Portuguese,
+    Russian,
+    Swedish,
+    Turkish,
     SimplifiedChinese,
     TraditionalChinese,
-    MAX,
+    Max,
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -266,91 +266,91 @@ pub struct LanguageInfo {
     pub language: Lang,
 }
 
-pub(crate) static LANGUAGES: [LanguageInfo; Lang::MAX as usize] = [
+pub(crate) static LANGUAGES: [LanguageInfo; Lang::Max as usize] = [
     LanguageInfo {
         short_name: "ar",
         display_name: "Arabic",
-        language: Lang::ARABIC,
+        language: Lang::Arabic,
     },
     LanguageInfo {
         short_name: "cz",
         display_name: "Czech",
-        language: Lang::CZECH,
+        language: Lang::Czech,
     },
     LanguageInfo {
         short_name: "da",
         display_name: "Danish",
-        language: Lang::DANISH,
+        language: Lang::Danish,
     },
     LanguageInfo {
         short_name: "de",
         display_name: "German",
-        language: Lang::GERMAN,
+        language: Lang::German,
     },
     LanguageInfo {
         short_name: "el",
         display_name: "Greek",
-        language: Lang::GREEK,
+        language: Lang::Greek,
     },
     LanguageInfo {
         short_name: "en",
         display_name: "English",
-        language: Lang::ENGLISH,
+        language: Lang::English,
     },
     LanguageInfo {
         short_name: "es",
         display_name: "Spanish",
-        language: Lang::SPANISH,
+        language: Lang::Spanish,
     },
     LanguageInfo {
         short_name: "fi",
         display_name: "Finnish",
-        language: Lang::FINNISH,
+        language: Lang::Finnish,
     },
     LanguageInfo {
         short_name: "fr",
         display_name: "French",
-        language: Lang::FRENCH,
+        language: Lang::French,
     },
     LanguageInfo {
         short_name: "he",
         display_name: "Hebrew",
-        language: Lang::HEBREW,
+        language: Lang::Hebrew,
     },
     LanguageInfo {
         short_name: "hu",
         display_name: "Hungarian",
-        language: Lang::HUNGARIAN,
+        language: Lang::Hungarian,
     },
     LanguageInfo {
         short_name: "it",
         display_name: "Italian",
-        language: Lang::ITALIAN,
+        language: Lang::Italian,
     },
     LanguageInfo {
         short_name: "ja",
         display_name: "Japanese",
-        language: Lang::JAPANESE,
+        language: Lang::Japanese,
     },
     LanguageInfo {
         short_name: "ko",
         display_name: "Korean",
-        language: Lang::KOREAN,
+        language: Lang::Korean,
     },
     LanguageInfo {
         short_name: "nb",
         display_name: "Norwegian",
-        language: Lang::NORWEGIAN,
+        language: Lang::Norwegian,
     },
     LanguageInfo {
         short_name: "nl",
         display_name: "Dutch",
-        language: Lang::DUTCH,
+        language: Lang::Dutch,
     },
     LanguageInfo {
         short_name: "pl",
         display_name: "Polish",
-        language: Lang::POLISH,
+        language: Lang::Polish,
     },
     LanguageInfo {
         short_name: "pt_BR",
@@ -360,22 +360,22 @@ pub(crate) static LANGUAGES: [LanguageInfo; Lang::MAX as usize] = [
     LanguageInfo {
         short_name: "pt_PT",
         display_name: "Portuguese",
-        language: Lang::PORTUGUESE,
+        language: Lang::Portuguese,
     },
     LanguageInfo {
         short_name: "ru",
         display_name: "Russian",
-        language: Lang::RUSSIAN,
+        language: Lang::Russian,
     },
     LanguageInfo {
         short_name: "sv",
         display_name: "Swedish",
-        language: Lang::SWEDISH,
+        language: Lang::Swedish,
     },
     LanguageInfo {
         short_name: "tr",
         display_name: "Turkish",
-        language: Lang::TURKISH,
+        language: Lang::Turkish,
     },
     LanguageInfo {
         short_name: "zh_CN",
@@ -390,7 +390,7 @@ pub(crate) static LANGUAGES: [LanguageInfo; Lang::MAX as usize] = [
     LanguageInfo {
         short_name: "",
         display_name: "",
-        language: Lang::MIN,
+        language: Lang::Min,
     },
 ];
 
@@ -408,7 +408,7 @@ pub fn get_current_language() -> Option<LanguageInfo> {
 pub fn set_current_language(short_name: &str) {
     if short_name.is_empty() {
         let mut lang = CURRENT_LANGUAGE.lock().unwrap();
-        *lang = Lang::ENGLISH;
+        *lang = Lang::English;
         return;
     }
 
@@ -445,7 +445,7 @@ pub fn get_translation(id: Msg) -> Result<&'static str, TranslationError> {
 
             // Language fallback to english if available
             if text.is_err() {
-                text = get(id, Lang::ENGLISH);
+                text = get(id, Lang::English);
                 if text.is_err() {
                     Err(TranslationError::MissingEnglishText)
                 } else {
