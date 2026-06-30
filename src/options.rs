@@ -858,3 +858,10 @@ pub fn post_process_options(
     translations::set_current_language(&options_state.options.language.value);
     update_frame_rate(main_state, options_state);
 }
+
+pub(crate) fn input_down(input: GameInput, options_state: &mut OptionsState) {
+    if options_state.control_waiting_for_input.is_some() {
+        options_state.control_waiting_for_input = Some(input);
+        options_state.control_waiting_for_input = Option::None;
+    }
+}
