@@ -141,8 +141,8 @@ impl TEdgeManager {
         let dir_x = if x0 >= x1 { -1 } else { 1 };
         let dir_y = if y0 >= y1 { -1 } else { 1 };
 
-        if (y_box_0 == y_box_1) {
-            if (dir_x == 1) {
+        if y_box_0 == y_box_1 {
+            if dir_x == 1 {
                 for index_x in x_box_0..=x_box_1 {
                     edge_index = self.test_grid_box(
                         index_x,
@@ -169,8 +169,8 @@ impl TEdgeManager {
                     index_x -= 1;
                 }
             }
-        } else if (x_box_0 == x_box_1) {
-            if (dir_y == 1) {
+        } else if x_box_0 == x_box_1 {
+            if dir_y == 1 {
                 for index_y in y_box_0..=y_box_1 {
                     edge_index = self.test_grid_box(
                         x_box_0,
@@ -199,8 +199,8 @@ impl TEdgeManager {
                 }
             }
         } else {
-            let mut edge_index = 0;
-            edge_index = self.test_grid_box(x_box_0, y_box_0, &mut distance, edge, ray, ball, 0);
+            let mut edge_index =
+                self.test_grid_box(x_box_0, y_box_0, &mut distance, edge, ray, ball, 0);
 
             // Bresenham line formula: y = dYdX * (x - x0) + y0; dYdX = (y0 - y1) / (x0 - x1)
             let dy_dx = (y0 - y1) / (x0 - x1);
@@ -269,16 +269,15 @@ impl TEdgeManager {
                     && (edge_entry.borrow().collision_group() as usize
                         & ray.collision_mask as usize)
                         != 0
+                    && ball.borrow().already_hit(edge_entry)
                 {
-                    if ball.borrow().already_hit(edge_entry) {
-                        edge_index += 1;
-                        edge_segment = edge_entry;
-                        edge_entry.borrow_mut().processed_flag().set(true);
-                        let dist = edge_entry.borrow().find_collision_distance(ray);
-                        if dist < *dist_val {
-                            *dist_val = dist;
-                            *edge_dst = edge_entry.clone();
-                        }
+                    edge_index += 1;
+                    edge_segment = edge_entry;
+                    edge_entry.borrow_mut().processed_flag().set(true);
+                    let dist = edge_entry.borrow().find_collision_distance(ray);
+                    if dist < *dist_val {
+                        *dist_val = dist;
+                        *edge_dst = edge_entry.clone();
                     }
                 }
             }
