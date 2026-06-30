@@ -300,12 +300,12 @@ fn imgui_menu_item_w_shortcut(
     let desc = pb::get_rc_string_cstring(key_def.description).unwrap();
     unsafe {
         if igMenuItem_Bool(desc.as_ptr(), shortcut_cstr.as_ptr(), select, true) {
-            handle_game_binding(binding, false);
+            handle_game_binding(&binding, false);
         }
     };
 }
 
-fn handle_game_binding(bind: GameBindings, p1: bool) {
+fn handle_game_binding(bind: &GameBindings, p1: bool) {
     //todo implement me
     println!("handle_game_binding TODO, vals are: {:?} {}", bind, p1);
 }
@@ -1417,7 +1417,6 @@ unsafe fn event_handler(
     let mut input_down = false;
 
     unsafe {
-        // Evaluate the cast in an if-statement instead of a pattern match
         if (*event).type_ == SDL_KEYDOWN as u32
             || (*event).type_ == SDL_EventType::SDL_MOUSEBUTTONDOWN as u32
             || (*event).type_ == SDL_CONTROLLERBUTTONDOWN as u32
@@ -1517,7 +1516,10 @@ unsafe fn event_handler(
                 sound::deactivate(&mut state.sound_state);
                 //TODO: midi::music_stop();
                 state.main_state.has_focus = false;
-                pb::lose_focus(&mut state.pb_game_state.main_table, state.pb_game_state.time_now)?;
+                pb::lose_focus(
+                    &mut state.pb_game_state.main_table,
+                    state.pb_game_state.time_now,
+                )?;
             }
 
             if (*event).window.event == SDL_WINDOWEVENT_SIZE_CHANGED as u8

@@ -1,8 +1,8 @@
+use crate::maths::{Vector2, Vector2i};
 use crate::message_code::MessageCode;
+use crate::render::RenderSprite;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use std::any::Any;
-use crate::maths::{Vector2, Vector2i};
-use crate::render::RenderSprite;
 
 pub struct TlightPlayerBackup {
     message_field: i32,

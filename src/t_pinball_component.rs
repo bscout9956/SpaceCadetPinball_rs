@@ -248,9 +248,9 @@ impl IPinballComponent for TPinballComponent {
         }
 
         0
+    }
 
     fn set_active_flag(&mut self, active: bool) {
         self.active_flag.set(active);
-    }
     }
 }
