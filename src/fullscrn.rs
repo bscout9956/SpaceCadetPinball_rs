@@ -14,6 +14,7 @@ pub struct ResolutionInfo {
     pub(crate) screen_height: i16,
     pub table_width: i16,
     pub table_height: i16,
+    // TODO: Why am I not ever read?
     pub(crate) resolution_menu_id: i16,
 }
 
@@ -94,9 +95,6 @@ pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenErr
     fullscrn_state.offset_x = 0f32;
     fullscrn_state.offset_y = 0f32;
 
-    let mut offset_2x = 0;
-    let mut offset_2y = 0;
-
     if *state.options_state.options.integer_scaling {
         fullscrn_state.scale_x = if fullscrn_state.scale_x < 1.0 {
             fullscrn_state.scale_x
@@ -116,8 +114,9 @@ pub fn window_size_changed(state: &mut PinballState) -> Result<(), FullscreenErr
         fullscrn_state.scale_y = fullscrn_state.scale_x;
     }
 
-    offset_2x = (width as f32 - res.table_width as f32 * fullscrn_state.scale_x).floor() as i32;
-    offset_2y = (height as f32 - res.table_height as f32 * fullscrn_state.scale_y).floor() as i32;
+    let offset_2x = (width as f32 - res.table_width as f32 * fullscrn_state.scale_x).floor() as i32;
+    let offset_2y =
+        (height as f32 - res.table_height as f32 * fullscrn_state.scale_y).floor() as i32;
 
     fullscrn_state.offset_x = offset_2x as f32 / 2.0f32;
     fullscrn_state.offset_y = offset_2y as f32 / 2.0f32;
@@ -136,16 +135,21 @@ pub fn activate(
     flag: bool,
     fullscrn_state: &mut FullscrnState,
     main_window: &mut Option<SdlWindowPtr>,
-) {
+) -> Result<()> {
     if fullscrn_state.screen_mode && (!flag) {
-        set_screen_mode(false, fullscrn_state, main_window);
+        set_screen_mode(false, fullscrn_state, main_window)?;
     }
+    Ok(())
 }
 
-pub fn shutdown(fullscrn_state: &mut FullscrnState, main_window: &mut Option<SdlWindowPtr>) {
+pub fn shutdown(
+    fullscrn_state: &mut FullscrnState,
+    main_window: &mut Option<SdlWindowPtr>,
+) -> Result<()> {
     if fullscrn_state.display_changed {
-        set_screen_mode(false, fullscrn_state, main_window);
+        set_screen_mode(false, fullscrn_state, main_window)?;
     }
+    Ok(())
 }
 
 pub fn get_screen_rect_from_pinball_rect(

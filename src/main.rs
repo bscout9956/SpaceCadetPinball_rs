@@ -429,8 +429,7 @@ fn main_loop(
                         (&mut pb_state.main_state).gfr_offset = 0;
                     }
                     pb_state.main_state.gfr_display[pb_state.main_state.gfr_offset as usize] = dt;
-                    pb_state.main_state.gfr_offset = ((&mut pb_state.main_state).gfr_offset
-                        + 1)
+                    pb_state.main_state.gfr_offset = ((&mut pb_state.main_state).gfr_offset + 1)
                         % (&mut pb_state.main_state).gfr_display.len() as u32;
                 }
                 update_count += 1
@@ -1232,7 +1231,7 @@ unsafe fn create_game_menu(state: &mut PinballState) -> Result<()> {
 }
 
 unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool> {
-    let mut reset_options = false;
+    let reset_options;
     unsafe {
         let menu_bar_bg =
             ui.push_style_color(StyleColor::MenuBarBg, ImVec4::new(0.0, 0.0, 0.0, 0.0));
@@ -1819,7 +1818,7 @@ fn space_cadet_pinball() -> Result<(), Box<dyn Error>> {
                 mix_opened,
             );
 
-            if let (Err(e)) = session_result {
+            if let Err(e) = session_result {
                 eprintln!("Error during main game logic: {:?}", e);
                 exit(1);
             }

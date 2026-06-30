@@ -135,7 +135,7 @@ fn table_add_extra_ball(count: f32, state: &mut PinballState) -> Result<()> {
         wave.borrow().play(None, "table_add_extra_ball");
     }
     if let Some(itb) = state.control_state.component_state.info_text_box.get() {
-        let rc_string = pb::get_rc_string(Msg::String110)?;
+        let rc_string = pb::get_rc_string(Msg::STRING110)?;
         itb.borrow_mut().display(rc_string, count, state, None)?;
     }
     Ok(())
