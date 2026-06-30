@@ -940,3 +940,59 @@ pub(crate) fn lose_focus(
         bail!(PbError::NoTable);
     }
 }
+
+pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<()> {
+    if state.options_state.control_waiting_for_input.is_some() {
+        options::input_down(input, &mut state.options_state);
+        return Ok(());
+    }
+
+    let bindings = options::map_game_input(input, &mut state.options_state);
+    for bind in &bindings {
+        handle_game_binding(bind, true);
+    }
+
+    if state.pb_game_state.game_mode != GameModes::InGame
+        || state.main_state.single_step
+        || state.pb_game_state.demo_mode
+    {
+        return Ok(());
+    }
+
+    if state.pb_game_state.credits_active {
+        state
+            .pb_game_state
+            .mission_text_box
+            .as_ref()
+            .unwrap()
+            .clear(true);
+    }
+    state.pb_game_state.credits_active = false;
+    state.pb_game_state.idle_timer_ms = 0.0f32;
+
+    if input.input_type == InputTypes::Keyboard {
+        control::pbctrl_bdoor_controller(input.value as u8, state)?;
+    }
+
+    // TODO: Don't forget the other bindings!
+    for binding in &bindings {
+        match binding {
+            GameBindings::LeftFlipper => {}
+            GameBindings::RightFlipper => {}
+            GameBindings::Plunger => {
+                if let Some(t) = state.pb_game_state.main_table.as_ref() {
+                    t.borrow_mut().message(
+                        MessageCode::PLUNGER_INPUT_PRESSED,
+                        state.pb_game_state.time_now,
+                    );
+                }
+            }
+            GameBindings::LeftTableBump => {}
+            GameBindings::RightTableBump => {}
+            GameBindings::BottomTableBump => {}
+            _ => {}
+        }
+    }
+
+    Ok(())
+}
