@@ -277,7 +277,7 @@ impl TTextBox {
         text_box_color: ImU32,
         ui: &mut Ui,
     ) {
-        if self.font.is_some() || !self.messages.front().is_some() {
+        if self.font.is_some() || self.messages.front().is_none() {
             return;
         }
 

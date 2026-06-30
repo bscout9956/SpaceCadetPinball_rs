@@ -218,7 +218,7 @@ pub fn init(
                 height as i32,
                 0,
                 0,
-                &mut bmp.unwrap(),
+                &bmp.unwrap(),
                 0,
                 0,
             );
@@ -380,7 +380,7 @@ fn unpaint_balls(render_state: &mut RenderState) -> Result<()> {
                 cur_ball.dirty_rect.height,
                 cur_ball.dirty_rect.x_position,
                 cur_ball.dirty_rect.y_position,
-                &mut ball_bitmap[index].clone(),
+                &ball_bitmap[index].clone(),
                 0,
                 0,
             );
@@ -459,7 +459,7 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
                     height,
                     x_pos,
                     y_pos,
-                    &mut background_bmp,
+                    &background_bmp,
                     x_pos,
                     y_pos,
                 );

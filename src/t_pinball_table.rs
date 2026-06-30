@@ -300,7 +300,7 @@ impl TPinballTable {
         )?;
 
         if short_arr_length > 0 {
-            for i in 0..short_arr_length / 2 {
+            for _i in 0..short_arr_length / 2 {
                 unsafe {
                     let object_type = *short_arr;
                     let short_arr_p1 = short_arr.add(1);
@@ -435,11 +435,11 @@ impl TPinballTable {
         self.cur_score += added_score;
         if self.cur_score > 1000000000 {
             self.cur_score_e9 += 1;
-            self.cur_score = self.cur_score - 1000000000;
+            self.cur_score -= 1000000000;
         }
 
         score::set(&mut self.cur_score_struct, self.cur_score);
-        return Ok(added_score);
+        Ok(added_score)
     }
 }
 
@@ -487,6 +487,7 @@ impl IPinballComponent for TPinballTable {
     fn message(&mut self, code: MessageCode, value: f32) -> i32 {
         let rc_text = String::new();
 
+        // TODO: Is it just reset? If there's no more, use if let
         match code {
             MessageCode::RESET => {
                 for component_rc in self.component_list.iter_mut() {

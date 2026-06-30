@@ -36,7 +36,7 @@ pub trait ICollisionComponent {
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>>;
 
     fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
-        return 0;
+        0
     }
     #[allow(non_snake_case)]
     fn set_AABB(&mut self, aabb: RectF);

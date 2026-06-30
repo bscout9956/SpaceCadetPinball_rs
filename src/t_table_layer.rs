@@ -138,19 +138,20 @@ impl TTableLayer {
                 t.borrow_mut().width = b.width;
             }
         } else {
-            return bail!(TTableLayerError::InvalidTable);
+            bail!(TTableLayerError::InvalidTable);
         }
 
-        let gravity_mult: f32;
-        if !state.pb_game_state.full_tilt_mode && !state.pb_game_state.full_tilt_demo_mode {
+        let gravity_mult: f32 = if !state.pb_game_state.full_tilt_mode
+            && !state.pb_game_state.full_tilt_demo_mode
+        {
             let angle_mult =
                 loader::query_float_attribute_ptr(group_index, 0, 701, &mut state.loader_state)?;
-            gravity_mult = unsafe { *angle_mult };
+            unsafe { *angle_mult }
         } else {
-            gravity_mult = 0.2f32;
-        }
+            0.2f32
+        };
 
-        let mut base = TCollisionComponent::new(table.clone(), -1, false, state)?;
+        let base = TCollisionComponent::new(table.clone(), -1, false, state)?;
         base.borrow_mut().threshold = visual.kicker.threshold;
         base.borrow_mut().boost = 15.0f32;
 
@@ -372,7 +373,7 @@ pub fn edges_insert_circle(
 
                 if x_max >= vec1.x && x_min <= vec1_x_adv && y_max >= vec1.y && y_min <= vec1_y_adv
                 {
-                    let mut collision = true;
+                    let collision;
                     {
                         if circle.center.x <= vec1_x_adv
                             && circle.center.x >= vec1.x
@@ -411,7 +412,7 @@ pub fn edges_insert_circle(
                         }
 
                         ray.direction.x = -1.0f32;
-                        ray.origin.x = ray.origin.x + edge_manager.advance_x;
+                        ray.origin.x += edge_manager.advance_x;
                         if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
                             break;
                         }
@@ -437,7 +438,7 @@ pub fn edges_insert_circle(
                         };
 
                         ray.direction.x = 1.0;
-                        ray.origin.x = ray.origin.x - edge_manager.advance_x;
+                        ray.origin.x -= edge_manager.advance_x;
                         if maths::ray_intersect_circle(&ray, circle) < 1000000000.0f32 {
                             break;
                         }
