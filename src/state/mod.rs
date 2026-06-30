@@ -4,6 +4,7 @@
 // This change will be done over the course of multiple commits iteratively.
 // Until this notice is removed, it may not hold all possible states.
 
+pub mod component_state;
 pub mod control_state;
 pub mod debug_state;
 pub mod fullscrn_state;
