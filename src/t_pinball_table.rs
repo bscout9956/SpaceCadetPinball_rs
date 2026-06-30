@@ -121,12 +121,6 @@ impl TPinballTable {
 }
 
 impl TPinballTable {
-    pub(crate) fn add_score(&self, val: i32) {
-        todo!()
-    }
-}
-
-impl TPinballTable {
     fn ball_count_in_rect_base(&self, rect: &RectF) -> i32 {
         let mut count = 0;
         for ball in self.ball_list.iter() {
@@ -321,7 +315,6 @@ impl TPinballTable {
                                 TPlunger::new(table_weak.clone(), group_index as i32, state)
                                     .context("Failed to create plunger")?;
                             table_rc.borrow_mut().plunger = Some(plunger);
-                            break;
                         }
                         _ => {
                             // TODO: Implement the rest of the objects
@@ -506,5 +499,9 @@ impl IPinballComponent for TPinballTable {
         // TODO: Implement me
         //control::table_control_handler(code);
         0
+    }
+
+    fn set_active_flag(&mut self, active: bool) {
+        self.base.active_flag.set(active);
     }
 }

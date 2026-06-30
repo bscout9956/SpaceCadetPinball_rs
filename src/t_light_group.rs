@@ -74,6 +74,10 @@ impl IPinballComponent for TLightGroup {
     fn message(&mut self, code: MessageCode, value: f32) -> i32 {
         todo!()
     }
+
+    fn set_active_flag(&mut self, active: bool) {
+        self.base.set_active_flag(active);
+    }
 }
 
 #[derive(Error, Debug)]

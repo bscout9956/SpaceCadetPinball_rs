@@ -39,6 +39,7 @@ pub trait IPinballComponent {
     fn get_scoring(&self, index: u32) -> i32;
     fn port_draw(&self);
     fn message(&mut self, code: MessageCode, value: f32) -> i32;
+    fn set_active_flag(&mut self, active: bool);
 }
 
 use crate::state::pinball_state::PinballState;
@@ -247,5 +248,9 @@ impl IPinballComponent for TPinballComponent {
         }
 
         0
+
+    fn set_active_flag(&mut self, active: bool) {
+        self.active_flag.set(active);
+    }
     }
 }

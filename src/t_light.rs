@@ -72,8 +72,12 @@ impl IPinballComponent for TLight {
     }
 
     fn message(&mut self, code: MessageCode, value: f32) -> i32 {
-        println!("Beep boop");
+        println!("Beep boop, flash");
         //TODO finish me
         0
+    }
+
+    fn set_active_flag(&mut self, active: bool) {
+        self.base.active_flag.set(active);
     }
 }

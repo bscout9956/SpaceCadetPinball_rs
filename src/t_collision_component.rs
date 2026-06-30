@@ -307,4 +307,8 @@ impl IPinballComponent for TCollisionComponent {
     fn message(&mut self, code: MessageCode, value: f32) -> i32 {
         todo!()
     }
+
+    fn set_active_flag(&mut self, active: bool) {
+        self.active_flag.set(active);
+    }
 }
