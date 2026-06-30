@@ -1,5 +1,5 @@
+#![allow(dead_code)]
 extern crate core;
-
 use crate::embedded_data::load_controller_db;
 use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPlayers};
 use crate::options::{DEF_FPS, DEF_UPS, GameBindings, GameInput, InputTypes, Menu};
@@ -414,27 +414,25 @@ fn main_loop(
 
         // Scope to avoid repetition, Rust usually doesn't like long-lived scopes but in this case it helps
         {
-            if !(&mut pb_state.main_state).single_step && !(&mut pb_state.main_state).no_time_loss {
+            if !pb_state.main_state.single_step && !pb_state.main_state.no_time_loss {
                 let dt = frame_duration.count() as f32 / 1_000_000.0;
                 pb::frame(dt, pb_state)?;
 
                 if pb_state.main_state.disp_gr_history {
                     let target_size = (*pb_state.options_state.options.updates_per_second as f32
-                        * (&mut pb_state.main_state).gfr_window)
+                        * pb_state.main_state.gfr_window)
                         as usize;
-                    if (&mut pb_state.main_state).gfr_display.len() != target_size {
-                        (&mut pb_state.main_state)
-                            .gfr_display
-                            .resize(target_size, dt);
-                        (&mut pb_state.main_state).gfr_offset = 0;
+                    if pb_state.main_state.gfr_display.len() != target_size {
+                        pb_state.main_state.gfr_display.resize(target_size, dt);
+                        pb_state.main_state.gfr_offset = 0;
                     }
                     pb_state.main_state.gfr_display[pb_state.main_state.gfr_offset as usize] = dt;
-                    pb_state.main_state.gfr_offset = ((&mut pb_state.main_state).gfr_offset + 1)
-                        % (&mut pb_state.main_state).gfr_display.len() as u32;
+                    pb_state.main_state.gfr_offset = (pb_state.main_state.gfr_offset + 1)
+                        % pb_state.main_state.gfr_display.len() as u32;
                 }
                 update_count += 1
             }
-            (&mut pb_state.main_state).no_time_loss = false;
+            pb_state.main_state.no_time_loss = false;
         }
 
         if update_to_frame_counter >= pb_state.main_state.update_to_frame_ratio {
@@ -627,7 +625,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool> {
                     *state.options_state.options.players == 4,
                     true,
                 ) {
-                    options::toggle(FourPlayers, state);
+                    options::toggle(FourPlayers, state)?;
                     new_game(state)?;
                 }
                 igEndMenu();
@@ -647,11 +645,10 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool> {
                         null(),
                         current_language.language == item.language,
                         true,
-                    ) {
-                        if current_language.language != item.language {
-                            translations::set_current_language(item.short_name);
-                            restart(&mut state.main_state);
-                        }
+                    ) && current_language.language != item.language
+                    {
+                        translations::set_current_language(item.short_name);
+                        restart(&mut state.main_state);
                     }
                 }
 
@@ -660,10 +657,10 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool> {
 
             igSeparator();
 
-            create_audio_menu(state);
+            create_audio_menu(state)?;
             create_graphics_menu(state)?;
             create_resolution_menu(state)?;
-            create_game_data_menu(state);
+            create_game_data_menu(state)?;
 
             igSeparator();
 
@@ -725,7 +722,6 @@ unsafe fn create_graphics_menu(state: &mut PinballState) -> Result<()> {
 
             igSeparator();
 
-            let buffer_text: String;
             let mut changed = false;
 
             if igMenuItem_Bool(c"Set Default UPS/FPS".as_ptr(), null(), false, true) {
@@ -763,7 +759,7 @@ unsafe fn create_graphics_menu(state: &mut PinballState) -> Result<()> {
                     *state.options_state.options.frames_per_second,
                 );
             }
-            buffer_text = format!(
+            let buffer_text: String = format!(
                 "Uncapped FPS (FPS ratio {:02.2})",
                 state.main_state.update_to_frame_ratio
             );
@@ -819,7 +815,7 @@ fn new_game(state: &mut PinballState) -> Result<()> {
     Ok(())
 }
 
-unsafe fn create_resolution_menu(state: &mut PinballState) -> Result<(), MainLoopError> {
+unsafe fn create_resolution_menu(state: &mut PinballState) -> Result<()> {
     unsafe {
         let table_res_string = pb::get_rc_string_cstring(Msg::Menu1TableResolution)?;
         if igBeginMenu(table_res_string.as_ptr(), true) {
@@ -845,7 +841,7 @@ unsafe fn create_resolution_menu(state: &mut PinballState) -> Result<(), MainLoo
                 *state.options_state.options.resolution == -1,
                 true,
             ) {
-                options::toggle(Menu::MaximumResolution, state);
+                options::toggle(Menu::MaximumResolution, state)?;
             }
 
             for i in 0..=fullscrn::get_max_resolution(&mut state.pb_game_state) {
@@ -860,16 +856,16 @@ unsafe fn create_resolution_menu(state: &mut PinballState) -> Result<(), MainLoo
                 ) {
                     match i {
                         0 => {
-                            options::toggle(Menu::R640x480, state);
+                            options::toggle(Menu::R640x480, state)?;
                         }
                         1 => {
-                            options::toggle(Menu::R800x600, state);
+                            options::toggle(Menu::R800x600, state)?;
                         }
                         2 => {
-                            options::toggle(Menu::R1024x768, state);
+                            options::toggle(Menu::R1024x768, state)?;
                         }
                         _ => {
-                            options::toggle(Menu::R640x480, state);
+                            options::toggle(Menu::R640x480, state)?;
                         }
                     };
                 }
@@ -880,7 +876,7 @@ unsafe fn create_resolution_menu(state: &mut PinballState) -> Result<(), MainLoo
     Ok(())
 }
 
-unsafe fn create_audio_menu(state: &mut PinballState) {
+unsafe fn create_audio_menu(state: &mut PinballState) -> Result<()> {
     unsafe {
         if igBeginMenu(c"Audio".as_ptr(), true) {
             imgui_menu_item_w_shortcut(
@@ -895,7 +891,7 @@ unsafe fn create_audio_menu(state: &mut PinballState) {
                 *state.options_state.options.sound_stereo,
                 true,
             ) {
-                options::toggle(Menu::SoundStereo, state);
+                options::toggle(Menu::SoundStereo, state)?;
             }
             igTextUnformatted(c"Sound Volume".as_ptr(), c"".as_ptr());
             if igSliderInt(
@@ -946,9 +942,10 @@ unsafe fn create_audio_menu(state: &mut PinballState) {
             igEndMenu();
         }
     }
+    Ok(())
 }
 
-unsafe fn create_game_data_menu(state: &mut PinballState) {
+unsafe fn create_game_data_menu(state: &mut PinballState) -> Result<()> {
     unsafe {
         if igBeginMenu(c"Game Data".as_ptr(), true) {
             if igMenuItem_Bool(
@@ -957,11 +954,12 @@ unsafe fn create_game_data_menu(state: &mut PinballState) {
                 *state.options_state.options.prefer_3dpb_game_data,
                 true,
             ) {
-                options::toggle(Menu::Prefer3DPBGameData, state);
+                options::toggle(Menu::Prefer3DPBGameData, state)?;
             }
             igEndMenu();
         }
     }
+    Ok(())
 }
 
 unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<bool> {
@@ -1138,10 +1136,10 @@ fn create_help_menu(state: &mut PinballState) -> Result<()> {
                     state.pb_game_state.cheat_mode,
                     true,
                 ) {
-                    pb::push_cheat("hidden test", state);
+                    pb::push_cheat("hidden test", state)?;
                 }
                 if igMenuItem_Bool(c"1max".as_ptr(), null(), false, true) {
-                    pb::push_cheat("1max", state);
+                    pb::push_cheat("1max", state)?;
                 }
                 if igMenuItem_Bool(
                     c"bmax".as_ptr(),
@@ -1149,18 +1147,18 @@ fn create_help_menu(state: &mut PinballState) -> Result<()> {
                     state.control_state.table_unlimited_balls,
                     true,
                 ) {
-                    pb::push_cheat("bmax", state);
+                    pb::push_cheat("bmax", state)?;
                 }
                 if igMenuItem_Bool(c"gmax".as_ptr(), null(), false, true) {
-                    pb::push_cheat("gmax", state);
+                    pb::push_cheat("gmax", state)?;
                 }
                 if igMenuItem_Bool(c"rmax".as_ptr(), null(), false, true) {
-                    pb::push_cheat("rmax", state);
+                    pb::push_cheat("rmax", state)?;
                 }
                 if state.pb_game_state.full_tilt_mode
                     && igMenuItem_Bool(c"quote".as_ptr(), null(), false, true)
                 {
-                    pb::push_cheat("quote", state);
+                    pb::push_cheat("quote", state)?;
                 }
                 if igMenuItem_Bool(
                     c"easy mode".as_ptr(),
@@ -1168,7 +1166,7 @@ fn create_help_menu(state: &mut PinballState) -> Result<()> {
                     state.control_state.easy_mode,
                     true,
                 ) {
-                    pb::push_cheat("easy mode", state);
+                    pb::push_cheat("easy mode", state)?;
                 }
                 igEndMenu();
             }
@@ -1243,7 +1241,7 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool> {
             let cstr_menu = CString::new(menu_string)?;
 
             if igMenuItem_Bool(cstr_menu.as_ptr(), null(), false, true) {
-                options::toggle(ShowMenu, state);
+                options::toggle(ShowMenu, state)?;
                 igFocusWindow(std::ptr::null_mut(), ImGuiFocusRequestFlags_None);
             }
 
@@ -1480,7 +1478,7 @@ unsafe fn event_handler(
             end_pause(state)?;
 
             state.main_state.b_quit = true;
-            fullscrn::shutdown(&mut state.fullscrn_state, &mut state.main_state.main_window);
+            fullscrn::shutdown(&mut state.fullscrn_state, &mut state.main_state.main_window)?;
             state.main_state.return_value = 0;
             return Ok(false);
         }
@@ -1523,7 +1521,7 @@ unsafe fn event_handler(
                     false,
                     &mut state.fullscrn_state,
                     &mut state.main_state.main_window,
-                );
+                )?;
                 *state.options_state.options.full_screen = false;
                 sound::deactivate(&mut state.sound_state);
                 //TODO: midi::music_stop();
