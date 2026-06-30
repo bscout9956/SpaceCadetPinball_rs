@@ -414,25 +414,28 @@ fn main_loop(
 
         // Scope to avoid repetition, Rust usually doesn't like long-lived scopes but in this case it helps
         {
-            let main_state = &mut pb_state.main_state;
-            if !main_state.single_step && !main_state.no_time_loss {
+            if !(&mut pb_state.main_state).single_step && !(&mut pb_state.main_state).no_time_loss {
                 let dt = frame_duration.count() as f32 / 1_000_000.0;
-                pb::frame(dt, &mut pb_state.pb_game_state)?;
+                pb::frame(dt, pb_state)?;
 
-                if main_state.disp_gr_history {
+                if pb_state.main_state.disp_gr_history {
                     let target_size = (*pb_state.options_state.options.updates_per_second as f32
-                        * main_state.gfr_window) as usize;
-                    if main_state.gfr_display.len() != target_size {
-                        main_state.gfr_display.resize(target_size, dt);
-                        main_state.gfr_offset = 0;
+                        * (&mut pb_state.main_state).gfr_window)
+                        as usize;
+                    if (&mut pb_state.main_state).gfr_display.len() != target_size {
+                        (&mut pb_state.main_state)
+                            .gfr_display
+                            .resize(target_size, dt);
+                        (&mut pb_state.main_state).gfr_offset = 0;
                     }
-                    main_state.gfr_display[main_state.gfr_offset as usize] = dt;
-                    main_state.gfr_offset =
-                        (main_state.gfr_offset + 1) % main_state.gfr_display.len() as u32;
+                    pb_state.main_state.gfr_display[pb_state.main_state.gfr_offset as usize] = dt;
+                    pb_state.main_state.gfr_offset = ((&mut pb_state.main_state).gfr_offset
+                        + 1)
+                        % (&mut pb_state.main_state).gfr_display.len() as u32;
                 }
                 update_count += 1
             }
-            main_state.no_time_loss = false;
+            (&mut pb_state.main_state).no_time_loss = false;
         }
 
         if update_to_frame_counter >= pb_state.main_state.update_to_frame_ratio {
@@ -1136,10 +1139,10 @@ fn create_help_menu(state: &mut PinballState) -> Result<()> {
                     state.pb_game_state.cheat_mode,
                     true,
                 ) {
-                    pb::push_cheat("hidden test");
+                    pb::push_cheat("hidden test", state);
                 }
                 if igMenuItem_Bool(c"1max".as_ptr(), null(), false, true) {
-                    pb::push_cheat("1max");
+                    pb::push_cheat("1max", state);
                 }
                 if igMenuItem_Bool(
                     c"bmax".as_ptr(),
@@ -1147,18 +1150,18 @@ fn create_help_menu(state: &mut PinballState) -> Result<()> {
                     state.control_state.table_unlimited_balls,
                     true,
                 ) {
-                    pb::push_cheat("bmax");
+                    pb::push_cheat("bmax", state);
                 }
                 if igMenuItem_Bool(c"gmax".as_ptr(), null(), false, true) {
-                    pb::push_cheat("gmax");
+                    pb::push_cheat("gmax", state);
                 }
                 if igMenuItem_Bool(c"rmax".as_ptr(), null(), false, true) {
-                    pb::push_cheat("rmax");
+                    pb::push_cheat("rmax", state);
                 }
                 if state.pb_game_state.full_tilt_mode
                     && igMenuItem_Bool(c"quote".as_ptr(), null(), false, true)
                 {
-                    pb::push_cheat("quote");
+                    pb::push_cheat("quote", state);
                 }
                 if igMenuItem_Bool(
                     c"easy mode".as_ptr(),
@@ -1166,7 +1169,7 @@ fn create_help_menu(state: &mut PinballState) -> Result<()> {
                     state.control_state.easy_mode,
                     true,
                 ) {
-                    pb::push_cheat("easy mode");
+                    pb::push_cheat("easy mode", state);
                 }
                 igEndMenu();
             }
@@ -1484,6 +1487,16 @@ unsafe fn event_handler(
         }
         if (*event).type_ == SDL_KEYUP as u32 {
             pb::input_up(
+                GameInput::new(InputTypes::Keyboard, (*event).key.keysym.sym),
+                state,
+            )?;
+        }
+        if (*event).type_ == SDL_KEYDOWN as u32 {
+            if (*event).key.repeat > 0 {
+                return Ok(true);
+            }
+
+            pb::input_down(
                 GameInput::new(InputTypes::Keyboard, (*event).key.keysym.sym),
                 state,
             )?;
