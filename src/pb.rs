@@ -167,12 +167,10 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
 
     let mut projection_matrix: [f32; 12] = [0.0; 12];
 
-    let data_file_path;
-
     if state.pb_game_state.dat_file_name.is_empty() {
         return Ok(false);
     }
-    data_file_path = make_path_name(
+    let data_file_path = make_path_name(
         &state.pb_game_state.dat_file_name,
         &state.pb_game_state.base_path,
     );
@@ -450,19 +448,19 @@ fn mode_change(
                 main_state.launch_ball_enabled = false;
                 main_state.high_scores_enabled = false;
                 main_state.demo_active = true;
-                if let Some(table) = pb_game_state.main_table.as_mut() {
-                    if let Some(table_demo) = table.borrow_mut().demo.as_mut() {
-                        table_demo.active_flag = true;
-                    }
+                if let Some(table) = pb_game_state.main_table.as_mut()
+                    && let Some(table_demo) = table.borrow_mut().demo.as_mut()
+                {
+                    table_demo.active_flag = true;
                 }
             } else {
                 main_state.launch_ball_enabled = true;
                 main_state.high_scores_enabled = false;
                 main_state.demo_active = false;
-                if let Some(table) = pb_game_state.main_table.as_mut() {
-                    if let Some(table_demo) = table.borrow_mut().demo.as_mut() {
-                        table_demo.active_flag = true;
-                    }
+                if let Some(table) = pb_game_state.main_table.as_mut()
+                    && let Some(table_demo) = table.borrow_mut().demo.as_mut()
+                {
+                    table_demo.active_flag = true;
                 }
             }
         }
@@ -472,10 +470,10 @@ fn mode_change(
                 main_state.high_scores_enabled = true;
                 main_state.demo_active = false;
             }
-            if let Some(table) = pb_game_state.main_table.as_mut() {
-                if let Some(light_group) = table.borrow_mut().light_group.as_mut() {
-                    light_group.message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
-                }
+            if let Some(table) = pb_game_state.main_table.as_mut()
+                && let Some(light_group) = table.borrow_mut().light_group.as_mut()
+            {
+                light_group.message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
             }
         }
     }
@@ -501,7 +499,7 @@ pub fn ball_set(dx: f32, dy: f32, pb_game_state: &mut PbGameState) {
     let mut table = pb_game_state.main_table.as_ref().unwrap().borrow_mut(); // Lazy, if this caused you trouble then fix me
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
-        if ball.base_component.active_flag.get() == true {
+        if ball.base_component.active_flag.get() {
             ball.direction.x = dx * SENSITIVITY;
             ball.direction.y = dy * SENSITIVITY;
 
@@ -519,7 +517,7 @@ pub fn ball_set(dx: f32, dy: f32, pb_game_state: &mut PbGameState) {
     }
 }
 
-pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(), PbError> {
+pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<()> {
     if dt_milli_sec > 100.0 {
         dt_milli_sec = 100.0;
     }
@@ -530,7 +528,7 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
     if state.pb_game_state.full_tilt_mode && !state.pb_game_state.demo_mode {
         state.pb_game_state.idle_timer_ms += dt_milli_sec;
         if state.pb_game_state.idle_timer_ms >= 60000.0 && !state.pb_game_state.credits_active {
-            push_cheat("credits", state);
+            push_cheat("credits", state)?;
         }
     }
 
@@ -735,7 +733,7 @@ fn ball_to_ball_collision(
             && f32::abs(cur_ball.borrow().position.y - ball.borrow().position.y)
                 < ball_to_ball_collision_dist
         {
-            let mut distance = cur_ball.borrow().find_collision_distance(&ray);
+            let mut distance = cur_ball.borrow().find_collision_distance(ray);
             if distance < 1e9f32 {
                 distance = f32::max(0.0f32, distance - 0.002f32);
                 if distance < *collision_distance {
@@ -749,10 +747,11 @@ fn ball_to_ball_collision(
     *collision_distance
 }
 
-pub(crate) fn push_cheat(name: &str, state: &mut PinballState) {
+pub(crate) fn push_cheat(name: &str, state: &mut PinballState) -> Result<()> {
     for ch in name.as_bytes() {
-        control::pbctrl_bdoor_controller(ch.clone(), state);
+        control::pbctrl_bdoor_controller(*ch, state)?;
     }
+    Ok(())
 }
 
 pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
@@ -800,7 +799,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
     let bindings = options::map_game_input(input, &mut state.options_state);
     for binding in bindings {
         let mut table = match state.pb_game_state.main_table.as_ref() {
-            None => return bail!(PbError::NoTable),
+            None => bail!(PbError::NoTable),
             Some(t) => t.borrow_mut(),
         };
         match binding {
@@ -832,11 +831,10 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                     nudge::nudge_left();
                 }
             }
-            GameBindings::BottomTableBump => {
-                if !table.tilt_lock_flag {
-                    nudge::nudge_up();
-                }
+            GameBindings::BottomTableBump if !table.tilt_lock_flag => {
+                nudge::nudge_up();
             }
+
             _ => {}
         }
     }
@@ -868,7 +866,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
             }
         } else {
             let table_rc = match state.pb_game_state.main_table.as_ref() {
-                None => return bail!(PbError::NoTable),
+                None => bail!(PbError::NoTable),
                 Some(t) => t,
             };
             let mut table = table_rc.borrow_mut();
