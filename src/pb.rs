@@ -519,7 +519,7 @@ pub fn ball_set(dx: f32, dy: f32, pb_game_state: &mut PbGameState) {
     }
 }
 
-pub(crate) fn frame(mut dt_milli_sec: f32, pb_game_state: &mut PbGameState) -> Result<(), PbError> {
+pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(), PbError> {
     if dt_milli_sec > 100.0 {
         dt_milli_sec = 100.0;
     }
@@ -527,16 +527,16 @@ pub(crate) fn frame(mut dt_milli_sec: f32, pb_game_state: &mut PbGameState) -> R
         return Ok(());
     }
 
-    if pb_game_state.full_tilt_mode && !pb_game_state.demo_mode {
-        pb_game_state.idle_timer_ms += dt_milli_sec;
-        if pb_game_state.idle_timer_ms >= 60000.0 && !pb_game_state.credits_active {
-            push_cheat("credits");
+    if state.pb_game_state.full_tilt_mode && !state.pb_game_state.demo_mode {
+        state.pb_game_state.idle_timer_ms += dt_milli_sec;
+        if state.pb_game_state.idle_timer_ms >= 60000.0 && !state.pb_game_state.credits_active {
+            push_cheat("credits", state);
         }
     }
 
     let dt_sec = dt_milli_sec * 0.001f32;
-    pb_game_state.time_next = pb_game_state.time_now + dt_sec;
-    timed_frame(dt_sec, pb_game_state)?;
+    state.pb_game_state.time_next = state.pb_game_state.time_now + dt_sec;
+    timed_frame(dt_sec, &mut state.pb_game_state)?;
 
     Ok(())
 }
