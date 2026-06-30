@@ -886,7 +886,13 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                 0x72 => {
                     control::cheat_bump_rank();
                 }
-                0x73 => table.add_score((random::<f32>() * 1000000.0f32) as i32),
+                0x73 => {
+                    table.add_score(
+                        (random::<f32>() * 1000000.0f32) as i32,
+                        state.pb_game_state.full_tilt_mode,
+                    )?;
+                    return Ok(());
+                }
                 F12 => {
                     table.port_draw();
                 }
