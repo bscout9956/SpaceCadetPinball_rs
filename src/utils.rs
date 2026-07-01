@@ -53,6 +53,35 @@ impl LRead for u32 {
     }
 }
 
+fn decode_base_85_byte(c: u8) -> u32 {
+    let mut char = c;
+    if char > b'\\' {
+        char -= 1;
+    }
+    (char - 35) as u32
+}
+
+pub fn decode_base_85(input: &str) -> Result<Vec<u8>> {
+    let bytes = input.as_bytes();
+    if !bytes.len().is_multiple_of(5) {
+        bail!("Number of bytes isn't divisible by 5");
+    }
+
+    let mut result = Vec::with_capacity(bytes.len() / 5 * 4);
+
+    for chunk in bytes.chunks_exact(5) {
+        let d = decode_base_85_byte(chunk[0])
+            + decode_base_85_byte(chunk[1]) * 85
+            + decode_base_85_byte(chunk[2]) * 85 * 85
+            + decode_base_85_byte(chunk[3]) * 85 * 85 * 85
+            + decode_base_85_byte(chunk[4]) * 85 * 85 * 85 * 85;
+
+        result.extend_from_slice(&d.to_le_bytes());
+    }
+
+    Ok(result)
+}
+
 #[cfg(target_os = "windows")]
 pub const PATH_SEPARATOR: &str = "\\";
 #[cfg(not(target_os = "windows"))]
