@@ -66,7 +66,9 @@ pub fn load_msg_font(
         return Ok(());
     }
 
+    score_state.MSG_FONTP = Some(ScoreMessageFontType::new());
     let font = score_state.MSG_FONTP.as_mut().unwrap();
+    font.chars = vec![GdrvBitmap8::default(); 128];
 
     // FT font has multiple resolutions
     let gap_array = t.field(group_index, FieldTypes::ShortArray);
