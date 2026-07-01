@@ -15,5 +15,9 @@ rand = "0.10.1"
 anyhow = { version = "1.0.103", features = ["backtrace"]}
 log = "0.4.32"
 
+[build-dependencies]
+bindgen = "0.71.0"
+cc = "1.2.65"
+
 # [lints.clippy]
 # pedantic = "warn"
