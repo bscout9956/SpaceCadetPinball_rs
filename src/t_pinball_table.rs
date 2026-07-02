@@ -307,6 +307,8 @@ impl TPinballTable {
                     let group_index = *short_arr_p1;
                     short_arr = short_arr_p1.add(1);
                     match object_type {
+                        // TODO: Once you implement a new component, make sure that it is added to the table
+                        // If it needs to modify something in the table, do it afterwards
                         1000 | 1010 => {
                             let wall = TWall::new(table_weak.clone(), group_index as i32, state)?;
                             table_rc
