@@ -16,6 +16,10 @@ impl Vector2 {
             y: vec3.y,
         }
     }
+
+    pub(crate) fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
 }
 
 impl PartialEq for Vector2 {
