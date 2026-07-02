@@ -8,6 +8,7 @@ use crate::t_blocker::TBlocker;
 use crate::t_light::TLight;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::translations::Msg;
+use crate::utils::DrawContext;
 use anyhow::Result;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -151,16 +152,15 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
         for quote in QUOTES {
             if let Some(mtb) = state.pb_game_state.mission_text_box.as_mut() {
                 time += 3;
-                mtb.display(
-                    quote,
-                    time as f32,
-                    state.pb_game_state.time_ticks,
-                    state.pb_game_state.full_tilt_mode,
-                    &mut state.render_state.v_screen,
-                    &state.render_state.background_bitmap,
-                    &state.pb_game_state.current_palette,
-                    Some(true),
-                )?;
+                let mut draw_ctx = DrawContext {
+                    v_screen: &mut state.render_state.v_screen,
+                    current_palette: &state.pb_game_state.current_palette,
+                    time_ticks: state.pb_game_state.time_ticks,
+                    full_tilt_mode: state.pb_game_state.full_tilt_mode,
+                    background_bitmap: &state.render_state.background_bitmap,
+                };
+
+                mtb.display(quote, time as f32, &mut draw_ctx, Some(true))?;
             }
         }
         return Ok(());
@@ -174,17 +174,16 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
         let mut time = 0;
         for line in CREDITS {
             if let Some(mtb) = state.pb_game_state.mission_text_box.as_mut() {
+                // Manual inst to prevent borrow issues
+                let mut draw_ctx = DrawContext {
+                    v_screen: &mut state.render_state.v_screen,
+                    current_palette: &state.pb_game_state.current_palette,
+                    time_ticks: state.pb_game_state.time_ticks,
+                    full_tilt_mode: state.pb_game_state.full_tilt_mode,
+                    background_bitmap: &state.render_state.background_bitmap,
+                };
                 time += 2;
-                mtb.display(
-                    line,
-                    time as f32,
-                    state.pb_game_state.time_ticks,
-                    state.pb_game_state.full_tilt_mode,
-                    &mut state.render_state.v_screen,
-                    &state.render_state.background_bitmap,
-                    &state.pb_game_state.current_palette,
-                    Some(true),
-                )?;
+                mtb.display(line, time as f32, &mut draw_ctx, Some(true))?;
             }
         }
         state.pb_game_state.credits_active = true;
@@ -197,12 +196,19 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
     {
         state.control_state.easy_mode ^= true;
         if state.control_state.easy_mode {
+            let mut draw_ctx = DrawContext {
+                v_screen: &mut state.render_state.v_screen,
+                current_palette: &state.pb_game_state.current_palette,
+                time_ticks: state.pb_game_state.time_ticks,
+                full_tilt_mode: state.pb_game_state.full_tilt_mode,
+                background_bitmap: &state.render_state.background_bitmap,
+            };
             drain_ball_blocker_control(
                 MessageCode::T_BLOCKER_ENABLE,
                 &state.control_state.component_state.block_1,
                 state.control_state.easy_mode,
                 &state.control_state.component_state.lite_1,
-                state.pb_game_state.time_ticks,
+                &mut draw_ctx,
             );
         }
     }
@@ -217,7 +223,7 @@ fn drain_ball_blocker_control(
     block: &ComponentRef<TBlocker>,
     easy_mode: bool,
     light: &ComponentRef<TLight>,
-    time_ticks: usize,
+    draw_context: &mut DrawContext,
 ) {
     // The original casts caller to TBlocker and assigns it to block,
     // but it doesn't use caller as anything else
@@ -235,12 +241,12 @@ fn drain_ball_blocker_control(
                 block.borrow_mut().message(
                     MessageCode::T_BLOCKER_ENABLE,
                     blocker_duration,
-                    time_ticks,
+                    draw_context,
                 );
                 lite1.borrow_mut().message(
                     MessageCode::T_LIGHT_TURN_ON_TIMED,
                     blocker_duration,
-                    time_ticks,
+                    draw_context,
                 );
             }
         }
@@ -254,18 +260,20 @@ fn drain_ball_blocker_control(
                     block.borrow_mut().message(
                         MessageCode::T_BLOCKER_RESTART_TIMEOUT,
                         blocker_duration,
-                        time_ticks,
+                        draw_context,
                     );
                     lite1.borrow_mut().message(
                         MessageCode::T_LIGHT_FLASHER_START_TIMED,
                         blocker_duration,
-                        time_ticks,
+                        draw_context,
                     );
                 } else {
                     block.borrow_mut().base.message_field = MessageCode(0);
-                    block
-                        .borrow_mut()
-                        .message(MessageCode::T_BLOCKER_DISABLE, 0.0f32, time_ticks);
+                    block.borrow_mut().message(
+                        MessageCode::T_BLOCKER_DISABLE,
+                        0.0f32,
+                        draw_context,
+                    );
                 }
             }
         }
@@ -279,16 +287,9 @@ fn table_add_extra_ball(count: f32, state: &mut PinballState) -> Result<()> {
     }
     if let Some(itb) = state.control_state.component_state.info_text_box.get() {
         let rc_string = pb::get_rc_string(Msg::STRING110)?;
-        itb.borrow_mut().display(
-            rc_string,
-            count,
-            state.pb_game_state.time_ticks,
-            state.pb_game_state.full_tilt_mode,
-            &mut state.render_state.v_screen,
-            &state.render_state.background_bitmap,
-            &state.pb_game_state.current_palette,
-            None,
-        )?;
+        let mut draw_ctx = DrawContext::from_state(state)?;
+        itb.borrow_mut()
+            .display(rc_string, count, &mut draw_ctx, None)?;
     }
     Ok(())
 }
@@ -313,20 +314,15 @@ fn gravity_well_kickout_control(
 
                 let rc_string = pb::get_rc_string(Msg::STRING182)?
                     .replace("%ld", added_score.to_string().as_str());
-                tb.borrow_mut().display(
-                    &rc_string,
-                    2.0,
-                    state.pb_game_state.time_ticks,
-                    state.pb_game_state.full_tilt_mode,
-                    &mut state.render_state.v_screen,
-                    &state.render_state.background_bitmap,
-                    &state.pb_game_state.current_palette,
-                    None,
-                )?;
+
+                let mut draw_ctx = DrawContext::from_state(state)?;
+                tb.borrow_mut()
+                    .display(&rc_string, 2.0, &mut draw_ctx, None)?;
+
                 lite62.borrow_mut().message(
                     MessageCode::T_LIGHT_RESET_AND_TURN_OFF,
                     0.0f32,
-                    state.pb_game_state.time_ticks,
+                    &mut draw_ctx,
                 );
                 c.borrow_mut().set_active_flag(false);
                 let duration = soundwave7
@@ -335,7 +331,7 @@ fn gravity_well_kickout_control(
                 c.borrow_mut().message(
                     MessageCode::T_KICKOUT_RESTART_TIMER,
                     duration,
-                    state.pb_game_state.time_ticks,
+                    &mut draw_ctx,
                 );
             }
         }

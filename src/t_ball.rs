@@ -259,6 +259,7 @@ impl ICollisionComponent for TBall {
 
 use crate::message_code::MessageCode;
 use crate::state::pb_game_state::PbGameState;
+use crate::utils::DrawContext;
 use anyhow::{Context, Result};
 
 impl IEdgeSegment for TBall {
