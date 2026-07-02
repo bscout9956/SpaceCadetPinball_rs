@@ -149,40 +149,24 @@ impl TTextBox {
             self.messages.pop_front();
         }
 
-                if let Some(front_msg) = self.messages.front() {
-                    let mut lines = Vec::new();
-                    let mut text_height = 0;
-                    let mut remaining_text = front_msg.text.as_str();
+        if display {
+            let font = match self.font.as_ref() {
+                None => return Ok(()),
+                Some(f) => f,
+            };
 
-                    while !remaining_text.is_empty() {
-                        if text_height + font.height > self.height {
-                            break;
-                        }
+            if let Some(front_msg) = self.messages.front() {
+                let mut lines = Vec::new();
+                let mut text_height = 0;
+                let mut remaining_text = front_msg.text.as_str();
 
-                        let result = self.layout_text_line(&remaining_text);
-                        let result_end = result.end;
-
-                        if result.start.is_empty() && result.end == remaining_text {
-                            break;
-                        }
-
-                        lines.push(result);
-                        remaining_text = result_end;
-                        text_height += font.height;
+                while !remaining_text.is_empty() {
+                    if text_height + font.height > self.height {
+                        break;
                     }
 
-                    let mut off_y = self.offset_y;
-                    if full_tilt_mode {
-                        off_y += (self.height - text_height) / 2;
-                    }
-                    for line in lines {
-                        let mut off_x = self.offset_x;
-                        if full_tilt_mode {
-                            off_x += (self.width - line.width) / 2;
-                        }
-                        for &char_byte in line.start.as_bytes() {
-                            let masked_char = (char_byte & 0x7f) as usize;
-                            let char_bmp = &font.chars[masked_char];
+                    let result = self.layout_text_line(&remaining_text);
+                    let result_end = result.end;
 
                     if result.start.is_empty() && result.end == remaining_text {
                         break;
@@ -219,12 +203,10 @@ impl TTextBox {
                                         v_screen, width, height, off_x, off_y, char_bmp, 0, 0,
                                     );
                                 }
-                                off_y += char_bmp.width + font.gap_width;
                             }
 
                             off_y += char_bmp.width + font.gap_width;
                         }
-                        off_y += font.height;
                     }
                     off_y += font.height;
                 }
