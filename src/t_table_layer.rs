@@ -26,7 +26,7 @@ use thiserror::Error;
 
 pub struct TTableLayer {
     pub base_component: TCollisionComponent,
-    pub vis_bmp: Option<Arc<GdrvBitmap8>>,
+    pub vis_bmp: Arc<Option<GdrvBitmap8>>,
     pub x_min: f32,
     pub y_min: f32,
     pub x_max: f32,
@@ -82,24 +82,24 @@ impl TTableLayer {
         }
         render::set_background_zmap(sprite_data.zmap.clone(), 0, 0, &mut state.render_state);
 
-        let bmp = &sprite_data.bmp;
+        let bmp = sprite_data.bmp;
         rect.x_position = 0;
         rect.y_position = 0;
 
-        if let Some(bmp) = bmp {
-            rect.width = bmp.width;
-            rect.height = bmp.height;
-        }
+        if let Some(b) = bmp.as_ref() {
+            rect.width = b.width;
+            rect.height = b.height;
 
-        RenderSprite::new(
-            VisualTypes::Background,
-            (*bmp).clone(),
-            sprite_data.zmap,
-            0,
-            0,
-            Some(rect),
-            &mut state.render_state,
-        );
+            RenderSprite::new(
+                VisualTypes::Background,
+                bmp.clone(),
+                sprite_data.zmap,
+                0,
+                0,
+                Some(rect),
+                &mut state.render_state,
+            );
+        }
 
         // TODO: Missing sound index1,2,3 from L38 in CPP
 
@@ -132,12 +132,12 @@ impl TTableLayer {
                 * f32::sin(t.borrow().gravity_angle_x)
                 * t.borrow().gravity_dir_vect_mult;
 
-            if let Some(b) = bmp {
+            if let Some(b) = (*bmp).clone().as_ref() {
                 t.borrow_mut().x_offset = b.x_position;
                 t.borrow_mut().y_offset = b.y_position;
                 t.borrow_mut().width = b.width;
             }
-        } else {
+        } else { 
             bail!(TTableLayerError::InvalidTable);
         }
 
@@ -159,7 +159,7 @@ impl TTableLayer {
 
         let instance = Self {
             base_component: base.take(),
-            vis_bmp: (*bmp).clone(),
+            vis_bmp: bmp,
             x_min: f32::min(
                 edge_points[0].x,
                 f32::min(edge_points[1].x, edge_points[2].x),
