@@ -43,7 +43,7 @@ pub fn init(max4x3: [f32; 12], d: f32, cen_x: f32, cen_y: f32, zm: f32, zscaler:
     matrix.row1 = VectorType4::new(max4x3[4], max4x3[5], max4x3[6], max4x3[7]);
     matrix.row2 = VectorType4::new(max4x3[8], max4x3[9], max4x3[10], max4x3[11]);
     matrix.row3 = VectorType4::new(0.0, 0.0, 0.0, 1.0);
-    
+
     *MATRIX.lock().unwrap() = matrix;
 
     let mut d_val = D.lock().unwrap();
@@ -98,16 +98,14 @@ pub(crate) fn x_form_to_2d(vec: &Vector2) -> Vector2i {
 }
 
 fn x_form_to_2d_vec3(vec: Vector3) -> Vector2i {
-    let proj_coef: f32;
-
     let matrix = MATRIX.lock().unwrap();
-    let proj_vec = matrix_vector_multiply(&(*matrix), &vec);
-    if proj_vec.z == 0.0f32 {
-        proj_coef = 999999.88f32; // magic number?
+    let proj_vec = matrix_vector_multiply(&matrix, &vec);
+    let proj_coef = if proj_vec.z == 0.0f32 {
+        999_999.9_f32 // magic number?
     } else {
         let d_ = D.lock().unwrap();
-        proj_coef = *d_ / proj_vec.z;
-    }
+        *d_ / proj_vec.z
+    };
 
     let center_x = CENTER_X.lock().unwrap();
     let center_y = CENTER_Y.lock().unwrap();
