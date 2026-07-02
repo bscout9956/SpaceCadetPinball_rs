@@ -51,10 +51,6 @@ impl IPinballComponent for TLightGroup {
         todo!()
     }
 
-    fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32) {
-        todo!()
-    }
-
     fn get_coordinates(&self) -> Vector2 {
         todo!()
     }

@@ -34,7 +34,6 @@ pub trait IPinballComponent {
     fn group_name(&self) -> Option<Rc<RefCell<String>>>;
     fn group_index(&self) -> i32;
     fn sprite_set(&mut self, index: i32);
-    fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32);
     fn get_coordinates(&self) -> Vector2;
     fn get_scoring(&self, index: u32) -> i32;
     fn port_draw(&self);

@@ -86,10 +86,6 @@ impl IPinballComponent for TBlocker {
         todo!()
     }
 
-    fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32) {
-        todo!()
-    }
-
     fn get_coordinates(&self) -> Vector2 {
         todo!()
     }
@@ -149,9 +145,7 @@ impl IPinballComponent for TBlocker {
                     time_ticks,
                 );
             }
-            _ => {
-
-            }
+            _ => {}
         }
 
         0
