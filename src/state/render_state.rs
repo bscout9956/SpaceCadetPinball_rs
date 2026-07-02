@@ -16,7 +16,7 @@ pub struct RenderState {
     pub z_map_offset_x: i32,
     pub z_map_offset_y: i32,
     pub background_bitmap: Option<GdrvBitmap8>,
-    pub background_zmap: Option<Arc<ZMapHeaderType>>,
+    pub background_zmap: Arc<Option<ZMapHeaderType>>,
     pub destination_rect: Option<SDL_Rect>,
     pub v_screen_rect: RectangleType,
     pub ball_bitmap: Option<[GdrvBitmap8; 20]>,
