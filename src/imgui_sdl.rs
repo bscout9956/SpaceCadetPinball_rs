@@ -86,7 +86,7 @@ impl Color {
         Self { r, g, b, a }
     }
 
-    pub fn to_int(&self) -> u32 {
+    pub fn to_int(self) -> u32 {
         ((self.r * 255.0) as u32 & 0xff)
             | (((self.g * 255.0) as u32 & 0xff) << 8)
             | (((self.b * 255.0) as u32 & 0xff) << 16)
