@@ -329,6 +329,12 @@ pub enum DatFileError {
 unsafe impl Send for DatFile {}
 unsafe impl Sync for DatFile {}
 
+#[derive(Error, Debug)]
+pub enum DatFileError {
+    #[error("No data to decompress")]
+    EmptyDecompressedData,
+}
+
 impl DatFile {
     pub fn new() -> Self {
         Self {
