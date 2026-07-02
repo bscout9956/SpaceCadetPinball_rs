@@ -103,8 +103,44 @@ impl TPlunger {
     }
 }
 
-impl TPlunger {
-    pub(crate) fn message(&self, code: MessageCode, x: f32) -> anyhow::Result<(), PbError> {
+impl IPinballComponent for TPlunger {
+    fn render_sprite(&self) -> Option<&RenderSprite> {
+        todo!()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        todo!()
+    }
+
+    fn group_name(&self) -> Option<Rc<RefCell<String>>> {
+        self.base.group_name.clone()
+    }
+
+    fn group_index(&self) -> i32 {
+        todo!()
+    }
+
+    fn sprite_set(&mut self, index: i32) {
+        todo!()
+    }
+
+    fn get_coordinates(&self) -> Vector2 {
+        todo!()
+    }
+
+    fn get_scoring(&self, index: u32) -> i32 {
+        todo!()
+    }
+
+    fn port_draw(&self) {
+        todo!()
+    }
+
+    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32 {
+        todo!()
+    }
+
+    fn set_active_flag(&mut self, active: bool) {
         todo!()
     }
 }
