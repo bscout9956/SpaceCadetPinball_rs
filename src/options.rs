@@ -737,7 +737,8 @@ pub fn map_game_input(key: GameInput, options_state: &mut OptionsState) -> Vec<G
     for input_id in GameBindings::Min as i32..GameBindings::Exit as i32 {
         for input_value in options_state.options.control_options[input_id as usize].inputs {
             if key == input_value {
-                result.push(GameBindings::from_i32(input_id).unwrap());
+                // Must add 1 because of the Min
+                result.push(GameBindings::from_i32(input_id + 1).unwrap());
                 break;
             }
         }
@@ -866,5 +867,16 @@ pub(crate) fn input_down(input: GameInput, options_state: &mut OptionsState) {
     if options_state.control_waiting_for_input.is_some() {
         options_state.control_waiting_for_input = Some(input);
         options_state.control_waiting_for_input = Option::None;
+    }
+}
+
+pub(crate) fn show_control_dialog(options_state: &mut OptionsState) {
+    if !options_state.show_dialog {
+        options_state.control_waiting_for_input = Option::None;
+        options_state.show_dialog = true;
+
+        for ctrl in options_state.options.control_options.iter_mut() {
+            ctrl.save(&mut options_state.settings);
+        }
     }
 }
