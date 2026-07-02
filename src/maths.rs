@@ -58,6 +58,12 @@ pub struct Vector2i {
     pub y: i32,
 }
 
+impl Vector2i {
+    pub(crate) fn new(x: i32, y: i32) -> Vector2i {
+        Self { x, y }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 pub struct RectangleType {
     pub x_position: i32,
