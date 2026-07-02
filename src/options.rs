@@ -28,6 +28,7 @@ use thiserror::Error;
 
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Menu {
     NewGame = 101,
@@ -88,21 +89,20 @@ impl GameInput {
         Self { input_type, value }
     }
     pub unsafe fn get_full_input_description(&self) -> String {
-        let prefix;
-        match self.input_type {
+        let prefix = match self.input_type {
             InputTypes::None => {
                 return String::from("Unused");
             }
             Keyboard => {
-                prefix = "Keyboard\n".to_string();
+                "Keyboard\n".to_string()
             }
             Mouse => {
-                prefix = "Mouse\n".to_string();
+                "Mouse\n".to_string()
             }
             GameController => {
-                prefix = "GameController\n".to_string();
+                "GameController\n".to_string()
             }
-        }
+        };
         unsafe { prefix + &self.get_short_input_description() }
     }
 
