@@ -457,77 +457,85 @@ impl DatFile {
         let mut char_widths = [0u8; 128];
         char_widths.copy_from_slice(&font_data[6..134]); // 128
 
-        let cursor = &font_data[134..];
-        let mut group_id = self.groups.last().map(|g| g.group_id).unwrap_or(0) + 1;
+        let mut cursor = &font_data[134..];
+        let first_group_id = self.groups.last().map(|g| g.group_id).unwrap_or(0) + 1;
 
-        for char_index in 32..128 {
-            if cursor.is_empty() {
-                return Err(GroupDataError::InvalidBufferLength);
-            }
+        for (group_id, char_index) in (first_group_id..).zip(32usize..128) {
+            {
+                if cursor.is_empty() {
+                    bail!(GroupDataError::InvalidBufferLength);
+                }
 
-            let width = cursor[0] as usize;
-            if width != char_widths[char_index] as usize {
-                return Err(GroupDataError::FontWidthMismatch);
-            }
+                let width = cursor[0] as usize;
+                if width != char_widths[char_index] as usize {
+                    bail!(GroupDataError::FontWidthMismatch(
+                        width,
+                        char_widths[char_index]
+                    ));
+                }
 
                 let total_chunk_size = 1 + (width * height);
                 if cursor.len() < total_chunk_size {
                     bail!(GroupDataError::InvalidBufferLength);
                 }
 
-            let char_pixel_data = &cursor[1..total_chunk_size];
+                let char_pixel_data = &cursor[1..total_chunk_size];
 
-            let mut bmp = GdrvBitmap8::new_dims(width as i32, height as i32);
-            let byte_count = (bmp.height * bmp.stride) as usize;
-            bmp.indexed_bmp_data.resize(byte_count, 0);
+                let mut bmp = GdrvBitmap8::new_dims(width as i32, height as i32);
+                let byte_count = (bmp.height * bmp.stride) as usize;
+                bmp.indexed_bmp_data.resize(byte_count, 0);
 
-            for y in 0..height {
-                let src_start = y * width;
-                let src_end = src_start + width;
+                for y in 0..height {
+                    let src_start = y * width;
+                    let src_end = src_start + width;
 
-                let dst_row = height - 1 - y;
-                let dst_start = dst_row * (bmp.stride as usize);
-                let dst_end = dst_start + width;
+                    let dst_row = height - 1 - y;
+                    let dst_start = dst_row * (bmp.stride as usize);
+                    let dst_end = dst_start + width;
 
-                bmp.indexed_bmp_data[dst_start..dst_end]
-                    .copy_from_slice(&char_pixel_data[src_start..src_end]);
-            }
+                    bmp.indexed_bmp_data[dst_start..dst_end]
+                        .copy_from_slice(&char_pixel_data[src_start..src_end]);
+                }
 
-            let mut group_data = GroupData::new(group_id);
-            let bmp_field_size = byte_count as i32;
-            let bmp_entry = EntryData::new(
-                FieldTypes::Bitmap8bit,
-                bmp_field_size,
-                EntryBuffer::Bitmap8(bmp),
-            );
-            group_data.add_entry(bmp_entry, fullscrn_state);
-
-            if char_index == 32 {
-                let mut name_bytes = font_name.as_bytes().to_vec();
-                name_bytes.push(0);
-
-                let name_entry = EntryData::new(
-                    FieldTypes::GroupName,
-                    name_bytes.len() as i32,
-                    EntryBuffer::Raw(name_bytes),
+                let mut group_data = GroupData::new(group_id);
+                let bmp_field_size = byte_count as i32;
+                let bmp_entry = EntryData::new(
+                    FieldTypes::Bitmap8bit,
+                    bmp_field_size,
+                    EntryBuffer::Bitmap8(bmp),
                 );
+                group_data.add_entry(bmp_entry, fullscrn_state)?;
 
-                group_data.add_entry(name_entry, fullscrn_state);
+                if char_index == 32 {
+                    let mut name_bytes = font_name.as_bytes().to_vec();
+                    name_bytes.push(0);
 
-                let gap_bytes = gap_width.to_le_bytes().to_vec();
-                let gap_entry =
-                    EntryData::new(FieldTypes::ShortArray, 2, EntryBuffer::Raw(gap_bytes));
-                group_data.add_entry(gap_entry, fullscrn_state);
-            } else {
-                let group_name = format!("char {}='{}'\0", char_index, char_index as u8 as char);
-                let name_bytes = group_name.into_bytes();
+                    let name_entry = EntryData::new(
+                        FieldTypes::GroupName,
+                        name_bytes.len() as i32,
+                        EntryBuffer::Raw(name_bytes),
+                    );
 
-                let name_entry = EntryData::new(
-                    FieldTypes::GroupName,
-                    name_bytes.len() as i32,
-                    EntryBuffer::Raw(name_bytes),
-                );
-                group_data.add_entry(name_entry, fullscrn_state);
+                    group_data.add_entry(name_entry, fullscrn_state)?;
+
+                    let gap_bytes = gap_width.to_le_bytes().to_vec();
+                    let gap_entry =
+                        EntryData::new(FieldTypes::ShortArray, 2, EntryBuffer::Raw(gap_bytes));
+                    group_data.add_entry(gap_entry, fullscrn_state)?;
+                } else {
+                    let group_name =
+                        format!("char {}='{}'\0", char_index, char_index as u8 as char);
+                    let name_bytes = group_name.into_bytes();
+
+                    let name_entry = EntryData::new(
+                        FieldTypes::GroupName,
+                        name_bytes.len() as i32,
+                        EntryBuffer::Raw(name_bytes),
+                    );
+                    group_data.add_entry(name_entry, fullscrn_state)?;
+                }
+                self.groups.push(group_data);
+                cursor = &cursor[total_chunk_size..];
             }
             self.groups.push(group_data);
             group_id += 1;
