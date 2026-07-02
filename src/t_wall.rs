@@ -25,7 +25,7 @@ impl ICollisionComponent for TWall {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        time_ticks: usize,
+        draw_context: &mut DrawContext,
     ) {
         if let Some(base_val) = self.base.upgrade() {
             let mut base_val_borrow = base_val.borrow_mut();
@@ -37,7 +37,7 @@ impl ICollisionComponent for TWall {
                         0.1f32,
                         &raw mut *self as *mut c_void,
                         timer_expired,
-                        time_ticks,
+                        draw_context,
                     );
                 }
                 //TODO: control::handler(MessageCode::CONTROL_COLLISION, self);
@@ -64,6 +64,7 @@ impl ICollisionComponent for TWall {
 
 use crate::render::RenderSprite;
 use anyhow::Result;
+use crate::utils::DrawContext;
 
 impl TWall {
     pub fn new(
@@ -82,19 +83,6 @@ impl TWall {
             base: downgraded_col,
             timer: 0,
         })
-    }
-}
-unsafe extern "C" fn timer_expired(timer_id: i32, caller: *mut c_void, state: &mut PinballState) {
-    let wall = caller as *mut TWall;
-    if !wall.is_null() {
-        unsafe {
-            if let Some(base_comp) = (*wall).base.upgrade() {
-                let mut borrow = base_comp.borrow_mut();
-                borrow.sprite_set(-1);
-                (*wall).timer = 0;
-                borrow.message_field = MessageCode(0);
-            }
-        }
     }
 }
 
@@ -133,11 +121,29 @@ impl IPinballComponent for TWall {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32 {
-        todo!()
+    fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
+        if code == MessageCode::RESET && self.timer > 0 {
+            timer::kill_id(self.timer);
+            unsafe { timer_expired(self.timer, &raw mut *self as *mut c_void, draw_context); }
+        }
+        0
     }
 
     fn set_active_flag(&mut self, active: bool) {
         todo!()
+    }
+}
+
+unsafe extern "C" fn timer_expired(timer_id: i32, caller: *mut c_void, _ctx: &mut DrawContext) {
+    let wall = caller as *mut TWall;
+    if !wall.is_null() {
+        unsafe {
+            if let Some(base_comp) = (*wall).base.upgrade() {
+                let mut borrow = base_comp.borrow_mut();
+                borrow.sprite_set(-1);
+                (*wall).timer = 0;
+                borrow.message_field = MessageCode(0);
+            }
+        }
     }
 }
