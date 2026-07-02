@@ -378,7 +378,11 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
     if state.pb_game_state.demo_mode {
         state.pb_game_state.demo_mode = false;
         match state.pb_game_state.main_table.as_mut() {
-            Some(table) => table.borrow_mut().message(MessageCode::RESET, 0.0f32),
+            Some(table) => table.borrow_mut().message(
+                MessageCode::RESET,
+                0.0f32,
+                state.pb_game_state.time_ticks,
+            ),
             None => bail!(PbError::NoTable),
         };
 
@@ -774,7 +778,11 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
             Some(table) => table.borrow_mut(),
             None => bail!(PbError::NoTable),
         };
-        table.message(MessageCode::PAUSE, state.pb_game_state.time_now);
+        table.message(
+            MessageCode::PAUSE,
+            state.pb_game_state.time_now,
+            state.pb_game_state.time_ticks,
+        );
     }
     let rc_string = get_rc_string(Msg::STRING123)?;
 
@@ -812,18 +820,21 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                 table.message(
                     MessageCode::LEFT_FLIPPER_INPUT_RELEASED,
                     state.pb_game_state.time_now,
+                    state.pb_game_state.time_ticks,
                 );
             }
             GameBindings::RightFlipper => {
                 table.message(
                     MessageCode::RIGHT_FLIPPER_INPUT_RELEASED,
                     state.pb_game_state.time_now,
+                    state.pb_game_state.time_ticks,
                 );
             }
             GameBindings::Plunger => {
                 table.message(
                     MessageCode::PLUNGER_INPUT_PRESSED,
                     state.pb_game_state.time_now,
+                    state.pb_game_state.time_ticks,
                 );
             }
             GameBindings::LeftTableBump => {
@@ -901,12 +912,20 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                 }
                 0x69 => {
                     if let Some(lg) = table.light_group.as_mut() {
-                        lg.message(MessageCode::T_LIGHT_FT_TMP_OVERRIDE_ON, 1.0f32);
+                        lg.message(
+                            MessageCode::T_LIGHT_FT_TMP_OVERRIDE_ON,
+                            1.0f32,
+                            state.pb_game_state.time_ticks,
+                        );
                     }
                 }
                 0x70 => {
                     if let Some(lg) = table.light_group.as_mut() {
-                        lg.message(MessageCode::T_LIGHT_FT_TMP_OVERRIDE_OFF, 1.0f32);
+                        lg.message(
+                            MessageCode::T_LIGHT_FT_TMP_OVERRIDE_OFF,
+                            1.0f32,
+                            state.pb_game_state.time_ticks,
+                        );
                     }
                 }
                 _ => {}

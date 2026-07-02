@@ -304,16 +304,30 @@ fn gravity_well_kickout_control(
 
                 let rc_string = pb::get_rc_string(Msg::STRING182)?
                     .replace("%ld", added_score.to_string().as_str());
-                tb.borrow_mut().display(&rc_string, 2.0, state, None)?;
-                lite62
-                    .borrow_mut()
-                    .message(MessageCode::T_LIGHT_RESET_AND_TURN_OFF, 0.0f32);
+                tb.borrow_mut().display(
+                    &rc_string,
+                    2.0,
+                    state.pb_game_state.time_ticks,
+                    state.pb_game_state.full_tilt_mode,
+                    &mut state.render_state.v_screen,
+                    &state.render_state.background_bitmap,
+                    &state.pb_game_state.current_palette,
+                    None,
+                )?;
+                lite62.borrow_mut().message(
+                    MessageCode::T_LIGHT_RESET_AND_TURN_OFF,
+                    0.0f32,
+                    state.pb_game_state.time_ticks,
+                );
                 c.borrow_mut().set_active_flag(false);
                 let duration = soundwave7
                     .borrow()
                     .play(Some(lite62), "GravityWellKickoutControl");
-                c.borrow_mut()
-                    .message(MessageCode::T_KICKOUT_RESTART_TIMER, duration);
+                c.borrow_mut().message(
+                    MessageCode::T_KICKOUT_RESTART_TIMER,
+                    duration,
+                    state.pb_game_state.time_ticks,
+                );
             }
         }
         _ => {
