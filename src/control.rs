@@ -205,3 +205,7 @@ pub(crate) fn cheat_bump_rank() {
 // fn make_component_link(base_tag: &ComponentTagBase) -> Option<TPinballComponent> {
 //     todo!()
 // }
+
+pub(crate) fn handler(p0: MessageCode, p1: &mut TBlocker) {
+    todo!()
+}
