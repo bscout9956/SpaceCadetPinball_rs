@@ -362,7 +362,7 @@ pub fn reset_table(pb_game_state: &mut PbGameState) -> Result<(), PbError> {
         .as_ref()
         .unwrap()
         .borrow_mut()
-        .message(MessageCode::RESET, 0.0);
+        .message(MessageCode::RESET, 0.0, pb_game_state.time_ticks);
     Ok(())
 }
 
@@ -420,6 +420,7 @@ pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<(), PbE
             t.borrow_mut().message(
                 MessageCode::NEW_GAME,
                 *state.options_state.options.players as f32,
+                state.pb_game_state.time_ticks,
             );
         }
     }
@@ -473,7 +474,11 @@ fn mode_change(
             if let Some(table) = pb_game_state.main_table.as_mut()
                 && let Some(light_group) = table.borrow_mut().light_group.as_mut()
             {
-                light_group.message(MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION, 1.4f32);
+                light_group.message(
+                    MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION,
+                    1.4f32,
+                    pb_game_state.time_ticks,
+                );
             }
         }
     }

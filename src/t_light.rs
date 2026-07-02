@@ -71,7 +71,7 @@ impl IPinballComponent for TLight {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32) -> i32 {
+    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32 {
         println!("Beep boop, flash");
         //TODO finish me
         0

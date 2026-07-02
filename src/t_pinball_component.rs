@@ -38,7 +38,7 @@ pub trait IPinballComponent {
     fn get_coordinates(&self) -> Vector2;
     fn get_scoring(&self, index: u32) -> i32;
     fn port_draw(&self);
-    fn message(&mut self, code: MessageCode, value: f32) -> i32;
+    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32;
     fn set_active_flag(&mut self, active: bool);
 }
 
@@ -239,7 +239,7 @@ impl IPinballComponent for TPinballComponent {
     }
 
     #[allow(unused)]
-    fn message(&mut self, code: MessageCode, value: f32) -> i32 {
+    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32 {
         // TODO?
         self.message_field = code;
         if code == MessageCode::RESET {

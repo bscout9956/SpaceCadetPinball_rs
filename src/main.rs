@@ -1533,6 +1533,7 @@ unsafe fn event_handler(
                 pb::lose_focus(
                     &mut state.pb_game_state.main_table,
                     state.pb_game_state.time_now,
+                    state.pb_game_state.time_ticks,
                 )?;
             }
 

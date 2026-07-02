@@ -70,7 +70,7 @@ impl IPinballComponent for TLightGroup {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32) -> i32 {
+    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32 {
         todo!()
     }
 
