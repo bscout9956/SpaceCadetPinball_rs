@@ -1,16 +1,18 @@
 use crate::errors::PbError;
 use crate::loader;
 use crate::loader::VisualStruct;
-use crate::maths::{RectF, Vector2};
+use crate::maths::{RectF, Vector2, Vector2i};
 use crate::message_code::MessageCode;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_table::TPinballTable;
+use std::any::Any;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
+#[derive(Clone)]
 pub struct TPlunger {
     base: TCollisionComponent,
     pub pullback_timer_: i32,
