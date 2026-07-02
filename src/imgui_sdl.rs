@@ -75,7 +75,7 @@ struct Color {
 impl Color {
     pub fn from_u32(color: u32) -> Self {
         Self {
-            r: ((color >> 0) & 0xff) as f32 / 255.0,
+            r: (color & 0xff) as f32 / 255.0,
             g: ((color >> 8) & 0xff) as f32 / 255.0,
             b: ((color >> 16) & 0xff) as f32 / 255.0,
             a: ((color >> 24) & 0xff) as f32 / 255.0,
@@ -529,15 +529,11 @@ pub mod impl_sdl2 {
         let io = context.io_mut();
         let bd_ptr = io.backend_platform_user_data();
 
-        let bd: *mut ImplSdl2UserData;
-
         if bd_ptr.is_null() {
             return false;
         }
 
-        unsafe {
-            bd = &raw mut *bd_ptr.cast::<ImplSdl2UserData>();
-        }
+        let bd = &raw mut *bd_ptr.cast::<ImplSdl2UserData>();
 
         unsafe {
             if (*event).type_ == SDL_MOUSEMOTION as u32 {
@@ -909,7 +905,7 @@ pub mod impl_sdl2 {
     }
 
     pub(crate) unsafe fn new_frame(io: &mut Io, state: &mut PinballState) {
-        let bd = get_backend_bd_from_io(io);
+        let bd = unsafe { get_backend_bd_from_io(io) };
 
         if bd.is_null() {
             panic!("Did you call impl sdl2 init?");
