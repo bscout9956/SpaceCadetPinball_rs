@@ -308,7 +308,10 @@ impl TPinballTable {
                     short_arr = short_arr_p1.add(1);
                     match object_type {
                         1000 | 1010 => {
-                            let _ = TWall::new(table_weak.clone(), group_index as i32, state);
+                            let wall = TWall::new(table_weak.clone(), group_index as i32, state)?;
+                            table_rc
+                                .borrow_mut()
+                                .add_component(Rc::new(RefCell::new(wall)));
                         }
                         1001 => {
                             let plunger =
