@@ -5,7 +5,7 @@ use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPl
 use crate::options::{DEF_FPS, DEF_UPS, GameBindings, GameInput, InputTypes, Menu};
 use crate::pb::get_rc_string_cstring;
 use crate::translations::Msg;
-use crate::utils::{SdlRendererPtr, SdlWindowPtr};
+use crate::utils::{DrawContext, SdlRendererPtr, SdlWindowPtr};
 use anyhow::{Context, Result, bail};
 use dear_imgui_rs::sys::{
     ImGuiFocusRequestFlags_None, ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp,
@@ -289,13 +289,14 @@ fn hybrid_sleep(mut sleep_target: Duration<1000000000>, main_state: &mut MainSta
 fn imgui_menu_item_w_shortcut(
     binding: GameBindings,
     selected: Option<bool>,
-    options_state: &mut OptionsState,
-) {
+    state: &mut PinballState,
+) -> Result<()> {
     let idx = (binding as usize)
         .checked_sub(1)
         .expect("Invalid binding index");
 
-    let key_def = options_state
+    let key_def = state
+        .options_state
         .options
         .control_options
         .get(idx)
@@ -306,9 +307,10 @@ fn imgui_menu_item_w_shortcut(
     let desc = pb::get_rc_string_cstring(key_def.description).unwrap();
     unsafe {
         if igMenuItem_Bool(desc.as_ptr(), shortcut_cstr.as_ptr(), select, true) {
-            handle_game_binding(&binding, false);
+            handle_game_binding(&binding, false, state)?;
         }
     };
+    Ok(())
 }
 
 fn handle_game_binding(
@@ -564,7 +566,6 @@ fn main_loop(
             let target_time_delta =
                 pb_state.main_state.target_frametime - (update_end - frame_start) - sleep_remainder;
 
-
             let frame_end = if target_time_delta.count() > 0
                 && !*pb_state.options_state.options.uncapped_updates_per_second
             {
@@ -619,13 +620,13 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool> {
             imgui_menu_item_w_shortcut(
                 GameBindings::ToggleMenuDisplay,
                 Some(*state.options_state.options.show_menu),
-                &mut state.options_state,
-            );
+                state,
+            )?;
             imgui_menu_item_w_shortcut(
                 GameBindings::ToggleFullScreen,
                 Some(*state.options_state.options.full_screen),
-                &mut state.options_state,
-            );
+                state,
+            )?;
 
             let select_player_string = pb::get_rc_string_cstring(Msg::Menu1SelectPlayers)?;
             if igBeginMenu(select_player_string.as_ptr(), true) {
@@ -673,11 +674,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool> {
                 }
                 igEndMenu();
             }
-            imgui_menu_item_w_shortcut(
-                GameBindings::ShowControlDialog,
-                Option::None,
-                &mut state.options_state,
-            );
+            imgui_menu_item_w_shortcut(GameBindings::ShowControlDialog, Option::None, state)?;
 
             if igBeginMenu(c"Language".as_ptr(), true) {
                 let current_language = translations::get_current_language().unwrap();
@@ -925,8 +922,8 @@ unsafe fn create_audio_menu(state: &mut PinballState) -> Result<()> {
             imgui_menu_item_w_shortcut(
                 GameBindings::ToggleSounds,
                 Some(*state.options_state.options.sounds),
-                &mut state.options_state,
-            );
+                state,
+            )?;
 
             if igMenuItem_Bool(
                 c"Stereo Sound Effects".as_ptr(),
@@ -969,8 +966,8 @@ unsafe fn create_audio_menu(state: &mut PinballState) -> Result<()> {
             imgui_menu_item_w_shortcut(
                 GameBindings::ToggleMusic,
                 Some(*state.options_state.options.music),
-                &mut state.options_state,
-            );
+                state,
+            )?;
             igTextUnformatted(c"Music Volume".as_ptr(), c"".as_ptr());
             if igSliderInt(
                 c"##Music Volume".as_ptr(),
@@ -1232,11 +1229,7 @@ unsafe fn create_game_menu(state: &mut PinballState) -> Result<()> {
     let game_string = pb::get_rc_string_cstring(Msg::Menu1Game)?;
     unsafe {
         if igBeginMenu(game_string.as_ptr(), true) {
-            imgui_menu_item_w_shortcut(
-                GameBindings::NewGame,
-                Option::None,
-                &mut state.options_state,
-            );
+            imgui_menu_item_w_shortcut(GameBindings::NewGame, Option::None, state)?;
             let launch_ball_str = get_rc_string_cstring(Msg::Menu1LaunchBall)?;
             if igMenuItem_Bool(
                 launch_ball_str.as_ptr(),
@@ -1247,11 +1240,7 @@ unsafe fn create_game_menu(state: &mut PinballState) -> Result<()> {
                 end_pause(state).context("Failed to end pause")?;
                 pb::launch_ball(state).context("Failed to launch ball")?;
             }
-            imgui_menu_item_w_shortcut(
-                GameBindings::TogglePause,
-                Option::None,
-                &mut state.options_state,
-            );
+            imgui_menu_item_w_shortcut(GameBindings::TogglePause, Option::None, state)?;
             igSeparator();
             let score_str =
                 get_rc_string_cstring(Msg::Menu1HighScores).context("Failed to get score str")?;
@@ -1264,7 +1253,7 @@ unsafe fn create_game_menu(state: &mut PinballState) -> Result<()> {
                 pause(false, state).context("Failed to pause")?;
                 pb::high_scores(&mut state.high_score_state);
             }
-            imgui_menu_item_w_shortcut(GameBindings::Exit, Option::None, &mut state.options_state);
+            imgui_menu_item_w_shortcut(GameBindings::Exit, Option::None, state)?;
             igEndMenu();
         }
     }
@@ -1569,10 +1558,17 @@ unsafe fn event_handler(
                 sound::deactivate(&mut state.sound_state);
                 //TODO: midi::music_stop();
                 state.main_state.has_focus = false;
+                let mut draw_ctx = DrawContext {
+                    v_screen: &mut state.render_state.v_screen,
+                    current_palette: &state.pb_game_state.current_palette,
+                    time_ticks: state.pb_game_state.time_ticks,
+                    full_tilt_mode: state.pb_game_state.full_tilt_mode,
+                    background_bitmap: &state.render_state.background_bitmap,
+                };
                 pb::lose_focus(
                     &mut state.pb_game_state.main_table,
                     state.pb_game_state.time_now,
-                    state.pb_game_state.time_ticks,
+                    &mut draw_ctx,
                 )?;
             }
 
@@ -1960,7 +1956,14 @@ fn run_game_session(
 
     fullscrn::init(state).context("Failed to init fullscrn")?;
 
-    pb::reset_table(&mut state.pb_game_state).context("Failed to reset table")?;
+    let mut draw_ctx = DrawContext {
+        v_screen: &mut state.render_state.v_screen,
+        current_palette: &state.pb_game_state.current_palette,
+        time_ticks: state.pb_game_state.time_ticks,
+        full_tilt_mode: state.pb_game_state.full_tilt_mode,
+        background_bitmap: &state.render_state.background_bitmap,
+    };
+    pb::reset_table(&mut state.pb_game_state.main_table, &mut draw_ctx).context("Failed to reset table")?;
     pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state)
         .context("Failed to perform first time setup")?;
 
