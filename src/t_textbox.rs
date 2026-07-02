@@ -1,4 +1,4 @@
-use crate::gdrv::GdrvBitmap8;
+use crate::gdrv::{ColorRgba, GdrvBitmap8};
 use crate::score::ScoreMessageFontType;
 use crate::state::loader_state::LoaderState;
 use crate::state::pinball_state::PinballState;
@@ -42,7 +42,11 @@ impl TTextBox {
         &mut self,
         text: &str,
         time: f32,
-        state: &mut PinballState,
+        time_ticks: usize,
+        full_tilt_mode: bool,
+        v_screen: &mut Option<GdrvBitmap8>,
+        bg_bitmap: &Option<GdrvBitmap8>,
+        current_palette: &[ColorRgba; 256],
         low_priority: Option<bool>,
     ) -> Result<()> {
         let prio = low_priority.unwrap_or(false);
@@ -54,7 +58,7 @@ impl TTextBox {
 
         if is_dupe {
             if let Some(prev_msg) = self.messages.back_mut() {
-                prev_msg.refresh(time, state.pb_game_state.time_ticks);
+                prev_msg.refresh(time, time_ticks);
             }
 
             if self.messages.len() == 1 {
@@ -68,7 +72,7 @@ impl TTextBox {
                         time,
                         &raw const *self as *mut c_void,
                         Self::timer_expired,
-                        state.pb_game_state.time_ticks,
+                        time_ticks,
                     );
                 }
             }

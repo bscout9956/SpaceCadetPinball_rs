@@ -484,7 +484,7 @@ impl IPinballComponent for TPinballTable {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32) -> i32 {
+    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32 {
         let rc_text = String::new();
 
         // TODO: Is it just reset? If there's no more, use if let

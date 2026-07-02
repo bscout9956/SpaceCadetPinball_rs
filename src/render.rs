@@ -159,7 +159,7 @@ impl PartialEq for RenderSprite {
 }
 
 use crate::errors::RenderError;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use utils::new_sdl_rect;
 
 pub fn init(
