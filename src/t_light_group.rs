@@ -7,7 +7,7 @@ use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use std::any::Any;
 use std::cell::RefCell;
-use std::rc::Weak;
+use std::rc::{Rc, Weak};
 use thiserror::Error;
 
 #[derive(Default)]
@@ -39,11 +39,8 @@ impl IPinballComponent for TLightGroup {
         self
     }
 
-    fn group_name(&self) -> Option<String> {
-        match self.base.group_name.as_ref() {
-            None => None,
-            Some(str) => Some(str.borrow().to_string()),
-        }
+    fn group_name(&self) -> Option<Rc<RefCell<String>>> {
+        self.base.group_name.clone()
     }
 
     fn group_index(&self) -> i32 {

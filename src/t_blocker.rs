@@ -74,8 +74,8 @@ impl IPinballComponent for TBlocker {
         todo!()
     }
 
-    fn group_name(&self) -> Option<String> {
-        todo!()
+    fn group_name(&self) -> Option<Rc<RefCell<String>>> {
+        self.base.group_name.clone()
     }
 
     fn group_index(&self) -> i32 {

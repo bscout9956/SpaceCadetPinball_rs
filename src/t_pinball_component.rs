@@ -31,7 +31,7 @@ pub struct TPinballComponent {
 pub trait IPinballComponent {
     fn render_sprite(&self) -> Option<&RenderSprite>;
     fn as_any(&self) -> &dyn Any;
-    fn group_name(&self) -> Option<String>;
+    fn group_name(&self) -> Option<Rc<RefCell<String>>>;
     fn group_index(&self) -> i32;
     fn sprite_set(&mut self, index: i32);
     fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32);
@@ -169,10 +169,8 @@ impl IPinballComponent for TPinballComponent {
         self
     }
 
-    fn group_name(&self) -> Option<String> {
-        self.group_name
-            .as_ref()
-            .map(|group_name| group_name.borrow().clone())
+    fn group_name(&self) -> Option<Rc<RefCell<String>>> {
+        self.group_name.clone()
     }
 
     fn group_index(&self) -> i32 {

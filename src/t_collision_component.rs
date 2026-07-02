@@ -270,10 +270,8 @@ impl IPinballComponent for TCollisionComponent {
         self
     }
 
-    fn group_name(&self) -> Option<String> {
-        self.group_name
-            .as_ref()
-            .map(|name| name.borrow().to_string())
+    fn group_name(&self) -> Option<Rc<RefCell<String>>> {
+        self.group_name.clone()
     }
 
     fn group_index(&self) -> i32 {

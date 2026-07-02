@@ -3,6 +3,8 @@ use crate::message_code::MessageCode;
 use crate::render::RenderSprite;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use std::any::Any;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct TlightPlayerBackup {
     message_field: i32,
@@ -40,12 +42,8 @@ impl IPinballComponent for TLight {
         self
     }
 
-    fn group_name(&self) -> Option<String> {
-        if let Some(name) = self.base.group_name.as_ref() {
-            let name_str = name.borrow().to_string();
-            return Some(name_str);
-        }
-        None
+    fn group_name(&self) -> Option<Rc<RefCell<String>>> {
+        self.base.group_name.clone()
     }
 
     fn group_index(&self) -> i32 {
