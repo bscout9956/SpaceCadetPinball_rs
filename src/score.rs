@@ -15,7 +15,7 @@ pub struct ScoreStruct {
     pub offset_y: i32,
     pub width: i32,
     pub height: i32,
-    pub char_bmp: Vec<GdrvBitmap8>,
+    pub char_bmp: Vec<Option<GdrvBitmap8>>,
     pub msg_font: ScoreMessageFontType,
 }
 
@@ -24,12 +24,12 @@ impl Default for ScoreStruct {
         Self {
             score: 0,
             dirty_flag: false,
-            background_bmp: Some(GdrvBitmap8::default()),
+            background_bmp: None,
             offset_x: 0,
             offset_y: 0,
             width: 0,
             height: 0,
-            char_bmp: (0..10).map(|_| GdrvBitmap8::default()).collect(),
+            char_bmp: Vec::new(),
             msg_font: ScoreMessageFontType::new(),
         }
     }
@@ -85,14 +85,12 @@ pub fn load_msg_font(
 
     for (char_index, group_index) in (32..128).zip(group_index as usize..) {
         let bmp = t.get_bitmap(group_index as i32, fullscrn_state.resolution);
-        // TODO: This is an assumption, but it may work? Get bitmap doesn't return an option so idk
-        if bmp.indexed_bmp_data.is_empty() {
-            break;
+        if let Some(b) = bmp {
+            if font.height == 0 {
+                font.height = b.height;
+            }
+            font.chars[char_index] = b.clone();
         }
-        if font.height == 0 {
-            font.height = bmp.height;
-        }
-        font.chars[char_index] = bmp.clone();
     }
 
     Ok(())
@@ -110,6 +108,7 @@ pub(crate) fn create(
     let mut score = ScoreStruct {
         score: -9999,
         background_bmp: render_bg_bmp,
+        char_bmp: vec![None; 11],
         ..Default::default()
     };
 
@@ -158,7 +157,8 @@ pub(crate) fn create(
 }
 
 pub(crate) fn dup(score_struct: Option<ScoreStruct>, p1: usize) -> ScoreStruct {
-    ScoreStruct::from(score_struct.unwrap())
+    // TODO: p1? Should it be used?
+    score_struct.unwrap()
 }
 
 pub(crate) fn set(score: &mut Option<ScoreStruct>, value: i32) {
