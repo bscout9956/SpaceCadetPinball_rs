@@ -1068,7 +1068,7 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
 
     let bindings = options::map_game_input(input, &mut state.options_state);
     for bind in &bindings {
-        handle_game_binding(bind, true);
+        handle_game_binding(bind, true, state)?;
     }
 
     if state.pb_game_state.game_mode != GameModes::InGame

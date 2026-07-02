@@ -311,9 +311,47 @@ fn imgui_menu_item_w_shortcut(
     };
 }
 
-fn handle_game_binding(bind: &GameBindings, p1: bool) {
-    //todo implement me
-    println!("handle_game_binding TODO, vals are: {:?} {}", bind, p1);
+fn handle_game_binding(
+    bind: &GameBindings,
+    shortcut: bool,
+    state: &mut PinballState,
+) -> Result<()> {
+    match bind {
+        GameBindings::NewGame => {
+            new_game(state)?;
+        }
+        GameBindings::TogglePause => {
+            pause(true, state)?;
+        }
+        GameBindings::ToggleFullScreen => {
+            options::toggle(Menu::FullScreen, state)?;
+        }
+        GameBindings::ToggleSounds => {
+            options::toggle(Menu::Sounds, state)?;
+        }
+        GameBindings::ToggleMusic => {
+            options::toggle(Menu::Music, state)?;
+        }
+        GameBindings::ShowControlDialog => {
+            pause(false, state)?;
+            options::show_control_dialog(&mut state.options_state);
+        }
+        GameBindings::ToggleMenuDisplay => options::toggle(Menu::ShowMenu, state)?,
+        GameBindings::Exit => {
+            if !shortcut {
+                let mut event = SDL_Event {
+                    type_: SDL_QUIT as u32,
+                };
+                unsafe {
+                    SDL_PushEvent(&raw mut event);
+                }
+            } else {
+                state.main_state.show_exit_popup = true;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 impl Mul<Duration<1000000000>> for i32 {
