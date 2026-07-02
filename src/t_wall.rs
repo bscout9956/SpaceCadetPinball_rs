@@ -95,3 +95,47 @@ unsafe extern "C" fn timer_expired(timer_id: i32, caller: *mut c_void, state: &m
         }
     }
 }
+
+impl IPinballComponent for TWall {
+    fn render_sprite(&self) -> Option<&RenderSprite> {
+        todo!()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        todo!()
+    }
+
+    fn group_name(&self) -> Option<Rc<RefCell<String>>> {
+        self.base
+            .upgrade()
+            .map(|base| base.borrow().group_name.clone())?
+    }
+
+    fn group_index(&self) -> i32 {
+        todo!()
+    }
+
+    fn sprite_set(&mut self, index: i32) {
+        todo!()
+    }
+
+    fn get_coordinates(&self) -> Vector2 {
+        todo!()
+    }
+
+    fn get_scoring(&self, index: u32) -> i32 {
+        todo!()
+    }
+
+    fn port_draw(&self) {
+        todo!()
+    }
+
+    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32 {
+        todo!()
+    }
+
+    fn set_active_flag(&mut self, active: bool) {
+        todo!()
+    }
+}
