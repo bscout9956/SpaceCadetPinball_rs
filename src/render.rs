@@ -158,7 +158,9 @@ impl PartialEq for RenderSprite {
     }
 }
 
-use anyhow::{Context, Result};
+use crate::errors::RenderError;
+use anyhow::{bail, Context, Result};
+use utils::new_sdl_rect;
 
 pub fn init(
     bmp: Option<GdrvBitmap8>,
@@ -526,18 +528,14 @@ pub(crate) fn present_v_screen(state: &mut PinballState) -> Result<()> {
                     let table_width_coef = table.borrow().width as f32 / v_screen.width as f32;
                     let src_separation_x =
                         f32::round(v_screen.width as f32 * table_width_coef) as i32;
-                    let src_board_rect = SDL_Rect {
-                        x: 0,
-                        y: 0,
-                        w: src_separation_x,
-                        h: v_screen.height,
-                    };
-                    let src_sidebar_rect = SDL_Rect {
-                        x: src_separation_x,
-                        y: 0,
-                        w: v_screen.width - src_separation_x,
-                        h: v_screen.height,
-                    };
+                    let src_board_rect = new_sdl_rect(0, 0, src_separation_x, v_screen.height)?;
+
+                    let src_sidebar_rect = new_sdl_rect(
+                        src_separation_x,
+                        0,
+                        v_screen.width - src_separation_x,
+                        v_screen.height,
+                    )?;
 
                     if let Some(destination_rect) = state.render_state.destination_rect.as_ref() {
                         let dst_separation_x = destination_rect.w as f32 * table_width_coef;
@@ -580,8 +578,9 @@ pub(crate) fn present_v_screen(state: &mut PinballState) -> Result<()> {
                 debug_overlay::draw_overlay(state);
             }
         }
+        Ok(())
     } else {
-        eprintln!("No vscreen to present");
+        bail!(RenderError::NoVScreen);
     }
 }
 
