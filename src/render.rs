@@ -99,6 +99,16 @@ impl RenderSprite {
         instance
     }
 
+    pub(crate) fn ball_set(
+        &mut self,
+        bmp: Arc<Option<GdrvBitmap8>>,
+        depth: f32,
+        x_pos: i32,
+        y_pos: i32,
+    ) {
+        self.set(bmp, self.zmap.clone(), x_pos, y_pos);
+    }
+
     pub fn set(
         &mut self,
         bmp: Arc<Option<GdrvBitmap8>>,
