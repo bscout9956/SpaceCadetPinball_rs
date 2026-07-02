@@ -893,7 +893,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                 table.message(
                     MessageCode::RIGHT_FLIPPER_INPUT_RELEASED,
                     state.pb_game_state.time_now,
-                    state.pb_game_state.time_ticks,
+                    &mut draw_ctx,
                 );
             }
             GameBindings::Plunger => {
