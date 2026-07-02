@@ -102,8 +102,16 @@ impl TTextBox {
         let tb = unsafe { &mut *(caller as *mut TTextBox) };
         (*tb).timer = 0;
         if tb.messages.pop_front().is_some() {
-            let _ = tb.draw(state).context("Failed to draw textbox");
-            // TODO: contorl shit
+            let _ = tb
+                .draw(
+                    &mut state.render_state.v_screen,
+                    &state.pb_game_state.current_palette,
+                    state.pb_game_state.time_ticks,
+                    state.pb_game_state.full_tilt_mode,
+                    &state.render_state.background_bitmap,
+                )
+                .context("Failed to draw textbox");
+            // TODO: control shit
         }
     }
 

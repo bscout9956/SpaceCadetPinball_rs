@@ -279,7 +279,16 @@ fn table_add_extra_ball(count: f32, state: &mut PinballState) -> Result<()> {
     }
     if let Some(itb) = state.control_state.component_state.info_text_box.get() {
         let rc_string = pb::get_rc_string(Msg::STRING110)?;
-        itb.borrow_mut().display(rc_string, count, state, None)?;
+        itb.borrow_mut().display(
+            rc_string,
+            count,
+            state.pb_game_state.time_ticks,
+            state.pb_game_state.full_tilt_mode,
+            &mut state.render_state.v_screen,
+            &state.render_state.background_bitmap,
+            &state.pb_game_state.current_palette,
+            None,
+        )?;
     }
     Ok(())
 }
