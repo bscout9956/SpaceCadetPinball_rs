@@ -144,6 +144,30 @@ impl TPinballComponent {
 
         Ok(instance)
     }
+
+    pub(crate) fn sprite_set_ball(&mut self, index: i32, pos: &mut Vector2i, depth: f32) {
+        let bmp_ref = if index >= 0 {
+            let idx = index as usize;
+            if idx < self.list_bitmap.len() {
+                Some(&self.list_bitmap[idx].bmp)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        if let Some(bmp) = bmp_ref {
+            if let Some(b) = bmp.as_ref() {
+                pos.x -= b.width / 2;
+                pos.y -= b.height / 2;
+            }
+
+            if let Some(sprite) = self.render_sprite.as_mut() {
+                sprite.ball_set(bmp.clone(), depth, pos.x, pos.y);
+            }
+        }
+    }
 }
 
 impl Drop for TPinballComponent {
