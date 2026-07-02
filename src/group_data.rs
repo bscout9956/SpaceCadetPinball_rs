@@ -446,13 +446,13 @@ impl DatFile {
         font_data: &[u8],
         font_name: &str,
         fullscrn_state: &mut FullscrnState,
-    ) -> Result<(), GroupDataError> {
+    ) -> Result<()> {
         if font_data.len() < 134 {
-            return Err(GroupDataError::InvalidBufferLength);
+            bail!(GroupDataError::InvalidBufferLength);
         }
 
-        let gap_width = i16::from_le_bytes(font_data[0..2].try_into().unwrap());
-        let height = i16::from_le_bytes(font_data[4..6].try_into().unwrap()) as usize;
+        let gap_width = i16::from_le_bytes(font_data[0..2].try_into()?);
+        let height = i16::from_le_bytes(font_data[4..6].try_into()?) as usize;
 
         let mut char_widths = [0u8; 128];
         char_widths.copy_from_slice(&font_data[6..134]); // 128
@@ -470,10 +470,10 @@ impl DatFile {
                 return Err(GroupDataError::FontWidthMismatch);
             }
 
-            let total_chunk_size = 1 + (width * height);
-            if cursor.len() < total_chunk_size {
-                return Err(GroupDataError::InvalidBufferLength);
-            }
+                let total_chunk_size = 1 + (width * height);
+                if cursor.len() < total_chunk_size {
+                    bail!(GroupDataError::InvalidBufferLength);
+                }
 
             let char_pixel_data = &cursor[1..total_chunk_size];
 
