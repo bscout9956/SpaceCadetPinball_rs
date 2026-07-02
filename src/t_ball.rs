@@ -12,6 +12,7 @@ use std::cell::{Cell, RefCell};
 use std::ffi::CString;
 use std::ptr::slice_from_raw_parts;
 use std::rc::{Rc, Weak};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct TBall {
@@ -157,8 +158,8 @@ impl TBall {
 
         instance_data.base_component.render_sprite = Some(RenderSprite::new(
             VisualTypes::Ball,
-            None,
-            None,
+            Arc::new(None),
+            Arc::new(None),
             0,
             0,
             None,
