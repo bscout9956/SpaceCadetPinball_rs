@@ -314,7 +314,7 @@ pub fn get_sound_id(
     }
 
     if !loader_state.sound_list[sound_index as usize].loaded
-        && !loader_state.sound_list[sound_index as usize].wave.is_none()
+        && loader_state.sound_list[sound_index as usize].wave.is_some()
     {
         // TODO: Why am I unused?
         let wave_header = WaveHeader::default();
@@ -612,17 +612,17 @@ pub fn material(
                 i16::from_le_bytes([short_array_data[0], short_array_data[1]])
             }
             _ => {
-                return Ok(error(1, 21)?);
+                return error(1, 21);
             }
         };
 
         if short_value != 300 {
-            return Ok(error(3, 21)?);
+            return error(3, 21);
         }
 
         float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
             Some(EntryBuffer::Raw(data)) => data.to_vec(),
-            _ => return Ok(error(11, 21)?),
+            _ => return error(11, 21),
         };
 
         float_array_len = loader_table.field_size(group_index, FieldTypes::FloatArray) / 4;
@@ -633,18 +633,18 @@ pub fn material(
 
         let key = match float_array_data.get(byte_offset..byte_offset + 4) {
             Some(bytes) => f32::from_le_bytes(bytes.try_into()?),
-            None => return Ok(error(9, 21)?),
+            None => return error(9, 21),
         };
 
         let value = match float_array_data.get(byte_offset + 4..byte_offset + 8) {
             Some(bytes) => f32::from_le_bytes(bytes.try_into()?),
-            None => return Ok(error(9, 21)?),
+            None => return error(9, 21),
         };
 
         match key.floor() as i32 {
             301 => unsafe { (*visual).smoothness = value },
             302 => unsafe { (*visual).elasticity = value },
-            304 => unsafe {
+            304 => {
                 let sound_id = get_sound_id(
                     value.floor() as i32,
                     pb_game_state,
@@ -653,7 +653,7 @@ pub fn material(
                 )?;
                 unsafe { (*visual).soft_hit_sound_id = sound_id }
             },
-            _ => return Ok(error(9, 21)?),
+            _ => return error(9, 21),
         }
     }
 
@@ -684,7 +684,7 @@ fn state_id(
         query_visual_states(group_index, loader_state).context("Error querying visual states")?;
 
     if visual_state <= 0 {
-        return Ok(error(12, 24)?);
+        return error(12, 24);
     }
 
     let table_arc = loader_state.loader_table.as_ref().unwrap();
@@ -692,14 +692,14 @@ fn state_id(
 
     let mut short_val = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(data)) if data.len() >= 2 => i16::from_le_bytes([data[0], data[1]]),
-        _ => return Ok(error(1, 24)?),
+        _ => return error(1, 24),
     };
 
     if short_val != 200 {
-        return Ok(error(5, 24)?);
+        return error(5, 24);
     }
     if group_index_offset > visual_state as i32 {
-        return Ok(error(12, 24)?);
+        return error(12, 24);
     }
     if group_index_offset == 0 {
         return Ok(group_index);
@@ -708,11 +708,11 @@ fn state_id(
 
     short_val = match loader_table.field(group_index, FieldTypes::ShortValue) {
         Some(EntryBuffer::Raw(data)) if data.len() >= 2 => i16::from_le_bytes([data[0], data[1]]),
-        _ => return Ok(error(1, 24)?),
+        _ => return error(1, 24),
     };
 
     if short_val != 201 {
-        return Ok(error(6, 24)?);
+        return error(6, 24);
     }
 
     Ok(group_index)
@@ -746,11 +746,11 @@ pub fn kicker(
                 i16::from_le_bytes([data[0], data[1]])
             }
             _ => {
-                return Ok(error(1, 20)?);
+                return error(1, 20);
             }
         };
         if short_value != 400 {
-            return Ok(error(4, 20)?);
+            return error(4, 20);
         }
     }
 
@@ -761,7 +761,7 @@ pub fn kicker(
         let loader_table = table_arc.read().map_err(|_| LoaderError::TableLock)?;
         float_array_data = match loader_table.field(group_index, FieldTypes::FloatArray) {
             Some(EntryBuffer::Raw(data)) => data.to_vec(),
-            _ => return Ok(error(11, 20)?),
+            _ => return error(11, 20),
         };
         float_array_len = loader_table.field_size(group_index, FieldTypes::FloatArray) as usize;
     }
@@ -770,7 +770,7 @@ pub fn kicker(
     while index < float_array_len {
         let id = match float_array_data.get(index..index + 4) {
             Some(bytes) => f32::from_le_bytes(bytes.try_into()?) as i32,
-            None => return Ok(error(10, 20)?),
+            None => return error(10, 20),
         };
         index += 4;
 
@@ -804,7 +804,7 @@ pub fn kicker(
                     get_sound_id(val.floor() as i32, pb_game_state, loader_state, sound_state)?;
             },
 
-            _ => return Ok(error(10, 20)?),
+            _ => return error(10, 20),
         }
     }
 
@@ -819,11 +819,11 @@ pub fn query_visual(
 ) -> Result<i32> {
     default_vsi(visual);
     if group_index < 0 {
-        return Ok(error(0, 18)?);
+        return error(0, 18);
     }
     let state_id = state_id(group_index, group_index_offset, &mut state.loader_state)?;
     if state_id < 0 {
-        return Ok(error(16, 18)?);
+        return error(16, 18);
     }
 
     let mut short_array_data = Vec::new();
@@ -873,7 +873,7 @@ pub fn query_visual(
             match id {
                 100 => {
                     if group_index_offset > 0 {
-                        return Ok(error(7, 18)?);
+                        return error(7, 18);
                     }
                 }
                 300 => {
@@ -885,7 +885,7 @@ pub fn query_visual(
                         &mut state.sound_state,
                     )? != 0
                     {
-                        return Ok(error(15, 18)?);
+                        return error(15, 18);
                     }
                 }
                 304 => {
@@ -908,7 +908,7 @@ pub fn query_visual(
                         &mut state.sound_state,
                     )? != 0
                     {
-                        return Ok(error(14, 18)?);
+                        return error(14, 18);
                     }
                 }
                 406 => {
@@ -944,7 +944,7 @@ pub fn query_visual(
                     i += 14;
                 }
                 _ => {
-                    return Ok(error(9, 18)?);
+                    return error(9, 18);
                 }
             }
             // Advance by 4 bytes to reach the next id/value pair
