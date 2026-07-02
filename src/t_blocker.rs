@@ -1,5 +1,5 @@
 use crate::loader::VisualStruct;
-use crate::maths::{RectF, Vector2, Vector2i};
+use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
 use crate::render::RenderSprite;
 use crate::state::pinball_state::PinballState;
@@ -12,10 +12,9 @@ use crate::utils::DrawContext;
 use crate::{control, loader, timer};
 use anyhow::Result;
 use std::any::Any;
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::ffi::c_void;
 use std::ops::Deref;
-use std::pin::Pin;
 use std::rc::{Rc, Weak};
 
 pub struct TBlocker {
@@ -106,7 +105,6 @@ impl IPinballComponent for TBlocker {
             | MessageCode::RESET
             | MessageCode::T_BLOCKER_DISABLE => {
                 if self.timer > 0 {
-                    // TODO: This is very likely wrong;
                     timer::kill_id(self.timer);
                     self.timer = 0;
                 }
@@ -122,7 +120,6 @@ impl IPinballComponent for TBlocker {
                 // TODO: loader::play_sound(self.sound_index_4, self, "TBlocker2");
                 self.base.sprite_set(0);
                 if self.timer > 0 {
-                    // TODO: Likely wrong
                     timer::kill_id(self.timer);
                 }
                 self.timer = 0;
