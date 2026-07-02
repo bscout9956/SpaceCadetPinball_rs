@@ -752,7 +752,7 @@ pub fn reset_all_options(
     post_process_options(io, main_state, options_state);
 }
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, unused_variables)]
 pub unsafe extern "C" fn MyUserData_ReadLine(
     ctx: *mut ImGuiContext,
     handler: *mut ImGuiSettingsHandler,

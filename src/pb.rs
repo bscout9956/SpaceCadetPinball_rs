@@ -281,14 +281,14 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
         &mut state.pb_game_state,
     )?;
 
-    if let Some(dst) = state.render_state.v_screen.as_mut() {
+    if let Some(dst) = state.render_state.v_screen.as_mut() && let Some(b_bmp) = background_bmp {
         gdrv::copy_bitmap(
             dst,
-            background_bmp.width,
-            background_bmp.height,
-            background_bmp.x_position,
-            background_bmp.y_position,
-            &background_bmp,
+            b_bmp.width,
+            b_bmp.height,
+            b_bmp.x_position,
+            b_bmp.y_position,
+            &b_bmp,
             0,
             0,
         );
