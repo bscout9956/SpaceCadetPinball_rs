@@ -391,7 +391,7 @@ pub fn fill_bitmap(
     x_off: i32,
     y_off: i32,
     fill_char: u8,
-    pb_game_state: &mut PbGameState,
+    current_palette: &[ColorRgba; 256],
 ) -> Result<()> {
     fill_bitmap_color_rgba(
         bmp,
@@ -399,7 +399,7 @@ pub fn fill_bitmap(
         height,
         x_off,
         y_off,
-        pb_game_state.current_palette[fill_char as usize],
+        current_palette[fill_char as usize],
     )
     .context("Failed to fill bitmap based on color rgba data")?;
     Ok(())
