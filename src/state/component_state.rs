@@ -4,18 +4,6 @@ use crate::t_textbox::TTextBox;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-pub struct TSound; //(Temporary)
-
-impl TSound {
-    pub(crate) fn play(
-        &self,
-        sound_source: Option<Rc<RefCell<dyn IPinballComponent>>>,
-        info: &str,
-    ) -> f32 {
-        todo!()
-    }
-}
-
 pub struct ComponentState {
     pub info_text_box: ComponentRef<TTextBox>,
     pub lite_62: ComponentRef<TLight>,
