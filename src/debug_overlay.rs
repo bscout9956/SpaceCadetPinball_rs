@@ -174,7 +174,6 @@ fn draw_edge(
     let line = edge.as_any().downcast_ref::<TLine>();
     if let Some(l) = line {
         draw_line_type(&l.line, renderer);
-        return;
     }
 
     // TODO: Implement me
