@@ -2,7 +2,6 @@
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Default)]
 pub struct MessageCode(pub i32);
 
-#[allow(dead_code)]
 impl MessageCode {
     // Private codes <1000, different meaning for each component
     pub const T_FLIPPER_NULL: MessageCode = MessageCode(0);
