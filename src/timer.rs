@@ -1,4 +1,6 @@
 use crate::state::pinball_state::PinballState;
+use crate::t_textbox::TTextBox;
+use crate::utils::DrawContext;
 use std::ffi::c_void;
 use std::ptr::null_mut;
 use std::sync::atomic::AtomicI32;
@@ -12,7 +14,7 @@ type CallBackFn = Box<dyn FnMut(i32, *mut c_void)>;
 pub struct TimerStruct {
     pub target_time: i32,
     pub caller: *mut c_void,
-    pub callback: Option<unsafe extern "C" fn(i32, *mut c_void, &mut PinballState)>,
+    pub callback: Option<unsafe extern "C" fn(i32, *mut c_void, &mut DrawContext)>,
     pub next_timer: i32,
     pub timer_id: i32,
 }
@@ -90,8 +92,8 @@ pub fn uninit() {
 pub fn set(
     time: f32,
     caller: *mut c_void,
-    callback: unsafe extern "C" fn(i32, *mut c_void, &mut PinballState),
-    time_ticks: usize,
+    callback: unsafe extern "C" fn(i32, *mut c_void, &mut DrawContext),
+    draw_context: &mut DrawContext,
 ) -> i32 {
     let current_count = COUNT.load(Relaxed);
     let max_count = MAX_COUNT.load(Relaxed);
@@ -110,7 +112,7 @@ pub fn set(
     let next_free = buffer[timer_idx as usize].next_timer;
     FREE_HEAD.store(next_free, Relaxed);
 
-    let target_time = (time_ticks + (time * 1000.0) as usize) as i32;
+    let target_time = (draw_context.time_ticks + (time * 1000.0) as usize) as i32;
 
     let mut prev = -1;
     let mut current = ACTIVE_HEAD.load(Relaxed);
@@ -153,7 +155,7 @@ pub fn set(
     timer_id
 }
 
-pub fn kill_callback(callback: unsafe extern "C" fn(i32, *mut c_void, &mut PinballState)) -> i32 {
+pub fn kill_callback(callback: unsafe extern "C" fn(i32, *mut c_void, &mut DrawContext)) -> i32 {
     let mut buffer = TIMER_BUFFER.lock().unwrap();
     let mut count = COUNT.load(Relaxed);
     let mut kill_count = 0;
@@ -265,7 +267,14 @@ pub fn check(time_ticks: usize, state: &mut PinballState) -> i32 {
             if let Some(callback) = buffer[current as usize].callback {
                 let timer_id = buffer[current as usize].timer_id;
                 let caller = buffer[current as usize].caller;
-                unsafe { callback(timer_id, caller, state) };
+                let mut draw_ctx = DrawContext {
+                    v_screen: &mut state.render_state.v_screen,
+                    current_palette: &state.pb_game_state.current_palette,
+                    time_ticks: state.pb_game_state.time_ticks,
+                    full_tilt_mode: state.pb_game_state.full_tilt_mode,
+                    background_bitmap: &state.render_state.background_bitmap,
+                };
+                unsafe { callback(timer_id, caller, &mut draw_ctx) };
             }
 
             current = ACTIVE_HEAD.load(Relaxed);
@@ -292,7 +301,14 @@ pub fn check(time_ticks: usize, state: &mut PinballState) -> i32 {
             if let Some(callback) = buffer[current as usize].callback {
                 let timer_id = buffer[current as usize].timer_id;
                 let caller = buffer[current as usize].caller;
-                unsafe { callback(timer_id, caller, state) };
+                let mut draw_ctx = DrawContext {
+                    v_screen: &mut state.render_state.v_screen,
+                    current_palette: &state.pb_game_state.current_palette,
+                    time_ticks: state.pb_game_state.time_ticks,
+                    full_tilt_mode: state.pb_game_state.full_tilt_mode,
+                    background_bitmap: &state.render_state.background_bitmap,
+                };
+                unsafe { callback(timer_id, caller, &mut draw_ctx) };
             }
 
             current = ACTIVE_HEAD.load(Relaxed);
