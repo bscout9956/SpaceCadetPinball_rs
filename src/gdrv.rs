@@ -114,6 +114,9 @@ pub struct GdrvBitmap8 {
     pub texture: Option<SdlTexturePtr>,
 }
 
+unsafe impl Sync for GdrvBitmap8 {}
+unsafe impl Send for GdrvBitmap8 {}
+
 impl GdrvBitmap8 {
     pub unsafe fn blit_to_texture(&mut self) {
         let mut pitch = 0 as c_int;
@@ -319,7 +322,9 @@ pub fn display_palette(plt: Option<&[ColorRgba]>, pb_game_state: &mut PbGameStat
         for group in &mut t.groups {
             for i in 0..=2 {
                 let bmp = group.get_bitmap_mut(i);
-                apply_palette(bmp, &pb_game_state.current_palette);
+                if let Some(b) = bmp {
+                    apply_palette(b, &pb_game_state.current_palette);
+                }
             }
         }
     }

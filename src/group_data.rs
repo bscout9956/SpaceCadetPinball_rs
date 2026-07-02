@@ -2,7 +2,7 @@ use crate::embedded_data::PB_MSGFT_BIN_COMPRESSED_DATA_BASE85;
 use crate::errors::GroupDataError;
 use crate::gdrv::{BitmapTypes, GdrvBitmap8};
 use crate::state::fullscrn_state::FullscrnState;
-use crate::zdrv;
+use crate::stb_ffi::{stb_decompress, stb_decompress_length, stb_uchar, stb_uint};
 use crate::zdrv::ZMapHeaderType;
 use crate::{utils, zdrv};
 use anyhow::{Context, Result, bail};
@@ -184,6 +184,7 @@ impl GroupData {
         if add_entry {
             self.entries.push(entry);
         }
+        Ok(())
     }
 
     pub fn set_bitmap(&mut self, bmp: GdrvBitmap8) -> Result<()> {
@@ -318,12 +319,6 @@ pub struct DatFile {
     pub app_name: String,
     pub description: String,
     pub groups: Vec<GroupData>,
-}
-
-#[derive(Error, Debug)]
-pub enum DatFileError {
-    #[error("Could not parse pinball font file")]
-    DecodeError(#[from] Error),
 }
 
 unsafe impl Send for DatFile {}
@@ -537,10 +532,7 @@ impl DatFile {
                 self.groups.push(group_data);
                 cursor = &cursor[total_chunk_size..];
             }
-            self.groups.push(group_data);
-            group_id += 1;
         }
-
         Ok(())
     }
 
