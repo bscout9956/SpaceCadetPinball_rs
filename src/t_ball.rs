@@ -195,7 +195,7 @@ impl TBall {
             x: self.position.x,
             y: self.position.y,
         };
-        let pos_2d = proj::x_form_to_2d(&pos);
+        let mut pos_2d = proj::x_form_to_2d(&pos);
         let z_depth = proj::z_distance(&self.position);
 
         let mut index_set = 0;
@@ -207,7 +207,7 @@ impl TBall {
         }
 
         self.base_component
-            .sprite_set_ball(index_set, pos_2d, z_depth);
+            .sprite_set_ball(index_set, &mut pos_2d, z_depth);
     }
 
     pub(crate) fn already_hit(&self, edge: &Rc<RefCell<dyn IEdgeSegment>>) -> bool {
