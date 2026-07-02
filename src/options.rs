@@ -625,7 +625,10 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) -> Result<()> {
             }
             Ok(())
         }
-        Menu::SoundStereo => Ok(*state.options_state.options.sound_stereo ^= true),
+        Menu::SoundStereo => {
+            *state.options_state.options.sound_stereo ^= true;
+            Ok(())
+        },
         Menu::FullScreen => {
             *state.options_state.options.full_screen ^= true;
             fullscrn::set_screen_mode(
