@@ -578,12 +578,12 @@ impl DatFile {
         self.field_size_nth(group_index, target_entry_type, 0)
     }
 
-    pub fn get_bitmap(&self, group_index: i32, resolution: i32) -> &GdrvBitmap8 {
+    pub fn get_bitmap(&self, group_index: i32, resolution: i32) -> &Option<GdrvBitmap8> {
         let group = self.groups.get(group_index as usize).unwrap();
         group.get_bitmap(resolution)
     }
 
-    pub fn get_zmap(&self, group_index: i32, resolution: i32) -> &ZMapHeaderType {
+    pub fn get_zmap(&self, group_index: i32, resolution: i32) -> &Option<ZMapHeaderType> {
         let group = self.groups.get(group_index as usize).unwrap();
         group.get_zmap(resolution)
     }
