@@ -212,6 +212,67 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
     // TODO: todo!()
 }
 
+fn drain_ball_blocker_control(
+    code: MessageCode,
+    block: &ComponentRef<TBlocker>,
+    easy_mode: bool,
+    light: &ComponentRef<TLight>,
+    time_ticks: usize,
+) {
+    // The original casts caller to TBlocker and assigns it to block,
+    // but it doesn't use caller as anything else
+    match code {
+        MessageCode::T_BLOCKER_ENABLE => {
+            if let Some(block) = block.get()
+                && let Some(lite1) = light.get()
+            {
+                block.borrow_mut().base.message_field = MessageCode(1);
+                let blocker_duration = if !easy_mode {
+                    block.borrow().initial_duration as f32
+                } else {
+                    -1.0f32
+                };
+                block.borrow_mut().message(
+                    MessageCode::T_BLOCKER_ENABLE,
+                    blocker_duration,
+                    time_ticks,
+                );
+                lite1.borrow_mut().message(
+                    MessageCode::T_LIGHT_TURN_ON_TIMED,
+                    blocker_duration,
+                    time_ticks,
+                );
+            }
+        }
+        MessageCode::CONTROL_TIMER_EXPIRED => {
+            if let Some(block) = block.get()
+                && let Some(lite1) = light.get()
+            {
+                if block.borrow().base.message_field == MessageCode(1) {
+                    block.borrow_mut().base.message_field = MessageCode(2);
+                    let blocker_duration = block.borrow().extended_duration as f32;
+                    block.borrow_mut().message(
+                        MessageCode::T_BLOCKER_RESTART_TIMEOUT,
+                        blocker_duration,
+                        time_ticks,
+                    );
+                    lite1.borrow_mut().message(
+                        MessageCode::T_LIGHT_FLASHER_START_TIMED,
+                        blocker_duration,
+                        time_ticks,
+                    );
+                } else {
+                    block.borrow_mut().base.message_field = MessageCode(0);
+                    block
+                        .borrow_mut()
+                        .message(MessageCode::T_BLOCKER_DISABLE, 0.0f32, time_ticks);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
 fn table_add_extra_ball(count: f32, state: &mut PinballState) -> Result<()> {
     if let Some(wave) = state.control_state.component_state.soundwave28.get() {
         wave.borrow().play(None, "table_add_extra_ball");
