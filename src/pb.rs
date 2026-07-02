@@ -933,11 +933,12 @@ pub(crate) fn high_scores(high_score_state: &mut HighScoreState) {
 pub(crate) fn lose_focus(
     table_option: &mut Option<Rc<RefCell<TPinballTable>>>,
     time_now: f32,
+    time_ticks: usize,
 ) -> Result<()> {
     if let Some(table) = table_option {
         table
             .borrow_mut()
-            .message(MessageCode::LOOSE_FOCUS, time_now);
+            .message(MessageCode::LOOSE_FOCUS, time_now, time_ticks);
         Ok(())
     } else {
         bail!(PbError::NoTable);
@@ -987,6 +988,7 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
                     t.borrow_mut().message(
                         MessageCode::PLUNGER_INPUT_PRESSED,
                         state.pb_game_state.time_now,
+                        state.pb_game_state.time_ticks,
                     );
                 }
             }
