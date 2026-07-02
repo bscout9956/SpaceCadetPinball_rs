@@ -409,11 +409,30 @@ impl DatFile {
             assert!(group_index < 0, "DatFile: pbmsg_ft is already in .dat");
         }
 
-        let rc_data = base85::decode(PB_MSGFT_BIN_COMPRESSED_DATA_BASE85)
-            .context("Failed to decode Base85 compressed data")?;
+        let data: String = PB_MSGFT_BIN_COMPRESSED_DATA_BASE85
+            .chars()
+            .filter(|c| !c.is_ascii_whitespace())
+            .collect();
 
-        self.add_msg_font(&rc_data, "pbmsg_ft", fullscrn_state)
-            .context("Failed to add MSG font")?;
+        let compressed_rc_data =
+            utils::decode_base_85(&data).context("Failed to decode Base85 compressed data")?;
+
+        let data_len = compressed_rc_data.len() as stb_uint;
+        let compressed_ptr = compressed_rc_data.as_ptr() as *mut stb_uchar;
+
+        unsafe {
+            let decompressed_size = stb_decompress_length(compressed_ptr) as usize;
+            if decompressed_size == 0 {
+                bail!(DatFileError::EmptyDecompressedData)
+            }
+
+            let mut decompressed_data = vec![0u8; decompressed_size];
+            let decompressed_ptr = decompressed_data.as_mut_ptr() as *mut stb_uchar;
+            stb_decompress(decompressed_ptr, compressed_ptr, data_len);
+
+            self.add_msg_font(&decompressed_data, "pbmsg_ft", fullscrn_state)
+                .context("Failed to add MSG font")?;
+        }
 
         for group in &mut self.groups {
             group.finalize_group();
