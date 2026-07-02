@@ -32,6 +32,12 @@ impl TimerStruct {
     }
 }
 
+impl Default for TimerStruct {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 static TIMER_BUFFER: LazyLock<Mutex<Vec<TimerStruct>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 static ACTIVE_HEAD: AtomicI32 = AtomicI32::new(-1);
 static FREE_HEAD: AtomicI32 = AtomicI32::new(-1);
