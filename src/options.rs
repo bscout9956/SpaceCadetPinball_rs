@@ -695,7 +695,7 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) -> Result<()> {
             Ok(())
         }
         Menu::Prefer3DPBGameData => {
-            *(&mut state.options_state).options.prefer_3dpb_game_data ^= true;
+            *state.options_state.options.prefer_3dpb_game_data ^= true;
             fullscrn::window_size_changed(state).context("Failed to change window size")?;
             Ok(())
         }
