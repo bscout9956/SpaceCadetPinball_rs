@@ -957,11 +957,15 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
     Ok(())
 }
 
-pub(crate) fn launch_ball(state: &mut PinballState) -> Result<(), PbError> {
+pub(crate) fn launch_ball(state: &mut PinballState) -> Result<()> {
     if let Some(table) = state.pb_game_state.main_table.as_mut() {
         let mut table_borrow = table.borrow_mut();
         let plunger = table_borrow.plunger.as_mut().unwrap();
-        plunger.message(MessageCode::PLUNGER_LAUNCH_BALL, 0.0f32)?;
+        plunger.message(
+            MessageCode::PLUNGER_LAUNCH_BALL,
+            0.0f32,
+            state.pb_game_state.time_ticks,
+        );
     }
 
     Ok(())
