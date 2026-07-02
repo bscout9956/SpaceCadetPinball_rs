@@ -1,5 +1,4 @@
 use crate::errors::PbError;
-use crate::loader;
 use crate::loader::VisualStruct;
 use crate::maths::{RectF, Vector2, Vector2i};
 use crate::message_code::MessageCode;
