@@ -8,6 +8,7 @@ use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
+use crate::utils::DrawContext;
 use crate::{control, loader, timer};
 use anyhow::Result;
 use std::any::Any;
@@ -55,7 +56,7 @@ impl TBlocker {
     pub unsafe extern "C" fn timer_expired(
         timer_id: i32,
         caller: *mut c_void,
-        pinball_state: &mut PinballState,
+        _ctx: &mut DrawContext,
     ) {
         unsafe {
             let blocker = &mut *(caller as *mut TBlocker);
@@ -98,7 +99,7 @@ impl IPinballComponent for TBlocker {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32 {
+    fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
         match code {
             MessageCode::SET_TILT_LOCK
             | MessageCode::PLAYER_CHANGED
@@ -130,7 +131,7 @@ impl IPinballComponent for TBlocker {
                         value,
                         &raw const *self as *mut c_void,
                         Self::timer_expired,
-                        time_ticks,
+                        draw_context,
                     );
                 }
             }
@@ -142,7 +143,7 @@ impl IPinballComponent for TBlocker {
                     f32::max(value, 0.0f32),
                     &raw const *self as *mut c_void,
                     Self::timer_expired,
-                    time_ticks,
+                    draw_context,
                 );
             }
             _ => {}
@@ -164,7 +165,7 @@ impl ICollisionComponent for TBlocker {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        time_ticks: usize,
+        time_ticks: &mut DrawContext,
     ) {
         todo!()
     }

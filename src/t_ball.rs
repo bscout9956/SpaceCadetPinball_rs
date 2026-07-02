@@ -232,7 +232,7 @@ impl ICollisionComponent for TBall {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        time_ticks: usize,
+        draw_context: &mut DrawContext,
     ) {
         todo!()
     }
@@ -333,7 +333,7 @@ impl IPinballComponent for TBall {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, _value: f32, _time_ticks: usize) -> i32 {
+    fn message(&mut self, code: MessageCode, _value: f32, _draw_context: &mut DrawContext) -> i32 {
         if code == MessageCode::RESET {
             self.base_component
                 .sprite_set_ball(-1, &mut Vector2i::new(0, 0), 0.0f32);

@@ -63,7 +63,7 @@ impl IPinballComponent for TLightGroup {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32 {
+    fn message(&mut self, code: MessageCode, value: f32, _ctx: &mut DrawContext) -> i32 {
         todo!()
     }
 
@@ -80,6 +80,7 @@ pub enum TLightGroupError {
 
 use crate::render::RenderSprite;
 use anyhow::Result;
+use crate::utils::DrawContext;
 
 impl TLightGroup {
     pub(crate) fn new(

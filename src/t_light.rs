@@ -2,6 +2,7 @@ use crate::maths::{Vector2, Vector2i};
 use crate::message_code::MessageCode;
 use crate::render::RenderSprite;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
+use crate::utils::DrawContext;
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -65,7 +66,7 @@ impl IPinballComponent for TLight {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32 {
+    fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
         println!("Beep boop, flash");
         //TODO finish me
         0
