@@ -441,6 +441,14 @@ impl TPinballTable {
         score::set(&mut self.cur_score_struct, self.cur_score);
         Ok(added_score)
     }
+
+    pub(crate) fn add_component<T: IPinballComponent + 'static>(
+        &mut self,
+        component_rc: Rc<RefCell<T>>,
+    ) {
+        let trait_rc: Rc<RefCell<dyn IPinballComponent>> = component_rc.clone();
+        self.component_list.push(trait_rc);
+    }
 }
 
 impl IPinballComponent for TPinballTable {
