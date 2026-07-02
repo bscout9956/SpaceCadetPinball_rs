@@ -8,8 +8,10 @@ use crate::t_ball::TBall;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_table::TPinballTable;
+use crate::{loader, timer};
 use std::any::Any;
 use std::cell::RefCell;
+use std::ffi::c_void;
 use std::rc::{Rc, Weak};
 
 #[derive(Clone)]
@@ -35,7 +37,7 @@ impl ICollisionComponent for TPlunger {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        time_ticks: usize,
+        time_ticks: &mut DrawContext,
     ) {
         todo!()
     }
@@ -178,8 +180,34 @@ impl IPinballComponent for TPlunger {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32 {
-        todo!()
+    fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
+        // TODO: All other messages lol
+        match code {
+            MessageCode::PLUNGER_INPUT_PRESSED => {
+                let mut multiball_count_check = false;
+                let mut tilt_lock_flag = false;
+                if let Some(t) = self.base.pinball_table.as_ref() {
+                    let t_up = t.upgrade();
+                    if let Some(table) = t_up.as_ref() {
+                        multiball_count_check = table.borrow().multiball_count > 0;
+                        tilt_lock_flag = table.borrow().tilt_lock_flag;
+                    }
+                }
+                if !self.pullback_started_flag
+                    && (!draw_context.full_tilt_mode || multiball_count_check && !tilt_lock_flag)
+                {
+                    self.pullback_started_flag = true;
+                    self.base.boost = 0.0;
+                    self.base.threshold = 1000000000.0;
+                    // TODO: loader::play_sound(hardhitsoundid, this, tplunger1);
+                    unsafe {
+                        pullback_timer(0, &raw mut *self as *mut c_void, draw_context);
+                    }
+                }
+            }
+            MessageCode(_) => {}
+        }
+        0
     }
 
     fn set_active_flag(&mut self, active: bool) {
