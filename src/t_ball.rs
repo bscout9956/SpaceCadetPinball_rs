@@ -91,8 +91,7 @@ impl TBall {
                 .context("Failed querying visual in TBall")?;
             instance_data.collision_mask = visual.collision_group;
             let float_arr_ptr =
-                loader::query_float_attribute_ptr(group_index, 0, 408, &mut state.loader_state)
-                    .unwrap();
+                loader::query_float_attribute_ptr(group_index, 0, 408, &mut state.loader_state)?;
             let float_slice = slice_from_raw_parts(float_arr_ptr, 4);
             unsafe {
                 let (position_x, position_y, position_z) =
