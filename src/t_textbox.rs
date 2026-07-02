@@ -81,7 +81,14 @@ impl TTextBox {
             self.messages.push_back(new_message);
 
             if self.timer == 0 {
-                self.draw(state).context("Failed to draw TTextBox")?;
+                self.draw(
+                    v_screen,
+                    current_palette,
+                    time_ticks,
+                    full_tilt_mode,
+                    bg_bitmap,
+                )
+                .context("Failed to draw TTextBox")?;
             }
         }
         Ok(())
@@ -100,8 +107,15 @@ impl TTextBox {
         }
     }
 
-    fn draw(&mut self, state: &mut PinballState) -> Result<()> {
-        if let Some(v_screen) = state.render_state.v_screen.as_mut() {
+    fn draw(
+        &mut self,
+        v_screen: &mut Option<GdrvBitmap8>,
+        current_palette: &[ColorRgba; 256],
+        time_ticks: usize,
+        full_tilt_mode: bool,
+        background_bitmap: &Option<GdrvBitmap8>,
+    ) -> Result<()> {
+        if let Some(v_screen) = v_screen.as_mut() {
             if let Some(bg) = self.bg_bmp.as_mut() {
                 gdrv::copy_bitmap(
                     v_screen,
@@ -121,7 +135,7 @@ impl TTextBox {
                     self.offset_x,
                     self.offset_y,
                     0,
-                    &mut state.pb_game_state,
+                    current_palette,
                 )
                 .context("Failed to fill bitmap for TTextBox")?;
             }
@@ -134,12 +148,12 @@ impl TTextBox {
                         display = true;
                         break;
                     }
-                } else if front_msg.time_left(state.pb_game_state.time_ticks) >= -2.0f32 {
+                } else if front_msg.time_left(time_ticks) >= -2.0f32 {
                     self.timer = timer::set(
-                        f32::max(front_msg.time_left(state.pb_game_state.time_ticks), 0.25f32),
+                        f32::max(front_msg.time_left(time_ticks), 0.25f32),
                         &raw const *self as *mut c_void,
                         Self::timer_expired,
-                        state.pb_game_state.time_ticks,
+                        time_ticks,
                     );
                     display = true;
                     break;
@@ -177,12 +191,12 @@ impl TTextBox {
                     }
 
                     let mut off_y = self.offset_y;
-                    if state.pb_game_state.full_tilt_mode {
+                    if full_tilt_mode {
                         off_y += (self.height - text_height) / 2;
                     }
                     for line in lines {
                         let mut off_x = self.offset_x;
-                        if state.pb_game_state.full_tilt_mode {
+                        if full_tilt_mode {
                             off_x += (self.width - line.width) / 2;
                         }
                         for &char_byte in line.start.as_bytes() {
@@ -192,8 +206,7 @@ impl TTextBox {
                             if char_bmp.height > 0 {
                                 let height = char_bmp.height;
                                 let width = char_bmp.width;
-                                if let Some(_bg_bmp) = state.render_state.background_bitmap.as_ref()
-                                {
+                                if let Some(_bg_bmp) = background_bitmap.as_ref() {
                                     gdrv::copy_bitmap_w_transparency(
                                         v_screen, width, height, off_x, off_y, char_bmp, 0, 0,
                                     );
