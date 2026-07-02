@@ -464,7 +464,7 @@ fn main_loop(
                     SDL_RenderClear(renderer.0);
                     SDL_RenderFillRect(renderer.0, null());
                 }
-                render::present_v_screen(pb_state);
+                render::present_v_screen(pb_state)?;
                 igRender();
                 let draw_data = igGetDrawData();
                 imgui_sdl::renderer::render_draw_data(imgui_context.io_mut(), draw_data);
@@ -526,9 +526,8 @@ fn main_loop(
             let target_time_delta =
                 pb_state.main_state.target_frametime - (update_end - frame_start) - sleep_remainder;
 
-            let frame_end;
 
-            if target_time_delta.count() > 0
+            let frame_end = if target_time_delta.count() > 0
                 && !*pb_state.options_state.options.uncapped_updates_per_second
             {
                 if *pb_state.options_state.options.hybrid_sleep {
@@ -539,10 +538,10 @@ fn main_loop(
                     let nanos = (ns % 1_000_000_000) as u32;
                     std::thread::sleep(std::time::Duration::new(secs, nanos));
                 }
-                frame_end = SdlPerformanceClock::now();
+                SdlPerformanceClock::now()
             } else {
-                frame_end = update_end;
-            }
+                update_end
+            };
 
             // Limit duration to 2 * target time
             sleep_remainder = utils::clamp(
