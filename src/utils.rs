@@ -1,7 +1,8 @@
 // Equivalent to pch.h with some additions
-
-use sdl2::sys::{SDL_DestroyTexture, SDL_Renderer, SDL_Texture, SDL_Window};
+use anyhow::{Result, bail};
+use sdl2::sys::{SDL_DestroyTexture, SDL_Rect, SDL_Renderer, SDL_Texture, SDL_Window};
 use std::io::Read;
+use thiserror::Error;
 
 pub struct SdlWindowPtr(pub *mut SDL_Window);
 unsafe impl Sync for SdlWindowPtr {}
@@ -95,3 +96,15 @@ pub const PLATFORM_DATA_PATHS: [&str; 2] = [
     "/usr/local/share/SpaceCadetPinball/",
     "/usr/share/SpaceCadetPinball/",
 ];
+
+#[derive(Error, Debug)]
+pub enum StbDecompError {
+    #[error("Stream is greater than 4GB")]
+    StreamTooBig,
+    #[error("Invalid header: `{0}`")]
+    InvalidHeader(u32),
+}
+
+pub fn new_sdl_rect(x: i32, y: i32, w: i32, h: i32) -> Result<SDL_Rect> {
+    Ok(SDL_Rect { x, y, w, h })
+}
