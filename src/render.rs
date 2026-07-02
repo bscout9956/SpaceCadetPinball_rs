@@ -453,7 +453,7 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
                     x_pos,
                     y_pos,
                     0,
-                    pb_game_state,
+                    &pb_game_state.current_palette,
                 )
                 .context("Failed to fill sprite bitmap for render update:")?;
             }
