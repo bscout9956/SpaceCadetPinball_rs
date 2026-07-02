@@ -22,6 +22,7 @@ pub struct TPlunger {
     pub sound_index_p2: i32,
     pub pullback_started_flag: bool,
     pub some_counter: i32, // really?
+    pub table_pos: Vector2,
 }
 
 impl ICollisionComponent for TPlunger {
@@ -50,6 +51,8 @@ impl ICollisionComponent for TPlunger {
     }
 }
 
+use crate::render::RenderSprite;
+use crate::t_pinball_component::IPinballComponent;
 use anyhow::Result;
 
 impl TPlunger {
@@ -79,6 +82,7 @@ impl TPlunger {
             sound_index_p2: visual.sound_index_3,
             pullback_started_flag: false,
             some_counter: 0,
+            table_pos: Default::default(),
         };
 
         if state.pb_game_state.full_tilt_mode {
@@ -94,9 +98,7 @@ impl TPlunger {
             loader::query_float_attribute_ptr(group_index, 0, 601, &mut state.loader_state)?;
         unsafe {
             let (pos_x, pos_y) = ((*float_arr), (*float_arr.add(1))); // Lazy
-            if let Some(t) = state.pb_game_state.main_table.as_ref() {
-                t.borrow_mut().plunger_position = Vector2 { x: pos_x, y: pos_y };
-            }
+            instance.table_pos = Vector2::new(pos_x, pos_y);
         }
 
         Ok(instance)
