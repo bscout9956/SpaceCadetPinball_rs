@@ -1,8 +1,11 @@
 use crate::message_code::MessageCode;
 use crate::pb;
+use crate::state::component_state::ComponentRef;
 use crate::state::control_state::CHEAT_LEN;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
+use crate::t_blocker::TBlocker;
+use crate::t_light::TLight;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::translations::Msg;
 use anyhow::Result;
@@ -122,6 +125,86 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
     {
         state.pb_game_state.increment_table_balls();
         table_add_extra_ball(2.0f32, state)?;
+    } else if state
+        .control_state
+        .cheat_buffer
+        .borrow_mut()
+        .ends_with("bmax".as_ref())
+    {
+        state.control_state.table_unlimited_balls ^= true;
+    } else if state
+        .control_state
+        .cheat_buffer
+        .borrow_mut()
+        .ends_with("rmax".as_ref())
+    {
+        cheat_bump_rank();
+    } else if state.pb_game_state.full_tilt_mode
+        && state
+            .control_state
+            .cheat_buffer
+            .borrow_mut()
+            .ends_with("quote".as_ref())
+    {
+        // Developer Easter egg type 'cheat' from Full Tilt
+        let mut time = 0;
+        for quote in QUOTES {
+            if let Some(mtb) = state.pb_game_state.mission_text_box.as_mut() {
+                time += 3;
+                mtb.display(
+                    quote,
+                    time as f32,
+                    state.pb_game_state.time_ticks,
+                    state.pb_game_state.full_tilt_mode,
+                    &mut state.render_state.v_screen,
+                    &state.render_state.background_bitmap,
+                    &state.pb_game_state.current_palette,
+                    Some(true),
+                )?;
+            }
+        }
+        return Ok(());
+    } else if state.pb_game_state.full_tilt_mode
+        && state
+            .control_state
+            .cheat_buffer
+            .borrow_mut()
+            .ends_with("credits".as_ref())
+    {
+        let mut time = 0;
+        for line in CREDITS {
+            if let Some(mtb) = state.pb_game_state.mission_text_box.as_mut() {
+                time += 2;
+                mtb.display(
+                    line,
+                    time as f32,
+                    state.pb_game_state.time_ticks,
+                    state.pb_game_state.full_tilt_mode,
+                    &mut state.render_state.v_screen,
+                    &state.render_state.background_bitmap,
+                    &state.pb_game_state.current_palette,
+                    Some(true),
+                )?;
+            }
+        }
+        state.pb_game_state.credits_active = true;
+        return Ok(());
+    } else if state
+        .control_state
+        .cheat_buffer
+        .borrow_mut()
+        .ends_with("easy mode".as_ref())
+    {
+        state.control_state.easy_mode ^= true;
+        if state.control_state.easy_mode {
+            drain_ball_blocker_control(
+                MessageCode::T_BLOCKER_ENABLE,
+                &state.control_state.component_state.block_1,
+                state.control_state.easy_mode,
+                &state.control_state.component_state.lite_1,
+                state.pb_game_state.time_ticks,
+            );
+        }
     }
 
     Ok(())
