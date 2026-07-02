@@ -314,6 +314,10 @@ impl TPinballTable {
                             let plunger =
                                 TPlunger::new(table_weak.clone(), group_index as i32, state)
                                     .context("Failed to create plunger")?;
+                            table_rc
+                                .borrow_mut()
+                                .add_component(Rc::new(RefCell::new(plunger.clone())));
+                            table_rc.borrow_mut().plunger_position = plunger.table_pos;
                             table_rc.borrow_mut().plunger = Some(plunger);
                         }
                         _ => {
