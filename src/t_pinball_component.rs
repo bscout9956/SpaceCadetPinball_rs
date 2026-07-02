@@ -1,11 +1,12 @@
 use crate::maths::*;
 use crate::message_code::MessageCode;
 use crate::render::{RenderSprite, VisualTypes};
-use crate::{control::ComponentControl, loader, loader::VisualStruct, maths};
+use crate::{control::ComponentControl, loader, loader::VisualStruct};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
 use anyhow::Context;
 use std::any::Any;
 use std::ops::Index;
+use std::sync::Arc;
 use std::{
     cell::{Cell, RefCell},
     rc::{Rc, Weak},
@@ -103,8 +104,7 @@ impl TPinballComponent {
                 let root_sprite = instance.list_bitmap.get(0);
 
                 if let Some(rs) = root_sprite {
-                    let root_bmp_opt = &rs.bmp;
-                    if let Some(root_bmp) = root_bmp_opt
+                    if let Some(root_bmp) = (*rs.bmp).as_ref()
                         && let Some(t) = instance.pinball_table.as_ref()
                     {
                         let table = t.upgrade().unwrap();
@@ -114,21 +114,21 @@ impl TPinballComponent {
                         bmp_1_rect.height = root_bmp.height;
 
                         for index in 1..instance.list_bitmap.len() {
-                            let bmp_opt = &instance.list_bitmap.index(index).bmp;
-                            if let Some(bmp) = bmp_opt {
+                            let bmp_opt = instance.list_bitmap.index(index).bmp.clone();
+                            if let Some(bmp) = (*bmp_opt).as_ref() {
                                 tmp_rect.x_position = bmp.x_position - table.borrow().x_offset;
                                 tmp_rect.y_position = bmp.y_position - table.borrow().y_offset;
                                 tmp_rect.width = bmp.width;
                                 tmp_rect.height = bmp.height;
                                 let mut copy_rect = RectangleType::default();
-                                maths::enclosing_box(&bmp_1_rect, &tmp_rect, &mut copy_rect);
+                                enclosing_box(&bmp_1_rect, &tmp_rect, &mut copy_rect);
                                 bmp_1_rect = copy_rect;
                             }
                         }
 
                         instance.render_sprite = Some(RenderSprite::new(
                             VisualTypes::Sprite,
-                            Some(root_bmp.clone()),
+                            Arc::new(Some(root_bmp.clone())),
                             root_sprite.unwrap().zmap.clone(),
                             root_bmp.x_position - table.borrow().x_offset,
                             root_bmp.y_position - table.borrow().y_offset,
@@ -149,7 +149,7 @@ impl TPinballComponent {
 impl Drop for TPinballComponent {
     fn drop(&mut self) {
         if self.pinball_table.is_some() {
-            // TODO: Add field, use let Some, upgrade weakptr, borrow mut?
+            // TODO: Add field, use let Some, upgrade weak ptr, borrow mut?
             //let components = self.pinball_table.unwrap().component_list;
             //TODO: Implement component list first then let position = // std::find begin end for this
             // Continue from L94
@@ -170,7 +170,9 @@ impl IPinballComponent for TPinballComponent {
     }
 
     fn group_name(&self) -> Option<String> {
-        self.group_name.as_ref().map(|group_name| group_name.borrow().clone())
+        self.group_name
+            .as_ref()
+            .map(|group_name| group_name.borrow().clone())
     }
 
     fn group_index(&self) -> i32 {
@@ -192,7 +194,7 @@ impl IPinballComponent for TPinballComponent {
             bmp = sprite_data.bmp.clone();
             zmap = sprite_data.zmap.clone();
 
-            if let Some(ref b) = bmp
+            if let Some(ref b) = *bmp
                 && let Some(table_weak) = &self.pinball_table
                 && let Some(table_rc) = table_weak.upgrade()
             {
@@ -201,8 +203,8 @@ impl IPinballComponent for TPinballComponent {
                 y_pos = b.y_position - table_borrow.y_offset;
             }
         } else {
-            bmp = None;
-            zmap = None;
+            bmp = Arc::new(None);
+            zmap = Arc::new(None);
             if let Some(rs) = self.render_sprite.as_ref() {
                 x_pos = rs.bmp_rect.x_position;
                 y_pos = rs.bmp_rect.y_position;
@@ -216,6 +218,7 @@ impl IPinballComponent for TPinballComponent {
         }
     }
 
+    #[allow(unused)]
     fn sprite_set_ball(&self, index: i32, pos: Vector2i, depth: f32) {
         todo!()
     }
@@ -235,6 +238,7 @@ impl IPinballComponent for TPinballComponent {
         // TODO: Doesn't have an impl?
     }
 
+    #[allow(unused)]
     fn message(&mut self, code: MessageCode, value: f32) -> i32 {
         // TODO?
         self.message_field = code;
