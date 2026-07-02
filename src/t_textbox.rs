@@ -125,6 +125,7 @@ impl TTextBox {
                 )
                 .context("Failed to fill bitmap for TTextBox")?;
             }
+        }
 
         let mut display = false;
         while let Some(front_msg) = self.messages.front() {
