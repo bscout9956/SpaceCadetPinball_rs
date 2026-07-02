@@ -425,7 +425,7 @@ pub fn basic_collision(
     // Project ball direction on collision rebound direction
     // Unsure what to do with Z component, the original defines Vec2:Vec3
     // Rust doesn't support inheritance
-    let mut rebound_proj = -dot_product(&direction, &Vector2::from_vec3(ball.direction));
+    let mut rebound_proj = -dot_product(direction, &Vector2::from_vec3(ball.direction));
     if rebound_proj < 0.0 {
         // Negative projection means no rebound, both direction vectors point the same way.
         rebound_proj = -rebound_proj;

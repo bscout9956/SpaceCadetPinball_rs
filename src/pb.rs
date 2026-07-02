@@ -655,8 +655,10 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
         }
     }
 
-    let mut ray = RayType::default();
-    ray.min_distance = 0.002f32;
+    let mut ray = RayType {
+        min_distance: 0.002f32,
+        ..Default::default()
+    };
 
     for step in 0..=max_step {
         for ball_index in 0..table.ball_list.len() {

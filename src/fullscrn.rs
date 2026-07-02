@@ -198,7 +198,7 @@ fn disable_fullscreen(
     fullscrn_state: &mut FullscrnState,
 ) -> Result<bool, FullscreenError> {
     if fullscrn_state.display_changed {
-        if let Some(mut window) = main_window.as_mut() {
+        if let Some(window) = main_window.as_mut() {
             unsafe {
                 if SDL_SetWindowFullscreen(window.0, SDL_WINDOW_FULLSCREEN_DESKTOP as u32) == 0 {
                     fullscrn_state.display_changed = false;

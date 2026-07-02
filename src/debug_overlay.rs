@@ -158,7 +158,7 @@ fn draw_edge(
         let table_borrow = table.borrow();
         for ball in table_borrow.ball_list.iter() {
             let ball_ref = ball.borrow();
-            if ball_ref.base_component.active_flag.get() == true {
+            if ball_ref.base_component.active_flag.get() {
                 ref_ball = Some(ball.clone());
             }
         }

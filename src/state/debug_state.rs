@@ -9,3 +9,9 @@ impl DebugState {
         Self { db_screen: None }
     }
 }
+
+impl Default for DebugState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
