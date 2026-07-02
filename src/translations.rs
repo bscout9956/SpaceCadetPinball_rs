@@ -455,7 +455,7 @@ pub fn get_translation(id: Msg) -> Result<&'static str, TranslationError> {
                 Ok(text?)
             }
         }
-        Err(e) => Err(TranslationError::FailedToLockLanguage),
+        Err(_) => Err(TranslationError::FailedToLockLanguage),
     }
 }
 
