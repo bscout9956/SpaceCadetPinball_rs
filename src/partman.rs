@@ -252,7 +252,7 @@ pub fn load_records(
 
             let entry_data = EntryData::new(field_type, field_size as i32, buff_enum);
 
-            group_data.add_entry(entry_data, fullscrn_state);
+            group_data.add_entry(entry_data, fullscrn_state)?;
         }
         dat_file.groups.push(group_data);
     }
