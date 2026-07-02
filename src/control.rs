@@ -274,7 +274,7 @@ fn drain_ball_blocker_control(
 }
 
 fn table_add_extra_ball(count: f32, state: &mut PinballState) -> Result<()> {
-    if let Some(wave) = state.control_state.component_state.soundwave28.get() {
+    if let Some(wave) = state.control_state.component_state.soundwave_28.get() {
         wave.borrow().play(None, "table_add_extra_ball");
     }
     if let Some(itb) = state.control_state.component_state.info_text_box.get() {
@@ -304,7 +304,7 @@ fn gravity_well_kickout_control(
                 && let Some(c) = caller.as_ref()
                 && let Some(tb) = state.control_state.component_state.info_text_box.get()
                 && let Some(lite62) = state.control_state.component_state.lite_62.get()
-                && let Some(soundwave7) = state.control_state.component_state.soundwave7.get()
+                && let Some(soundwave7) = state.control_state.component_state.soundwave_7.get()
             {
                 let scoring = c.borrow().get_scoring(0);
                 let added_score = t

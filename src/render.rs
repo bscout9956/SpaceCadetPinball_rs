@@ -209,8 +209,16 @@ pub fn init(
     } else {
         let v_width = v_screen_unwrap.width;
         let v_height = v_screen_unwrap.height;
-        gdrv::fill_bitmap(v_screen_unwrap, v_width, v_height, 0, 0, 0, pb_game_state)
-            .context("Failed to fill bitmap for render init")?;
+        gdrv::fill_bitmap(
+            v_screen_unwrap,
+            v_width,
+            v_height,
+            0,
+            0,
+            0,
+            &pb_game_state.current_palette,
+        )
+        .context("Failed to fill bitmap for render init")?;
     }
 
     recreate_screen_texture(main_state, options_state, render_state);
