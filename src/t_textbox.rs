@@ -6,6 +6,7 @@ use crate::state::render_state::RenderState;
 use crate::state::score_state::ScoreState;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox_message::TTextBoxMessage;
+use crate::utils::DrawContext;
 use crate::{fullscrn, gdrv, loader, timer};
 use anyhow::Context;
 use anyhow::Result;
@@ -42,11 +43,7 @@ impl TTextBox {
         &mut self,
         text: &str,
         time: f32,
-        time_ticks: usize,
-        full_tilt_mode: bool,
-        v_screen: &mut Option<GdrvBitmap8>,
-        bg_bitmap: &Option<GdrvBitmap8>,
-        current_palette: &[ColorRgba; 256],
+        draw_context: &mut DrawContext,
         low_priority: Option<bool>,
     ) -> Result<()> {
         let prio = low_priority.unwrap_or(false);
@@ -58,7 +55,7 @@ impl TTextBox {
 
         if is_dupe {
             if let Some(prev_msg) = self.messages.back_mut() {
-                prev_msg.refresh(time, time_ticks);
+                prev_msg.refresh(time, draw_context.time_ticks);
             }
 
             if self.messages.len() == 1 {
@@ -72,7 +69,7 @@ impl TTextBox {
                         time,
                         &raw const *self as *mut c_void,
                         Self::timer_expired,
-                        time_ticks,
+                        draw_context,
                     );
                 }
             }
@@ -80,18 +77,11 @@ impl TTextBox {
             if self.timer == -1 {
                 self.clear(false);
             }
-            let new_message = TTextBoxMessage::new(text, time, prio, time_ticks);
+            let new_message = TTextBoxMessage::new(text, time, prio, draw_context.time_ticks);
             self.messages.push_back(new_message);
 
             if self.timer == 0 {
-                self.draw(
-                    v_screen,
-                    current_palette,
-                    time_ticks,
-                    full_tilt_mode,
-                    bg_bitmap,
-                )
-                .context("Failed to draw TTextBox")?;
+                self.draw(draw_context).context("Failed to draw TTextBox")?;
             }
         }
         Ok(())
@@ -100,33 +90,18 @@ impl TTextBox {
     pub unsafe extern "C" fn timer_expired(
         timer_id: i32,
         caller: *mut c_void,
-        state: &mut PinballState,
+        draw_ctx: &mut DrawContext,
     ) {
         let tb = unsafe { &mut *(caller as *mut TTextBox) };
         (*tb).timer = 0;
         if tb.messages.pop_front().is_some() {
-            let _ = tb
-                .draw(
-                    &mut state.render_state.v_screen,
-                    &state.pb_game_state.current_palette,
-                    state.pb_game_state.time_ticks,
-                    state.pb_game_state.full_tilt_mode,
-                    &state.render_state.background_bitmap,
-                )
-                .context("Failed to draw textbox");
+            let _ = tb.draw(draw_ctx).context("Failed to draw textbox");
             // TODO: control shit
         }
     }
 
-    fn draw(
-        &mut self,
-        v_screen: &mut Option<GdrvBitmap8>,
-        current_palette: &[ColorRgba; 256],
-        time_ticks: usize,
-        full_tilt_mode: bool,
-        background_bitmap: &Option<GdrvBitmap8>,
-    ) -> Result<()> {
-        if let Some(v_screen) = v_screen.as_mut() {
+    fn draw(&mut self, draw_ctx: &mut DrawContext) -> Result<()> {
+        if let Some(v_screen) = draw_ctx.v_screen.as_mut() {
             if let Some(bg) = self.bg_bmp.as_mut() {
                 gdrv::copy_bitmap(
                     v_screen,
@@ -146,38 +121,32 @@ impl TTextBox {
                     self.offset_x,
                     self.offset_y,
                     0,
-                    current_palette,
+                    draw_ctx.current_palette,
                 )
                 .context("Failed to fill bitmap for TTextBox")?;
             }
 
-            let mut display = false;
-            while let Some(front_msg) = self.messages.front() {
-                if front_msg.time == -1.0f32 {
-                    if self.messages.len() <= 1 {
-                        self.timer = -1;
-                        display = true;
-                        break;
-                    }
-                } else if front_msg.time_left(time_ticks) >= -2.0f32 {
-                    self.timer = timer::set(
-                        f32::max(front_msg.time_left(time_ticks), 0.25f32),
-                        &raw const *self as *mut c_void,
-                        Self::timer_expired,
-                        time_ticks,
-                    );
+        let mut display = false;
+        while let Some(front_msg) = self.messages.front() {
+            if front_msg.time == -1.0f32 {
+                if self.messages.len() <= 1 {
+                    self.timer = -1;
                     display = true;
                     break;
                 }
-
-                self.messages.pop_front();
+            } else if front_msg.time_left(draw_ctx.time_ticks) >= -2.0f32 {
+                self.timer = timer::set(
+                    f32::max(front_msg.time_left(draw_ctx.time_ticks), 0.25f32),
+                    &raw const *self as *mut c_void,
+                    Self::timer_expired,
+                    draw_ctx,
+                );
+                display = true;
+                break;
             }
 
-            if display {
-                let font = match self.font.as_ref() {
-                    None => return Ok(()),
-                    Some(f) => f,
-                };
+            self.messages.pop_front();
+        }
 
                 if let Some(front_msg) = self.messages.front() {
                     let mut lines = Vec::new();
@@ -214,10 +183,33 @@ impl TTextBox {
                             let masked_char = (char_byte & 0x7f) as usize;
                             let char_bmp = &font.chars[masked_char];
 
-                            if char_bmp.height > 0 {
-                                let height = char_bmp.height;
-                                let width = char_bmp.width;
-                                if let Some(_bg_bmp) = background_bitmap.as_ref() {
+                    if result.start.is_empty() && result.end == remaining_text {
+                        break;
+                    }
+
+                    lines.push(result);
+                    remaining_text = result_end;
+                    text_height += font.height;
+                }
+
+                let mut off_y = self.offset_y;
+                if draw_ctx.full_tilt_mode {
+                    off_y += (self.height - text_height) / 2;
+                }
+                for line in lines {
+                    let mut off_x = self.offset_x;
+                    if draw_ctx.full_tilt_mode {
+                        off_x += (self.width - line.width) / 2;
+                    }
+                    for &char_byte in line.start.as_bytes() {
+                        let masked_char = (char_byte & 0x7f) as usize;
+                        let char_bmp = &font.chars[masked_char];
+
+                        if char_bmp.height > 0 {
+                            let height = char_bmp.height;
+                            let width = char_bmp.width;
+                            if let Some(v_screen) = draw_ctx.v_screen.as_mut() {
+                                if let Some(_bg_bmp) = draw_ctx.background_bitmap.as_ref() {
                                     gdrv::copy_bitmap_w_transparency(
                                         v_screen, width, height, off_x, off_y, char_bmp, 0, 0,
                                     );
@@ -228,9 +220,12 @@ impl TTextBox {
                                 }
                                 off_y += char_bmp.width + font.gap_width;
                             }
+
+                            off_y += char_bmp.width + font.gap_width;
                         }
                         off_y += font.height;
                     }
+                    off_y += font.height;
                 }
             }
         }
