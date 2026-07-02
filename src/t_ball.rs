@@ -298,3 +298,60 @@ impl IEdgeSegment for TBall {
         todo!()
     }
 }
+
+impl IPinballComponent for TBall {
+    fn render_sprite(&self) -> Option<&RenderSprite> {
+        todo!()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        todo!()
+    }
+
+    fn group_name(&self) -> Option<Rc<RefCell<String>>> {
+        self.base_component.group_name.clone()
+    }
+
+    fn group_index(&self) -> i32 {
+        todo!()
+    }
+
+    fn sprite_set(&mut self, index: i32) {
+        todo!()
+    }
+
+    fn get_coordinates(&self) -> Vector2 {
+        todo!()
+    }
+
+    fn get_scoring(&self, index: u32) -> i32 {
+        todo!()
+    }
+
+    fn port_draw(&self) {
+        todo!()
+    }
+
+    fn message(&mut self, code: MessageCode, _value: f32, _time_ticks: usize) -> i32 {
+        if code == MessageCode::RESET {
+            self.base_component
+                .sprite_set_ball(-1, &mut Vector2i::new(0, 0), 0.0f32);
+            self.position.x = 0.0;
+            self.collision_comp = None;
+            self.position.y = 0.0;
+            self.set_active_flag(false);
+            self.collision_flag = 0;
+            self.collision_mask = 0;
+            self.direction.y = 0.0;
+            self.position.z = self.radius;
+            self.direction.x = 0.0;
+            self.speed = 0.0;
+            self.ray_max_distance = 0.0;
+        }
+        0
+    }
+
+    fn set_active_flag(&mut self, active: bool) {
+        todo!()
+    }
+}
