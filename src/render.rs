@@ -6,9 +6,9 @@ use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::state::render_state::RenderState;
 use crate::zdrv::ZMapHeaderType;
-use crate::{debug_overlay, gdrv, maths, zdrv};
+use crate::{debug_overlay, gdrv, maths, utils, zdrv};
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
-use sdl2::sys::{SDL_FRect, SDL_Rect, SDL_RenderCopy, SDL_RenderCopyF};
+use sdl2::sys::{SDL_FRect, SDL_RenderCopy, SDL_RenderCopyF};
 use std::cmp::PartialEq;
 use std::ptr::null;
 use std::sync::Arc;
@@ -24,8 +24,8 @@ pub enum VisualTypes {
 #[derive(Default, Clone, Debug)]
 pub struct RenderSprite {
     pub bmp_rect: RectangleType,
-    pub bmp: Option<Arc<GdrvBitmap8>>,
-    pub zmap: Option<Arc<ZMapHeaderType>>,
+    pub bmp: Arc<Option<GdrvBitmap8>>,
+    pub zmap: Arc<Option<ZMapHeaderType>>,
     delete_flag: bool,
     pub visual_type: VisualTypes,
     depth: u16,
@@ -41,8 +41,8 @@ pub struct RenderSprite {
 impl RenderSprite {
     pub fn new(
         visual_type: VisualTypes,
-        bmp: Option<Arc<GdrvBitmap8>>,
-        zmap: Option<Arc<ZMapHeaderType>>,
+        bmp: Arc<Option<GdrvBitmap8>>,
+        zmap: Arc<Option<ZMapHeaderType>>,
         x_pos: i32,
         y_pos: i32,
         bounding_rect: Option<RectangleType>,
@@ -77,7 +77,7 @@ impl RenderSprite {
         instance.bmp_rect.x_position = x_pos;
         instance.bmp_rect.y_position = y_pos;
 
-        if let Some(bmp) = instance.bmp.clone() {
+        if let Some(bmp) = (*instance.bmp).as_ref() {
             instance.bmp_rect.width = bmp.width;
             instance.bmp_rect.height = bmp.height;
         } else {
@@ -101,22 +101,13 @@ impl RenderSprite {
 
     pub fn set(
         &mut self,
-        bmp: Option<Arc<GdrvBitmap8>>,
-        zmap: Option<Arc<ZMapHeaderType>>,
+        bmp: Arc<Option<GdrvBitmap8>>,
+        zmap: Arc<Option<ZMapHeaderType>>,
         x_pos: i32,
         y_pos: i32,
     ) {
-        let bmp_eq = match (&self.bmp, &bmp) {
-            (Some(current), Some(new)) => Arc::ptr_eq(current, new),
-            (None, None) => true,
-            _ => false,
-        };
-
-        let zmap_eq = match (&self.zmap, &zmap) {
-            (Some(current), Some(new)) => Arc::ptr_eq(current, new),
-            (None, None) => true,
-            _ => false,
-        };
+        let bmp_eq = Arc::ptr_eq(&self.bmp, &bmp);
+        let zmap_eq = Arc::ptr_eq(&self.zmap, &zmap);
 
         if bmp_eq
             && zmap_eq
@@ -132,7 +123,7 @@ impl RenderSprite {
         self.bmp_rect.x_position = x_pos;
         self.bmp_rect.y_position = y_pos;
 
-        if let Some(b) = &self.bmp {
+        if let Some(b) = (*self.bmp).as_ref() {
             self.bmp_rect.width = b.width;
             self.bmp_rect.height = b.height;
         }
@@ -210,25 +201,14 @@ pub fn init(
     });
 
     render_state.background_bitmap = bmp.clone();
-    match bmp.is_some() {
-        true => {
-            gdrv::copy_bitmap(
-                v_screen_unwrap,
-                width as i32,
-                height as i32,
-                0,
-                0,
-                &bmp.unwrap(),
-                0,
-                0,
-            );
-        }
-        false => {
-            let v_width = v_screen_unwrap.width;
-            let v_height = v_screen_unwrap.height;
-            gdrv::fill_bitmap(v_screen_unwrap, v_width, v_height, 0, 0, 0, pb_game_state)
-                .context("Failed to fill bitmap for render init")?;
-        }
+
+    if let Some(b) = bmp.as_ref() {
+        gdrv::copy_bitmap(v_screen_unwrap, width as i32, height as i32, 0, 0, b, 0, 0);
+    } else {
+        let v_width = v_screen_unwrap.width;
+        let v_height = v_screen_unwrap.height;
+        gdrv::fill_bitmap(v_screen_unwrap, v_width, v_height, 0, 0, 0, pb_game_state)
+            .context("Failed to fill bitmap for render init")?;
     }
 
     recreate_screen_texture(main_state, options_state, render_state);
@@ -452,7 +432,7 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
             let z_screen_mut = render_state.z_screen.as_mut().unwrap();
             zdrv::fill(z_screen_mut, width, height, x_pos, y_pos, 0xFFFF)
                 .context("Failed to fill zdrv for render update")?;
-            if let Some(mut background_bmp) = render_state.background_bitmap.clone() {
+            if let Some(background_bmp) = render_state.background_bitmap.clone() {
                 gdrv::copy_bitmap(
                     render_state.v_screen.as_mut().unwrap(),
                     width,
@@ -519,7 +499,7 @@ pub fn remove_sprite(sprite: &RenderSprite, render_state: &mut RenderState) {
 }
 
 pub fn set_background_zmap(
-    zmap: Option<Arc<ZMapHeaderType>>,
+    zmap: Arc<Option<ZMapHeaderType>>,
     offset_x: i32,
     offset_y: i32,
     render_state: &mut RenderState,
@@ -529,7 +509,7 @@ pub fn set_background_zmap(
     render_state.z_map_offset_y = offset_y;
 }
 
-pub(crate) fn present_v_screen(state: &mut PinballState) {
+pub(crate) fn present_v_screen(state: &mut PinballState) -> Result<()> {
     if let Some(v_screen) = state.render_state.v_screen.as_mut() {
         unsafe {
             v_screen.blit_to_texture();
