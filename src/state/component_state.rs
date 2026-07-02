@@ -1,5 +1,6 @@
+use crate::t_blocker::TBlocker;
 use crate::t_light::TLight;
-use crate::t_pinball_component::IPinballComponent;
+use crate::t_sound::TSound;
 use crate::t_textbox::TTextBox;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
@@ -7,18 +8,23 @@ use std::rc::{Rc, Weak};
 pub struct ComponentState {
     pub info_text_box: ComponentRef<TTextBox>,
     pub lite_62: ComponentRef<TLight>,
-    pub soundwave7: ComponentRef<TSound>,
-    pub soundwave28: ComponentRef<TSound>,
+    pub soundwave_7: ComponentRef<TSound>,
+    pub soundwave_28: ComponentRef<TSound>,
+    pub block_1: ComponentRef<TBlocker>,
+    pub lite_1: ComponentRef<TLight>,
 }
 
 impl Default for ComponentState {
     // TODO: Do we really need the name?
     fn default() -> ComponentState {
         Self {
+            // TODO: I'll be damned if the names have to be exactly the same, don't think so tho
+            block_1: ComponentRef::new("block_1"),
             info_text_box: ComponentRef::new("info_text_box"),
+            lite_1: ComponentRef::new("lite_1"),
             lite_62: ComponentRef::new("lite_62"),
-            soundwave7: ComponentRef::new("soundwave7"),
-            soundwave28: ComponentRef::new("soundwave28"),
+            soundwave_7: ComponentRef::new("soundwave_7"),
+            soundwave_28: ComponentRef::new("soundwave_28"),
         }
     }
 }
