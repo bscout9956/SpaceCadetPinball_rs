@@ -55,6 +55,7 @@ impl ICollisionComponent for TPlunger {
 
 use crate::render::RenderSprite;
 use crate::t_pinball_component::IPinballComponent;
+use crate::utils::DrawContext;
 use anyhow::Result;
 
 impl TPlunger {
@@ -104,6 +105,43 @@ impl TPlunger {
         }
 
         Ok(instance)
+    }
+}
+
+unsafe extern "C" fn pullback_timer(
+    timer_id: i32,
+    caller: *mut c_void,
+    draw_context: &mut DrawContext,
+) {
+    unsafe {
+        let mut plunger = &mut *(caller as *mut TPlunger);
+        plunger.base.boost += plunger.pullback_increment;
+        if plunger.base.boost <= plunger.max_pull_back {
+            if plunger.some_counter > 0 {
+                plunger.pullback_timer_ = timer::set(
+                    plunger.pullback_delay / 4.0f32,
+                    &raw mut plunger as *mut c_void,
+                    pullback_timer,
+                    draw_context,
+                );
+            } else {
+                plunger.pullback_timer_ = timer::set(
+                    plunger.pullback_delay,
+                    &raw mut plunger as *mut c_void,
+                    pullback_timer,
+                    draw_context,
+                );
+            }
+        } else {
+            plunger.pullback_timer_ = 0;
+            plunger.base.boost = plunger.max_pull_back;
+        }
+
+        let index = f32::floor(
+            (plunger.base.list_bitmap.len() - 1) as f32 * plunger.base.boost
+                / plunger.max_pull_back,
+        ) as i32;
+        plunger.sprite_set(index);
     }
 }
 
