@@ -492,7 +492,7 @@ impl IPinballComponent for TPinballTable {
             MessageCode::RESET => {
                 for component_rc in self.component_list.iter_mut() {
                     let mut component = component_rc.borrow_mut();
-                    component.message(MessageCode::RESET, 0.0);
+                    component.message(MessageCode::RESET, 0.0, time_ticks);
                 }
                 if self.replay_timer > 0 {
                     timer::kill_id(self.replay_timer);
@@ -501,7 +501,7 @@ impl IPinballComponent for TPinballTable {
                 if self.light_show_timer > 0 {
                     timer::kill_id(self.light_show_timer);
                     if let Some(lg) = &mut self.light_group {
-                        lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0);
+                        lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, time_ticks);
                     }
                 }
                 self.light_show_timer = 0;

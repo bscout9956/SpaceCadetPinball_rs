@@ -80,8 +80,7 @@ impl TTextBox {
             if self.timer == -1 {
                 self.clear(false);
             }
-            let new_message =
-                TTextBoxMessage::new(text, time, prio, state.pb_game_state.time_ticks);
+            let new_message = TTextBoxMessage::new(text, time, prio, time_ticks);
             self.messages.push_back(new_message);
 
             if self.timer == 0 {
