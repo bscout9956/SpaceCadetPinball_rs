@@ -388,7 +388,9 @@ impl TPinballTable {
             let new_ball_rc = TBall::new(table_weak, -1, state).context("Failed to create TBall")?;
             self.collision_comp_offset = new_ball_rc.borrow().radius;
 
-            self.ball_list.push(Rc::clone(&new_ball_rc));
+            self.add_component(new_ball_rc.clone());
+            self.ball_list.push(new_ball_rc.clone());
+
             new_ball_rc
         };
 
