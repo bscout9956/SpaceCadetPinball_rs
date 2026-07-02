@@ -177,6 +177,7 @@ use crate::t_drain::TDrain;
 use crate::t_flipper::TFlipper;
 use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
+use crate::utils::DrawContext;
 use anyhow::{Context, Result, bail};
 
 impl TPinballTable {
@@ -399,7 +400,8 @@ impl TPinballTable {
 
             let table_weak = self.base.pinball_table.clone();
 
-            let new_ball_rc = TBall::new(table_weak, -1, state).context("Failed to create TBall")?;
+            let new_ball_rc =
+                TBall::new(table_weak, -1, state).context("Failed to create TBall")?;
             self.collision_comp_offset = new_ball_rc.borrow().radius;
 
             self.add_component(new_ball_rc.clone());
@@ -500,7 +502,7 @@ impl IPinballComponent for TPinballTable {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32, time_ticks: usize) -> i32 {
+    fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
         let rc_text = String::new();
 
         // TODO: Is it just reset? If there's no more, use if let
@@ -508,7 +510,7 @@ impl IPinballComponent for TPinballTable {
             MessageCode::RESET => {
                 for component_rc in self.component_list.iter_mut() {
                     let mut component = component_rc.borrow_mut();
-                    component.message(MessageCode::RESET, 0.0, time_ticks);
+                    component.message(MessageCode::RESET, 0.0, draw_context);
                 }
                 if self.replay_timer > 0 {
                     timer::kill_id(self.replay_timer);
@@ -517,7 +519,7 @@ impl IPinballComponent for TPinballTable {
                 if self.light_show_timer > 0 {
                     timer::kill_id(self.light_show_timer);
                     if let Some(lg) = &mut self.light_group {
-                        lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, time_ticks);
+                        lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, draw_context);
                     }
                 }
                 self.light_show_timer = 0;
