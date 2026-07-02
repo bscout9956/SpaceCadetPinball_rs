@@ -175,8 +175,8 @@ pub struct VisualKickerStruct {
 
 #[derive(Clone, Default)]
 pub struct SpriteData {
-    pub bmp: Option<Arc<GdrvBitmap8>>,
-    pub zmap: Option<Arc<ZMapHeaderType>>,
+    pub bmp: Arc<Option<GdrvBitmap8>>,
+    pub zmap: Arc<Option<ZMapHeaderType>>,
 }
 
 #[derive(Clone, Default)]
@@ -243,8 +243,8 @@ pub fn default_vsi(visual: &mut VisualStruct) {
     visual.float_arr_count = 0;
     visual.soft_hit_sound_id = 0;
     visual.bitmap = SpriteData {
-        bmp: None,
-        zmap: None,
+        bmp: Arc::new(None),
+        zmap: Arc::new(None),
     };
     visual.sound_index_3 = 0;
     visual.sound_index_4 = 0;
@@ -839,9 +839,10 @@ pub fn query_visual(
         let zmap = loader_table
             .get_zmap(state_id, state.fullscrn_state.resolution)
             .to_owned();
+
         visual.bitmap = SpriteData {
-            bmp: Some(Arc::new(bmp)),
-            zmap: Some(Arc::new(zmap)),
+            bmp: Arc::new(bmp),
+            zmap: Arc::new(zmap),
         };
 
         short_array_data = match loader_table.field(state_id, FieldTypes::ShortArray) {
