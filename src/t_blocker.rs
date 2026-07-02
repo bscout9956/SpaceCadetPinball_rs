@@ -113,7 +113,7 @@ impl IPinballComponent for TBlocker {
                 self.base.active_flag.set(false);
                 self.base.sprite_set(-1);
                 if code == MessageCode::T_BLOCKER_DISABLE {
-                    // TODO:                    loader::play_sound(self.sound_index_3, self, "TBlocker1");
+                    // TODO: loader::play_sound(self.sound_index_3, self, "TBlocker1");
                 }
             }
             MessageCode::T_BLOCKER_ENABLE => {
