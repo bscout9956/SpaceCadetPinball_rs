@@ -86,8 +86,8 @@ pub struct GroupData {
     group_id: i32,
     group_name: String,
     entries: Vec<EntryData>,
-    bitmaps: [GdrvBitmap8; 3],
-    z_maps: [ZMapHeaderType; 3],
+    bitmaps: [Option<GdrvBitmap8>; 3],
+    z_maps: [Option<ZMapHeaderType>; 3],
     needs_sort: bool,
 }
 
@@ -95,15 +95,15 @@ impl GroupData {
     pub fn get_entries(&self) -> &[EntryData] {
         &self.entries
     }
-    pub fn get_zmap(&self, resolution: i32) -> &ZMapHeaderType {
+    pub fn get_zmap(&self, resolution: i32) -> &Option<ZMapHeaderType> {
         &self.z_maps[resolution as usize]
     }
 
-    pub fn get_bitmap(&self, resolution: i32) -> &GdrvBitmap8 {
+    pub fn get_bitmap(&self, resolution: i32) -> &Option<GdrvBitmap8> {
         &self.bitmaps[resolution as usize]
     }
 
-    pub fn get_bitmap_mut(&mut self, resolution: i32) -> &mut GdrvBitmap8 {
+    pub fn get_bitmap_mut(&mut self, resolution: i32) -> &mut Option<GdrvBitmap8> {
         &mut self.bitmaps[resolution as usize]
     }
 
@@ -120,8 +120,8 @@ impl GroupData {
             group_id,
             group_name: "".to_string(),
             entries: vec![],
-            bitmaps: array::from_fn(|_| GdrvBitmap8::default()),
-            z_maps: array::from_fn(|_| ZMapHeaderType::default()),
+            bitmaps: array::from_fn(|_| None),
+            z_maps: array::from_fn(|_| None),
             needs_sort: true,
         }
     }
