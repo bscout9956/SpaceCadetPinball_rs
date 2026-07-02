@@ -4,8 +4,8 @@ use crate::gdrv::{BitmapTypes, GdrvBitmap8};
 use crate::state::fullscrn_state::FullscrnState;
 use crate::zdrv;
 use crate::zdrv::ZMapHeaderType;
-use anyhow::{Context, Result};
-use base85::Error;
+use crate::{utils, zdrv};
+use anyhow::{Context, Result, bail};
 use num_derive::FromPrimitive;
 use std::array;
 use std::cmp::PartialOrd;
@@ -129,7 +129,11 @@ impl GroupData {
     pub fn reserve_entries(&mut self, count: usize) {
         self.entries.reserve(count);
     }
-    pub fn add_entry(&mut self, entry: EntryData, fullscrn_state: &mut FullscrnState) {
+    pub fn add_entry(
+        &mut self,
+        entry: EntryData,
+        fullscrn_state: &mut FullscrnState,
+    ) -> Result<()> {
         let mut add_entry = true;
         match entry.entry_type {
             FieldTypes::Bitmap8bit => {
@@ -148,7 +152,7 @@ impl GroupData {
                         self.add_entry(
                             EntryData::new(FieldTypes::Bitmap8bit, -1, EntryBuffer::Bitmap8(bmp)),
                             fullscrn_state,
-                        );
+                        )?;
                         self.add_entry(
                             EntryData::new(
                                 FieldTypes::Bitmap16bit,
@@ -156,22 +160,22 @@ impl GroupData {
                                 EntryBuffer::Bitmap16(zmap),
                             ),
                             fullscrn_state,
-                        );
+                        )?;
                     } else {
-                        self.set_bitmap(src_bmp.clone());
+                        self.set_bitmap(src_bmp.clone())?;
                     }
                 }
             }
             FieldTypes::GroupName => {
                 if let EntryBuffer::Raw(data) = &entry.buffer {
-                    self.group_name = String::from_utf8(data.clone()).unwrap();
+                    self.group_name = String::from_utf8(data.clone())?;
                 } else {
                     panic!("Unrecognized data type...");
                 }
             }
             FieldTypes::Bitmap16bit => {
                 if let EntryBuffer::Bitmap16(src_data) = &entry.buffer {
-                    self.set_zmap(src_data.clone());
+                    self.set_zmap(src_data.clone())?;
                 }
             }
             _ => {}
@@ -182,42 +186,49 @@ impl GroupData {
         }
     }
 
-    pub fn set_bitmap(&mut self, bmp: GdrvBitmap8) {
+    pub fn set_bitmap(&mut self, bmp: GdrvBitmap8) -> Result<()> {
         let bmp_res = bmp.resolution as usize;
         let bmp_height = bmp.height as usize;
         let bmp_width = bmp.width as usize;
 
-        assert_eq!(self.bitmaps[bmp_res].width, 0, "GroupData: bitmap override");
-        self.bitmaps[bmp_res] = bmp;
-
-        let zmap = &self.z_maps[bmp_res];
-
-        if zmap.width > 0 && zmap.height > 0 {
-            assert!(
-                bmp_width == zmap.width as usize && bmp_height == zmap.height as usize,
-                "GroupData: Mismatched bitmap/zmap dimensions"
-            );
+        if self.bitmaps[bmp_res].as_ref().is_some() {
+            bail!("GroupData: bitmap override");
         }
+
+        self.bitmaps[bmp_res] = Some(bmp);
+
+        if let Some(zmap) = &self.z_maps[bmp_res] {
+            if bmp_width != zmap.width as usize || bmp_height != zmap.height as usize {
+                bail!("GroupData: mismatched bitmap/zMap dimensions");
+            }
+        }
+
+        Ok(())
     }
 
-    pub fn set_zmap(&mut self, mut zmap: ZMapHeaderType) {
+    pub fn set_zmap(&mut self, mut zmap: ZMapHeaderType) -> Result<()> {
+        // Flip zMap to match with flipped non-indexed bitmaps
         zdrv::flip_zmap_horizontally(&mut zmap);
         let zmap_res = zmap.resolution as usize;
         let zmap_width = zmap.width as usize;
         let zmap_height = zmap.height as usize;
 
-        assert_eq!(self.z_maps[zmap_res].width, 0, "GroupData: zMap override");
-
-        self.z_maps[zmap_res] = zmap;
-
-        let bmp = &self.bitmaps[zmap_res];
-
-        if bmp.width > 0 && bmp.height > 0 {
-            assert!(
-                bmp.width as usize == zmap_width && bmp.height as usize == zmap_height,
-                "GroupData: Mismatched bitmap/zmap dimensions"
-            );
+        if self.z_maps[zmap_res].is_some() {
+            bail!("GroupData: zMap override");
         }
+
+        self.z_maps[zmap_res] = Some(zmap);
+
+        let bmp_opt = &self.bitmaps[zmap_res];
+
+        if let Some(bmp) = bmp_opt {
+            // IMPORTANT: There used to be a width 0 check here
+            // but that's because we dealt with obligatory instantiation of bitmaps
+            if bmp.width as usize != zmap_width || bmp.height as usize != zmap_height {
+                bail!("GroupData: Mismatched bitmap/zmap dimensions");
+            }
+        }
+        Ok(())
     }
 }
 
@@ -244,6 +255,7 @@ pub fn split_sliced_bitmap(
 
     let table_width = fullscrn_state.resolution_array[src_bmp.resolution as usize].table_width;
     let src = &src_bmp.indexed_bmp_data;
+    // TODO: Should src_char be used?
     let src_char = &src;
 
     let mut src_idx = 0;
