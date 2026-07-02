@@ -1,5 +1,5 @@
 use crate::errors::LoaderError;
-use crate::maths::{RectF, Vector2, Vector2i, Vector3};
+use crate::maths::{RectF, Vector2, Vector3};
 use crate::message_code::MessageCode;
 use crate::score::ScoreStruct;
 use crate::state::pinball_state::PinballState;
@@ -113,10 +113,15 @@ impl TPinballTable {
         &self,
         component_name: &str,
     ) -> Option<Rc<RefCell<dyn IPinballComponent>>> {
-        self.component_list
-            .iter()
-            .find(|cmp| cmp.borrow().group_name().as_deref() == Some(component_name))
-            .cloned()
+        for comp in self.component_list.iter() {
+            let name = comp.borrow().group_name();
+            if let Some(n) = name {
+                if *n.borrow() == component_name {
+                    return Some(comp.clone());
+                }
+            }
+        }
+        None
     }
 }
 
