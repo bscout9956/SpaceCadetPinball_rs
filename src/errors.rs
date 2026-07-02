@@ -48,6 +48,11 @@ pub enum LoaderError {
 }
 
 #[derive(Error, Debug)]
+pub enum RenderError {
+    #[error("No vscreen to present")]
+    NoVScreen,
+}
+#[derive(Error, Debug)]
 pub enum PbError {
     #[error(transparent)]
     RecordLoadError(#[from] RecordLoadError),
@@ -68,15 +73,15 @@ pub enum PbError {
     #[error("We could find the pinball table")]
     NoTable,
     #[error("Failed set RwLock mode")]
-    RwLockError
+    RwLockError,
 }
 
 #[derive(Error, Debug)]
 pub enum GroupDataError {
     #[error("Failed to split spliced bitmap")]
     Split,
-    #[error("There was a mismatch between the font widths")]
-    FontWidthMismatch,
+    #[error("There was a mismatch between the font widths: `{0}` vs `{1}`")]
+    FontWidthMismatch(usize, u8),
     #[error("Buffer length is not the correct size")]
     InvalidBufferLength,
 }
