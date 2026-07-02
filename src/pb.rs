@@ -395,8 +395,17 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
             mtb.clear(false);
         }
         if let Some(mut itb) = state.pb_game_state.info_text_box.take() {
-            itb.display(get_rc_string(Msg::STRING125)?, -1.0f32, state, None)
-                .context("Failed to obtain RC String when toggling demo")?;
+            itb.display(
+                get_rc_string(Msg::STRING125)?,
+                -1.0f32,
+                state.pb_game_state.time_ticks,
+                state.pb_game_state.full_tilt_mode,
+                &mut state.render_state.v_screen,
+                &state.render_state.background_bitmap,
+                &state.pb_game_state.current_palette,
+                None,
+            )
+            .context("Failed to obtain RC String when toggling demo")?;
             state.pb_game_state.mission_text_box = Some(itb);
         }
     } else {
@@ -793,7 +802,16 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
         .ok_or(PbError::NoTextBox)?;
 
     text_box
-        .display(rc_string, -1.0f32, state, None)
+        .display(
+            rc_string,
+            -1.0f32,
+            state.pb_game_state.time_ticks,
+            state.pb_game_state.full_tilt_mode,
+            &mut state.render_state.v_screen,
+            &state.render_state.background_bitmap,
+            &state.pb_game_state.current_palette,
+            None,
+        )
         .context("Failed to display textbox in pause_continue")?;
 
     state.pb_game_state.info_text_box = Some(text_box);
