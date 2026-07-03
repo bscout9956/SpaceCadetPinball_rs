@@ -269,9 +269,9 @@ unsafe fn draw_box_grid(renderer: &SdlRendererPtr, state: &mut PbGameState) {
 unsafe fn SDL_RenderDrawCircle(renderer: &SdlRendererPtr, x: i32, y: i32, radius: i32) -> i32 {
     let mut points: Vec<SDL_Point> = Vec::with_capacity(256);
     let mut point_count = 0;
-    let     mut offset_x = 0;
-    let     mut offset_y = radius;
-    let     mut d = radius - 1;
+    let mut offset_x = 0;
+    let mut offset_y = radius;
+    let mut d = radius - 1;
 
     let mut status = 0;
 
@@ -282,39 +282,63 @@ unsafe fn SDL_RenderDrawCircle(renderer: &SdlRendererPtr, x: i32, y: i32, radius
             }
             point_count = 0;
 
-            if status<0 {
+            if status < 0 {
                 status = -1;
                 break;
             }
         }
 
-        points[point_count as usize] = SDL_Point { x: x + offset_x, y: y + offset_y };
+        points[point_count as usize] = SDL_Point {
+            x: x + offset_x,
+            y: y + offset_y,
+        };
         point_count += 1;
-        points[point_count as usize] = SDL_Point { x: x + offset_y, y: y + offset_x };
+        points[point_count as usize] = SDL_Point {
+            x: x + offset_y,
+            y: y + offset_x,
+        };
         point_count += 1;
-        points[point_count as usize] = SDL_Point { x: x - offset_x, y: y + offset_y };
+        points[point_count as usize] = SDL_Point {
+            x: x - offset_x,
+            y: y + offset_y,
+        };
         point_count += 1;
-        points[point_count as usize] = SDL_Point { x: x - offset_y, y: y + offset_x };
+        points[point_count as usize] = SDL_Point {
+            x: x - offset_y,
+            y: y + offset_x,
+        };
         point_count += 1;
-        points[point_count as usize] = SDL_Point { x: x + offset_x, y: y - offset_y };
+        points[point_count as usize] = SDL_Point {
+            x: x + offset_x,
+            y: y - offset_y,
+        };
         point_count += 1;
-        points[point_count as usize] = SDL_Point { x: x + offset_y, y: y - offset_x };
+        points[point_count as usize] = SDL_Point {
+            x: x + offset_y,
+            y: y - offset_x,
+        };
         point_count += 1;
-        points[point_count as usize] = SDL_Point { x: x - offset_x, y: y - offset_y };
+        points[point_count as usize] = SDL_Point {
+            x: x - offset_x,
+            y: y - offset_y,
+        };
         point_count += 1;
-        points[point_count as usize] = SDL_Point { x: x - offset_y, y: y - offset_x };
+        points[point_count as usize] = SDL_Point {
+            x: x - offset_y,
+            y: y - offset_x,
+        };
         point_count += 1;
 
-        if d>=2 * offset_x {
-            d-=2*offset_x+1;
-            offset_x+=1;
-        } else if (d < 2 * (radius - offset_y)) {
+        if d >= 2 * offset_x {
+            d -= 2 * offset_x + 1;
+            offset_x += 1;
+        } else if d < 2 * (radius - offset_y) {
             d += 2 * offset_y - 1;
             offset_y -= 1;
         } else {
             d += 2 * (offset_y - offset_x - 1);
             offset_y -= 1;
-            offset_x +=1;
+            offset_x += 1;
         }
     }
 
@@ -324,5 +348,5 @@ unsafe fn SDL_RenderDrawCircle(renderer: &SdlRendererPtr, x: i32, y: i32, radius
         }
     }
 
-    return status;
+    status
 }
