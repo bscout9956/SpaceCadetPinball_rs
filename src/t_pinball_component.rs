@@ -213,6 +213,7 @@ impl IPinballComponent for TPinballComponent {
     fn group_index(&self) -> i32 {
         self.group_index
     }
+
     fn sprite_set(&mut self, index: i32) {
         if self.list_bitmap.is_empty() {
             return;

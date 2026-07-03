@@ -176,7 +176,7 @@ impl IPinballComponent for TPlunger {
     }
 
     fn sprite_set(&mut self, index: i32) {
-        todo!()
+        self.base.sprite_set(index);
     }
 
     fn get_coordinates(&self) -> Vector2 {
