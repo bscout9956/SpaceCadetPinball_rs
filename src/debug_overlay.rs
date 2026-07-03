@@ -1,10 +1,11 @@
 use crate::gdrv::GdrvBitmap8;
-use crate::maths::{LineType, Vector2};
+use crate::maths::{CircleType, LineType, Vector2};
 use crate::proj;
 use crate::state::options_state::OptionsState;
 use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
+use crate::t_circle::TCircle;
 use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_segment::IEdgeSegment;
 use crate::t_line::TLine;
@@ -13,10 +14,7 @@ use crate::utils::SdlRendererPtr;
 use sdl2::sys::SDL_BlendMode::SDL_BLENDMODE_BLEND;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_TARGET;
 use sdl2::sys::{
-    SDL_BlendMode, SDL_GetRenderDrawBlendMode, SDL_GetRenderDrawColor, SDL_GetRenderTarget,
-    SDL_Rect, SDL_RenderClear, SDL_RenderCopy, SDL_RenderDrawLine, SDL_RenderDrawRect,
-    SDL_SetRenderDrawBlendMode, SDL_SetRenderDrawColor, SDL_SetRenderTarget,
-    SDL_SetTextureBlendMode,
+    SDL_BlendMode, SDL_GetRenderDrawBlendMode, SDL_GetRenderDrawColor, SDL_GetRenderTarget, SDL_Point, SDL_Rect, SDL_RenderClear, SDL_RenderCopy, SDL_RenderDrawLine, SDL_RenderDrawPoints, SDL_RenderDrawRect, SDL_SetRenderDrawBlendMode, SDL_SetRenderDrawColor, SDL_SetRenderTarget, SDL_SetTextureBlendMode,
 };
 use std::cell::{Ref, RefCell};
 use std::ptr::null;
@@ -176,12 +174,10 @@ fn draw_edge(
         draw_line_type(&l.line, renderer);
     }
 
-    // TODO: Implement me
-    // let circle = edge.as_any().downcast_ref::<TCircle>();
-    // if let Some(c) = circle {
-    //     draw_circle_type(&c.circle, renderer);
-    //     return;
-    // }
+    let circle = edge.as_any().downcast_ref::<TCircle>();
+    if let Some(c) = circle {
+        draw_circle_type(&c.circle, renderer);
+    }
 
     // TODO: Annoying as fuck to implement
     // let flip = edge.as_any().downcast_ref::<TFlipperEdge>();
@@ -197,6 +193,16 @@ fn draw_line_type(line: &LineType, renderer: &SdlRendererPtr) {
     let pt2 = proj::x_form_to_2d(&line.end);
     unsafe {
         SDL_RenderDrawLine(renderer.0, pt1.x, pt1.y, pt2.x, pt2.y);
+    }
+}
+
+fn draw_circle_type(circle: &CircleType, renderer: &SdlRendererPtr) {
+    let line_pt = Vector2::new(circle.center.x + f32::sqrt(circle.radius_sq), circle.center.y);
+    let pt_1 = proj::x_form_to_2d(&circle.center);
+    let pt_2 = proj::x_form_to_2d(&line_pt);
+    let radius = i32::abs(pt_2.x - pt_1.x);
+    unsafe {
+        SDL_RenderDrawCircle(renderer, pt_1.x, pt_1.y, radius);
     }
 }
 
@@ -253,4 +259,66 @@ unsafe fn draw_box_grid(renderer: &SdlRendererPtr, state: &mut PbGameState) {
             }
         }
     }
+}
+
+#[allow(non_snake_case)]
+unsafe fn SDL_RenderDrawCircle(renderer: &SdlRendererPtr, x: i32, y: i32, radius: i32) -> i32 {
+    let mut points: Vec<SDL_Point> = Vec::with_capacity(256);
+    let mut point_count = 0;
+    let     mut offset_x = 0;
+    let     mut offset_y = radius;
+    let     mut d = radius - 1;
+
+    let mut status = 0;
+
+    while offset_y >= offset_x {
+        if point_count + 8 > 256 {
+            unsafe {
+                status = SDL_RenderDrawPoints(renderer.0, points.as_ptr(), point_count);
+            }
+            point_count = 0;
+
+            if status<0 {
+                status = -1;
+                break;
+            }
+        }
+
+        points[point_count as usize] = SDL_Point { x: x + offset_x, y: y + offset_y };
+        point_count += 1;
+        points[point_count as usize] = SDL_Point { x: x + offset_y, y: y + offset_x };
+        point_count += 1;
+        points[point_count as usize] = SDL_Point { x: x - offset_x, y: y + offset_y };
+        point_count += 1;
+        points[point_count as usize] = SDL_Point { x: x - offset_y, y: y + offset_x };
+        point_count += 1;
+        points[point_count as usize] = SDL_Point { x: x + offset_x, y: y - offset_y };
+        point_count += 1;
+        points[point_count as usize] = SDL_Point { x: x + offset_y, y: y - offset_x };
+        point_count += 1;
+        points[point_count as usize] = SDL_Point { x: x - offset_x, y: y - offset_y };
+        point_count += 1;
+        points[point_count as usize] = SDL_Point { x: x - offset_y, y: y - offset_x };
+        point_count += 1;
+
+        if d>=2 * offset_x {
+            d-=2*offset_x+1;
+            offset_x+=1;
+        } else if (d < 2 * (radius - offset_y)) {
+            d += 2 * offset_y - 1;
+            offset_y -= 1;
+        } else {
+            d += 2 * (offset_y - offset_x - 1);
+            offset_y -= 1;
+            offset_x +=1;
+        }
+    }
+
+    if point_count > 0 {
+        unsafe {
+            status = SDL_RenderDrawPoints(renderer.0, points.as_ptr(), point_count);
+        }
+    }
+
+    return status;
 }
