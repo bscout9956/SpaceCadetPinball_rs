@@ -1053,9 +1053,12 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
 }
 
 pub(crate) fn launch_ball(state: &mut PinballState) -> Result<()> {
-    if let Some(table) = state.pb_game_state.main_table.as_mut() {
-        let mut table_borrow = table.borrow_mut();
-        let plunger = table_borrow.plunger.as_mut().unwrap();
+    if let Some(table_rc) = state.pb_game_state.main_table.as_mut() {
+        let plunger_ptr = {
+            let mut table = table_rc.borrow_mut();
+            table.plunger.as_mut().unwrap() as *mut TPlunger
+        };
+        let plunger = unsafe { &mut *plunger_ptr };
 
         let mut draw_ctx = DrawContext {
             v_screen: &mut state.render_state.v_screen,
