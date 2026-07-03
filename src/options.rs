@@ -697,11 +697,6 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) -> Result<()> {
     }
 }
 
-// pub fn input_down(input: GameInput) {
-//     let mut wait_flag = CONTROL_WAITING_FOR_INPUT.lock().unwrap();
-//     *wait_flag = Some(input);
-// }
-
 // pub fn show_control_dialog() {
 //     let dialog_check = SHOW_DIALOG.load(SeqCst);
 //     if !dialog_check {
