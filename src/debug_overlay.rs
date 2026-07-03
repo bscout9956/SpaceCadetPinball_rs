@@ -146,7 +146,7 @@ fn draw_all_sprites(renderer: &SdlRendererPtr, t: &Rc<RefCell<TPinballTable>>) {
 
 fn draw_edge(
     state: &mut OptionsState,
-    edge: Ref<dyn IEdgeSegment>,
+    mut edge: RefMut<dyn IEdgeSegment>,
     renderer: &SdlRendererPtr,
     table: &Rc<RefCell<TPinballTable>>,
 ) {
@@ -179,13 +179,17 @@ fn draw_edge(
         draw_circle_type(&c.circle, renderer);
     }
 
-    // TODO: Annoying as fuck to implement
-    // let flip = edge.as_any().downcast_ref::<TFlipperEdge>();
-    // if let Some(fl) = flip {
-    //     if fl.control_point_dirty_flag {
-    //         fl
-    //     }
-    // }
+    let flip = edge.as_any_mut().downcast_mut::<TFlipperEdge>();
+    if let Some(fl) = flip {
+        if fl.control_point_dirty_flag {
+            fl.set_contol_points(fl.current_angle);
+        }
+
+        draw_line_type(&fl.line_a, renderer);
+        draw_line_type(&fl.line_b, renderer);
+        draw_circle_type(&fl.circle_base, renderer);
+        draw_circle_type(&fl.circle_t1, renderer);
+    }
 }
 
 fn draw_line_type(line: &LineType, renderer: &SdlRendererPtr) {
