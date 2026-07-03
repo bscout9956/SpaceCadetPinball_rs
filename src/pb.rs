@@ -446,7 +446,7 @@ pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<()> {
 
     match state.pb_game_state.main_table.as_ref() {
         None => {
-            return Err(PbError::NoTable);
+            bail!(PbError::NoTable);
         }
         Some(t) => {
             let mut draw_ctx = DrawContext {
@@ -472,13 +472,21 @@ fn mode_change(
     render_state: &mut RenderState,
     main_state: &mut MainState,
     pb_game_state: &mut PbGameState,
-) -> Result<(), PbError> {
-    let miss_text_box = pb_game_state.mission_text_box.as_ref();
+) -> Result<()> {
+    let miss_text_box = pb_game_state.mission_text_box.as_mut();
 
     if pb_game_state.credits_active
         && let Some(text_box) = miss_text_box
     {
-        text_box.clear(true);
+        let mut draw_ctx = DrawContext {
+            v_screen: &mut render_state.v_screen,
+            current_palette: &pb_game_state.current_palette,
+            time_ticks: pb_game_state.time_ticks,
+            full_tilt_mode: pb_game_state.full_tilt_mode,
+            background_bitmap: &render_state.background_bitmap,
+        };
+
+        text_box.clear(true, &mut draw_ctx)?;
     }
     pb_game_state.credits_active = false;
     pb_game_state.idle_timer_ms = 0.0;
@@ -812,11 +820,25 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
     state.main_state.single_step ^= true;
 
     if let Some(text_box) = state.pb_game_state.info_text_box.as_mut() {
-        text_box.clear(false);
+        let mut draw_ctx = DrawContext {
+            v_screen: &mut state.render_state.v_screen,
+            current_palette: &state.pb_game_state.current_palette,
+            time_ticks: state.pb_game_state.time_ticks,
+            full_tilt_mode: state.pb_game_state.full_tilt_mode,
+            background_bitmap: &state.render_state.background_bitmap,
+        };
+        text_box.clear(false, &mut draw_ctx)?;
     }
 
-    if let Some(miss_text_box) = state.pb_game_state.mission_text_box.as_ref() {
-        miss_text_box.clear(false);
+    if let Some(miss_text_box) = state.pb_game_state.mission_text_box.as_mut() {
+        let mut draw_ctx = DrawContext {
+            v_screen: &mut state.render_state.v_screen,
+            current_palette: &state.pb_game_state.current_palette,
+            time_ticks: state.pb_game_state.time_ticks,
+            full_tilt_mode: state.pb_game_state.full_tilt_mode,
+            background_bitmap: &state.render_state.background_bitmap,
+        };
+        miss_text_box.clear(false, &mut draw_ctx)?;
     }
     if state.main_state.single_step {
         let mut table = match state.pb_game_state.main_table.as_ref() {
@@ -1086,12 +1108,19 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
     }
 
     if state.pb_game_state.credits_active {
+        let mut draw_ctx = DrawContext {
+            v_screen: &mut state.render_state.v_screen,
+            current_palette: &state.pb_game_state.current_palette,
+            time_ticks: state.pb_game_state.time_ticks,
+            full_tilt_mode: state.pb_game_state.full_tilt_mode,
+            background_bitmap: &state.render_state.background_bitmap,
+        };
         state
             .pb_game_state
             .mission_text_box
-            .as_ref()
+            .as_mut()
             .unwrap()
-            .clear(true);
+            .clear(true, &mut draw_ctx)?;
     }
     state.pb_game_state.credits_active = false;
     state.pb_game_state.idle_timer_ms = 0.0f32;
