@@ -107,7 +107,7 @@ impl TTextBox {
                 } else {
                     self.timer = timer::set(
                         time,
-                        &raw const *self as *mut c_void,
+                        self as *const TTextBox as *mut c_void,
                         Self::timer_expired,
                         draw_context,
                     );
@@ -115,7 +115,7 @@ impl TTextBox {
             }
         } else {
             if self.timer == -1 {
-                self.clear(false);
+                self.clear(false, draw_context)?;
             }
             let new_message = TTextBoxMessage::new(text, time, prio, draw_context.time_ticks);
             self.messages.push_back(new_message);
@@ -141,6 +141,7 @@ impl TTextBox {
     }
 
     fn draw(&mut self, draw_ctx: &mut DrawContext) -> Result<()> {
+        println!("Drawing or attempting to draw something");
         if let Some(v_screen) = draw_ctx.v_screen.as_mut() {
             if let Some(bg) = self.bg_bmp.as_mut() {
                 gdrv::copy_bitmap(
@@ -152,7 +153,7 @@ impl TTextBox {
                     bg,
                     self.offset_x,
                     self.offset_y,
-                )
+                )?
             } else {
                 gdrv::fill_bitmap(
                     v_screen,
@@ -178,7 +179,7 @@ impl TTextBox {
             } else if front_msg.time_left(draw_ctx.time_ticks) >= -2.0f32 {
                 self.timer = timer::set(
                     f32::max(front_msg.time_left(draw_ctx.time_ticks), 0.25f32),
-                    &raw const *self as *mut c_void,
+                    self as *const TTextBox as *mut c_void,
                     Self::timer_expired,
                     draw_ctx,
                 );
@@ -234,18 +235,19 @@ impl TTextBox {
                             let height = char_bmp.height;
                             let width = char_bmp.width;
                             if let Some(v_screen) = draw_ctx.v_screen.as_mut() {
-                                if let Some(_bg_bmp) = draw_ctx.background_bitmap.as_ref() {
+                                let has_bg = draw_ctx.background_bitmap.is_some();
+                                if has_bg {
                                     gdrv::copy_bitmap_w_transparency(
                                         v_screen, width, height, off_x, off_y, char_bmp, 0, 0,
                                     );
                                 } else {
                                     gdrv::copy_bitmap(
                                         v_screen, width, height, off_x, off_y, char_bmp, 0, 0,
-                                    );
+                                    )?;
                                 }
                             }
 
-                            off_y += char_bmp.width + font.gap_width;
+                            off_x += char_bmp.width + font.gap_width;
                         }
                     }
                     off_y += font.height;
@@ -257,9 +259,9 @@ impl TTextBox {
 
     fn layout_text_line<'a>(&self, text: &'a str) -> LayoutResult<'a> {
         let mut line_width = 0;
-        let word_width = 0;
+        let mut word_width = 0;
 
-        let word_boundary: Option<usize> = None;
+        let mut word_boundary: Option<usize> = None;
         let mut end_index = text.len();
 
         let bytes = text.as_bytes();
@@ -279,7 +281,6 @@ impl TTextBox {
 
                 let width = line_width + char_bmp.width + fonts.gap_width;
                 if width > self.width {
-                    // Nudge needed here
                     if let Some(boundary_idx) = word_boundary {
                         end_index = boundary_idx;
                         line_width = word_width;
@@ -288,6 +289,12 @@ impl TTextBox {
                     }
                     break;
                 }
+
+                if masked_char == b' ' {
+                    word_boundary = Some(i);
+                    word_width = width;
+                }
+
                 line_width = width;
             }
         }
