@@ -114,3 +114,49 @@ fn x_form_to_2d_vec3(vec: Vector3) -> Vector2i {
         y: (proj_vec.y * proj_coef + *center_y) as i32,
     }
 }
+
+pub(crate) fn reverse_x_form(vec: Vector2i) -> Vector3 {
+    let matrix = *MATRIX.lock().unwrap();
+
+   	// Pinball perspective projection matrix, the same for all tables resolutions:
+	// X: 1.000000      Y: 0.000000      Z: 0.000000      W: 0.000000
+	// X: 0.000000      Y: -0.913545     Z: 0.406737      W: 3.791398
+	// X: 0.000000      Y: -0.406737     Z: -0.913545     W: 24.675402
+	// X: 0.000000      Y: 0.000000      Z: 0.000000      W: 1.000000
+	// Let A = -0.913545, B = 0.406737, F = 3.791398, G = 24.675402
+	// Then forward projection can be expressed as:
+	// x1 = x0
+	// y1 = y0 * A + z0 * B + F
+	// z1 = -y0 * B + z0 * A + G
+	// x2 = x1 / z1 = x0 / z1
+	// y2 = y1 / z1
+	// z2 = z1 / z1 = 1
+
+	// Reverse projection: find x0, y0, z0 given x2 and y2
+	// y0 from y2 and z0, based on substitution in y2 = y1 / z1
+	// y0 =  (y2 * (A * z0 + G) - B * z0 - F)/(A + B * y2)
+	// x0 from x2, y0 and z0,  based on substitution in x2 = x0 / z1
+	// x0 = (x2 * (A * z0 - B * y0 + G)
+	// This pair of equations is solvable with fixed z0; most commonly z0 = 0
+
+	// PB projection also includes scaling and offset, this can be undone before the main calculations
+	// x2 = x0 * D / z1 + cX
+	// x0 = ((x2 - cX) / D) * z1
+	let a: f32 = matrix.row1.y;
+	let b: f32 = matrix.row1.z;
+	let f: f32 = matrix.row1.w;
+	let g: f32 = matrix.row2.w;
+	let d: f32 = *D.lock().unwrap();
+
+	let center_x = *CENTER_X.lock().unwrap();
+	let center_y = *CENTER_Y.lock().unwrap();
+
+	let x2 = (vec.x as f32 - center_x) / d;
+	let y2 = (vec.y as f32 - center_y) / d;
+	let z0 = 0.0f32;
+
+	let y0 = (y2 * (a * z0 + g) - b * z0 - f) / (a + b * y2);
+	let x0 = x2 * (a * z0 - b * y0 + g);
+	Vector3 { x: x0, y: y0, z: z0 }
+
+}
