@@ -474,7 +474,7 @@ pub(crate) fn copy_bitmap_w_transparency(
             x -= 1;
         }
         src_index += (src_bmp.stride - width) as usize;
-        dst_index += (dst_bmp.stride - height) as usize;
+        dst_index += (dst_bmp.stride - width) as usize;
         y -= 1;
     }
 }
