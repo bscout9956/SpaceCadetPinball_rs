@@ -35,7 +35,7 @@ use anyhow::{Context, Result};
 
 pub trait IEdgeSegment {
     fn active_flag(&self) -> Rc<Cell<bool>>;
-    fn edge_collision(&self, ball: &Rc<RefCell<TBall>>, distance: f32);
+    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32);
     fn port_draw(&self);
     fn place_in_grid(
         &self,
@@ -59,7 +59,7 @@ impl IEdgeSegment for TEdgeSegment {
         self.active_flag.clone()
     }
 
-    fn edge_collision(&self, ball: &Rc<RefCell<TBall>>, distance: f32) {
+    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {
         todo!()
     }
 

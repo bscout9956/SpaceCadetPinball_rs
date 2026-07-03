@@ -69,8 +69,14 @@ impl TFlipperEdge {
         maths::rotate_pt(&mut self.b2, sin, cos, &self.rot_origin);
         maths::line_init(&mut self.line_a, self.a1.x, self.a1.y, self.a2.x, self.a2.y);
         maths::line_init(&mut self.line_b, self.b1.x, self.b1.y, self.b2.x, self.b2.y);
-        self.circle_base = CircleType { center: self.rot_origin, radius_sq: self.circle_base_radius_sq };
-        self.circle_t1 = CircleType { center: self.t1, radius_sq: self.circle_base_radius_sq };
+        self.circle_base = CircleType {
+            center: self.rot_origin,
+            radius_sq: self.circle_base_radius_sq,
+        };
+        self.circle_t1 = CircleType {
+            center: self.t1,
+            radius_sq: self.circle_base_radius_sq,
+        };
         self.control_point_dirty_flag = false;
     }
 }
