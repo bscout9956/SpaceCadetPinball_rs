@@ -216,7 +216,27 @@ impl IPinballComponent for TPlunger {
                     }
                 }
             }
-            MessageCode(_) => {}
+            MessageCode::PLUNGER_LAUNCH_BALL => {
+                self.pullback_started_flag = true;
+                self.base.boost = self.max_pull_back;
+                self.message(MessageCode::PLUNGER_INPUT_RELEASED, 0.0f32, draw_context);
+            }
+            MessageCode::RESUME | MessageCode::LOOSE_FOCUS | MessageCode::PLUNGER_INPUT_RELEASED => {
+                if self.pullback_started_flag && self.some_counter == 0 {
+                    self.pullback_started_flag = false;
+                    self.base.threshold = 0.0;
+                    if self.pullback_timer_ > 0 {
+                        timer::kill_id(self.pullback_timer_);
+                    }
+                    self.pullback_timer_ = 0;
+                    //loader::play_sound(soundindexp2, this, tplugner3);
+                    self.sprite_set(0);
+                    timer::set(self.pullback_delay, &raw mut *self as *mut c_void, released_timer, draw_context);
+                }
+            }
+            MessageCode(v) => {
+                println!("Message code not yet implemented: {}", v);
+            }
         }
         0
     }
