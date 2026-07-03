@@ -321,8 +321,57 @@ impl TTextBox {
 }
 
 impl TTextBox {
-    pub(crate) fn clear(&self, p0: bool) {
-        todo!()
+    pub(crate) fn clear(
+        &mut self,
+        low_priority_only: bool,
+        draw_context: &mut DrawContext,
+    ) -> Result<()> {
+        if let Some(b) = self.bg_bmp.as_ref() {
+            if let Some(v_screen) = draw_context.v_screen.as_mut() {
+                gdrv::copy_bitmap(
+                    v_screen,
+                    self.width,
+                    self.height,
+                    self.offset_x,
+                    self.offset_y,
+                    b,
+                    self.offset_x,
+                    self.offset_y,
+                );
+            }
+        } else {
+            if let Some(v_screen) = draw_context.v_screen.as_mut() {
+                gdrv::fill_bitmap(
+                    v_screen,
+                    self.width,
+                    self.height,
+                    self.offset_x,
+                    self.offset_y,
+                    0,
+                    draw_context.current_palette,
+                )?;
+            }
+        }
+        if self.timer > 0 {
+            if self.timer != -1 {
+                timer::kill_id(self.timer);
+            }
+            self.timer = 0;
+        }
+        let mut cur_message = self.messages.front();
+        while let Some(msg) = cur_message
+            && (!low_priority_only || msg.low_priority)
+        {
+            cur_message = msg.next_message.as_deref();
+        }
+
+        if let Some(msg) = cur_message {
+            self.draw(draw_context)?;
+        } else {
+            eprintln!("No message to display, are you sure this is intended behavior?");
+        }
+
+        Ok(())
     }
 }
 
