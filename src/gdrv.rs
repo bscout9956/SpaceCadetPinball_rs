@@ -365,7 +365,7 @@ pub fn copy_bitmap(
     src_bmp: &GdrvBitmap8,
     src_x_off: i32,
     src_y_off: i32,
-) {
+) -> Result<()> {
     let mut src_index = (src_bmp.stride * src_y_off + src_x_off) as usize;
     let mut dst_index = (dst_bmp.stride * y_off + x_off) as usize;
 
@@ -374,6 +374,12 @@ pub fn copy_bitmap(
     let dst_stride = dst_bmp.stride as usize;
 
     for _ in 0..height {
+        if src_index + width > src_bmp.bmp_buffer_data.len()
+            || dst_index + width > dst_bmp.bmp_buffer_data.len()
+        {
+            bail!("Bitmap copy out of bounds");
+        }
+
         let src_slice = &src_bmp.bmp_buffer_data[src_index..width + src_index];
         let dst_slice = &mut dst_bmp.bmp_buffer_data[dst_index..width + dst_index];
 
@@ -382,6 +388,7 @@ pub fn copy_bitmap(
         src_index += src_stride;
         dst_index += dst_stride;
     }
+    Ok(())
 }
 
 pub fn fill_bitmap(
