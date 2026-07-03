@@ -1864,7 +1864,6 @@ fn space_cadet_pinball() -> Result<(), Box<dyn Error>> {
 
             options::uninit(&mut state.options_state);
             // TODO: Implement sound midi::music_shutdown();
-            // TODO: Implement sound stuff
             sound::close(&mut state.sound_state);
             pb::uninit(&mut state)?;
 

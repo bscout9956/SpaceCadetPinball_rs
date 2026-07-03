@@ -16,6 +16,7 @@ use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
+use crate::t_plunger::TPlunger;
 use crate::t_textbox::TTextBox;
 use crate::translations::Msg;
 use crate::utils::DrawContext;
