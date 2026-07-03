@@ -331,6 +331,19 @@ impl TPinballTable {
                             table_rc.borrow_mut().plunger_position = plunger.table_pos;
                             table_rc.borrow_mut().plunger = Some(plunger);
                         }
+                        1033 => {
+                            let bg_bmp = state.render_state.background_bitmap.clone();
+                            let textbox = TTextBox::new(
+                                table_weak.clone(),
+                                group_index as i32,
+                                state.fullscrn_state.resolution,
+                                &bg_bmp,
+                                state,
+                            )?;
+                            table_rc
+                                .borrow_mut()
+                                .add_component(Rc::new(RefCell::new(textbox.clone())));
+                        }
                         _ => {
                             // TODO: Implement the rest of the objects
                             println!("Unimplemented/unknown object type: {}", object_type);
