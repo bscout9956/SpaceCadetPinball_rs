@@ -95,7 +95,7 @@ impl TTextBox {
             return Ok(());
         }
 
-        let is_dupe = self.messages.back().map_or(false, |msg| msg.text == text);
+        let is_dupe = self.messages.back().is_some_and(|msg| msg.text == text);
 
         if is_dupe {
             if let Some(prev_msg) = self.messages.back_mut() {
