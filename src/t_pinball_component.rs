@@ -104,15 +104,15 @@ impl TPinballComponent {
 
                 let root_sprite = instance.list_bitmap.get(0);
 
-                if let Some(rs) = root_sprite {
-                    if let Some(root_bmp) = (*rs.bmp).as_ref()
-                        && let Some(t) = instance.pinball_table.as_ref()
-                    {
-                        let table = t.upgrade().unwrap();
-                        bmp_1_rect.x_position = root_bmp.x_position - table.borrow().x_offset;
-                        bmp_1_rect.y_position = root_bmp.y_position - table.borrow().y_offset;
-                        bmp_1_rect.width = root_bmp.width;
-                        bmp_1_rect.height = root_bmp.height;
+                if let Some(rs) = root_sprite
+                    && let Some(root_bmp) = (*rs.bmp).as_ref()
+                    && let Some(t) = instance.pinball_table.as_ref()
+                {
+                    let table = t.upgrade().unwrap();
+                    bmp_1_rect.x_position = root_bmp.x_position - table.borrow().x_offset;
+                    bmp_1_rect.y_position = root_bmp.y_position - table.borrow().y_offset;
+                    bmp_1_rect.width = root_bmp.width;
+                    bmp_1_rect.height = root_bmp.height;
 
                         for index in 1..instance.list_bitmap.len() {
                             let bmp_opt = instance.list_bitmap.index(index).bmp.clone();
