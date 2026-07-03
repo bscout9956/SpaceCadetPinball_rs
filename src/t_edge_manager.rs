@@ -1,9 +1,10 @@
-use crate::maths::RayType;
+use crate::maths::{RayType, Vector2};
 use crate::t_ball::TBall;
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_box::TEdgeBox;
 use crate::t_edge_segment::IEdgeSegment;
 use crate::t_line::EdgeSegmentError;
+use crate::utils;
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 

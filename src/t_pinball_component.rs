@@ -3,6 +3,7 @@ use crate::message_code::MessageCode;
 use crate::render::{RenderSprite, VisualTypes};
 use crate::{control::ComponentControl, loader, loader::VisualStruct};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
+use crate::{maths::*, proj};
 use anyhow::Context;
 use std::any::Any;
 use std::ops::Index;
