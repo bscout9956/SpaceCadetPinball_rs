@@ -445,7 +445,8 @@ pub(crate) fn gr_text_draw_ttext_in_box(
     ];
 
     for boxx in text_boxes.into_iter().flatten() {
-        unsafe { boxx.draw_im_gui(render_state, pb_game_state.text_box_color, ui) };
+        let tb = boxx.borrow();
+        unsafe { tb.draw_im_gui(render_state, pb_game_state.text_box_color, ui) };
     }
 }
 
