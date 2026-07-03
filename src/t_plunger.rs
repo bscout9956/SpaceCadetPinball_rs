@@ -109,6 +109,18 @@ impl TPlunger {
     }
 }
 
+unsafe extern "C" fn released_timer(
+    _timer_id: i32,
+    caller: *mut c_void,
+    _draw_context: &mut DrawContext,
+) {
+    unsafe {
+        let plunger = &mut *(caller as *mut TPlunger);
+        plunger.base.threshold = 1000000000.0;
+        plunger.base.boost = 0.0;
+    }
+}
+
 unsafe extern "C" fn pullback_timer(
     timer_id: i32,
     caller: *mut c_void,
