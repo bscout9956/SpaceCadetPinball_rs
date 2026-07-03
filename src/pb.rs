@@ -404,7 +404,14 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
             &mut state.pb_game_state,
         )?;
         if let Some(mtb) = state.pb_game_state.mission_text_box.as_mut() {
-            mtb.clear(false);
+            let mut draw_ctx = DrawContext {
+                v_screen: &mut state.render_state.v_screen,
+                current_palette: &state.pb_game_state.current_palette,
+                time_ticks: state.pb_game_state.time_ticks,
+                full_tilt_mode: state.pb_game_state.full_tilt_mode,
+                background_bitmap: &state.render_state.background_bitmap,
+            };
+            mtb.clear(false, &mut draw_ctx)?;
         }
         let mut draw_ctx = DrawContext {
             v_screen: &mut state.render_state.v_screen,
