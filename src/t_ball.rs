@@ -6,7 +6,7 @@ use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
-use crate::{loader, maths, proj};
+use crate::{loader, proj};
 use std::any::Any;
 use std::cell::{Cell, RefCell};
 use std::ffi::CString;

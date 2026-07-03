@@ -1,6 +1,5 @@
-use crate::errors::PbError;
 use crate::loader::VisualStruct;
-use crate::maths::{RectF, Vector2, Vector2i};
+use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
@@ -221,7 +220,9 @@ impl IPinballComponent for TPlunger {
                 self.base.boost = self.max_pull_back;
                 self.message(MessageCode::PLUNGER_INPUT_RELEASED, 0.0f32, draw_context);
             }
-            MessageCode::RESUME | MessageCode::LOOSE_FOCUS | MessageCode::PLUNGER_INPUT_RELEASED => {
+            MessageCode::RESUME
+            | MessageCode::LOOSE_FOCUS
+            | MessageCode::PLUNGER_INPUT_RELEASED => {
                 if self.pullback_started_flag && self.some_counter == 0 {
                     self.pullback_started_flag = false;
                     self.base.threshold = 0.0;
@@ -231,7 +232,12 @@ impl IPinballComponent for TPlunger {
                     self.pullback_timer_ = 0;
                     //loader::play_sound(soundindexp2, this, tplugner3);
                     self.sprite_set(0);
-                    timer::set(self.pullback_delay, &raw mut *self as *mut c_void, released_timer, draw_context);
+                    timer::set(
+                        self.pullback_delay,
+                        &raw mut *self as *mut c_void,
+                        released_timer,
+                        draw_context,
+                    );
                 }
             }
             MessageCode(v) => {

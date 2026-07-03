@@ -4,7 +4,6 @@ use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_box::TEdgeBox;
 use crate::t_edge_segment::IEdgeSegment;
 use crate::t_line::EdgeSegmentError;
-use crate::utils;
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
@@ -292,6 +291,9 @@ impl TEdgeManager {
 
         x /= self.width;
         y /= self.height;
-        return Vector2 { x: 1.0 - x, y: 1.0 - y };
+        return Vector2 {
+            x: 1.0 - x,
+            y: 1.0 - y,
+        };
     }
 }

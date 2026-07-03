@@ -1,4 +1,4 @@
-use crate::maths::{RectF, Vector2, Vector2i};
+use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
@@ -55,8 +55,8 @@ impl ICollisionComponent for TWall {
 }
 
 use crate::render::RenderSprite;
-use anyhow::Result;
 use crate::utils::DrawContext;
+use anyhow::Result;
 
 impl TWall {
     pub fn new(
@@ -71,10 +71,7 @@ impl TWall {
 
         let base = Rc::unwrap_or_clone(base_tcol).into_inner();
 
-        Ok(Self {
-            base,
-            timer: 0,
-        })
+        Ok(Self { base, timer: 0 })
     }
 }
 
@@ -114,7 +111,9 @@ impl IPinballComponent for TWall {
     fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
         if code == MessageCode::RESET && self.timer > 0 {
             timer::kill_id(self.timer);
-            unsafe { timer_expired(self.timer, &raw mut *self as *mut c_void, draw_context); }
+            unsafe {
+                timer_expired(self.timer, &raw mut *self as *mut c_void, draw_context);
+            }
         }
         0
     }

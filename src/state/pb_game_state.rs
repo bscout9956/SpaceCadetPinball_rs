@@ -2,7 +2,6 @@ use crate::gdrv::ColorRgba;
 use crate::group_data::DatFile;
 use crate::pb::GameModes;
 use crate::t_edge_manager::TEdgeManager;
-use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
 use dear_imgui_rs::sys::ImU32;

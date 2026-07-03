@@ -1,4 +1,4 @@
-use crate::maths::{Vector2, Vector2i};
+use crate::maths::Vector2;
 use crate::message_code::MessageCode;
 use crate::render::RenderSprite;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};

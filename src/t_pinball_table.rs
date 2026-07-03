@@ -12,7 +12,7 @@ use crate::t_textbox::TTextBox;
 use crate::{loader, pb, render, score, timer};
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_WARNING;
 use std::any::Any;
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::ffi::{CString, NulError};
 use std::rc::Rc;
 use thiserror::Error;
