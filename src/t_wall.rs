@@ -13,7 +13,7 @@ use std::ffi::c_void;
 use std::rc::{Rc, Weak};
 
 pub struct TWall {
-    base: Weak<RefCell<TCollisionComponent>>,
+    base: TCollisionComponent,
     pub timer: i32,
 }
 
@@ -27,22 +27,17 @@ impl ICollisionComponent for TWall {
         edge: &TEdgeSegment,
         draw_context: &mut DrawContext,
     ) {
-        if let Some(base_val) = self.base.upgrade() {
-            let mut base_val_borrow = base_val.borrow_mut();
-            if base_val_borrow.default_collision(ball, next_position, direction) {
-                // TODO: What if this isn't enough? Is empty is an assumption
-                if !base_val_borrow.base.list_bitmap.is_empty() {
-                    base_val_borrow.sprite_set(0);
-                    self.timer = timer::set(
-                        0.1f32,
-                        &raw mut *self as *mut c_void,
-                        timer_expired,
-                        draw_context,
-                    );
-                }
-                //TODO: control::handler(MessageCode::CONTROL_COLLISION, self);
-            }
+        // TODO: What if this isn't enough? Is empty is an assumption
+        if !self.base.list_bitmap.is_empty() {
+            self.base.sprite_set(0);
+            self.timer = timer::set(
+                0.1f32,
+                &raw mut *self as *mut c_void,
+                timer_expired,
+                draw_context,
+            );
         }
+        //TODO: control::handler(MessageCode::CONTROL_COLLISION, self);
     }
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
@@ -50,15 +45,12 @@ impl ICollisionComponent for TWall {
     }
     #[allow(non_snake_case)]
     fn set_AABB(&mut self, aabb: RectF) {
-        if let Some(rc) = self.base.upgrade() {
-            rc.borrow_mut().aabb = aabb;
-        }
+        self.base.aabb = aabb;
     }
 
     #[allow(non_snake_case)]
     fn get_AABB(&self) -> Option<RectF> {
-        let rc = self.base.upgrade()?;
-        Some(rc.borrow().aabb.clone())
+        Some(self.base.aabb.clone())
     }
 }
 
@@ -77,10 +69,10 @@ impl TWall {
             base_tcol.borrow_mut().base.sprite_set(-1);
         }
 
-        let downgraded_col = Rc::downgrade(&base_tcol);
+        let base = Rc::unwrap_or_clone(base_tcol).into_inner();
 
         Ok(Self {
-            base: downgraded_col,
+            base,
             timer: 0,
         })
     }
@@ -88,17 +80,15 @@ impl TWall {
 
 impl IPinballComponent for TWall {
     fn render_sprite(&self) -> Option<&RenderSprite> {
-        todo!()
+        self.base.render_sprite.as_ref()
     }
 
     fn as_any(&self) -> &dyn Any {
-        todo!()
+        self
     }
 
     fn group_name(&self) -> Option<Rc<RefCell<String>>> {
-        self.base
-            .upgrade()
-            .map(|base| base.borrow().group_name.clone())?
+        self.base.group_name.clone()
     }
 
     fn group_index(&self) -> i32 {
@@ -138,12 +128,8 @@ unsafe extern "C" fn timer_expired(timer_id: i32, caller: *mut c_void, _ctx: &mu
     let wall = caller as *mut TWall;
     if !wall.is_null() {
         unsafe {
-            if let Some(base_comp) = (*wall).base.upgrade() {
-                let mut borrow = base_comp.borrow_mut();
-                borrow.sprite_set(-1);
-                (*wall).timer = 0;
-                borrow.message_field = MessageCode(0);
-            }
+            (*wall).base.sprite_set(-1);
+            (*wall).timer = 0;
         }
     }
 }

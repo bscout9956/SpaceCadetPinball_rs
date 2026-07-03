@@ -215,7 +215,7 @@ pub fn init(
     render_state.background_bitmap = bmp.clone();
 
     if let Some(b) = bmp.as_ref() {
-        gdrv::copy_bitmap(v_screen_unwrap, width as i32, height as i32, 0, 0, b, 0, 0);
+        gdrv::copy_bitmap(v_screen_unwrap, width as i32, height as i32, 0, 0, b, 0, 0)?;
     } else {
         let v_width = v_screen_unwrap.width;
         let v_height = v_screen_unwrap.height;
@@ -340,7 +340,7 @@ fn paint_balls(render_state: &mut RenderState) -> Result<()> {
                 v_screen,
                 x_pos,
                 y_pos,
-            );
+            )?;
 
             zdrv::paint_flat(
                 dirty.width,
@@ -383,7 +383,7 @@ fn unpaint_balls(render_state: &mut RenderState) -> Result<()> {
                 &ball_bitmap[index].clone(),
                 0,
                 0,
-            );
+            )?;
         }
 
         cur_ball.dirty_rect_prev = cur_ball.dirty_rect;
@@ -462,7 +462,7 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
                     &background_bmp,
                     x_pos,
                     y_pos,
-                );
+                )?;
             } else {
                 gdrv::fill_bitmap(
                     render_state.v_screen.as_mut().unwrap(),

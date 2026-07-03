@@ -42,7 +42,7 @@ pub struct TTextBox {
 
 impl IPinballComponent for TTextBox {
     fn render_sprite(&self) -> Option<&RenderSprite> {
-        todo!()
+        self.base.render_sprite.as_ref()
     }
 
     fn as_any(&self) -> &dyn Any {

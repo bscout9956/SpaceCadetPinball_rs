@@ -148,11 +148,11 @@ unsafe extern "C" fn pullback_timer(
 
 impl IPinballComponent for TPlunger {
     fn render_sprite(&self) -> Option<&RenderSprite> {
-        todo!()
+        self.base.render_sprite.as_ref()
     }
 
     fn as_any(&self) -> &dyn Any {
-        todo!()
+        self
     }
 
     fn group_name(&self) -> Option<Rc<RefCell<String>>> {

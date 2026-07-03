@@ -303,11 +303,11 @@ impl IEdgeSegment for TBall {
 
 impl IPinballComponent for TBall {
     fn render_sprite(&self) -> Option<&RenderSprite> {
-        todo!()
+        self.base_component.render_sprite.as_ref()
     }
 
     fn as_any(&self) -> &dyn Any {
-        todo!()
+        self
     }
 
     fn group_name(&self) -> Option<Rc<RefCell<String>>> {
