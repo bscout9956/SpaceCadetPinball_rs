@@ -107,6 +107,7 @@ impl RenderSprite {
         y_pos: i32,
     ) {
         self.set(bmp, self.zmap.clone(), x_pos, y_pos);
+        self.depth = proj::normalize_depth(depth);
     }
 
     pub fn set(

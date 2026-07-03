@@ -160,3 +160,16 @@ pub(crate) fn reverse_x_form(vec: Vector2i) -> Vector3 {
 	Vector3 { x: x0, y: y0, z: z0 }
 
 }
+
+pub(crate) fn normalize_depth(depth: f32) -> u16 {
+    let mut result = 0;
+    if depth >= *Z_MIN.lock().unwrap() {
+        let depth_scaled = depth - *Z_MIN.lock().unwrap() * *Z_SCALER.lock().unwrap();
+        if depth_scaled <= *Z_MAX.lock().unwrap() {
+            result = depth_scaled as u16;
+        } else {
+            result = 0xffff;
+        }
+    }
+    result
+}
