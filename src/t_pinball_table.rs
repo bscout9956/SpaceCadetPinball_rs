@@ -12,7 +12,7 @@ use crate::t_textbox::TTextBox;
 use crate::{loader, pb, render, score, timer};
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_WARNING;
 use std::any::Any;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::ffi::{CString, NulError};
 use std::rc::Rc;
 use thiserror::Error;
@@ -115,9 +115,28 @@ impl TPinballTable {
     ) -> Option<Rc<RefCell<dyn IPinballComponent>>> {
         for comp in self.component_list.iter() {
             let name = comp.borrow().group_name();
-            if let Some(n) = name {
-                if *n.borrow() == component_name {
-                    return Some(comp.clone());
+            if let Some(n) = name
+                && *n.borrow() == component_name
+            {
+                return Some(comp.clone());
+            }
+        }
+        None
+    }
+
+    fn find_component_by_name_typed<T: Clone + 'static>(
+        &self,
+        component_name: &str,
+    ) -> Option<Rc<RefCell<T>>> {
+        for comp in self.component_list.iter() {
+            let name = comp.borrow().group_name();
+            if let Some(n) = name
+                && *n.borrow() == component_name
+            {
+                let comp_borrow = comp.borrow();
+                let res = comp_borrow.as_any().downcast_ref::<T>();
+                if let Some(comp_res) = res {
+                    return Some(Rc::new(RefCell::new(comp_res.clone())));
                 }
             }
         }
