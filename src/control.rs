@@ -160,7 +160,8 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
                     background_bitmap: &state.render_state.background_bitmap,
                 };
 
-                mtb.display(quote, time as f32, &mut draw_ctx, Some(true))?;
+                mtb.borrow_mut()
+                    .display(quote, time as f32, &mut draw_ctx, Some(true))?;
             }
         }
         return Ok(());
