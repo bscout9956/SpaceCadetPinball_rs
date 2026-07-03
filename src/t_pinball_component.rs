@@ -102,7 +102,7 @@ impl TPinballComponent {
                 let mut bmp_1_rect: RectangleType = Default::default();
                 let mut tmp_rect: RectangleType = Default::default();
 
-                let root_sprite = instance.list_bitmap.get(0);
+                let root_sprite = instance.list_bitmap.first();
 
                 if let Some(rs) = root_sprite
                     && let Some(root_bmp) = (*rs.bmp).as_ref()
@@ -114,30 +114,42 @@ impl TPinballComponent {
                     bmp_1_rect.width = root_bmp.width;
                     bmp_1_rect.height = root_bmp.height;
 
-                        for index in 1..instance.list_bitmap.len() {
-                            let bmp_opt = instance.list_bitmap.index(index).bmp.clone();
-                            if let Some(bmp) = (*bmp_opt).as_ref() {
-                                tmp_rect.x_position = bmp.x_position - table.borrow().x_offset;
-                                tmp_rect.y_position = bmp.y_position - table.borrow().y_offset;
-                                tmp_rect.width = bmp.width;
-                                tmp_rect.height = bmp.height;
-                                let mut copy_rect = RectangleType::default();
-                                enclosing_box(&bmp_1_rect, &tmp_rect, &mut copy_rect);
-                                bmp_1_rect = copy_rect;
-                            }
+                    for index in 1..instance.list_bitmap.len() {
+                        let bmp_opt = instance.list_bitmap.index(index).bmp.clone();
+                        if let Some(bmp) = (*bmp_opt).as_ref() {
+                            tmp_rect.x_position = bmp.x_position - table.borrow().x_offset;
+                            tmp_rect.y_position = bmp.y_position - table.borrow().y_offset;
+                            tmp_rect.width = bmp.width;
+                            tmp_rect.height = bmp.height;
+                            let mut copy_rect = RectangleType::default();
+                            enclosing_box(&bmp_1_rect, &tmp_rect, &mut copy_rect);
+                            bmp_1_rect = copy_rect;
                         }
+                    }
 
-                        instance.render_sprite = Some(RenderSprite::new(
-                            VisualTypes::Sprite,
-                            Arc::new(Some(root_bmp.clone())),
-                            root_sprite.unwrap().zmap.clone(),
-                            root_bmp.x_position - table.borrow().x_offset,
-                            root_bmp.y_position - table.borrow().y_offset,
-                            Some(bmp_1_rect),
-                            &mut state.render_state,
-                        ));
+                    instance.render_sprite = Some(RenderSprite::new(
+                        VisualTypes::Sprite,
+                        Arc::new(Some(root_bmp.clone())),
+                        root_sprite.unwrap().zmap.clone(),
+                        root_bmp.x_position - table.borrow().x_offset,
+                        root_bmp.y_position - table.borrow().y_offset,
+                        Some(bmp_1_rect),
+                        &mut state.render_state,
+                    ));
 
-                        //TODO: Continue from here, l76 of cpp
+                    if let Some(rs) = instance.render_sprite.as_ref() {
+                        let rect = rs.bmp_rect;
+                        let pos_2d = Vector2i::new(
+                            rect.x_position + rect.width / 2,
+                            rect.y_position + rect.height / 2,
+                        );
+                        let pos_3d = proj::reverse_x_form(pos_2d);
+
+                        if let Some(edge_man) = state.pb_game_state.edge_manager.as_ref() {
+                            let pos_norm = edge_man.normalize_box(Vector2::from_vec3(pos_3d));
+                            instance.visual_pos_norm_x = pos_norm.x;
+                            instance.visual_pos_norm_y = pos_norm.y;
+                        }
                     }
                 }
             }
