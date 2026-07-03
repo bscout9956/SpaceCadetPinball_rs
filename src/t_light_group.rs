@@ -70,6 +70,10 @@ impl IPinballComponent for TLightGroup {
     fn set_active_flag(&mut self, active: bool) {
         self.base.set_active_flag(active);
     }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 }
 
 #[derive(Error, Debug)]
@@ -79,8 +83,8 @@ pub enum TLightGroupError {
 }
 
 use crate::render::RenderSprite;
-use anyhow::Result;
 use crate::utils::DrawContext;
+use anyhow::Result;
 
 impl TLightGroup {
     pub(crate) fn new(
