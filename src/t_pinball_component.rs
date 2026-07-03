@@ -1,4 +1,3 @@
-use crate::maths::*;
 use crate::message_code::MessageCode;
 use crate::render::{RenderSprite, VisualTypes};
 use crate::{control::ComponentControl, loader, loader::VisualStruct};

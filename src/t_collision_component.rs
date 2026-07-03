@@ -279,9 +279,8 @@ impl IPinballComponent for TCollisionComponent {
         self.base.group_index
     }
 
-    // TODO: Some remain unimplemented I suppose?? Maybe I should look into trait defaults
     fn sprite_set(&mut self, index: i32) {
-        todo!()
+        self.base.sprite_set(index);
     }
 
     fn get_coordinates(&self) -> Vector2 {
