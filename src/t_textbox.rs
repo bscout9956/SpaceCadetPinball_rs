@@ -49,36 +49,36 @@ impl IPinballComponent for TTextBox {
         self
     }
 
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-
     fn group_name(&self) -> Option<Rc<RefCell<String>>> {
         self.base.group_name.clone()
     }
 
     fn group_index(&self) -> i32 {
-        todo!()
+        self.base.group_index
     }
 
     fn sprite_set(&mut self, index: i32) {
-        todo!()
+        self.base.sprite_set(index);
     }
 
     fn get_coordinates(&self) -> Vector2 {
-        todo!()
+        self.base.get_coordinates()        
     }
 
     fn get_scoring(&self, index: u32) -> i32 {
-        todo!()
+        self.base.get_scoring(index)        
     }
 
     fn port_draw(&self) {
-        todo!()
+        self.base.port_draw();
     }
 
     fn set_active_flag(&mut self, active: bool) {
-        todo!()
+        self.base.active_flag.set(active);
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
     }
 }
 
@@ -362,7 +362,9 @@ impl TTextBox {
 
                 igPushStyleColor_U32(ImGuiCol_Text, text_box_color);
                 if let Some(front_msg) = self.messages.front() {
-                    igTextWrapped(c"%s".as_ptr(), front_msg.text.as_ptr());
+                    let msg_c = CString::new(front_msg.text.clone()).unwrap();
+                    let fmt = CString::new("%s").unwrap();
+                    igTextWrapped(fmt.as_ptr(), msg_c.as_ptr());
                 }
                 igPopStyleColor(1);
             }
