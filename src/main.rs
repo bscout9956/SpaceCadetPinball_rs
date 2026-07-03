@@ -318,6 +318,7 @@ fn handle_game_binding(
     shortcut: bool,
     state: &mut PinballState,
 ) -> Result<()> {
+    println!("Bind: {:?}/{}", bind, shortcut);
     match bind {
         GameBindings::NewGame => {
             new_game(state)?;
