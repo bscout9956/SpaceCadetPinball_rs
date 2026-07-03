@@ -380,18 +380,20 @@ impl TTextBox {
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         resolution: i32,
-        background_bitmap: Option<GdrvBitmap8>,
-        loader_state: &mut LoaderState,
-        score_state: &mut ScoreState,
+        background_bitmap: &Option<GdrvBitmap8>,
+        state: &mut PinballState,
     ) -> Result<TTextBox> {
+        let base = TPinballComponent::new(table, group_index, true, state)?;
+
         let mut instance = Self {
+            base,
             offset_x: 0,
             offset_y: 0,
             width: 0,
             height: 0,
             timer: 0,
             bg_bmp: background_bitmap.clone(),
-            font: score_state.MSG_FONTP.clone(),
+            font: state.score_state.MSG_FONTP.clone(),
             messages: VecDeque::new(),
         };
 
@@ -402,7 +404,7 @@ impl TTextBox {
                 group_index + resolution,
                 1500,
                 &mut arr_length,
-                loader_state,
+                &mut state.loader_state,
             )?;
 
             let dim_array =
