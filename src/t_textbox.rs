@@ -38,6 +38,44 @@ pub struct TTextBox {
     pub messages: VecDeque<TTextBoxMessage>,
 }
 
+impl IPinballComponent for TTextBox {
+    fn render_sprite(&self) -> Option<&RenderSprite> {
+        todo!()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn group_name(&self) -> Option<Rc<RefCell<String>>> {
+        self.base.group_name.clone()
+    }
+
+    fn group_index(&self) -> i32 {
+        todo!()
+    }
+
+    fn sprite_set(&mut self, index: i32) {
+        todo!()
+    }
+
+    fn get_coordinates(&self) -> Vector2 {
+        todo!()
+    }
+
+    fn get_scoring(&self, index: u32) -> i32 {
+        todo!()
+    }
+
+    fn port_draw(&self) {
+        todo!()
+    }
+
+    fn set_active_flag(&mut self, active: bool) {
+        todo!()
+    }
+}
+
 impl TTextBox {
     pub(crate) fn display(
         &mut self,
