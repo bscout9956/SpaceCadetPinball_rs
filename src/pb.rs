@@ -431,7 +431,7 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
     Ok(())
 }
 
-pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<(), PbError> {
+pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<()> {
     state.pb_game_state.demo_mode = demo_mode;
 
     mode_change(

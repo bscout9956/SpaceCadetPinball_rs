@@ -1963,7 +1963,8 @@ fn run_game_session(
         full_tilt_mode: state.pb_game_state.full_tilt_mode,
         background_bitmap: &state.render_state.background_bitmap,
     };
-    pb::reset_table(&mut state.pb_game_state.main_table, &mut draw_ctx).context("Failed to reset table")?;
+    pb::reset_table(&state.pb_game_state.main_table, &mut draw_ctx)
+        .context("Failed to reset table")?;
     pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state)
         .context("Failed to perform first time setup")?;
 
