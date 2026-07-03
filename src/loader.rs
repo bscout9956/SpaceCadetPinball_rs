@@ -590,7 +590,6 @@ pub fn query_float_attribute(
     Ok(f32::nan())
 }
 
-// TODO: Maybe pass game state instead of two flags and a bool
 pub fn material(
     group_index: i32,
     visual: *mut VisualStruct,
