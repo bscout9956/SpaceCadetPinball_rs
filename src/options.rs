@@ -93,15 +93,9 @@ impl GameInput {
             InputTypes::None => {
                 return String::from("Unused");
             }
-            Keyboard => {
-                "Keyboard\n".to_string()
-            }
-            Mouse => {
-                "Mouse\n".to_string()
-            }
-            GameController => {
-                "GameController\n".to_string()
-            }
+            Keyboard => "Keyboard\n".to_string(),
+            Mouse => "Mouse\n".to_string(),
+            GameController => "GameController\n".to_string(),
         };
         unsafe { prefix + &self.get_short_input_description() }
     }
