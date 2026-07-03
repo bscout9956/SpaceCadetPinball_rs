@@ -201,7 +201,10 @@ fn draw_line_type(line: &LineType, renderer: &SdlRendererPtr) {
 }
 
 fn draw_circle_type(circle: &CircleType, renderer: &SdlRendererPtr) {
-    let line_pt = Vector2::new(circle.center.x + f32::sqrt(circle.radius_sq), circle.center.y);
+    let line_pt = Vector2::new(
+        circle.center.x + f32::sqrt(circle.radius_sq),
+        circle.center.y,
+    );
     let pt_1 = proj::x_form_to_2d(&circle.center);
     let pt_2 = proj::x_form_to_2d(&line_pt);
     let radius = i32::abs(pt_2.x - pt_1.x);
@@ -225,7 +228,7 @@ unsafe fn draw_all_edges(
         let coll_cmp_conc = coll_cmp_ref.as_any().downcast_ref::<TCollisionComponent>();
         if let Some(collision_component) = coll_cmp_conc {
             for edge in collision_component.edge_list.iter() {
-                let edge_ref = edge.borrow();
+                let edge_ref = edge.borrow_mut();
                 draw_edge(options_state, edge_ref, renderer, table);
             }
         }
