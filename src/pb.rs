@@ -294,7 +294,7 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
             &b_bmp,
             0,
             0,
-        );
+        )?;
     }
 
     loader::load_from(shared_dat, &mut state.loader_state)?;
