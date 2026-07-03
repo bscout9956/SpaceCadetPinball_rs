@@ -80,7 +80,7 @@ impl IEdgeSegment for TFlipperEdge {
         todo!(); // MISSSING BASE COMP
     }
 
-    fn edge_collision(&self, ball: &Rc<RefCell<TBall>>, distance: f32) {
+    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {
         todo!()
     }
 

@@ -652,7 +652,7 @@ pub fn material(
                     sound_state,
                 )?;
                 unsafe { (*visual).soft_hit_sound_id = sound_id }
-            },
+            }
             _ => return error(9, 21),
         }
     }

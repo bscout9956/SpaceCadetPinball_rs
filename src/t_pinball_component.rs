@@ -41,6 +41,7 @@ pub trait IPinballComponent {
         0
     }
     fn set_active_flag(&mut self, active: bool);
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 use crate::state::pinball_state::PinballState;

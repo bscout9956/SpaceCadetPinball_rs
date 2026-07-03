@@ -38,7 +38,7 @@ impl IEdgeSegment for TLine {
         self.base.active_flag()
     }
 
-    fn edge_collision(&self, ball: &Rc<RefCell<TBall>>, distance: f32) {
+    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {
         todo!()
     }
 

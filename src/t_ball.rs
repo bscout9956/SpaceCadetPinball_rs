@@ -267,8 +267,38 @@ impl IEdgeSegment for TBall {
         self.base_segment.active_flag()
     }
 
-    fn edge_collision(&self, ball: &Rc<RefCell<TBall>>, distance: f32) {
-        todo!()
+    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {
+        let mut ball_borrow = ball.borrow_mut();
+        ball_borrow.collision_disabled_flag = true;
+        ball_borrow.position.x += ball_borrow.direction.x * distance;
+        ball_borrow.position.y += ball_borrow.direction.y * distance;
+        ball_borrow.direction.x *= ball_borrow.speed;
+        self.direction.x *= self.speed;
+        self.direction.y *= self.speed;
+
+        // AB - vector from ball to this, BA - from this to ball; collision direction
+        let mut ab = Vector2 {
+            x: ball_borrow.position.x - self.position.x,
+            y: ball_borrow.position.y - self.position.y,
+        };
+        normalize_2d(&mut ab);
+        let ba = Vector2 { x: -ab.x, y: -ab.y };
+
+        // Projection = difference between ball directions and collision direction
+        let dir = Vector2::from_vec3(ball_borrow.direction);
+        let proj_ab = -dot_product(&dir, &ab);
+        let proj_ba = -dot_product(&dir, &ba);
+        let delta = Vector2::new(
+            ab.x * proj_ab - ba.x * proj_ba,
+            ab.y * proj_ab - ba.y * proj_ba,
+        );
+
+        ball_borrow.direction.x += delta.x;
+        ball_borrow.direction.y += delta.y;
+        ball_borrow.speed = normalize_3d(&mut ball_borrow.direction);
+        self.direction.x -= delta.x;
+        self.direction.y -= delta.y;
+        self.speed = normalize_3d(&mut self.direction);
     }
 
     fn port_draw(&self) {

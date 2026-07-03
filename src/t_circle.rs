@@ -21,7 +21,7 @@ impl IEdgeSegment for TCircle {
         self.base.upgrade().unwrap().borrow().active_flag()
     }
 
-    fn edge_collision(&self, ball: &Rc<RefCell<TBall>>, distance: f32) {
+    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {
         todo!()
     }
 
