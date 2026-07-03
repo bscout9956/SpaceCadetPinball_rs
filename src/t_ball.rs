@@ -297,7 +297,11 @@ impl IEdgeSegment for TBall {
     }
 
     fn as_any(&self) -> &dyn Any {
-        todo!()
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
     }
 }
 
@@ -315,7 +319,7 @@ impl IPinballComponent for TBall {
     }
 
     fn group_index(&self) -> i32 {
-        todo!()
+        self.base_component.group_index
     }
 
     fn sprite_set(&mut self, index: i32) {
@@ -355,5 +359,9 @@ impl IPinballComponent for TBall {
 
     fn set_active_flag(&mut self, active: bool) {
         self.base_component.active_flag.set(active);
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
     }
 }

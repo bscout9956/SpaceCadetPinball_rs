@@ -63,7 +63,11 @@ impl IEdgeSegment for TCircle {
     }
 
     fn as_any(&self) -> &dyn Any {
-        todo!()
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
     }
 }
 

@@ -152,6 +152,10 @@ impl IPinballComponent for TBlocker {
     fn set_active_flag(&mut self, active: bool) {
         todo!()
     }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 }
 
 impl ICollisionComponent for TBlocker {

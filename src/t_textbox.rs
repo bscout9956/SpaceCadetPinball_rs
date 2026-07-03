@@ -49,6 +49,10 @@ impl IPinballComponent for TTextBox {
         self
     }
 
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+
     fn group_name(&self) -> Option<Rc<RefCell<String>>> {
         self.base.group_name.clone()
     }
