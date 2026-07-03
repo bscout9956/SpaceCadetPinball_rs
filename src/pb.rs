@@ -1065,6 +1065,8 @@ pub(crate) fn launch_ball(state: &mut PinballState) -> Result<()> {
         };
 
         plunger.message(MessageCode::PLUNGER_LAUNCH_BALL, 0.0f32, &mut draw_ctx);
+    } else {
+        bail!(PbError::NoTable)
     }
 
     Ok(())
