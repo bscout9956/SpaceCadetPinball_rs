@@ -8,15 +8,19 @@ use crate::t_ball::TBall;
 use crate::t_circle::TCircle;
 use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_segment::IEdgeSegment;
+use crate::t_flipper_edge::TFlipperEdge;
 use crate::t_line::TLine;
 use crate::t_pinball_table::TPinballTable;
 use crate::utils::SdlRendererPtr;
 use sdl2::sys::SDL_BlendMode::SDL_BLENDMODE_BLEND;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_TARGET;
 use sdl2::sys::{
-    SDL_BlendMode, SDL_GetRenderDrawBlendMode, SDL_GetRenderDrawColor, SDL_GetRenderTarget, SDL_Point, SDL_Rect, SDL_RenderClear, SDL_RenderCopy, SDL_RenderDrawLine, SDL_RenderDrawPoints, SDL_RenderDrawRect, SDL_SetRenderDrawBlendMode, SDL_SetRenderDrawColor, SDL_SetRenderTarget, SDL_SetTextureBlendMode,
+    SDL_BlendMode, SDL_GetRenderDrawBlendMode, SDL_GetRenderDrawColor, SDL_GetRenderTarget,
+    SDL_Point, SDL_Rect, SDL_RenderClear, SDL_RenderCopy, SDL_RenderDrawLine, SDL_RenderDrawPoints,
+    SDL_RenderDrawRect, SDL_SetRenderDrawBlendMode, SDL_SetRenderDrawColor, SDL_SetRenderTarget,
+    SDL_SetTextureBlendMode,
 };
-use std::cell::{Ref, RefCell};
+use std::cell::{RefCell, RefMut};
 use std::ptr::null;
 use std::rc::Rc;
 

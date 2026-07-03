@@ -412,7 +412,7 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
                 full_tilt_mode: state.pb_game_state.full_tilt_mode,
                 background_bitmap: &state.render_state.background_bitmap,
             };
-            mtb.clear(false, &mut draw_ctx)?;
+            mtb.borrow_mut().clear(false, &mut draw_ctx)?;
         }
         let mut draw_ctx = DrawContext {
             v_screen: &mut state.render_state.v_screen,
@@ -421,10 +421,10 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
         };
-        if let Some(mut itb) = state.pb_game_state.info_text_box.take() {
-            itb.display(get_rc_string(Msg::STRING125)?, -1.0f32, &mut draw_ctx, None)
+        if let Some(mut itb) = state.pb_game_state.info_text_box.as_mut() {
+            itb.borrow_mut()
+                .display(get_rc_string(Msg::STRING125)?, -1.0f32, &mut draw_ctx, None)
                 .context("Failed to obtain RC String when toggling demo")?;
-            state.pb_game_state.mission_text_box = Some(itb);
         }
     } else {
         replay_level(true, state)?;
@@ -487,7 +487,7 @@ fn mode_change(
             background_bitmap: &render_state.background_bitmap,
         };
 
-        text_box.clear(true, &mut draw_ctx)?;
+        text_box.borrow_mut().clear(true, &mut draw_ctx)?;
     }
     pb_game_state.credits_active = false;
     pb_game_state.idle_timer_ms = 0.0;
@@ -625,7 +625,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
     };
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
-        if !ball.base_component.active_flag.take()
+        if !ball.base_component.active_flag.get()
             || ball.has_group_flag
             || ball.collision_comp.is_some()
             || ball.speed >= 0.8f32
@@ -666,7 +666,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
     for index in 0..table.ball_list.len() {
         let ball = &mut table.ball_list[index].borrow_mut();
         ball_steps[index] = -1;
-        if ball.base_component.active_flag.take() {
+        if ball.base_component.active_flag.get() {
             let mut vec_dst: Vector2 = Vector2 { x: 0.0, y: 0.0 };
             ball.time_delta = time_delta;
             if ball.time_delta > 0.01f32 && ball.speed < 0.8f32 {
@@ -767,7 +767,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
                         break;
                     }
 
-                    edge.borrow().edge_collision(ball, distance);
+                    edge.borrow_mut().edge_collision(ball, distance);
                     if distance <= 0.0f32 || ball.borrow().collision_disabled_flag {
                         break;
                     }
@@ -789,7 +789,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
 
     for ball_rc in table.ball_list.iter() {
         let mut ball = ball_rc.borrow_mut();
-        if ball.base_component.active_flag.take() {
+        if ball.base_component.active_flag.get() {
             ball.repaint();
         }
     }
@@ -846,7 +846,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
         };
-        text_box.clear(false, &mut draw_ctx)?;
+        text_box.borrow_mut().clear(false, &mut draw_ctx)?;
     }
 
     if let Some(miss_text_box) = state.pb_game_state.mission_text_box.as_mut() {
@@ -857,7 +857,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
         };
-        miss_text_box.clear(false, &mut draw_ctx)?;
+        miss_text_box.borrow_mut().clear(false, &mut draw_ctx)?;
     }
     if state.main_state.single_step {
         let mut table = match state.pb_game_state.main_table.as_ref() {
@@ -879,10 +879,10 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
     }
     let rc_string = get_rc_string(Msg::STRING123)?;
 
-    let mut text_box = state
+    let text_box = state
         .pb_game_state
         .info_text_box
-        .take()
+        .as_mut()
         .ok_or(PbError::NoTextBox)?;
 
     let mut draw_ctx = DrawContext {
@@ -893,10 +893,9 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
         background_bitmap: &state.render_state.background_bitmap,
     };
     text_box
+        .borrow_mut()
         .display(rc_string, -1.0f32, &mut draw_ctx, None)
         .context("Failed to display textbox in pause_continue")?;
-
-    state.pb_game_state.info_text_box = Some(text_box);
 
     Ok(())
 }
@@ -1144,6 +1143,7 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
             .mission_text_box
             .as_mut()
             .unwrap()
+            .borrow_mut()
             .clear(true, &mut draw_ctx)?;
     }
     state.pb_game_state.credits_active = false;

@@ -340,9 +340,28 @@ impl TPinballTable {
                                 &bg_bmp,
                                 state,
                             )?;
-                            table_rc
-                                .borrow_mut()
-                                .add_component(Rc::new(RefCell::new(textbox.clone())));
+                            let textbox_rc = Rc::new(RefCell::new(textbox));
+
+                            if textbox_rc
+                                .borrow()
+                                .group_name()
+                                .is_some_and(|n| *n.borrow() == "info_text_box")
+                            {
+                                println!("Assinged info text box");
+                                state.pb_game_state.info_text_box = Some(textbox_rc.clone());
+                            }
+                            if textbox_rc
+                                .borrow()
+                                .group_name()
+                                .is_some_and(|n| *n.borrow() == "mission_text_box")
+                            {
+                                println!("Assigned ms text box");
+                                state.pb_game_state.mission_text_box = Some(textbox_rc.clone());
+                            }
+
+                            // table_rc
+                            //     .borrow_mut()
+                            //     .add_component(Rc::new(RefCell::new(textbox.clone())));
                         }
                         _ => {
                             // TODO: Implement the rest of the objects
@@ -355,32 +374,10 @@ impl TPinballTable {
 
         render::build_occlude_list(&mut state.render_state);
 
-        // TODO: Potential bug where we modify the copy instead of the reference
-        // TODO: Move stuff to game state?
-        state.pb_game_state.info_text_box = table_rc
-            .borrow_mut()
-            .find_component_by_name("info_text_box")
-            .and_then(|rc_comp| {
-                let borrowed_comp = rc_comp.borrow();
-
-                borrowed_comp
-                    .as_any()
-                    .downcast_ref::<TTextBox>()
-                    .map(|tbox| tbox.to_owned())
-            });
-
-        // TODO: Potential bug where we modify the copy instead of the reference
-        // TODO: Move stuff to game state?
-        state.pb_game_state.mission_text_box = table_rc
-            .borrow_mut()
-            .find_component_by_name("mission_text_box")
-            .and_then(|rc_comp| {
-                let borrowed_comp = rc_comp.borrow();
-                borrowed_comp
-                    .as_any()
-                    .downcast_ref::<TTextBox>()
-                    .map(|tbox| tbox.to_owned())
-            });
+        // state.pb_game_state.info_text_box =
+        //     table_rc.borrow().find_component_by_name("info_text_box");
+        // state.pb_game_state.mission_text_box =
+        //     table_rc.borrow().find_component_by_name("mission_text_box");
 
         // control::make_links(table_weak.clone(), &mut state.control_state);
         Ok(table_rc)
