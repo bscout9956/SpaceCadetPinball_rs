@@ -54,6 +54,26 @@ pub struct TFlipperEdge {
     pub x_max: f32,
     pub control_point_dirty_flag: bool,
 }
+impl TFlipperEdge {
+    pub(crate) fn set_contol_points(&mut self, angle: f32) {
+        let (sin, cos) = maths::sin_cos(angle);
+        self.a1 = self.a1_src;
+        self.a2 = self.a2_src;
+        self.b1 = self.b1_src;
+        self.b2 = self.b2_src;
+        self.t1 = self.t1_src;
+        maths::rotate_pt(&mut self.a1, sin, cos, &self.rot_origin);
+        maths::rotate_pt(&mut self.a2, sin, cos, &self.rot_origin);
+        maths::rotate_pt(&mut self.t1, sin, cos, &self.rot_origin);
+        maths::rotate_pt(&mut self.b1, sin, cos, &self.rot_origin);
+        maths::rotate_pt(&mut self.b2, sin, cos, &self.rot_origin);
+        maths::line_init(&mut self.line_a, self.a1.x, self.a1.y, self.a2.x, self.a2.y);
+        maths::line_init(&mut self.line_b, self.b1.x, self.b1.y, self.b2.x, self.b2.y);
+        self.circle_base = CircleType { center: self.rot_origin, radius_sq: self.circle_base_radius_sq };
+        self.circle_t1 = CircleType { center: self.t1, radius_sq: self.circle_base_radius_sq };
+        self.control_point_dirty_flag = false;
+    }
+}
 
 impl IEdgeSegment for TFlipperEdge {
     fn active_flag(&self) -> Rc<Cell<bool>> {
