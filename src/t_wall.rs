@@ -122,6 +122,10 @@ impl IPinballComponent for TWall {
     fn set_active_flag(&mut self, active: bool) {
         todo!()
     }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 }
 
 unsafe extern "C" fn timer_expired(timer_id: i32, caller: *mut c_void, _ctx: &mut DrawContext) {

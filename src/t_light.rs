@@ -75,4 +75,8 @@ impl IPinballComponent for TLight {
     fn set_active_flag(&mut self, active: bool) {
         self.base.active_flag.set(active);
     }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 }
