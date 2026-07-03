@@ -444,10 +444,8 @@ pub(crate) fn gr_text_draw_ttext_in_box(
         pb_game_state.info_text_box.as_mut(),
     ];
 
-    for text_box in text_boxes.into_iter() {
-        if let Some(boxx) = text_box {
-            unsafe { boxx.draw_im_gui(render_state, pb_game_state.text_box_color, ui) };
-        }
+    for boxx in text_boxes.into_iter().flatten() {
+        unsafe { boxx.draw_im_gui(render_state, pb_game_state.text_box_color, ui) };
     }
 }
 
