@@ -358,7 +358,7 @@ impl TTextBox {
             let window_name = format!("TTextbox_{:p}", self);
             let win_cstr = CString::new(window_name).unwrap();
             if igBegin(win_cstr.as_ptr(), null_mut(), window_flags) {
-                ui.set_window_font_scale(fullscrn::get_screen_to_pinball_ratio());
+                ui.set_window_font_scale(fullscrn::get_screen_to_pinball_ratio(render_state));
 
                 igPushStyleColor_U32(ImGuiCol_Text, text_box_color);
                 if let Some(front_msg) = self.messages.front() {
