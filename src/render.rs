@@ -6,7 +6,7 @@ use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::state::render_state::RenderState;
 use crate::zdrv::ZMapHeaderType;
-use crate::{debug_overlay, gdrv, maths, utils, zdrv};
+use crate::{debug_overlay, gdrv, maths, proj, utils, zdrv};
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
 use sdl2::sys::{SDL_FRect, SDL_RenderCopy, SDL_RenderCopyF};
 use std::cmp::PartialEq;

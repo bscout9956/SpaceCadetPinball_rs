@@ -596,6 +596,24 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
     let dt_sec = dt_milli_sec * 0.001f32;
     state.pb_game_state.time_next = state.pb_game_state.time_now + dt_sec;
     timed_frame(dt_sec, &mut state.pb_game_state)?;
+    state.pb_game_state.time_now = state.pb_game_state.time_next;
+
+    dt_milli_sec += state.pb_game_state.time_ticks_remainder;
+    let dt_whole = dt_milli_sec as i32;
+    state.pb_game_state.time_ticks_remainder = dt_milli_sec - dt_whole as f32;
+    state.pb_game_state.time_ticks += dt_whole as usize;
+
+    // TODO: NUDGE CODE
+
+    timer::check(state.pb_game_state.time_ticks, state);
+    render::update(&mut state.render_state, &mut state.pb_game_state)
+        .context("Failed to render frame in pb::frame")?;
+    //TODO: Score update score::update()
+    if let Some(table) = state.pb_game_state.main_table.as_mut() {
+        if table.borrow().tilt_lock_flag {
+            // TODO: NUDGE CODE
+        }
+    }
 
     Ok(())
 }
