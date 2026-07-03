@@ -284,4 +284,13 @@ impl TEdgeManager {
         }
         edge_index
     }
+
+    pub(crate) fn normalize_box(&self, pt: Vector2) -> Vector2 {
+        let mut x = pt.x.clamp(self.min_x, self.max_x) + f32::abs(self.min_x);
+        let mut y = pt.y.clamp(self.min_y, self.max_y) + f32::abs(self.min_y);
+
+        x /= self.width;
+        y /= self.height;
+        return Vector2 { x: 1.0 - x, y: 1.0 - y };
+    }
 }
