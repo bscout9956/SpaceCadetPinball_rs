@@ -27,8 +27,9 @@ use std::ptr::null_mut;
 use std::rc::{Rc, Weak};
 use std::slice;
 
-#[derive(PartialEq, Clone)]
+#[derive(Clone)]
 pub struct TTextBox {
+    pub base: TPinballComponent,
     pub offset_x: i32,
     pub offset_y: i32,
     pub width: i32,
