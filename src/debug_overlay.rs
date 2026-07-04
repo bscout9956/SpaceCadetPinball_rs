@@ -171,20 +171,18 @@ fn draw_edge(
         }
     }
 
-    let line = edge.as_any().downcast_ref::<TLine>();
-    if let Some(l) = line {
-        draw_line_type(&l.line, renderer);
+    if let Some(line) = edge.as_tline() {
+        draw_line_type(&line.line, renderer);
     }
 
-    let circle = edge.as_any().downcast_ref::<TCircle>();
-    if let Some(c) = circle {
-        draw_circle_type(&c.circle, renderer);
+    if let Some(circle) = edge.as_tcircle() {
+        draw_circle_type(&circle.circle, renderer);
     }
 
-    let flip = edge.as_any_mut().downcast_mut::<TFlipperEdge>();
-    if let Some(fl) = flip {
+    let mut flip = edge.as_tflipper_edge_mut();
+    if let Some(fl) = flip.as_mut() {
         if fl.control_point_dirty_flag {
-            fl.set_contol_points(fl.current_angle);
+            fl.set_control_points(fl.current_angle);
         }
 
         draw_line_type(&fl.line_a, renderer);

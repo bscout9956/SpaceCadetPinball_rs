@@ -55,7 +55,7 @@ pub struct TFlipperEdge {
     pub control_point_dirty_flag: bool,
 }
 impl TFlipperEdge {
-    pub(crate) fn set_contol_points(&mut self, angle: f32) {
+    pub(crate) fn set_control_points(&mut self, angle: f32) {
         let (sin, cos) = maths::sin_cos(angle);
         self.a1 = self.a1_src;
         self.a2 = self.a2_src;
@@ -83,7 +83,7 @@ impl TFlipperEdge {
 
 impl IEdgeSegment for TFlipperEdge {
     fn active_flag(&self) -> Rc<Cell<bool>> {
-        todo!(); // MISSSING BASE COMP
+        todo!(); // MISSING BASE COMP
     }
 
     fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {
