@@ -50,7 +50,6 @@ pub trait ICollisionComponent {
     fn get_AABB(&self) -> Option<RectF>;
 }
 
-use crate::message_code::MessageCode;
 use crate::state::pinball_state::PinballState;
 use std::ops::{Deref, DerefMut};
 use std::rc::Weak;
