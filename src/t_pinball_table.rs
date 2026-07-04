@@ -520,12 +520,12 @@ impl IPinballComponent for TPinballTable {
     ) -> Result<i32> {
         let mut rc_text = String::new();
 
-        // TODO: Is it just reset? If there's no more, use if let
+        // TODO: All the other codes
         match code {
             MessageCode::RESET => {
                 for component_rc in self.component_list.iter_mut() {
                     let mut component = component_rc.borrow_mut();
-                    component.message(MessageCode::RESET, 0.0, draw_context);
+                    component.message(MessageCode::RESET, 0.0, draw_context)?;
                 }
                 if self.replay_timer > 0 {
                     timer::kill_id(self.replay_timer);
@@ -534,7 +534,7 @@ impl IPinballComponent for TPinballTable {
                 if self.light_show_timer > 0 {
                     timer::kill_id(self.light_show_timer);
                     if let Some(lg) = &mut self.light_group {
-                        lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, draw_context);
+                        lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, draw_context)?;
                     }
                 }
                 self.light_show_timer = 0;
