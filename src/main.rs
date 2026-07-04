@@ -250,13 +250,14 @@ pub enum MainError {
     LockGeneric,
 }
 
-unsafe fn render_frame_time_dialog() {
+unsafe fn render_frame_time_dialog() -> Result<()> {
     unsafe {
         igPushStyleVar_Vec2(ImGuiStyleVar_WindowMinSize, ImVec2_c::new(300.0, 70.0));
 
         igEnd();
-        igPopStyleVar(0);
+        // igPopStyleVar(0);
     }
+    Ok(())
 }
 
 fn hybrid_sleep(mut sleep_target: Duration<1000000000>, main_state: &mut MainState) {
@@ -307,8 +308,8 @@ fn imgui_menu_item_w_shortcut(
         .expect("Binding not found in control options");
 
     let select = selected.unwrap_or(false);
-    let shortcut_cstr = CString::new(key_def.get_shortcut_description()).unwrap();
-    let desc = pb::get_rc_string_cstring(key_def.description).unwrap();
+    let shortcut_cstr = CString::new(key_def.get_shortcut_description())?;
+    let desc = get_rc_string_cstring(key_def.description)?;
     unsafe {
         if igMenuItem_Bool(desc.as_ptr(), shortcut_cstr.as_ptr(), select, true) {
             handle_game_binding(&binding, false, state)?;
@@ -343,7 +344,7 @@ fn handle_game_binding(
             pause(false, state)?;
             options::show_control_dialog(&mut state.options_state);
         }
-        GameBindings::ToggleMenuDisplay => options::toggle(Menu::ShowMenu, state)?,
+        GameBindings::ToggleMenuDisplay => options::toggle(ShowMenu, state)?,
         GameBindings::Exit => {
             if !shortcut {
                 let mut event = SDL_Event {
@@ -620,7 +621,7 @@ fn main_loop(
 unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool> {
     let mut reset_options = false;
     unsafe {
-        let menu_string = pb::get_rc_string_cstring(Msg::Menu1Options)?;
+        let menu_string = get_rc_string_cstring(Msg::Menu1Options)?;
         if igBeginMenu(menu_string.as_ptr(), true) {
             imgui_menu_item_w_shortcut(
                 GameBindings::ToggleMenuDisplay,
@@ -1318,12 +1319,15 @@ fn render_dialogs(state: &mut PinballState) -> Result<()> {
 }
 
 fn a_dialog(state: &mut PinballState) -> Result<()> {
+    static NULL_BYTE: c_char = 0;
     if state.main_state.show_about_dialog {
         state.main_state.show_about_dialog = false;
         unsafe {
             igOpenPopup_Str(get_rc_string_cstring(Msg::STRING204)?.as_ptr(), 0);
         }
     }
+
+    let mut test = true;
 
     let mut unused_open = true;
     unsafe {
@@ -1336,32 +1340,27 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
             ImGuiWindowFlags_None,
         ) {
             if igBeginTabBar(c"AboutTabBar".as_ptr(), ImGuiTabBarFlags_None) {
-                if igBeginTabItem(
-                    c"3DPB".as_ptr(),
-                    &raw mut state.main_state.about_tab_open,
-                    0,
-                ) {
-                    igTextUnformatted(
-                        get_rc_string_cstring(Msg::STRING139)?.as_ptr(),
-                        c"".as_ptr(),
-                    );
-                    igTextUnformatted(
-                        c"Original game by Cinematronics, Microsoft".as_ptr(),
-                        c"".as_ptr(),
-                    );
+                if igBeginTabItem(c"3DPB".as_ptr(), &raw mut test, 0) {
+                    let string = get_rc_string_cstring(Msg::STRING139)?;
+                    let str_ptr = string.as_ptr();
+
+                    igTextUnformatted(str_ptr, get_cstring_end(str_ptr));
+                    let cinematronics_str = c"Original game by Cinematronics, Microsoft".as_ptr();
+                    igTextUnformatted(cinematronics_str, get_cstring_end(cinematronics_str));
                     igSeparator();
 
-                    igTextUnformatted(
-                        c"Decompiled -> Ported to SDL (by k4zmu2a) -> Ported to Rust (by bscout9956)".as_ptr(),
-                        c"".as_ptr(),
-                    );
+                    let decomp_str = c"Decompiled -> Ported to SDL (by k4zmu2a) -> Ported to Rust (by bscout9956)".as_ptr();
+                    igTextUnformatted(decomp_str, get_cstring_end(decomp_str));
                     let cstr_version = CString::new(format!("Version {}", "UNDEF TODO"))?;
-                    igTextUnformatted(cstr_version.as_ptr(), c"".as_ptr());
+                    igTextUnformatted(
+                        cstr_version.as_ptr(),
+                        get_cstring_end(cstr_version.as_ptr()),
+                    );
 
-                    if igSmallButton(
+                    let home_str =
                         c"Project home: https://github.com/bscout9956/SpaceCadetPinball_rs"
-                            .as_ptr(),
-                    ) {
+                            .as_ptr();
+                    if igSmallButton(home_str) {
                         SDL_OpenURL(c"https://github.com/bscout9956/SpaceCadetPinball_rs".as_ptr());
                     }
 
@@ -1377,8 +1376,7 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                     &raw mut state.main_state.full_tilt_tab_open,
                     0,
                 ) {
-                    // TODO: should it be 0 0 or -1 0
-                    let button_center = ImVec2_c::new(0.0, 0.0);
+                    let button_center = ImVec2_c::new(-1.0, 0.0);
 
                     igButton(
                         c"Full Tilt! was created by Cinematronics for Maxis.".as_ptr(),
@@ -1387,16 +1385,24 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                     igButton(c"Version 1.1".as_ptr(), button_center);
 
                     let table_row = |text_a: &str, text_b: Option<&str>| -> Result<()> {
+                        igTableNextRow(0, 0.0);
+
                         igTableNextColumn();
-                        igTextUnformatted(CString::new(text_a)?.as_ptr(), c"".as_ptr());
+                        let text_a_cstr = CString::new(text_a)?;
+                        igTextUnformatted(
+                            text_a_cstr.as_ptr(),
+                            get_cstring_end(text_a_cstr.as_ptr()),
+                        );
+
                         igTableNextColumn();
                         if let Some(b) = text_b {
-                            igTextUnformatted(CString::new(b)?.as_ptr(), c"".as_ptr());
-                            Ok(())
+                            let text_b = CString::new(b)?;
+                            igTextUnformatted(text_b.as_ptr(), get_cstring_end(text_b.as_ptr()));
                         } else {
-                            igTextUnformatted(c"".as_ptr(), c"".as_ptr());
-                            Ok(())
+                            let empty = c"".as_ptr();
+                            igTextUnformatted(empty, get_cstring_end(empty));
                         }
+                        Ok(())
                     };
 
                     if igBeginTable(c"Full Tilt!".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
@@ -1413,7 +1419,6 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                             ImVec2_c::default(),
                             0.0f32,
                         ) {
-                            // Added unique ID ##1
                             table_row("PROGRAMMING", Some("ART"))?;
                             table_row("Michael Sandige", Some("John Frantz"))?;
                             table_row("John Taylor", Some("Ryan Medeiros"))?;
@@ -1496,7 +1501,8 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                             table_row("Rob Rosenhouse", Some("Lisa Acton"))?;
                             igEndTable();
                         }
-                        igTextUnformatted(c"Dan and Mitchell Roth".as_ptr(), c"".as_ptr());
+                        let dan_mitchell_cstr = c"Dan and Mitchell Roth".as_ptr();
+                        igTextUnformatted(dan_mitchell_cstr, get_cstring_end(dan_mitchell_cstr));
 
                         igTableNextColumn();
                         igButton(c"Maxis".as_ptr(), button_center);
@@ -1563,7 +1569,7 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
             igEndTabBar();
 
             igSeparator();
-            if igMenuItem_Bool(c"Ok".as_ptr(), null(), false, true) {
+            if igButton(c"Ok".as_ptr(), ImVec2_c::new(0.0, 0.0)) {
                 igCloseCurrentPopup();
             }
             igEndPopup();
@@ -1572,7 +1578,6 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
     }
     Ok(())
 }
-
 pub fn restart(main_state: &mut MainState) {
     main_state.restart = true;
     unsafe {
@@ -2190,7 +2195,7 @@ fn run_game_session(
 fn main() {
     if let Err(e) = space_cadet_pinball() {
         eprintln!("Error initializing Space Cadet Pinball: {:?}", e);
-        std::process::exit(1);
+        exit(1);
     }
 }
 
