@@ -360,8 +360,8 @@ impl IPinballComponent for TBall {
         self.base_component.sprite_set(index);
     }
 
-    fn get_coordinates(&self) -> Vector2 {
-        todo!()
+    fn get_coordinates(&self, edge_manager: &TEdgeManager) -> Vector2 {
+        edge_manager.normalize_box(Vector2::from_vec3(self.position))
     }
 
     fn get_scoring(&self, index: u32) -> i32 {

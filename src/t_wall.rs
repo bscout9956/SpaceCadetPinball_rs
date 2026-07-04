@@ -89,15 +89,15 @@ impl IPinballComponent for TWall {
     }
 
     fn group_index(&self) -> i32 {
-        todo!()
+        self.base.group_index
     }
 
     fn sprite_set(&mut self, index: i32) {
         todo!()
     }
 
-    fn get_coordinates(&self) -> Vector2 {
-        todo!()
+    fn get_coordinates(&self, edge_manager: &TEdgeManager) -> Vector2 {
+        self.base.get_coordinates(edge_manager)
     }
 
     fn get_scoring(&self, index: u32) -> i32 {

@@ -54,7 +54,6 @@ impl IEdgeSegment for TCircle {
     }
 
     fn collision_group(&self) -> u32 {
-        // TODO: What the actual fuck
         self.base.upgrade().unwrap().borrow().collision_group()
     }
 

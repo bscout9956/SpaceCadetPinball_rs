@@ -261,7 +261,6 @@ fn repaint(
     v_screen: &mut Option<GdrvBitmap8>,
     z_screen: &mut Option<ZMapHeaderType>,
 ) {
-    // TODO: Verify this is really correct, do not remove me without actually checking
     let mut clip_rectangle: RectangleType = RectangleType::default();
     if sprite.occluded_sprites.is_none()
         || sprite.visual_type == VisualTypes::Ball

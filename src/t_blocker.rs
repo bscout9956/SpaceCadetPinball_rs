@@ -86,8 +86,8 @@ impl IPinballComponent for TBlocker {
         todo!()
     }
 
-    fn get_coordinates(&self) -> Vector2 {
-        todo!()
+    fn get_coordinates(&self, tedge_manager: &TEdgeManager) -> Vector2 {
+        self.base.get_coordinates(tedge_manager)
     }
 
     fn get_scoring(&self, index: u32) -> i32 {

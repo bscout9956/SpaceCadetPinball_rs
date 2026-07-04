@@ -61,8 +61,8 @@ impl IPinballComponent for TTextBox {
         self.base.sprite_set(index);
     }
 
-    fn get_coordinates(&self) -> Vector2 {
-        self.base.get_coordinates()
+    fn get_coordinates(&self, edge_manager: &TEdgeManager) -> Vector2 {
+        self.base.get_coordinates(edge_manager)
     }
 
     fn get_scoring(&self, index: u32) -> i32 {

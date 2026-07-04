@@ -107,7 +107,8 @@ pub fn play_sound(
                     let sound_pos;
 
                     if let Some(source) = sound_source {
-                        let sound_pos_2d = source.get_coordinates();
+                        let sound_pos_2d = source
+                            .get_coordinates(state.pb_game_state.edge_manager.as_ref().unwrap());
                         sound_pos = Vector2 {
                             x: sound_pos_2d.x,
                             y: sound_pos_2d.y,
