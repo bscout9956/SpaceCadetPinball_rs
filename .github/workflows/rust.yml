@@ -39,16 +39,15 @@ jobs:
                   cargo --version
 
             - name: Install SDL2 dependencies with vcpkg
-              # VCPKG_ROOT is already in the global env, no need to redefine here
               run: |
                   git clone https://github.com/microsoft/vcpkg.git vcpkg
                   .\vcpkg\bootstrap-vcpkg.bat
-                  .\vcpkg\vcpkg integrate install
                   .\vcpkg\vcpkg install sdl2:x64-windows-static-md sdl2-mixer:x64-windows-static-md
 
-            # The correct way to append to PATH in GitHub Actions
-            - name: Add vcpkg bin to PATH
-              run: echo "${{ github.workspace }}\vcpkg\installed\x64-windows-static-md\bin" >> $env:GITHUB_PATH
+            - name: Add vcpkg to environment
+              run: |
+                  echo "VCPKG_INSTALLED_DIR=${{ github.workspace }}\vcpkg\installed\x64-windows-static-md" >> $env:GITHUB_ENV
+                  echo "${{ github.workspace }}\vcpkg\installed\x64-windows-static-md\bin" >> $env:GITHUB_PATH
 
             - name: Rust cache
               uses: Swatinem/rust-cache@v2
@@ -66,14 +65,13 @@ jobs:
               env:
                   LIBCLANG_PATH: ${{ runner.temp }}\llvm\bin
               run: |
-                  $VcpkgPath = Join-Path "${{ github.workspace }}" "vcpkg\installed\x64-windows-static-md"
+                  $VcpkgPath = $env:VCPKG_INSTALLED_DIR
 
                   $env:RUSTFLAGS = "-L native=$VcpkgPath\lib"
 
                   $env:INCLUDE = "$VcpkgPath\include;" + $env:INCLUDE
                   $env:LIB = "$VcpkgPath\lib;" + $env:LIB
 
-                  # 4. Run the build
                   cargo build --release
 
             # - name: Run tests
