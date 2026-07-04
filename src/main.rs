@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![deny(unused_must_use)]
 extern crate core;
 use crate::embedded_data::load_controller_db;
 use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPlayers};
