@@ -62,11 +62,11 @@ impl IPinballComponent for TTextBox {
     }
 
     fn get_coordinates(&self) -> Vector2 {
-        self.base.get_coordinates()        
+        self.base.get_coordinates()
     }
 
     fn get_scoring(&self, index: u32) -> i32 {
-        self.base.get_scoring(index)        
+        self.base.get_scoring(index)
     }
 
     fn port_draw(&self) {
