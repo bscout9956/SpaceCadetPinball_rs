@@ -273,7 +273,7 @@ unsafe fn draw_box_grid(renderer: &SdlRendererPtr, state: &mut PbGameState) {
 
 #[allow(non_snake_case)]
 unsafe fn SDL_RenderDrawCircle(renderer: &SdlRendererPtr, x: i32, y: i32, radius: i32) -> i32 {
-    let mut points: Vec<SDL_Point> = Vec::with_capacity(256);
+    let mut points: Vec<SDL_Point> = vec![SDL_Point { x: 0, y: 0 }; 256];
     let mut point_count = 0;
     let mut offset_x = 0;
     let mut offset_y = radius;
