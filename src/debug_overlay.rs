@@ -225,10 +225,9 @@ unsafe fn draw_all_edges(
     }
 
     let t_borrow = table.borrow();
-    for cmp in t_borrow.component_list.iter() {
-        let coll_cmp_ref = cmp.borrow();
-        let coll_cmp_conc = coll_cmp_ref.as_any().downcast_ref::<TCollisionComponent>();
-        if let Some(collision_component) = coll_cmp_conc {
+    for component in t_borrow.component_list.iter() {
+        let comp_borrow = component.borrow();
+        if let Some(collision_component) = comp_borrow.as_collision_component() {
             for edge in collision_component.edge_list.iter() {
                 let edge_ref = edge.borrow_mut();
                 draw_edge(options_state, edge_ref, renderer, table)?;
