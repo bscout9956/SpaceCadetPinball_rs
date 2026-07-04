@@ -24,6 +24,12 @@ jobs:
               with:
                   components: rustfmt, clippy
 
+            - name: Install LLVM for bindgen
+              uses: KyleMayes/install-llvm-action@v1
+              with:
+                  version: "18"
+                  directory: ${{ runner.temp }}\llvm
+
             - name: Verify Rust installation
               run: |
                   rustc --version
@@ -54,6 +60,8 @@ jobs:
             #   run: cargo clippy -- -D warnings
 
             - name: Build
+              env:
+                  LIBCLANG_PATH: ${{ runner.temp }}\llvm\bin
               run: |
                   $VcpkgPath = Join-Path "${{ github.workspace }}" "vcpkg\installed\x64-windows-static-md"
 
