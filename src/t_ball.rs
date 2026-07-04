@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct TBall {
-    pub base_component: TPinballComponent,
+    pub base: TCollisionComponent,
     pub base_segment: TEdgeSegment,
     pub position: Vector3,
     pub prev_position: Vector3,
@@ -25,7 +25,7 @@ pub struct TBall {
     pub ray_max_distance: f32,
     pub time_delta: f32,
     pub ramp_field_force: Vector2,
-    pub collision_comp: Option<TCollisionComponent>,
+    pub collision_comp: Option<Weak<RefCell<TCollisionComponent>>>,
     pub collision_mask: i32,
     pub collisions: [Option<Weak<RefCell<dyn IEdgeSegment>>>; 16],
     pub edge_collision_count: i32,
@@ -46,19 +46,15 @@ impl TBall {
         mut group_index: i32,
         state: &mut PinballState,
     ) -> Result<Rc<RefCell<Self>>> {
-        let base_component = TPinballComponent::new(table_weak, group_index, false, state)?;
-
-        let base_segment = TEdgeSegment::new(
-            None,
-            Rc::new(Cell::new(base_component.active_flag.get())),
-            0,
-        );
+        let base_component = TCollisionComponent::new(table_weak, group_index, false, state)?;
+        let base_segment = TEdgeSegment::new(None, base_component.borrow().active_flag.clone(), 0);
+        let base_owned = Rc::unwrap_or_clone(base_component).into_inner();
 
         let mut visual = VisualStruct::default();
         let ball_group_name = "ball";
 
         let mut instance_data = Self {
-            base_component,
+            base: base_owned,
             base_segment,
             position: Default::default(),
             prev_position: Default::default(),
@@ -81,6 +77,7 @@ impl TBall {
             visual_z_array: [0.0; 50],
             collision_disabled_flag: false,
         };
+        instance_data.set_active_flag(true);
 
         if group_index == -1 {
             instance_data.has_group_flag = false;
@@ -132,10 +129,7 @@ impl TBall {
         for index in 0..visual_count {
             loader::query_visual(group_index, index as i32, &mut visual, state)
                 .context("Querying visual")?;
-            instance_data
-                .base_component
-                .list_bitmap
-                .push(visual.bitmap.clone());
+            instance_data.base.list_bitmap.push(visual.bitmap.clone());
             let vis_vec_ptr = loader::query_float_attribute_ptr(
                 group_index,
                 index as i32,
@@ -155,7 +149,7 @@ impl TBall {
             }
         }
 
-        instance_data.base_component.render_sprite = Some(RenderSprite::new(
+        instance_data.base.render_sprite = Some(RenderSprite::new(
             VisualTypes::Ball,
             Arc::new(None),
             Arc::new(None),
@@ -166,7 +160,7 @@ impl TBall {
         ));
 
         instance_data.position.z = instance_data.radius;
-        instance_data.base_component.group_index = group_index;
+        instance_data.base.group_index = group_index;
 
         let rc_instance = Rc::new(RefCell::new(instance_data));
         let weak_rc_instance =
@@ -178,9 +172,9 @@ impl TBall {
     }
 
     pub fn disable(&mut self) {
-        self.base_component.active_flag.set(false);
+        self.base.active_flag.set(false);
         self.collision_disabled_flag = false;
-        self.base_component.sprite_set(-1);
+        self.base.sprite_set(-1);
     }
 
     pub(crate) fn repaint(&mut self) {
@@ -199,15 +193,14 @@ impl TBall {
         let z_depth = proj::z_distance(&self.position);
 
         let mut index_set = 0;
-        for index in 0..self.base_component.list_bitmap.len() - 1 {
+        for index in 0..self.base.list_bitmap.len() - 1 {
             if self.visual_z_array[index] <= z_depth {
                 index_set += 1;
                 break;
             }
         }
 
-        self.base_component
-            .sprite_set_ball(index_set, &mut pos_2d, z_depth);
+        self.base.sprite_set_ball(index_set, &mut pos_2d, z_depth);
     }
 
     pub(crate) fn already_hit(&self, edge: &Rc<RefCell<dyn IEdgeSegment>>) -> bool {
@@ -238,18 +231,16 @@ impl ICollisionComponent for TBall {
     }
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
-        &mut self.collision_comp.as_mut().unwrap().edge_list
+        &mut self.base.edge_list
     }
 
     fn set_AABB(&mut self, aabb: RectF) {
-        if let Some(col) = self.collision_comp.as_mut() {
-            col.aabb = aabb;
-        }
+        self.base.aabb = aabb;
     }
 
+    // TODO: Could we possibly change this to not be an option?
     fn get_AABB(&self) -> Option<RectF> {
-        let rc = self.collision_comp.as_ref()?;
-        Some(rc.aabb.clone())
+        Some(self.base.aabb.clone())
     }
 }
 
@@ -299,7 +290,7 @@ impl IEdgeSegment for TBall {
     }
 
     fn port_draw(&self) {
-        self.base_component.port_draw()
+        self.base.port_draw()
     }
 
     fn place_in_grid(
@@ -342,7 +333,7 @@ impl IEdgeSegment for TBall {
 
 impl IPinballComponent for TBall {
     fn render_sprite(&self) -> Option<&RenderSprite> {
-        self.base_component.render_sprite.as_ref()
+        self.base.render_sprite.as_ref()
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -350,15 +341,15 @@ impl IPinballComponent for TBall {
     }
 
     fn group_name(&self) -> Option<Rc<RefCell<String>>> {
-        self.base_component.group_name.clone()
+        self.base.group_name.clone()
     }
 
     fn group_index(&self) -> i32 {
-        self.base_component.group_index
+        self.base.group_index
     }
 
     fn sprite_set(&mut self, index: i32) {
-        self.base_component.sprite_set(index);
+        self.base.sprite_set(index);
     }
 
     fn get_coordinates(&self, edge_manager: &TEdgeManager) -> Vector2 {
@@ -370,12 +361,12 @@ impl IPinballComponent for TBall {
     }
 
     fn port_draw(&self) {
-        self.base_component.port_draw()
+        self.base.port_draw()
     }
 
     fn message(&mut self, code: MessageCode, _value: f32, _draw_context: &mut DrawContext) -> i32 {
         if code == MessageCode::RESET {
-            self.base_component
+            self.base
                 .sprite_set_ball(-1, &mut Vector2i::new(0, 0), 0.0f32);
             self.position.x = 0.0;
             self.collision_comp = None;
@@ -393,7 +384,7 @@ impl IPinballComponent for TBall {
     }
 
     fn set_active_flag(&mut self, active: bool) {
-        self.base_component.active_flag.set(active);
+        self.base.active_flag.set(active);
     }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {

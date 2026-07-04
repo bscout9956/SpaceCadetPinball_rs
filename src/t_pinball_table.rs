@@ -149,7 +149,7 @@ impl TPinballTable {
         let mut count = 0;
         for ball in self.ball_list.iter() {
             let ball_borrow = ball.borrow();
-            if ball_borrow.base_component.active_flag.get()
+            if ball_borrow.base.active_flag.get()
                 && ball_borrow.position.x >= rect.x_min
                 && ball_borrow.position.y >= rect.y_min
                 && ball_borrow.position.x <= rect.x_max
@@ -413,7 +413,7 @@ impl TPinballTable {
         for rc_ball in &self.ball_list {
             let cur_ball = rc_ball.borrow();
 
-            if !cur_ball.base_component.active_flag.get() {
+            if !cur_ball.base.active_flag.get() {
                 drop(cur_ball);
 
                 target_ball_rc = Some(Rc::clone(rc_ball));
@@ -443,7 +443,7 @@ impl TPinballTable {
         {
             let mut ball = ball_rc.borrow_mut();
 
-            ball.base_component.active_flag.set(true);
+            ball.base.active_flag.set(true);
             ball.position.z = ball.radius;
             ball.direction = Vector3::default();
             ball.speed = 0.0f32;
@@ -451,8 +451,6 @@ impl TPinballTable {
             ball.edge_collision_count = 0;
             ball.collision_flag = 0;
             ball.collision_mask = 1;
-            ball.collision_comp = None;
-
             ball.position.x = position.x;
             ball.position.y = position.y;
             ball.prev_position = ball.position;

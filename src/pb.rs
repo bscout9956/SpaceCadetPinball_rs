@@ -560,7 +560,7 @@ pub fn ball_set(dx: f32, dy: f32, pb_game_state: &mut PbGameState) {
     let mut table = pb_game_state.main_table.as_ref().unwrap().borrow_mut(); // Lazy, if this caused you trouble then fix me
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
-        if ball.base_component.active_flag.get() {
+        if ball.base.active_flag.get() {
             ball.direction.x = dx * SENSITIVITY;
             ball.direction.y = dy * SENSITIVITY;
 
@@ -625,7 +625,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
     };
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
-        if !ball.base_component.active_flag.get()
+        if !ball.base.active_flag.get()
             || ball.has_group_flag
             || ball.collision_comp.is_some()
             || ball.speed >= 0.8f32
@@ -666,7 +666,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
     for index in 0..table.ball_list.len() {
         let ball = &mut table.ball_list[index].borrow_mut();
         ball_steps[index] = -1;
-        if ball.base_component.active_flag.get() {
+        if ball.base.active_flag.get() {
             let mut vec_dst: Vector2 = Vector2 { x: 0.0, y: 0.0 };
             ball.time_delta = time_delta;
             if ball.time_delta > 0.01f32 && ball.speed < 0.8f32 {
@@ -677,7 +677,14 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
             let ball_dir = ball.direction;
             let ball_speed = ball.speed;
             if let Some(col) = ball.collision_comp.as_mut() {
-                col.field_effect(&ball_pos, &ball_dir, ball_speed, &mut vec_dst);
+                if let Some(col_upgrade) = col.upgrade() {
+                    col_upgrade.borrow_mut().field_effect(
+                        &ball_pos,
+                        &ball_dir,
+                        ball_speed,
+                        &mut vec_dst,
+                    );
+                }
             } else {
                 // TODO: Implement this edge manager ig
                 // t_table_layer::edge_manager.field_effects(ball, &mut vec_dst);
@@ -791,7 +798,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
 
     for ball_rc in table.ball_list.iter() {
         let mut ball = ball_rc.borrow_mut();
-        if ball.base_component.active_flag.get() {
+        if ball.base.active_flag.get() {
             ball.repaint();
         }
     }
