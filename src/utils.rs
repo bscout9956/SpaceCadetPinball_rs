@@ -61,6 +61,18 @@ impl<'a> DrawContext<'a> {
     }
 }
 
+pub unsafe fn get_cstring_end(ptr: *const c_char) -> *const c_char {
+    if ptr.is_null() {
+        return ptr;
+    }
+
+    let mut end = ptr;
+    while *end != 0 {
+        end = end.add(1);
+    }
+    end
+}
+
 pub fn clamp<T: std::cmp::Ord + Copy>(n: &T, lower: &T, upper: &T) -> T {
     std::cmp::max(*lower, std::cmp::min(*n, *upper))
 }
