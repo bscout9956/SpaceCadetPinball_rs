@@ -658,3 +658,7 @@ pub(crate) fn build_occlude_list(state: &mut RenderState) {
         }
     }
 }
+
+pub(crate) fn sprite_viewer(p0: &bool) {
+    eprintln!("TODO! Implement me pls");
+}
