@@ -162,43 +162,28 @@ pub fn kill_callback(callback: unsafe extern "C" fn(i32, *mut c_void, &mut DrawC
     let mut current = ACTIVE_HEAD.load(Relaxed);
     let mut prev = -1;
 
-    for index in 0..count {
-        if index >= count {
-            break;
-        }
+    while current != -1 {
+        let current_usize = current as usize;
 
-        let current_idx = current;
-        if current_idx == -1 {
-            break;
-        }
-
-        // TODO: Check this about func ptr comparisons, might not work
-        if buffer[current_idx as usize].callback == Some(callback) {
+        if buffer[current_usize].callback == Some(callback) {
             kill_count += 1;
+            let next = buffer[current_usize].next_timer;
 
             if prev != -1 {
-                buffer[prev as usize].next_timer = buffer[current_idx as usize].next_timer;
+                buffer[prev as usize].next_timer = next;
             } else {
-                ACTIVE_HEAD.store(buffer[current_idx as usize].next_timer, Relaxed);
+                ACTIVE_HEAD.store(next, Relaxed);
             }
 
-            buffer[current_idx as usize].next_timer = FREE_HEAD.load(Relaxed);
-            FREE_HEAD.store(current_idx, Relaxed);
+            buffer[current_usize].next_timer = FREE_HEAD.load(Relaxed);
+            FREE_HEAD.store(current, Relaxed);
 
             count -= 1;
 
-            if count == index {
-                break;
-            }
-
-            current = if prev != -1 {
-                buffer[prev as usize].next_timer
-            } else {
-                ACTIVE_HEAD.load(Relaxed)
-            };
+            current = next;
         } else {
             prev = current;
-            current = buffer[current_idx as usize].next_timer;
+            current = buffer[current_usize].next_timer;
         }
     }
 
