@@ -88,7 +88,7 @@ pub(crate) unsafe fn draw_overlay(state: &mut PinballState) -> Result<()> {
             if let Some(t) = state.pb_game_state.main_table.as_ref()
                 && *state.options_state.options.debug_overlay_all_edges
             {
-                draw_all_edges(renderer, t, &mut state.options_state);
+                draw_all_edges(renderer, t, &mut state.options_state)?;
             }
 
             // TODO: Rest of debugs
