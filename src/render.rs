@@ -593,7 +593,7 @@ pub(crate) fn present_v_screen(state: &mut PinballState) -> Result<()> {
             }
 
             if *state.options_state.options.debug_overlay {
-                debug_overlay::draw_overlay(state);
+                debug_overlay::draw_overlay(state)?;
             }
         }
         Ok(())

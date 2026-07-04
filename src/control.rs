@@ -211,7 +211,7 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
                 state.control_state.easy_mode,
                 &state.control_state.component_state.lite_1,
                 &mut draw_ctx,
-            );
+            )?;
         }
     }
 
@@ -226,7 +226,7 @@ fn drain_ball_blocker_control(
     easy_mode: bool,
     light: &ComponentRef<TLight>,
     draw_context: &mut DrawContext,
-) {
+) -> Result<()> {
     // The original casts caller to TBlocker and assigns it to block,
     // but it doesn't use caller as anything else
     match code {
@@ -244,12 +244,12 @@ fn drain_ball_blocker_control(
                     MessageCode::T_BLOCKER_ENABLE,
                     blocker_duration,
                     draw_context,
-                );
+                )?;
                 lite1.borrow_mut().message(
                     MessageCode::T_LIGHT_TURN_ON_TIMED,
                     blocker_duration,
                     draw_context,
-                );
+                )?;
             }
         }
         MessageCode::CONTROL_TIMER_EXPIRED => {
@@ -263,24 +263,25 @@ fn drain_ball_blocker_control(
                         MessageCode::T_BLOCKER_RESTART_TIMEOUT,
                         blocker_duration,
                         draw_context,
-                    );
+                    )?;
                     lite1.borrow_mut().message(
                         MessageCode::T_LIGHT_FLASHER_START_TIMED,
                         blocker_duration,
                         draw_context,
-                    );
+                    )?;
                 } else {
                     block.borrow_mut().base.message_field = MessageCode(0);
                     block.borrow_mut().message(
                         MessageCode::T_BLOCKER_DISABLE,
                         0.0f32,
                         draw_context,
-                    );
+                    )?;
                 }
             }
         }
         _ => {}
     }
+    Ok(())
 }
 
 fn table_add_extra_ball(count: f32, state: &mut PinballState) -> Result<()> {
@@ -325,7 +326,7 @@ fn gravity_well_kickout_control(
                     MessageCode::T_LIGHT_RESET_AND_TURN_OFF,
                     0.0f32,
                     &mut draw_ctx,
-                );
+                )?;
                 c.borrow_mut().set_active_flag(false);
                 let duration = soundwave7
                     .borrow()
@@ -334,7 +335,7 @@ fn gravity_well_kickout_control(
                     MessageCode::T_KICKOUT_RESTART_TIMER,
                     duration,
                     &mut draw_ctx,
-                );
+                )?;
             }
         }
         _ => {

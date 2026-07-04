@@ -3,7 +3,7 @@ use crate::render::{RenderSprite, VisualTypes};
 use crate::{control::ComponentControl, loader, loader::VisualStruct};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
 use crate::{maths::*, proj};
-use anyhow::Context;
+use anyhow::{Context, Result};
 use std::any::Any;
 use std::ops::Index;
 use std::sync::Arc;
@@ -37,8 +37,13 @@ pub trait IPinballComponent {
     fn get_coordinates(&self, edge_manager: &TEdgeManager) -> Vector2;
     fn get_scoring(&self, index: u32) -> i32;
     fn port_draw(&self);
-    fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
-        0
+    fn message(
+        &mut self,
+        code: MessageCode,
+        value: f32,
+        draw_context: &mut DrawContext,
+    ) -> Result<i32> {
+        Ok(0)
     }
     fn set_active_flag(&mut self, active: bool);
     fn as_any_mut(&mut self) -> &mut dyn Any;
@@ -279,14 +284,19 @@ impl IPinballComponent for TPinballComponent {
     fn port_draw(&self) {}
 
     #[allow(unused)]
-    fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
+    fn message(
+        &mut self,
+        code: MessageCode,
+        value: f32,
+        draw_context: &mut DrawContext,
+    ) -> Result<i32> {
         // TODO?
         self.message_field = code;
         if code == MessageCode::RESET {
             self.message_field = MessageCode(0);
         }
 
-        0
+        Ok(0)
     }
 
     fn set_active_flag(&mut self, active: bool) {

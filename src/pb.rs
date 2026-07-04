@@ -364,12 +364,12 @@ pub fn get_rc_int(u_id: Msg) -> Result<i32, TranslationError> {
 pub fn reset_table(
     table: &Option<Rc<RefCell<TPinballTable>>>,
     draw_context: &mut DrawContext,
-) -> Result<(), PbError> {
+) -> Result<()> {
     table
         .as_ref()
         .unwrap()
         .borrow_mut()
-        .message(MessageCode::RESET, 0.0, draw_context);
+        .message(MessageCode::RESET, 0.0, draw_context)?;
     Ok(())
 }
 
@@ -396,7 +396,7 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
                 .borrow_mut()
                 .message(MessageCode::RESET, 0.0f32, &mut draw_ctx),
             None => bail!(PbError::NoTable),
-        };
+        }?;
 
         mode_change(
             GameModes::GameOver,
@@ -461,7 +461,7 @@ pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<()> {
                 MessageCode::NEW_GAME,
                 *state.options_state.options.players as f32,
                 &mut draw_ctx,
-            );
+            )?;
         }
     }
 
@@ -534,7 +534,7 @@ fn mode_change(
                     MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION,
                     1.4f32,
                     &mut draw_ctx,
-                );
+                )?;
             }
         }
     }
@@ -884,7 +884,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
             MessageCode::PAUSE,
             state.pb_game_state.time_now,
             &mut draw_ctx,
-        );
+        )?;
     }
     let rc_string = get_rc_string(Msg::STRING123)?;
 
@@ -936,7 +936,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                     MessageCode::LEFT_FLIPPER_INPUT_RELEASED,
                     state.pb_game_state.time_now,
                     &mut draw_ctx,
-                );
+                )?;
             }
             GameBindings::RightFlipper => {
                 let mut draw_ctx = DrawContext {
@@ -950,7 +950,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                     MessageCode::RIGHT_FLIPPER_INPUT_RELEASED,
                     state.pb_game_state.time_now,
                     &mut draw_ctx,
-                );
+                )?;
             }
             GameBindings::Plunger => {
                 let mut draw_ctx = DrawContext {
@@ -964,7 +964,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                     MessageCode::PLUNGER_INPUT_PRESSED,
                     state.pb_game_state.time_now,
                     &mut draw_ctx,
-                );
+                )?;
             }
             GameBindings::LeftTableBump => {
                 if !table.tilt_lock_flag {
@@ -1052,7 +1052,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                             MessageCode::T_LIGHT_FT_TMP_OVERRIDE_ON,
                             1.0f32,
                             &mut draw_ctx,
-                        );
+                        )?;
                     }
                 }
                 0x70 => {
@@ -1068,7 +1068,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                             MessageCode::T_LIGHT_FT_TMP_OVERRIDE_OFF,
                             1.0f32,
                             &mut draw_ctx,
-                        );
+                        )?;
                     }
                 }
                 _ => {}
@@ -1094,7 +1094,7 @@ pub(crate) fn launch_ball(state: &mut PinballState) -> Result<()> {
             background_bitmap: &state.render_state.background_bitmap,
         };
 
-        plunger.message(MessageCode::PLUNGER_LAUNCH_BALL, 0.0f32, &mut draw_ctx);
+        plunger.message(MessageCode::PLUNGER_LAUNCH_BALL, 0.0f32, &mut draw_ctx)?;
     } else {
         bail!(PbError::NoTable)
     }
@@ -1114,7 +1114,7 @@ pub(crate) fn lose_focus(
     if let Some(table) = table_option {
         table
             .borrow_mut()
-            .message(MessageCode::LOOSE_FOCUS, time_now, draw_context);
+            .message(MessageCode::LOOSE_FOCUS, time_now, draw_context)?;
         Ok(())
     } else {
         bail!(PbError::NoTable);
@@ -1180,7 +1180,7 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
                         MessageCode::PLUNGER_INPUT_PRESSED,
                         state.pb_game_state.time_now,
                         &mut draw_ctx,
-                    );
+                    )?;
                 }
             }
             GameBindings::LeftTableBump => {}

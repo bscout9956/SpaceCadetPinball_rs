@@ -24,7 +24,7 @@ use std::cell::{RefCell, RefMut};
 use std::ptr::null;
 use std::rc::Rc;
 
-pub(crate) unsafe fn draw_overlay(state: &mut PinballState) {
+pub(crate) unsafe fn draw_overlay(state: &mut PinballState) -> Result<()> {
     if state.debug_state.db_screen.is_none() {
         if let Some(v_screen) = state.render_state.v_screen.as_ref() {
             state.debug_state.db_screen = Some(GdrvBitmap8::new_dims_indexed_buff(
@@ -119,8 +119,9 @@ pub(crate) unsafe fn draw_overlay(state: &mut PinballState) {
             }
 
             SDL_SetRenderDrawBlendMode(renderer.0, blend_mode);
+            Ok(())
         } else {
-            panic!("No renderer found, can't debug");
+            bail!("No renderer found, can't debug");
         }
     }
 }
@@ -153,7 +154,7 @@ fn draw_edge(
     mut edge: RefMut<dyn IEdgeSegment>,
     renderer: &SdlRendererPtr,
     table: &Rc<RefCell<TPinballTable>>,
-) {
+) -> Result<()> {
     if *state.options.debug_overlay_collision_mask {
         let mut ref_ball: Option<Rc<RefCell<TBall>>> = None;
 
@@ -168,7 +169,7 @@ fn draw_edge(
         if let Some(ball) = ref_ball {
             // TODO: Should be fine in x64 but what about x86?
             if (ball.borrow().collision_mask as usize & edge.collision_group() as usize) == 0 {
-                return;
+                return Ok(());
             }
         }
     }
@@ -194,6 +195,8 @@ fn draw_edge(
         draw_circle_type(&fl.circle_base, renderer);
         draw_circle_type(&fl.circle_t1, renderer);
     }
+
+    Ok(())
 }
 
 fn draw_line_type(line: &LineType, renderer: &SdlRendererPtr) {
@@ -221,7 +224,7 @@ unsafe fn draw_all_edges(
     renderer: &SdlRendererPtr,
     table: &Rc<RefCell<TPinballTable>>,
     options_state: &mut OptionsState,
-) {
+) -> Result<()> {
     unsafe {
         SDL_SetRenderDrawColor(renderer.0, 0, 200, 200, 255);
     }
@@ -233,10 +236,11 @@ unsafe fn draw_all_edges(
         if let Some(collision_component) = coll_cmp_conc {
             for edge in collision_component.edge_list.iter() {
                 let edge_ref = edge.borrow_mut();
-                draw_edge(options_state, edge_ref, renderer, table);
+                draw_edge(options_state, edge_ref, renderer, table)?;
             }
         }
     }
+    Ok(())
 }
 
 unsafe fn draw_box_grid(renderer: &SdlRendererPtr, state: &mut PbGameState) {

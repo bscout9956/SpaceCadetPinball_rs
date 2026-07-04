@@ -5,6 +5,7 @@ use crate::message_code::MessageCode;
 use crate::state::pinball_state::PinballState;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
+use anyhow::Result;
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
@@ -63,8 +64,9 @@ impl IPinballComponent for TLightGroup {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32, _ctx: &mut DrawContext) -> i32 {
-        todo!()
+    fn message(&mut self, code: MessageCode, value: f32, _ctx: &mut DrawContext) -> Result<i32> {
+        println!("BLINKY BLINKY OOO");
+        Ok(0)
     }
 
     fn set_active_flag(&mut self, active: bool) {

@@ -109,14 +109,19 @@ impl IPinballComponent for TWall {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
+    fn message(
+        &mut self,
+        code: MessageCode,
+        value: f32,
+        draw_context: &mut DrawContext,
+    ) -> Result<i32> {
         if code == MessageCode::RESET && self.timer > 0 {
             timer::kill_id(self.timer);
             unsafe {
                 timer_expired(self.timer, &raw mut *self as *mut c_void, draw_context);
             }
         }
-        0
+        Ok(0)
     }
 
     fn set_active_flag(&mut self, active: bool) {

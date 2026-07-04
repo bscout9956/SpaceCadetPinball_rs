@@ -530,8 +530,13 @@ impl IPinballComponent for TPinballTable {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
-        let rc_text = String::new();
+    fn message(
+        &mut self,
+        code: MessageCode,
+        value: f32,
+        draw_context: &mut DrawContext,
+    ) -> Result<i32> {
+        let mut rc_text = String::new();
 
         // TODO: Is it just reset? If there's no more, use if let
         match code {
@@ -572,7 +577,7 @@ impl IPinballComponent for TPinballTable {
         }
         // TODO: Implement me
         //control::table_control_handler(code);
-        0
+        Ok(0)
     }
 
     fn set_active_flag(&mut self, active: bool) {

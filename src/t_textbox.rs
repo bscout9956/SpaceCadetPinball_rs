@@ -391,7 +391,7 @@ impl TTextBox {
                     b,
                     self.offset_x,
                     self.offset_y,
-                );
+                )?;
             }
         } else {
             if let Some(v_screen) = draw_context.v_screen.as_mut() {

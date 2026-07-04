@@ -191,7 +191,12 @@ impl IPinballComponent for TPlunger {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
+    fn message(
+        &mut self,
+        code: MessageCode,
+        value: f32,
+        draw_context: &mut DrawContext,
+    ) -> Result<i32> {
         // TODO: All other messages lol
         match code {
             MessageCode::PLUNGER_INPUT_PRESSED => {
@@ -219,7 +224,7 @@ impl IPinballComponent for TPlunger {
             MessageCode::PLUNGER_LAUNCH_BALL => {
                 self.pullback_started_flag = true;
                 self.base.boost = self.max_pull_back;
-                self.message(MessageCode::PLUNGER_INPUT_RELEASED, 0.0f32, draw_context);
+                self.message(MessageCode::PLUNGER_INPUT_RELEASED, 0.0f32, draw_context)?;
             }
             MessageCode::RESUME
             | MessageCode::LOOSE_FOCUS
@@ -245,7 +250,7 @@ impl IPinballComponent for TPlunger {
                 println!("Message code not yet implemented: {}", v);
             }
         }
-        0
+        Ok(0)
     }
 
     fn set_active_flag(&mut self, active: bool) {
