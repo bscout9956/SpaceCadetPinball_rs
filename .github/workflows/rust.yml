@@ -24,6 +24,9 @@ jobs:
               with:
                   components: rustfmt, clippy
 
+            - name: Setup MSVC development environment
+              uses: ilammy/msvc-dev-cmd@v1
+
             - name: Install LLVM for bindgen
               uses: KyleMayes/install-llvm-action@v2
               with:
