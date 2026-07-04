@@ -142,7 +142,7 @@ impl TBall {
                 501,
                 &mut state.loader_state,
             )
-                .context("Failed to query visual in TBall")?;
+            .context("Failed to query visual in TBall")?;
             let vis_vec_slice = slice_from_raw_parts(vis_vec_ptr, 3);
             unsafe {
                 let vis_vec = Vector3 {
@@ -238,10 +238,6 @@ impl ICollisionComponent for TBall {
     }
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
-        todo!()
-    }
-
-    fn field_effect(&mut self, ball_position: &Vector3, ball_direction: &Vector3, ball_speed: f32, vec_destination: &mut Vector2) -> i32 {
         todo!()
     }
 
