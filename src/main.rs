@@ -633,9 +633,9 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool> {
                 state,
             )?;
 
-            let select_player_string = pb::get_rc_string_cstring(Msg::Menu1SelectPlayers)?;
+            let select_player_string = get_rc_string_cstring(Msg::Menu1SelectPlayers)?;
             if igBeginMenu(select_player_string.as_ptr(), true) {
-                let one_player_string = pb::get_rc_string_cstring(Msg::MENU1_1PLAYER)?;
+                let one_player_string = get_rc_string_cstring(Msg::MENU1_1PLAYER)?;
                 if igMenuItem_Bool(
                     one_player_string.as_ptr(),
                     null(),
@@ -648,7 +648,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool> {
                 }
 
                 if igMenuItem_Bool(
-                    pb::get_rc_string_cstring(Msg::MENU1_2PLAYERS)?.as_ptr(),
+                    get_rc_string_cstring(Msg::MENU1_2PLAYERS)?.as_ptr(),
                     null(),
                     *state.options_state.options.players == 2,
                     true,
@@ -658,7 +658,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool> {
                 }
 
                 if igMenuItem_Bool(
-                    pb::get_rc_string_cstring(Msg::MENU1_3PLAYERS)?.as_ptr(),
+                    get_rc_string_cstring(Msg::MENU1_3PLAYERS)?.as_ptr(),
                     null(),
                     *state.options_state.options.players == 3,
                     true,
@@ -669,7 +669,7 @@ unsafe fn create_options_menu(state: &mut PinballState) -> Result<bool> {
                 }
 
                 if igMenuItem_Bool(
-                    pb::get_rc_string_cstring(Msg::MENU1_4PLAYERS)?.as_ptr(),
+                    get_rc_string_cstring(Msg::MENU1_4PLAYERS)?.as_ptr(),
                     null(),
                     *state.options_state.options.players == 4,
                     true,
