@@ -178,8 +178,9 @@ use crate::t_edge_manager::TEdgeManager;
 use crate::t_flipper::TFlipper;
 use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
+use crate::translations::Msg;
 use crate::utils::DrawContext;
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 
 impl TPinballTable {
     pub fn new(state: &mut PinballState) -> Result<Rc<RefCell<Self>>> {

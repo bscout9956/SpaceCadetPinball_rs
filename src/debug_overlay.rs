@@ -5,13 +5,10 @@ use crate::state::options_state::OptionsState;
 use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
-use crate::t_circle::TCircle;
-use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_segment::IEdgeSegment;
-use crate::t_flipper_edge::TFlipperEdge;
-use crate::t_line::TLine;
 use crate::t_pinball_table::TPinballTable;
 use crate::utils::SdlRendererPtr;
+use anyhow::{Result, bail};
 use sdl2::sys::SDL_BlendMode::SDL_BLENDMODE_BLEND;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_TARGET;
 use sdl2::sys::{

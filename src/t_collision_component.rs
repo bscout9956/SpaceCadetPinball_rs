@@ -72,7 +72,7 @@ impl DerefMut for TCollisionComponent {
 use crate::render::RenderSprite;
 use crate::t_edge_manager::TEdgeManager;
 use crate::utils::DrawContext;
-use anyhow::{Result, bail};
+use anyhow::Result;
 
 impl TCollisionComponent {
     pub fn new(

@@ -85,9 +85,8 @@ pub enum TLightGroupError {
 }
 
 use crate::render::RenderSprite;
-use crate::utils::DrawContext;
-use anyhow::Result;
 use crate::t_edge_manager::TEdgeManager;
+use crate::utils::DrawContext;
 
 impl TLightGroup {
     pub(crate) fn new(

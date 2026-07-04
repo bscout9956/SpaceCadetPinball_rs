@@ -50,7 +50,7 @@ use std::mem::MaybeUninit;
 use std::ops::{Mul, Neg, Sub};
 use std::path::PathBuf;
 use std::process::exit;
-use std::ptr::{null, null_mut};
+use std::ptr::null;
 use std::sync::{MutexGuard, PoisonError};
 use thiserror::Error;
 
