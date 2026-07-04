@@ -238,7 +238,7 @@ impl ICollisionComponent for TBall {
     }
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
-        todo!()
+        &mut self.collision_comp.as_mut().unwrap().edge_list
     }
 
     fn set_AABB(&mut self, aabb: RectF) {
