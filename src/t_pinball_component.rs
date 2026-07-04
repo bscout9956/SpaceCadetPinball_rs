@@ -34,7 +34,7 @@ pub trait IPinballComponent {
     fn group_name(&self) -> Option<Rc<RefCell<String>>>;
     fn group_index(&self) -> i32;
     fn sprite_set(&mut self, index: i32);
-    fn get_coordinates(&self) -> Vector2;
+    fn get_coordinates(&self, edge_manager: &TEdgeManager) -> Vector2;
     fn get_scoring(&self, index: u32) -> i32;
     fn port_draw(&self);
     fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
@@ -45,6 +45,7 @@ pub trait IPinballComponent {
 }
 
 use crate::state::pinball_state::PinballState;
+use crate::t_edge_manager::TEdgeManager;
 use crate::utils::DrawContext;
 use anyhow::Result;
 
@@ -255,7 +256,7 @@ impl IPinballComponent for TPinballComponent {
         }
     }
 
-    fn get_coordinates(&self) -> Vector2 {
+    fn get_coordinates(&self, _edge_manager: &TEdgeManager) -> Vector2 {
         Vector2 {
             x: self.visual_pos_norm_x,
             y: self.visual_pos_norm_y,
@@ -263,12 +264,19 @@ impl IPinballComponent for TPinballComponent {
     }
 
     fn get_scoring(&self, index: u32) -> i32 {
-        todo!()
+        match self.control.as_ref() {
+            Some(weak_ref) if index < weak_ref.upgrade().unwrap().borrow().scores.len() as u32 => {
+                weak_ref.upgrade().unwrap().borrow().scores[index as usize]
+            }
+            None => 0,
+            Some(_) => {
+                eprintln!("This shouldn't have happened!");
+                0
+            }
+        }
     }
 
-    fn port_draw(&self) {
-        // TODO: Doesn't have an impl?
-    }
+    fn port_draw(&self) {}
 
     #[allow(unused)]
     fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {

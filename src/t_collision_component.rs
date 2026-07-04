@@ -70,6 +70,7 @@ impl DerefMut for TCollisionComponent {
 }
 
 use crate::render::RenderSprite;
+use crate::t_edge_manager::TEdgeManager;
 use crate::utils::DrawContext;
 use anyhow::{Result, bail};
 
@@ -295,12 +296,12 @@ impl IPinballComponent for TCollisionComponent {
         self.base.sprite_set(index);
     }
 
-    fn get_coordinates(&self) -> Vector2 {
-        todo!()
+    fn get_coordinates(&self, tedge_manager: &TEdgeManager) -> Vector2 {
+        self.base.get_coordinates(tedge_manager)
     }
 
     fn get_scoring(&self, index: u32) -> i32 {
-        todo!()
+        self.base.get_scoring(index)
     }
 
     fn port_draw(&self) {
@@ -308,10 +309,6 @@ impl IPinballComponent for TCollisionComponent {
             let edge_borrow = edge.borrow();
             edge_borrow.port_draw();
         }
-    }
-
-    fn message(&mut self, code: MessageCode, value: f32, _draw_context: &mut DrawContext) -> i32 {
-        todo!()
     }
 
     fn set_active_flag(&mut self, active: bool) {
