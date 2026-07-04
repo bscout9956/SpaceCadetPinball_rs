@@ -555,7 +555,124 @@ impl IPinballComponent for TPinballTable {
                 self.replay_timer = 0;
                 self.tilt_lock_flag = false;
             }
-            _ => {}
+            MessageCode::PAUSE | MessageCode::RESUME | MessageCode::LOOSE_FOCUS => {
+                for cmp in self.component_list.iter_mut() {
+                    cmp.borrow_mut().message(code, value, draw_context)?;
+                }
+            }
+            MessageCode::START_GAME_PLAYER1 => {
+                if let Some(lg) = self.light_group.as_mut() {
+                    lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, draw_context)?;
+                    lg.message(MessageCode::T_LIGHT_RESET_AND_TURN_OFF, 0.0, draw_context)?;
+                }
+                if let Some(plunger) = self.plunger.as_mut() {
+                    plunger.message(MessageCode::PLUNGER_START_FEED_TIMER, 0.0, draw_context)?;
+                }
+                if let Some(demo) = self.demo.as_mut()
+                    && demo.active_flag
+                {
+                    rc_text = pb::get_rc_string(Msg::STRING131)?.to_string();
+                } else {
+                    rc_text = pb::get_rc_string(Msg::STRING127)?.to_string();
+                }
+                // TODO: Infobox
+                if let Some(demo) = self.demo.as_mut() {
+                    //demo.message(newgame, 0.0); // TODO DEMO
+                }
+            }
+            MessageCode::NEW_GAME => {
+                if self.end_game_timeout_timer > 0 {
+                    timer::kill_id(self.end_game_timeout_timer);
+                    // TODO: self.end_game_timeout(0, self);
+                    // pb::mode_change(GameModes::InGame, )
+                }
+                if self.light_show_timer > 0 {
+                    timer::kill_id(self.light_show_timer);
+                    self.light_show_timer = 0;
+                    self.message(MessageCode::START_GAME_PLAYER1, 0.0, draw_context)?;
+                } else {
+                    // Some of the control cheats persist across games.
+                    // Was this loose anti-cheat by design?
+                    self.cheats_used = 0;
+                    self.message(MessageCode::RESET, 0.0, draw_context)?;
+                    let mut ball = self.ball_list[0].borrow_mut();
+                    ball.position.y = 0.0;
+                    ball.position.x = 0.0;
+                    ball.position.z = -0.8;
+
+                    let player_count = value.floor() as i32;
+                    self.player_count = player_count;
+                    if player_count >= 1 {
+                        if player_count > 4 {
+                            self.player_count = 4;
+                        }
+                    } else {
+                        self.player_count = 1;
+                    }
+
+                    let plr1_score = &self.player_scores[0].score_struct;
+                    self.current_player = 0;
+                    self.cur_score_struct = Some(plr1_score.clone());
+                    self.cur_score = 0;
+
+                    // Blergh, this could be better
+                    let mut score_struct = self.cur_score_struct.take().unwrap();
+                    score::set(&mut score_struct, 0);
+                    self.cur_score_struct = Some(score_struct);
+
+                    self.score_multiplier = 0;
+
+                    for plr_index in 1..self.player_count as usize {
+                        let score = &mut self.player_scores[plr_index];
+                        score::set(&mut score.score_struct, 0);
+                        score.score = 0;
+                        score.score_e9_part = 0;
+                        score.ball_count = self.max_ball_count;
+                        score.extra_balls = self.extra_balls;
+                        score.ball_locked_counter = self.ball_locked_counter;
+                        score.jackpot_score = self.jackpot_score;
+                    }
+
+                    self.ball_count = self.max_ball_count;
+                    // TODO: self.change_ball_count(self.ball_count);
+                    let mut score_player_num_1 = self.score_player_number_1.take().unwrap();
+                    score::set(&mut score_player_num_1, self.current_player + 1);
+                    self.score_player_number_1 = Some(score_player_num_1.clone());
+                    //TODO: score::update(self.score_player_number_1);
+
+                    for score_index in (0..4 - self.player_count as usize).rev() {
+                        score::set(&mut self.player_scores[score_index].score_struct, -1);
+                    }
+
+                    self.jackpot_score_flag = false;
+                    self.bonus_score_flag = false;
+                    self.unknown_p71 = 0;
+                    // TODO: clear pb info text box and miss text box
+                    if let Some(lg) = self.light_group.as_mut() {
+                        lg.message(
+                            MessageCode::T_LIGHT_GROUP_LIGHT_SHOW_ANIMATION,
+                            0.2,
+                            draw_context,
+                        )?;
+                    }
+                    //  TODO
+                    // let time = loader::play_sound(self.sound_index_1, null_mut(), "TPinballTable2");
+                    // if time < 0.0 {
+                    // time = 5.0;
+                    //}
+                    // self.light_show_timer = timer::set(time, self, lightshow_timeout);
+                }
+
+                if draw_context.full_tilt_mode {
+                    // multi ball is FT exclusive feature at least for now
+                    self.multiball_flag = true;
+                    self.jackpot_score = 500000;
+                }
+                // midi::play_track(Miditracks::track1, true); TODO
+            }
+            _ => {
+                println!("Not yet implemented: {:?}", code);
+            }
         }
         // TODO: Implement me
         //control::table_control_handler(code);
