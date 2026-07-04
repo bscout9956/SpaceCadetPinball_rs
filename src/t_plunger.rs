@@ -172,7 +172,7 @@ impl IPinballComponent for TPlunger {
     }
 
     fn group_index(&self) -> i32 {
-        todo!()
+        self.base.group_index
     }
 
     fn sprite_set(&mut self, index: i32) {
