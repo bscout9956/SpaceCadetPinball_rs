@@ -862,7 +862,7 @@ fn new_game(state: &mut PinballState) -> Result<()> {
 
 unsafe fn create_resolution_menu(state: &mut PinballState) -> Result<()> {
     unsafe {
-        let table_res_string = pb::get_rc_string_cstring(Msg::Menu1TableResolution)?;
+        let table_res_string = get_rc_string_cstring(Msg::Menu1TableResolution)?;
         if igBeginMenu(table_res_string.as_ptr(), true) {
             let mut resolution_string_id = Msg::Menu1UseMaxResolution640x480;
 
@@ -879,7 +879,7 @@ unsafe fn create_resolution_menu(state: &mut PinballState) -> Result<()> {
                 _ => {}
             }
 
-            let max_res_text = pb::get_rc_string_cstring(resolution_string_id)?;
+            let max_res_text = get_rc_string_cstring(resolution_string_id)?;
             if igMenuItem_Bool(
                 max_res_text.as_ptr(),
                 null(),
@@ -938,7 +938,8 @@ unsafe fn create_audio_menu(state: &mut PinballState) -> Result<()> {
             ) {
                 options::toggle(Menu::SoundStereo, state)?;
             }
-            igTextUnformatted(c"Sound Volume".as_ptr(), c"".as_ptr());
+            let snd_vol_cstr = c"Sound Volume".as_ptr();
+            igTextUnformatted(snd_vol_cstr, get_cstring_end(snd_vol_cstr));
             if igSliderInt(
                 c"##Sound Volume".as_ptr(),
                 &raw mut state.options_state.options.sound_volume.value,
@@ -952,7 +953,8 @@ unsafe fn create_audio_menu(state: &mut PinballState) -> Result<()> {
                     *state.options_state.options.sound_volume,
                 );
             }
-            igTextUnformatted(c"Sound Channels".as_ptr(), c"".as_ptr());
+            let snd_channels_cstr = c"Sound Channels".as_ptr();
+            igTextUnformatted(snd_channels_cstr, get_cstring_end(snd_channels_cstr));
             if igSliderInt(
                 c"##Sound Channels".as_ptr(),
                 &raw mut state.options_state.options.sound_channels.value,
@@ -973,7 +975,8 @@ unsafe fn create_audio_menu(state: &mut PinballState) -> Result<()> {
                 Some(*state.options_state.options.music),
                 state,
             )?;
-            igTextUnformatted(c"Music Volume".as_ptr(), c"".as_ptr());
+            let m_vol_cstr = c"Music Volume".as_ptr();
+            igTextUnformatted(m_vol_cstr, get_cstring_end(m_vol_cstr));
             if igSliderInt(
                 c"##Music Volume".as_ptr(),
                 &raw mut state.options_state.options.music_volume.value,
