@@ -161,9 +161,11 @@ pub(crate) fn dup(score_struct: Option<ScoreStruct>, p1: usize) -> ScoreStruct {
     score_struct.unwrap()
 }
 
-pub(crate) fn set(score: &mut Option<ScoreStruct>, value: i32) {
-    if let Some(s) = score.as_mut() {
-        s.score = value;
-        s.dirty_flag = true;
-    }
+pub(crate) fn set(score: &mut ScoreStruct, value: i32) {
+    score.score = value;
+    score.dirty_flag = true;
+}
+
+pub(crate) fn update(p0: Option<ScoreStruct>) {
+    todo!()
 }

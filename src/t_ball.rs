@@ -248,7 +248,7 @@ use crate::message_code::MessageCode;
 use crate::state::pb_game_state::PbGameState;
 use crate::t_edge_manager::TEdgeManager;
 use crate::utils::DrawContext;
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 
 impl IEdgeSegment for TBall {
     fn active_flag(&self) -> Rc<Cell<bool>> {

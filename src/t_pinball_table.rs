@@ -466,7 +466,10 @@ impl TPinballTable {
             self.cur_score -= 1000000000;
         }
 
-        score::set(&mut self.cur_score_struct, self.cur_score);
+        let mut cur_score = self.cur_score_struct.take().unwrap();
+        score::set(&mut cur_score, self.cur_score);
+        self.cur_score_struct = Some(cur_score);
+
         Ok(added_score)
     }
 
