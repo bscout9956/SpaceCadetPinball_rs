@@ -260,4 +260,8 @@ impl IPinballComponent for TPlunger {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+
+    fn as_collision_component(&self) -> Option<&TCollisionComponent> {
+        Some(&self.base)
+    }
 }

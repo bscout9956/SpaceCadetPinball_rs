@@ -47,9 +47,13 @@ pub trait IPinballComponent {
     }
     fn set_active_flag(&mut self, active: bool);
     fn as_any_mut(&mut self) -> &mut dyn Any;
+    fn as_collision_component(&self) -> Option<&TCollisionComponent> {
+        None
+    }
 }
 
 use crate::state::pinball_state::PinballState;
+use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_manager::TEdgeManager;
 use crate::utils::DrawContext;
 use anyhow::Result;

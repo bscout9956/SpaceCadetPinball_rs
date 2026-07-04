@@ -364,7 +364,12 @@ impl IPinballComponent for TBall {
         self.base.port_draw()
     }
 
-    fn message(&mut self, code: MessageCode, _value: f32, _draw_context: &mut DrawContext) -> i32 {
+    fn message(
+        &mut self,
+        code: MessageCode,
+        _value: f32,
+        _draw_context: &mut DrawContext,
+    ) -> Result<i32> {
         if code == MessageCode::RESET {
             self.base
                 .sprite_set_ball(-1, &mut Vector2i::new(0, 0), 0.0f32);
@@ -380,7 +385,7 @@ impl IPinballComponent for TBall {
             self.speed = 0.0;
             self.ray_max_distance = 0.0;
         }
-        0
+        Ok(0)
     }
 
     fn set_active_flag(&mut self, active: bool) {
@@ -389,5 +394,9 @@ impl IPinballComponent for TBall {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn as_collision_component(&self) -> Option<&TCollisionComponent> {
+        Some(&self.base)
     }
 }

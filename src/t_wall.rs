@@ -131,6 +131,10 @@ impl IPinballComponent for TWall {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+
+    fn as_collision_component(&self) -> Option<&TCollisionComponent> {
+        Some(&self.base)
+    }
 }
 
 unsafe extern "C" fn timer_expired(timer_id: i32, caller: *mut c_void, _ctx: &mut DrawContext) {
