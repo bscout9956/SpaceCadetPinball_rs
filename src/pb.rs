@@ -673,9 +673,11 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
                 ball.time_delta = 0.01f32;
             }
             ball.collision_disabled_flag = false;
-            if let Some(rc_ptr) = ball.collision_comp.as_ref().and_then(|weak| weak.upgrade()) {
-                let mut collision_comp = rc_ptr.borrow_mut();
-                collision_comp.field_effect(ball, &mut vec_dst);
+            let ball_pos = ball.position;
+            let ball_dir = ball.direction;
+            let ball_speed = ball.speed;
+            if let Some(col) = ball.collision_comp.as_mut() {
+                col.field_effect(&ball_pos, &ball_dir, ball_speed, &mut vec_dst);
             } else {
                 // TODO: Implement this edge manager ig
                 // t_table_layer::edge_manager.field_effects(ball, &mut vec_dst);
