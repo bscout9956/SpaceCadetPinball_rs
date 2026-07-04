@@ -5,14 +5,18 @@ use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPl
 use crate::options::{DEF_FPS, DEF_UPS, GameBindings, GameInput, InputTypes, Menu};
 use crate::pb::get_rc_string_cstring;
 use crate::translations::Msg;
-use crate::utils::{DrawContext, SdlRendererPtr, SdlWindowPtr};
+use crate::utils::{DrawContext, SdlRendererPtr, SdlWindowPtr, get_cstring_end};
 use anyhow::{Context, Result, bail};
 use dear_imgui_rs::sys::{
-    ImGuiFocusRequestFlags_None, ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp,
-    ImGuiStyleVar_WindowMinSize, ImVec2_c, ImVec4, ImWchar, igBeginMainMenuBar, igBeginMenu,
-    igDragFloat, igEnd, igEndMainMenuBar, igEndMenu, igFocusWindow, igGetDrawData, igGetWindowSize,
-    igMenuItem_Bool, igPopStyleVar, igPushStyleVar_Vec2, igRender, igSeparator, igSetMouseCursor,
-    igSliderInt, igTextUnformatted,
+    ImGuiCol_Button, ImGuiCol_ButtonActive, ImGuiCol_ButtonHovered, ImGuiFocusRequestFlags_None,
+    ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp, ImGuiStyleVar_WindowMinSize,
+    ImGuiTabBarFlags_None, ImGuiWindowFlags_None, ImVec2_c, ImVec4, ImVec4_c, ImWchar,
+    igBeginMainMenuBar, igBeginMenu, igBeginPopupModal, igBeginTabBar, igBeginTabItem,
+    igBeginTable, igButton, igCloseCurrentPopup, igDragFloat, igEnd, igEndMainMenuBar, igEndMenu,
+    igEndPopup, igEndTabBar, igEndTabItem, igEndTable, igFocusWindow, igGetDrawData,
+    igGetWindowSize, igMenuItem_Bool, igOpenPopup_Str, igPopStyleColor, igPopStyleVar,
+    igPushStyleColor_Vec4, igPushStyleVar_Vec2, igRender, igSeparator, igSetMouseCursor,
+    igSliderInt, igSmallButton, igTableNextColumn, igTableNextRow, igTextUnformatted,
 };
 use dear_imgui_rs::{ConfigFlags, FontConfig, StyleColor, StyleVar, Ui};
 use errors::MainLoopError;
@@ -45,7 +49,7 @@ use std::mem::MaybeUninit;
 use std::ops::{Mul, Neg, Sub};
 use std::path::PathBuf;
 use std::process::exit;
-use std::ptr::null;
+use std::ptr::{null, null_mut};
 use std::sync::{MutexGuard, PoisonError};
 use thiserror::Error;
 
