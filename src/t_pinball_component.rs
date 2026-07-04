@@ -56,7 +56,6 @@ use crate::state::pinball_state::PinballState;
 use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_manager::TEdgeManager;
 use crate::utils::DrawContext;
-use anyhow::Result;
 
 impl TPinballComponent {
     pub fn new(

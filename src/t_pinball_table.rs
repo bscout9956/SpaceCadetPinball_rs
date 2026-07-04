@@ -180,7 +180,7 @@ use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
 use crate::translations::Msg;
 use crate::utils::DrawContext;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 
 impl TPinballTable {
     pub fn new(state: &mut PinballState) -> Result<Rc<RefCell<Self>>> {
@@ -367,7 +367,7 @@ impl TPinballTable {
                         }
                         _ => {
                             // TODO: Implement the rest of the objects
-                            println!("Unimplemented/unknown object type: {}", object_type);
+                            //println!("Unimplemented/unknown object type: {}", object_type);
                         }
                     }
                 }
