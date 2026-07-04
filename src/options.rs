@@ -6,14 +6,19 @@ use crate::state::options_state::OptionsState;
 use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::translations::Msg;
-use crate::utils::clamp;
-use crate::{fullscrn, midi, render, sound, translations, update_frame_rate};
+use crate::utils::{clamp, get_cstring_end};
+use crate::{fullscrn, midi, pb, render, sound, translations, update_frame_rate};
 use anyhow::{Context, Result};
 use dear_imgui_rs::Io;
 use dear_imgui_rs::sys::{
-    ImGuiContext, ImGuiSettingsHandler, ImGuiTextBuffer, ImGuiTextBuffer_append,
-    ImGuiTextBuffer_appendf, igAddSettingsHandler, igGetCurrentContext, igImHashStr,
-    igLoadIniSettingsFromDisk, igMarkIniSettingsDirty_Nil,
+    ImGuiCol_Button, ImGuiContext, ImGuiSettingsHandler, ImGuiStyleVar_CellPadding,
+    ImGuiStyleVar_WindowMinSize, ImGuiTableFlags_Borders, ImGuiTableFlags_NoSavedSettings,
+    ImGuiTableFlags_SizingStretchSame, ImGuiTextBuffer, ImGuiTextBuffer_append,
+    ImGuiTextBuffer_appendf, ImVec2_c, ImVec4_c, igAddSettingsHandler, igBegin, igBeginMenu,
+    igBeginTable, igEnd, igEndMenu, igEndTable, igGetCurrentContext, igImHashStr,
+    igLoadIniSettingsFromDisk, igMarkIniSettingsDirty_Nil, igMenuItem_Bool, igPopStyleColor,
+    igPopStyleVar, igPushStyleColor_Vec4, igPushStyleVar_Vec2, igSameLine, igSpacing,
+    igTableHeadersRow, igTableNextColumn, igTableSetupColumn, igTextUnformatted, igTextWrapped,
 };
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -24,6 +29,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::{CStr, CString, c_char, c_void};
 use std::ops::{Deref, DerefMut, Sub};
+use std::ptr::null;
 use thiserror::Error;
 
 pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
