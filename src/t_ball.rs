@@ -357,7 +357,7 @@ impl IPinballComponent for TBall {
     }
 
     fn sprite_set(&mut self, index: i32) {
-        todo!()
+        self.base_component.sprite_set(index);
     }
 
     fn get_coordinates(&self) -> Vector2 {
