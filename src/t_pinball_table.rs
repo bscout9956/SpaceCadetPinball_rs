@@ -123,25 +123,6 @@ impl TPinballTable {
         }
         None
     }
-
-    fn find_component_by_name_typed<T: Clone + 'static>(
-        &self,
-        component_name: &str,
-    ) -> Option<Rc<RefCell<T>>> {
-        for comp in self.component_list.iter() {
-            let name = comp.borrow().group_name();
-            if let Some(n) = name
-                && *n.borrow() == component_name
-            {
-                let comp_borrow = comp.borrow();
-                let res = comp_borrow.as_any().downcast_ref::<T>();
-                if let Some(comp_res) = res {
-                    return Some(Rc::new(RefCell::new(comp_res.clone())));
-                }
-            }
-        }
-        None
-    }
 }
 
 impl TPinballTable {
