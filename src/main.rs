@@ -1392,6 +1392,278 @@ unsafe fn render_ui(ui: &mut Ui, state: &mut PinballState) -> Result<bool> {
     Ok(reset_options)
 }
 
+fn render_dialogs(state: &mut PinballState) -> Result<()> {
+    a_dialog(state)?;
+    // high_score::render_high_score_dialog();
+    // font_selection::render_dialog();
+    if state.main_state.show_sprite_viewer {
+        render::sprite_viewer(&state.main_state.show_sprite_viewer);
+    }
+    options::render_control_dialog(state)?;
+    if state.main_state.disp_gr_history {
+        unsafe {
+            // render_frame_time_dialog()?;
+        }
+    }
+    Ok(())
+}
+
+fn a_dialog(state: &mut PinballState) -> Result<()> {
+    if state.main_state.show_about_dialog {
+        state.main_state.show_about_dialog = false;
+        unsafe {
+            igOpenPopup_Str(get_rc_string_cstring(Msg::STRING204)?.as_ptr(), 0);
+        }
+    }
+
+    let mut unused_open = true;
+    unsafe {
+        igPushStyleVar_Vec2(ImGuiStyleVar_WindowMinSize, ImVec2_c::new(600.0, 300.0));
+        let modal_caption = get_rc_string_cstring(Msg::STRING204)?;
+
+        if igBeginPopupModal(
+            modal_caption.as_ptr(),
+            &raw mut unused_open,
+            ImGuiWindowFlags_None,
+        ) {
+            if igBeginTabBar(c"AboutTabBar".as_ptr(), ImGuiTabBarFlags_None) {
+                if igBeginTabItem(
+                    c"3DPB".as_ptr(),
+                    &raw mut state.main_state.about_tab_open,
+                    0,
+                ) {
+                    igTextUnformatted(
+                        get_rc_string_cstring(Msg::STRING139)?.as_ptr(),
+                        c"".as_ptr(),
+                    );
+                    igTextUnformatted(
+                        c"Original game by Cinematronics, Microsoft".as_ptr(),
+                        c"".as_ptr(),
+                    );
+                    igSeparator();
+
+                    igTextUnformatted(
+                        c"Decompiled -> Ported to SDL (by k4zmu2a) -> Ported to Rust (by bscout9956)".as_ptr(),
+                        c"".as_ptr(),
+                    );
+                    let cstr_version = CString::new(format!("Version {}", "UNDEF TODO"))?;
+                    igTextUnformatted(cstr_version.as_ptr(), c"".as_ptr());
+
+                    if igSmallButton(
+                        c"Project home: https://github.com/bscout9956/SpaceCadetPinball_rs"
+                            .as_ptr(),
+                    ) {
+                        SDL_OpenURL(c"https://github.com/bscout9956/SpaceCadetPinball_rs".as_ptr());
+                    }
+
+                    igEndTabItem();
+                }
+
+                igPushStyleColor_Vec4(ImGuiCol_Button, ImVec4_c::new(0.0, 0.0, 0.0, 1.0));
+                igPushStyleColor_Vec4(ImGuiCol_ButtonHovered, ImVec4_c::new(0.0, 0.0, 0.0, 1.0));
+                igPushStyleColor_Vec4(ImGuiCol_ButtonActive, ImVec4_c::new(0.0, 0.0, 0.0, 1.0));
+
+                if igBeginTabItem(
+                    c"Full Tilt!".as_ptr(),
+                    &raw mut state.main_state.full_tilt_tab_open,
+                    0,
+                ) {
+                    // TODO: should it be 0 0 or -1 0
+                    let button_center = ImVec2_c::new(0.0, 0.0);
+
+                    igButton(
+                        c"Full Tilt! was created by Cinematronics for Maxis.".as_ptr(),
+                        button_center,
+                    );
+                    igButton(c"Version 1.1".as_ptr(), button_center);
+
+                    let table_row = |text_a: &str, text_b: Option<&str>| -> Result<()> {
+                        igTableNextColumn();
+                        igTextUnformatted(CString::new(text_a)?.as_ptr(), c"".as_ptr());
+                        igTableNextColumn();
+                        if let Some(b) = text_b {
+                            igTextUnformatted(CString::new(b)?.as_ptr(), c"".as_ptr());
+                            Ok(())
+                        } else {
+                            igTextUnformatted(c"".as_ptr(), c"".as_ptr());
+                            Ok(())
+                        }
+                    };
+
+                    if igBeginTable(c"Full Tilt!".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
+                        igTableNextRow(0, 0.0);
+                        igTableNextColumn();
+                        igButton(c"Cinematronics".as_ptr(), button_center);
+                        igSeparator();
+
+                        igTableNextRow(0, 0.0);
+                        if igBeginTable(
+                            c"Cinematronics##1".as_ptr(),
+                            2,
+                            0,
+                            ImVec2_c::default(),
+                            0.0f32,
+                        ) {
+                            // Added unique ID ##1
+                            table_row("PROGRAMMING", Some("ART"))?;
+                            table_row("Michael Sandige", Some("John Frantz"))?;
+                            table_row("John Taylor", Some("Ryan Medeiros"))?;
+                            igEndTable();
+                        }
+                        igSeparator();
+
+                        igTableNextRow(0, 0.0);
+                        if igBeginTable(
+                            c"Cinematronics##2".as_ptr(),
+                            2,
+                            0,
+                            ImVec2_c::default(),
+                            0.0f32,
+                        ) {
+                            table_row("DESIGN", Some("SOUND EFFECTS"))?;
+                            table_row("Kevin Gliner", Some("Matt Ridgeway"))?;
+                            table_row("", Some("Donald S. Griffin"))?;
+                            igEndTable();
+                        }
+                        igSeparator();
+
+                        igTableNextRow(0, 0.0);
+                        if igBeginTable(
+                            c"Cinematronics##3".as_ptr(),
+                            2,
+                            0,
+                            ImVec2_c::default(),
+                            0.0f32,
+                        ) {
+                            table_row("DESIGN CONSULTANT", Some("MUSIC"))?;
+                            table_row("Mark Sprenger", Some("Matt Ridgeway"))?;
+                            igEndTable();
+                        }
+                        igSeparator();
+
+                        igTableNextRow(0, 0.0);
+                        if igBeginTable(
+                            c"Cinematronics##4".as_ptr(),
+                            2,
+                            0,
+                            ImVec2_c::default(),
+                            0.0f32,
+                        ) {
+                            table_row("PRODUCER", Some("VOICES"))?;
+                            table_row("Kevin Gliner", Some("Mike McGeary"))?;
+                            table_row("", Some("William Rice"))?;
+                            igEndTable();
+                        }
+                        igSeparator();
+
+                        igTableNextRow(0, 0.0);
+                        if igBeginTable(
+                            c"Cinematronics##5".as_ptr(),
+                            2,
+                            0,
+                            ImVec2_c::default(),
+                            0.0f32,
+                        ) {
+                            table_row("GRAND POOBAH", Option::None)?;
+                            table_row("David Stafford", Option::None)?;
+                            igEndTable();
+                        }
+                        igSeparator();
+                        igButton(c"SPECIAL THANKS".as_ptr(), button_center);
+
+                        igTableNextRow(0, 0.0);
+                        if igBeginTable(
+                            c"Cinematronics##6".as_ptr(),
+                            2,
+                            0,
+                            ImVec2_c::default(),
+                            0.0f32,
+                        ) {
+                            table_row("Paula Sandige", Some("Alex St. John"))?;
+                            table_row("Brad Silverberg", Some("Jeff Camp"))?;
+                            table_row("Danny Thorpe", Some("Greg Hospelhorn"))?;
+                            table_row("Keith Johnson", Some("Sean Grant"))?;
+                            table_row("Bob McAnn", Some("Michael Kelley"))?;
+                            table_row("Rob Rosenhouse", Some("Lisa Acton"))?;
+                            igEndTable();
+                        }
+                        igTextUnformatted(c"Dan and Mitchell Roth".as_ptr(), c"".as_ptr());
+
+                        igTableNextColumn();
+                        igButton(c"Maxis".as_ptr(), button_center);
+                        igSeparator();
+
+                        igTableNextRow(0, 0.0);
+                        if igBeginTable(c"Maxis##1".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
+                            table_row("PRODUCER", Some("PRODUCT MANAGER"))?;
+                            table_row("John Csicsery", Some("Larry Lee"))?;
+                            igEndTable();
+                        }
+                        igSeparator();
+                        igTableNextRow(0, 0.0);
+                        if igBeginTable(c"Maxis##2".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
+                            table_row("LEAD TESTER", Some("QA MANAGER"))?;
+                            table_row("Scott Shicoff", Some("Scott Shicoff"))?;
+                            igEndTable();
+                        }
+                        igSeparator();
+                        igButton(c"ADDITIONAL TESTING".as_ptr(), button_center);
+                        igTableNextRow(0, 0.0);
+                        if igBeginTable(c"Maxis##3".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
+                            table_row("Cathy Castro", Some("Robin Hines"))?;
+                            table_row("John \"Jussi\" Ylinen", Some("Keith Meyer"))?;
+                            table_row("Marc Meyer", Some("Owen Nelson"))?;
+                            table_row("Joe Longworth", Some("Peter Saylor"))?;
+                            table_row("Michael Gilmartin", Some("Robin Hines"))?;
+                            igEndTable();
+                        }
+                        igSeparator();
+                        igTableNextRow(0, 0.0);
+                        if igBeginTable(c"Maxis##4".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
+                            table_row("ADDITIONAL ART", Some("ART DIRECTOR"))?;
+                            table_row("Ocean Quigley", Some("Sharon Barr"))?;
+                            table_row("Rick Macaraeg", Some("INSTALL PROGRAM"))?;
+                            table_row("Charlie Aquilina", Some("Kevin O'Hare"))?;
+                            igEndTable();
+                        }
+                        igSeparator();
+                        igTableNextRow(0, 0.0);
+                        if igBeginTable(c"Maxis##5".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
+                            table_row("INTRO MUSIC", Some("DOCUMENTATION"))?;
+                            table_row("Brian Conrad", Some("David Caggiano"))?;
+                            table_row("John Csicsery", Some("Michael Bremer"))?;
+                            table_row("", Some("Bob Sombrio"))?;
+                            igEndTable();
+                        }
+                        igSeparator();
+                        igButton(c"SPECIAL THANKS".as_ptr(), button_center);
+                        igTableNextRow(0, 0.0);
+                        if igBeginTable(c"Maxis##6".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
+                            table_row("Sam Poole", Some("Joe Scirica"))?;
+                            table_row("Jeff Braun", Some("Bob Derber"))?;
+                            table_row("Ashley Csicsery", Some("Tom Forge"))?;
+                            igEndTable();
+                        }
+                        igButton(c"Will \"Burr\" Wright".as_ptr(), button_center);
+                        igEndTable();
+                    }
+                    igEndTabItem();
+                }
+                igPopStyleColor(3);
+            }
+            igEndTabBar();
+
+            igSeparator();
+            if igMenuItem_Bool(c"Ok".as_ptr(), null(), false, true) {
+                igCloseCurrentPopup();
+            }
+            igEndPopup();
+        }
+        igPopStyleVar(1);
+    }
+    Ok(())
+}
+
 pub fn restart(main_state: &mut MainState) {
     main_state.restart = true;
     unsafe {
