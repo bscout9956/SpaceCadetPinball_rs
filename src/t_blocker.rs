@@ -5,6 +5,7 @@ use crate::render::RenderSprite;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
+use crate::t_edge_manager::TEdgeManager;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;

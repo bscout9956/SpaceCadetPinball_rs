@@ -55,6 +55,7 @@ impl ICollisionComponent for TWall {
 }
 
 use crate::render::RenderSprite;
+use crate::t_edge_manager::TEdgeManager;
 use crate::utils::DrawContext;
 use anyhow::Result;
 

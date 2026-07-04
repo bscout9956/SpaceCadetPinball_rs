@@ -255,6 +255,7 @@ impl ICollisionComponent for TBall {
 
 use crate::message_code::MessageCode;
 use crate::state::pb_game_state::PbGameState;
+use crate::t_edge_manager::TEdgeManager;
 use crate::utils::DrawContext;
 use anyhow::{Context, Result, bail};
 
@@ -369,7 +370,7 @@ impl IPinballComponent for TBall {
     }
 
     fn port_draw(&self) {
-        todo!()
+        self.base_component.port_draw()
     }
 
     fn message(&mut self, code: MessageCode, _value: f32, _draw_context: &mut DrawContext) -> i32 {

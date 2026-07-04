@@ -51,8 +51,8 @@ impl IPinballComponent for TLightGroup {
         todo!()
     }
 
-    fn get_coordinates(&self) -> Vector2 {
-        todo!()
+    fn get_coordinates(&self, edge_manager: &TEdgeManager) -> Vector2 {
+        self.base.get_coordinates(edge_manager)
     }
 
     fn get_scoring(&self, index: u32) -> i32 {
@@ -85,6 +85,7 @@ pub enum TLightGroupError {
 use crate::render::RenderSprite;
 use crate::utils::DrawContext;
 use anyhow::Result;
+use crate::t_edge_manager::TEdgeManager;
 
 impl TLightGroup {
     pub(crate) fn new(

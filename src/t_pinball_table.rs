@@ -193,6 +193,7 @@ pub enum PinballTableError {
 
 use crate::render::RenderSprite;
 use crate::t_drain::TDrain;
+use crate::t_edge_manager::TEdgeManager;
 use crate::t_flipper::TFlipper;
 use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
@@ -519,8 +520,8 @@ impl IPinballComponent for TPinballTable {
         todo!()
     }
 
-    fn get_coordinates(&self) -> Vector2 {
-        todo!()
+    fn get_coordinates(&self, edge_manager: &TEdgeManager) -> Vector2 {
+        self.base.get_coordinates(edge_manager)
     }
 
     fn get_scoring(&self, index: u32) -> i32 {

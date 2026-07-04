@@ -17,7 +17,6 @@ use anyhow::{Context, Result};
 
 impl IEdgeSegment for TCircle {
     fn active_flag(&self) -> Rc<Cell<bool>> {
-        // TODO: What the actual fuck
         self.base.upgrade().unwrap().borrow().active_flag()
     }
 

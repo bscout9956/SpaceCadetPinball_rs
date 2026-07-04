@@ -4,6 +4,7 @@ use crate::render::RenderSprite;
 use crate::score::ScoreMessageFontType;
 use crate::state::pinball_state::PinballState;
 use crate::state::render_state::RenderState;
+use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox_message::TTextBoxMessage;

@@ -54,6 +54,7 @@ impl ICollisionComponent for TPlunger {
 }
 
 use crate::render::RenderSprite;
+use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_component::IPinballComponent;
 use crate::utils::DrawContext;
 use anyhow::Result;
