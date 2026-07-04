@@ -35,15 +35,19 @@ use anyhow::{Context, Result};
 
 pub trait IEdgeSegment {
     fn active_flag(&self) -> Rc<Cell<bool>>;
-    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32);
-    fn port_draw(&self);
+    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {}
+    fn port_draw(&self) {}
     fn place_in_grid(
         &self,
         aabb: &mut RectF,
         this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
         pb_game_state: &mut PbGameState,
-    ) -> Result<()>;
-    fn find_collision_distance(&self, ray: &RayType) -> f32;
+    ) -> Result<()> {
+        Ok(())
+    }
+    fn find_collision_distance(&self, ray: &RayType) -> f32 {
+        0.0f32
+    }
 
     fn collision_group(&self) -> u32;
 
@@ -57,26 +61,6 @@ pub trait IEdgeSegment {
 impl IEdgeSegment for TEdgeSegment {
     fn active_flag(&self) -> Rc<Cell<bool>> {
         self.active_flag.clone()
-    }
-
-    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {
-        todo!()
-    }
-
-    // Original does nothing
-    fn port_draw(&self) {}
-
-    fn place_in_grid(
-        &self,
-        aabb: &mut RectF,
-        this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
-        pb_game_state: &mut PbGameState,
-    ) -> Result<()> {
-        todo!()
-    }
-
-    fn find_collision_distance(&self, ray: &RayType) -> f32 {
-        todo!()
     }
 
     fn collision_group(&self) -> u32 {
