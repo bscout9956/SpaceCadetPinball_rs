@@ -25,7 +25,7 @@ pub struct TBall {
     pub ray_max_distance: f32,
     pub time_delta: f32,
     pub ramp_field_force: Vector2,
-    pub collision_comp: Option<Weak<RefCell<TCollisionComponent>>>,
+    pub collision_comp: Option<TCollisionComponent>,
     pub collision_mask: i32,
     pub collisions: [Option<Weak<RefCell<dyn IEdgeSegment>>>; 16],
     pub edge_collision_count: i32,
@@ -142,7 +142,7 @@ impl TBall {
                 501,
                 &mut state.loader_state,
             )
-            .context("Failed to query visual in TBall")?;
+                .context("Failed to query visual in TBall")?;
             let vis_vec_slice = slice_from_raw_parts(vis_vec_ptr, 3);
             unsafe {
                 let vis_vec = Vector3 {
@@ -241,26 +241,26 @@ impl ICollisionComponent for TBall {
         todo!()
     }
 
-    fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
+    fn field_effect(&mut self, ball_position: &Vector3, ball_direction: &Vector3, ball_speed: f32, vec_destination: &mut Vector2) -> i32 {
         todo!()
     }
 
     fn set_AABB(&mut self, aabb: RectF) {
-        if let Some(rc) = self.collision_comp.as_ref().and_then(|weak| weak.upgrade()) {
-            rc.borrow_mut().aabb = aabb;
+        if let Some(col) = self.collision_comp.as_mut() {
+            col.aabb = aabb;
         }
     }
 
     fn get_AABB(&self) -> Option<RectF> {
-        let rc = self.collision_comp.as_ref()?.upgrade()?;
-        Some(rc.borrow().aabb.clone())
+        let rc = self.collision_comp.as_ref()?;
+        Some(rc.aabb.clone())
     }
 }
 
 use crate::message_code::MessageCode;
 use crate::state::pb_game_state::PbGameState;
 use crate::utils::DrawContext;
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 
 impl IEdgeSegment for TBall {
     fn active_flag(&self) -> Rc<Cell<bool>> {
@@ -302,7 +302,7 @@ impl IEdgeSegment for TBall {
     }
 
     fn port_draw(&self) {
-        todo!()
+        self.base_component.port_draw()
     }
 
     fn place_in_grid(
@@ -311,11 +311,19 @@ impl IEdgeSegment for TBall {
         this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
         state: &mut PbGameState,
     ) -> Result<()> {
-        todo!()
+        self.base_segment.place_in_grid(aabb, this_rc, state)
     }
 
     fn find_collision_distance(&self, ray: &RayType) -> f32 {
-        todo!()
+        let ball_circle = CircleType {
+            center: Vector2 {
+                x: self.position.x,
+                y: self.position.y,
+            },
+            radius_sq: self.radius * self.radius * 4.0f32,
+        };
+
+        ray_intersect_circle(ray, &ball_circle)
     }
 
     fn collision_group(&self) -> u32 {
@@ -323,7 +331,7 @@ impl IEdgeSegment for TBall {
     }
 
     fn processed_flag(&self) -> Rc<Cell<bool>> {
-        todo!()
+        self.base_segment.processed_flag.clone()
     }
 
     fn as_any(&self) -> &dyn Any {
