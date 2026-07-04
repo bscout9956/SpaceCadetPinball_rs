@@ -25,9 +25,9 @@ jobs:
                   components: rustfmt, clippy
 
             - name: Install LLVM for bindgen
-              uses: KyleMayes/install-llvm-action@v1
+              uses: KyleMayes/install-llvm-action@v2
               with:
-                  version: "18"
+                  version: "22.0"
                   directory: ${{ runner.temp }}\llvm
 
             - name: Verify Rust installation
