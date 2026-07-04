@@ -710,14 +710,142 @@ pub fn toggle(u_id_check_item: Menu, state: &mut PinballState) -> Result<()> {
 //     }
 // }
 
-pub fn render_control_dialog(show_dialog: bool) {
-    if !show_dialog {
-        return;
+pub fn render_control_dialog(state: &mut PinballState) -> Result<()> {
+    if !state.options_state.show_dialog {
+        return Ok(());
     }
 
-    // TODO: ImGui stuff
+    unsafe {
+        igPushStyleVar_Vec2(ImGuiStyleVar_WindowMinSize, ImVec2_c::new(500.0, 500.0));
+        let dialog_caption = pb::get_rc_string_cstring(Msg::KeymapperCaption)?;
+        if igBegin(
+            dialog_caption.as_ptr(),
+            &raw mut state.options_state.show_dialog,
+            0,
+        ) {
+            if igBeginMenu(
+                pb::get_rc_string_cstring(Msg::KeymapperGroupbox2)?.as_ptr(),
+                true,
+            ) {
+                let keymapper_help_1_cstr = pb::get_rc_string_cstring(Msg::KeymapperHelp1)?;
+                igTextWrapped(keymapper_help_1_cstr.as_ptr());
+                let keymapper_help_2_cstr = pb::get_rc_string_cstring(Msg::KeymapperHelp2)?;
+                igTextWrapped(keymapper_help_2_cstr.as_ptr());
+                igEndMenu();
+            }
 
-    if !show_dialog {}
+            igSpacing();
+            let mapper_gb_1_cstr = pb::get_rc_string_cstring(Msg::KeymapperGroupbox1)?;
+            igTextUnformatted(
+                mapper_gb_1_cstr.as_ptr(),
+                get_cstring_end(mapper_gb_1_cstr.as_ptr()),
+            );
+
+            igPushStyleVar_Vec2(ImGuiStyleVar_CellPadding, ImVec2_c { x: 5.0, y: 10.0 });
+
+            if igBeginTable(
+                c"Controls".as_ptr(),
+                4,
+                ImGuiTableFlags_NoSavedSettings
+                    | ImGuiTableFlags_Borders
+                    | ImGuiTableFlags_SizingStretchSame,
+                ImVec2_c { x: 0.0, y: 0.0 },
+                0.0f32,
+            ) {
+                igTableSetupColumn(c"Control".as_ptr(), 0, 0.0, 0);
+                igTableSetupColumn(c"Binding 1".as_ptr(), 0, 0.0, 0);
+                igTableSetupColumn(c"Binding 2".as_ptr(), 0, 0.0, 0);
+                igTableSetupColumn(c"Binding 3".as_ptr(), 0, 0.0, 0);
+                igTableHeadersRow();
+
+                let mut row_hash = 0;
+                for option in &mut state.options_state.options.control_options {
+                    igTableNextColumn();
+
+                    igPushStyleColor_Vec4(ImGuiCol_Button, ImVec4_c::new(0.5, 0.0, 0.0, 1.0));
+                    let desc_str = pb::get_rc_string_cstring(option.description)?;
+                    if igMenuItem_Bool(desc_str.as_ptr(), null(), false, true) {
+                        for input in &mut option.inputs {
+                            *input = Default::default();
+                        }
+                    }
+                    igPopStyleColor(1);
+
+                    for input in &mut option.inputs {
+                        igTableNextColumn();
+
+                        if let Some(mut cwfi) =
+                            state.options_state.control_waiting_for_input.as_mut()
+                        {
+                            if cwfi == input
+                                && igMenuItem_Bool(c"Press the key".as_ptr(), null(), false, true)
+                            {
+                                cwfi = input;
+                            }
+                        } else {
+                            let input_desc = input.get_full_input_description();
+                            let label = format!("{}##{}", input_desc, row_hash);
+                            row_hash += 1;
+                            let label_cstring = CString::new(label)?;
+
+                            if igMenuItem_Bool(label_cstring.as_ptr(), null(), false, true) {
+                                state.options_state.control_waiting_for_input = Some(*input);
+                            }
+                        }
+                    }
+                }
+                igEndTable();
+            }
+            igPopStyleVar(1);
+            igSpacing();
+
+            if igMenuItem_Bool(
+                pb::get_rc_string_cstring(Msg::GenericOk)?.as_ptr(),
+                null(),
+                false,
+                true,
+            ) {
+                state.options_state.show_dialog = false;
+            }
+
+            igSameLine(0.0, -1.0);
+            // Cancel Button
+            if igMenuItem_Bool(
+                pb::get_rc_string_cstring(Msg::GenericCancel)?.as_ptr(),
+                null(),
+                false,
+                true,
+            ) {
+                for control in &mut state.options_state.options.control_options {
+                    control.load(&mut state.options_state.settings);
+                }
+                state.options_state.show_dialog = false;
+            }
+
+            igSameLine(0.0, -1.0);
+            // Default Button
+            if igMenuItem_Bool(
+                pb::get_rc_string_cstring(Msg::KeymapperDefault)?.as_ptr(),
+                null(),
+                false,
+                true,
+            ) {
+                for control in &mut state.options_state.options.control_options {
+                    control.reset();
+                }
+                state.options_state.control_waiting_for_input = Option::None;
+            }
+
+            // igEndMenu();
+        }
+        igEnd();
+        igPopStyleVar(1);
+    }
+
+    if !state.options_state.show_dialog {
+        state.options_state.control_waiting_for_input = Option::None;
+    }
+    Ok(())
 }
 
 pub fn map_game_input(key: GameInput, options_state: &mut OptionsState) -> Vec<GameBindings> {
