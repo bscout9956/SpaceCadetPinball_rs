@@ -167,6 +167,10 @@ impl IEdgeSegment for TLine {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+
+    fn as_tline(&self) -> Option<&TLine> {
+        Some(self)
+    }
 }
 
 impl TLine {

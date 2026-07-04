@@ -67,6 +67,10 @@ impl IEdgeSegment for TCircle {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+
+    fn as_tcircle(&self) -> Option<&TCircle> {
+        Some(self)
+    }
 }
 
 impl TCircle {

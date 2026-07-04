@@ -99,7 +99,12 @@ impl IPinballComponent for TBlocker {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32, draw_context: &mut DrawContext) -> i32 {
+    fn message(
+        &mut self,
+        code: MessageCode,
+        value: f32,
+        draw_context: &mut DrawContext,
+    ) -> Result<i32> {
         match code {
             MessageCode::SET_TILT_LOCK
             | MessageCode::PLAYER_CHANGED
@@ -147,7 +152,7 @@ impl IPinballComponent for TBlocker {
             _ => {}
         }
 
-        0
+        Ok(0)
     }
 
     fn set_active_flag(&mut self, active: bool) {

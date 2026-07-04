@@ -57,6 +57,22 @@ pub trait IEdgeSegment {
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
+
+    fn as_tline(&self) -> Option<&TLine> {
+        None
+    }
+
+    fn as_tcircle(&self) -> Option<&TCircle> {
+        None
+    }
+
+    fn as_tflipper_edge(&self) -> Option<&TFlipperEdge> {
+        None
+    }
+
+    fn as_tflipper_edge_mut(&mut self) -> Option<&mut TFlipperEdge> {
+        None
+    }
 }
 
 impl IEdgeSegment for TEdgeSegment {

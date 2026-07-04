@@ -6,6 +6,14 @@ use std::io::Error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+pub enum BadTraitTypeError {
+    #[error("This IEdgeSegment is not a TLine")]
+    NotTLine,
+    #[error("This IEdgeSegment is not a TCircle")]
+    NotTCircle,
+}
+
+#[derive(Error, Debug)]
 pub enum RecordLoadError {
     #[error("File signature does not match!")]
     IncorrectFileSignature,

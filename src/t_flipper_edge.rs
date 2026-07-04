@@ -122,4 +122,12 @@ impl IEdgeSegment for TFlipperEdge {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+
+    fn as_tflipper_edge(&self) -> Option<&TFlipperEdge> {
+        Some(self)
+    }
+
+    fn as_tflipper_edge_mut(&mut self) -> Option<&mut TFlipperEdge> {
+        Some(self)
+    }
 }
