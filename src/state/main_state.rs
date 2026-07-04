@@ -20,6 +20,7 @@ pub struct MainState {
     pub prev_sdl_error: String,
     pub restart: bool,
     pub show_about_dialog: bool,
+    pub about_tab_open: bool,
     pub show_imgui_demo: bool,
     pub show_sprite_viewer: bool,
     pub show_exit_popup: bool,
@@ -35,6 +36,7 @@ pub struct MainState {
     pub prev_sdl_error_count: u32,
     pub main_window: Option<SdlWindowPtr>,
     pub gfr_window: f32,
+    pub full_tilt_tab_open: bool,
 }
 
 impl MainState {
@@ -58,6 +60,7 @@ impl MainState {
             prev_sdl_error: String::new(),
             restart: false,
             show_about_dialog: false,
+            about_tab_open: false,
             show_imgui_demo: false,
             show_sprite_viewer: false,
             show_exit_popup: false,
@@ -73,6 +76,7 @@ impl MainState {
             prev_sdl_error_count: 0,
             main_window: None,
             gfr_window: 5.0,
+            full_tilt_tab_open: true,
         }
     }
 
