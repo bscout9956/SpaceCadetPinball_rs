@@ -1386,14 +1386,12 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
 
                     let table_row = |text_a: &str, text_b: Option<&str>| -> Result<()> {
                         igTableNextRow(0, 0.0);
-
                         igTableNextColumn();
                         let text_a_cstr = CString::new(text_a)?;
                         igTextUnformatted(
                             text_a_cstr.as_ptr(),
                             get_cstring_end(text_a_cstr.as_ptr()),
                         );
-
                         igTableNextColumn();
                         if let Some(b) = text_b {
                             let text_b = CString::new(b)?;
@@ -1411,7 +1409,6 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                         igButton(c"Cinematronics".as_ptr(), button_center);
                         igSeparator();
 
-                        igTableNextRow(0, 0.0);
                         if igBeginTable(
                             c"Cinematronics##1".as_ptr(),
                             2,
@@ -1426,7 +1423,6 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                         }
                         igSeparator();
 
-                        igTableNextRow(0, 0.0);
                         if igBeginTable(
                             c"Cinematronics##2".as_ptr(),
                             2,
@@ -1441,7 +1437,6 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                         }
                         igSeparator();
 
-                        igTableNextRow(0, 0.0);
                         if igBeginTable(
                             c"Cinematronics##3".as_ptr(),
                             2,
@@ -1455,7 +1450,6 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                         }
                         igSeparator();
 
-                        igTableNextRow(0, 0.0);
                         if igBeginTable(
                             c"Cinematronics##4".as_ptr(),
                             2,
@@ -1470,7 +1464,6 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                         }
                         igSeparator();
 
-                        igTableNextRow(0, 0.0);
                         if igBeginTable(
                             c"Cinematronics##5".as_ptr(),
                             2,
@@ -1485,7 +1478,6 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                         igSeparator();
                         igButton(c"SPECIAL THANKS".as_ptr(), button_center);
 
-                        igTableNextRow(0, 0.0);
                         if igBeginTable(
                             c"Cinematronics##6".as_ptr(),
                             2,
@@ -1508,14 +1500,12 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                         igButton(c"Maxis".as_ptr(), button_center);
                         igSeparator();
 
-                        igTableNextRow(0, 0.0);
                         if igBeginTable(c"Maxis##1".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
                             table_row("PRODUCER", Some("PRODUCT MANAGER"))?;
                             table_row("John Csicsery", Some("Larry Lee"))?;
                             igEndTable();
                         }
                         igSeparator();
-                        igTableNextRow(0, 0.0);
                         if igBeginTable(c"Maxis##2".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
                             table_row("LEAD TESTER", Some("QA MANAGER"))?;
                             table_row("Scott Shicoff", Some("Scott Shicoff"))?;
@@ -1523,7 +1513,6 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                         }
                         igSeparator();
                         igButton(c"ADDITIONAL TESTING".as_ptr(), button_center);
-                        igTableNextRow(0, 0.0);
                         if igBeginTable(c"Maxis##3".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
                             table_row("Cathy Castro", Some("Robin Hines"))?;
                             table_row("John \"Jussi\" Ylinen", Some("Keith Meyer"))?;
@@ -1533,7 +1522,6 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                             igEndTable();
                         }
                         igSeparator();
-                        igTableNextRow(0, 0.0);
                         if igBeginTable(c"Maxis##4".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
                             table_row("ADDITIONAL ART", Some("ART DIRECTOR"))?;
                             table_row("Ocean Quigley", Some("Sharon Barr"))?;
@@ -1542,7 +1530,6 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                             igEndTable();
                         }
                         igSeparator();
-                        igTableNextRow(0, 0.0);
                         if igBeginTable(c"Maxis##5".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
                             table_row("INTRO MUSIC", Some("DOCUMENTATION"))?;
                             table_row("Brian Conrad", Some("David Caggiano"))?;
@@ -1552,7 +1539,6 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                         }
                         igSeparator();
                         igButton(c"SPECIAL THANKS".as_ptr(), button_center);
-                        igTableNextRow(0, 0.0);
                         if igBeginTable(c"Maxis##6".as_ptr(), 2, 0, ImVec2_c::default(), 0.0f32) {
                             table_row("Sam Poole", Some("Joe Scirica"))?;
                             table_row("Jeff Braun", Some("Bob Derber"))?;
@@ -1564,9 +1550,9 @@ fn a_dialog(state: &mut PinballState) -> Result<()> {
                     }
                     igEndTabItem();
                 }
+                igEndTabBar();
                 igPopStyleColor(3);
             }
-            igEndTabBar();
 
             igSeparator();
             if igButton(c"Ok".as_ptr(), ImVec2_c::new(0.0, 0.0)) {
