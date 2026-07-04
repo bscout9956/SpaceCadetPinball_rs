@@ -1039,8 +1039,7 @@ unsafe fn create_main_menu_bar(state: &mut PinballState) -> Result<bool> {
 }
 
 fn create_help_menu(state: &mut PinballState) -> Result<()> {
-    let help_str =
-        pb::get_rc_string_cstring(Msg::Menu1Help).context("Failed to get help string")?;
+    let help_str = get_rc_string_cstring(Msg::Menu1Help).context("Failed to get help string")?;
     unsafe {
         if igBeginMenu(help_str.as_ptr(), true) {
             if igMenuItem_Bool(
@@ -1220,7 +1219,7 @@ fn create_help_menu(state: &mut PinballState) -> Result<()> {
             }
 
             igSeparator();
-            let about_str = pb::get_rc_string_cstring(Msg::Menu1AboutPinball)
+            let about_str = get_rc_string_cstring(Msg::Menu1AboutPinball)
                 .context("Failed to get about string")?;
             if igMenuItem_Bool(about_str.as_ptr(), null(), false, true) {
                 pause(false, state).context("Failed to pause")?;
@@ -1234,7 +1233,7 @@ fn create_help_menu(state: &mut PinballState) -> Result<()> {
 }
 
 unsafe fn create_game_menu(state: &mut PinballState) -> Result<()> {
-    let game_string = pb::get_rc_string_cstring(Msg::Menu1Game)?;
+    let game_string = get_rc_string_cstring(Msg::Menu1Game)?;
     unsafe {
         if igBeginMenu(game_string.as_ptr(), true) {
             imgui_menu_item_w_shortcut(GameBindings::NewGame, Option::None, state)?;
