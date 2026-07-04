@@ -35,7 +35,13 @@ pub trait ICollisionComponent {
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>>;
 
-    fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
+    fn field_effect(
+        &mut self,
+        ball_position: &Vector3,
+        ball_direction: &Vector3,
+        ball_speed: f32,
+        vec_destination: &mut Vector2,
+    ) -> i32 {
         0
     }
     #[allow(non_snake_case)]
@@ -65,7 +71,7 @@ impl DerefMut for TCollisionComponent {
 
 use crate::render::RenderSprite;
 use crate::utils::DrawContext;
-use anyhow::Result;
+use anyhow::{Result, bail};
 
 impl TCollisionComponent {
     pub fn new(
@@ -247,7 +253,13 @@ impl ICollisionComponent for TCollisionComponent {
         &mut self.edge_list
     }
 
-    fn field_effect(&mut self, ball: &TBall, vec_destination: &mut Vector2) -> i32 {
+    fn field_effect(
+        &mut self,
+        ball_position: &Vector3,
+        ball_direction: &Vector3,
+        ball_speed: f32,
+        vec_destination: &mut Vector2,
+    ) -> i32 {
         0 // wow
     }
 
