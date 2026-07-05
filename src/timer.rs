@@ -21,9 +21,11 @@ pub struct TimerStruct {
 unsafe impl Sync for TimerStruct {}
 unsafe impl Send for TimerStruct {}
 
+const NONE: i32 = -1;
+
 static TIMER_BUFFER: LazyLock<Mutex<Vec<TimerStruct>>> = LazyLock::new(|| Mutex::new(Vec::new()));
-static ACTIVE_HEAD: AtomicI32 = AtomicI32::new(-1);
-static FREE_HEAD: AtomicI32 = AtomicI32::new(-1);
+static ACTIVE_HEAD: AtomicI32 = AtomicI32::new(NONE);
+static FREE_HEAD: AtomicI32 = AtomicI32::new(NONE);
 static COUNT: AtomicI32 = AtomicI32::new(0);
 static MAX_COUNT: AtomicI32 = AtomicI32::new(0);
 static SET_COUNT: AtomicI32 = AtomicI32::new(1);
@@ -46,10 +48,10 @@ pub fn init(count: i32) -> Result<(), TimerError> {
     for index in 0..(count - 1) {
         data_buffer[index as usize].next_timer = index + 1;
     }
-    data_buffer[(count - 1) as usize].next_timer = -1;
+    data_buffer[(count - 1) as usize].next_timer = NONE;
 
     FREE_HEAD.store(0, Relaxed);
-    ACTIVE_HEAD.store(-1, Relaxed);
+    ACTIVE_HEAD.store(NONE, Relaxed);
     COUNT.store(0, Relaxed);
     MAX_COUNT.store(count, Relaxed);
     SET_COUNT.store(count, Relaxed);
@@ -60,8 +62,8 @@ pub fn init(count: i32) -> Result<(), TimerError> {
 pub fn uninit() {
     let mut buffer = TIMER_BUFFER.lock().unwrap();
     buffer.clear();
-    FREE_HEAD.store(-1, Relaxed);
-    ACTIVE_HEAD.store(-1, Relaxed);
+    FREE_HEAD.store(NONE, Relaxed);
+    ACTIVE_HEAD.store(NONE, Relaxed);
     COUNT.store(0, Relaxed);
     MAX_COUNT.store(0, Relaxed);
 }
@@ -86,7 +88,7 @@ pub fn set(
     let mut buffer = TIMER_BUFFER.lock().unwrap();
 
     let timer_idx = FREE_HEAD.load(Relaxed);
-    if timer_idx == -1 {
+    if timer_idx == NONE {
         return 0;
     }
 
@@ -95,11 +97,11 @@ pub fn set(
 
     let target_time = (draw_context.time_ticks + (time * 1000.0) as usize) as i32;
 
-    let mut prev = -1;
+    let mut prev = NONE;
     let mut current = ACTIVE_HEAD.load(Relaxed);
     let mut index = 0;
 
-    while current != -1
+    while current != NONE
         && index < current_count
         && target_time >= buffer[current as usize].target_time
     {
@@ -108,7 +110,7 @@ pub fn set(
         index += 1;
     }
 
-    if prev != -1 {
+    if prev != NONE {
         buffer[timer_idx as usize].next_timer = buffer[prev as usize].next_timer;
         buffer[prev as usize].next_timer = timer_idx;
     } else {
@@ -142,16 +144,16 @@ pub fn kill_callback(callback: unsafe extern "C" fn(i32, *mut c_void, &mut DrawC
     let mut kill_count = 0;
 
     let mut current = ACTIVE_HEAD.load(Relaxed);
-    let mut prev = -1;
+    let mut prev = NONE;
 
-    while current != -1 {
+    while current != NONE {
         let current_usize = current as usize;
 
         if buffer[current_usize].callback == Some(callback) {
             kill_count += 1;
             let next = buffer[current_usize].next_timer;
 
-            if prev != -1 {
+            if prev != NONE {
                 buffer[prev as usize].next_timer = next;
             } else {
                 ACTIVE_HEAD.store(next, Relaxed);
@@ -182,10 +184,10 @@ pub fn kill_id(timer_id: i32) -> i32 {
     }
 
     let mut current = ACTIVE_HEAD.load(Relaxed);
-    let mut prev = -1;
+    let mut prev = NONE;
     let mut index = 0;
 
-    while current != -1 {
+    while current != NONE {
         if buffer[current as usize].timer_id == timer_id {
             break;
         }
@@ -199,7 +201,7 @@ pub fn kill_id(timer_id: i32) -> i32 {
         }
     }
 
-    if prev != -1 {
+    if prev != NONE {
         buffer[prev as usize].next_timer = buffer[current as usize].next_timer;
     } else {
         ACTIVE_HEAD.store(buffer[current as usize].next_timer, Relaxed);
@@ -221,8 +223,8 @@ pub fn check(time_ticks: usize, state: &mut PinballState) -> i32 {
 
     let mut current = ACTIVE_HEAD.load(Relaxed);
 
-    if current != -1 {
-        while current != -1 && time_ticks as i32 >= buffer[current as usize].target_time {
+    if current != NONE {
+        while current != NONE && time_ticks as i32 >= buffer[current as usize].target_time {
             count -= 1;
 
             ACTIVE_HEAD.store(buffer[current as usize].next_timer, Relaxed);
@@ -250,13 +252,13 @@ pub fn check(time_ticks: usize, state: &mut PinballState) -> i32 {
                 break;
             }
 
-            if current == -1 {
+            if current == NONE {
                 COUNT.store(count, Relaxed);
                 return index;
             }
         }
 
-        while current != -1 && time_ticks as i32 >= buffer[current as usize].target_time + 100 {
+        while current != NONE && time_ticks as i32 >= buffer[current as usize].target_time + 100 {
             count -= 1;
 
             ACTIVE_HEAD.store(buffer[current as usize].next_timer, Relaxed);
