@@ -16,7 +16,6 @@ use crate::t_edge_manager::{FieldEffectType, TEdgeManager};
 use crate::t_pinball_table::TPinballTable;
 use crate::{loader, maths, proj, render};
 use anyhow::{Context, bail};
-use std::cell::RefCell;
 use std::f32::consts::FRAC_PI_2;
 use std::ffi::CString;
 use std::ptr::slice_from_raw_parts;

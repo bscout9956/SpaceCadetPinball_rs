@@ -245,9 +245,13 @@ impl IPinballComponent for TPinballComponent {
                 && let Some(table_weak) = &self.pinball_table
                 && let Some(table_rc) = table_weak.upgrade()
             {
-                let table_borrow = table_rc.borrow();
-                x_pos = b.x_position - table_borrow.x_offset;
-                y_pos = b.y_position - table_borrow.y_offset;
+                // TODO: Refactor me
+                // Unfortunate situation where a double-borrow was occurring.
+                let table_ptr = table_rc.as_ptr(); // fails to borrow here
+                unsafe {
+                    x_pos = b.x_position - (*table_ptr).x_offset;
+                    y_pos = b.y_position - (*table_ptr).y_offset;
+                }
             }
         } else {
             bmp = Arc::new(None);
