@@ -310,7 +310,7 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
     )?;
 
     state.pb_game_state.time_ticks = 0;
-    timer::init(150)?;
+    state.timer_manager.init(150);
     println!("Init'ing score");
     score::init();
 
