@@ -10,7 +10,7 @@ use thiserror::Error;
 pub type TimerCallback = unsafe extern "C" fn(i32, *mut c_void, &mut DrawContext);
 
 #[derive(Clone, Default)]
-pub struct TimerStruct {
+pub struct Timer {
     pub target_time: i32,
     pub caller: *mut c_void,
     pub callback: Option<TimerCallback>,
@@ -18,12 +18,12 @@ pub struct TimerStruct {
     pub timer_id: i32,
 }
 
-unsafe impl Sync for TimerStruct {}
-unsafe impl Send for TimerStruct {}
+unsafe impl Sync for Timer {}
+unsafe impl Send for Timer {}
 
 const NONE: i32 = -1;
 
-static TIMER_BUFFER: LazyLock<Mutex<Vec<TimerStruct>>> = LazyLock::new(|| Mutex::new(Vec::new()));
+static TIMER_BUFFER: LazyLock<Mutex<Vec<Timer>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 static ACTIVE_HEAD: AtomicI32 = AtomicI32::new(NONE);
 static FREE_HEAD: AtomicI32 = AtomicI32::new(NONE);
 static COUNT: AtomicI32 = AtomicI32::new(0);
@@ -37,9 +37,9 @@ pub enum TimerError {
 }
 
 pub fn init(count: i32) -> Result<(), TimerError> {
-    let mut data_buffer: Vec<TimerStruct>;
+    let mut data_buffer: Vec<Timer>;
 
-    data_buffer = (0..count).map(|_| TimerStruct::default()).collect();
+    data_buffer = (0..count).map(|_| Timer::default()).collect();
 
     data_buffer.iter().for_each(|item| {
         (*TIMER_BUFFER.lock().unwrap()).push(item.clone());
