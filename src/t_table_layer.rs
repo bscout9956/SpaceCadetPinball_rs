@@ -1,6 +1,7 @@
 use crate::errors::LoaderError;
 use crate::gdrv::GdrvBitmap8;
 use anyhow::Result;
+use std::cell::RefCell;
 
 use crate::loader::{VisualStruct, query_float_attribute_ptr};
 use crate::maths::{
@@ -138,7 +139,7 @@ impl TTableLayer {
                 t.borrow_mut().y_offset = b.y_position;
                 t.borrow_mut().width = b.width;
             }
-        } else { 
+        } else {
             bail!(TTableLayerError::InvalidTable);
         }
 

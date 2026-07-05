@@ -111,7 +111,6 @@ impl TLightGroup {
 
         if group_index > 0 {
             let mut count = 0;
-            // TODO: Remove unwrap and deref
             instance.timer1time_default = unsafe {
                 *loader::query_float_attribute_ptr(group_index, 0, 903, &mut state.loader_state)?
             };
