@@ -10,6 +10,7 @@ use crate::gdrv::{ColorRgba, GdrvBitmap8};
 use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::state::render_state::RenderState;
+use crate::timer::TimerManager;
 
 pub struct SdlWindowPtr(pub *mut SDL_Window);
 unsafe impl Sync for SdlWindowPtr {}
@@ -45,6 +46,7 @@ pub struct DrawContext<'a> {
     pub time_ticks: usize,
     pub full_tilt_mode: bool,
     pub background_bitmap: &'a Option<GdrvBitmap8>,
+    pub timer_manager: &'a mut TimerManager
 }
 
 impl<'a> DrawContext<'a> {
@@ -55,12 +57,14 @@ impl<'a> DrawContext<'a> {
             time_ticks: state.pb_game_state.time_ticks,
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
+            timer_manager: &mut state.timer_manager
         })
     }
 
     pub fn from_state_members(
         render_state: &'a mut RenderState,
         pb_game_state: &'a mut PbGameState,
+        timer_manager: &'a mut TimerManager,
     ) -> Result<DrawContext<'a>> {
         Ok(Self {
             v_screen: &mut render_state.v_screen,
@@ -68,6 +72,7 @@ impl<'a> DrawContext<'a> {
             current_palette: &pb_game_state.current_palette,
             time_ticks: pb_game_state.time_ticks,
             full_tilt_mode: pb_game_state.full_tilt_mode,
+            timer_manager
         })
     }
 }
