@@ -68,15 +68,15 @@ impl TPlunger {
         let mut visual: VisualStruct = VisualStruct::default();
 
         let base = TCollisionComponent::new(table, group_index, true, state)?;
-        let mut owned_comp = Rc::unwrap_or_clone(base).into_inner();
+        let mut base_mut = base.take();
         loader::query_visual(group_index, 0, &mut visual, state)?;
-        owned_comp.hard_hit_sound_id = visual.kicker.hard_hit_sound_id;
-        owned_comp.threshold = 1000000000.0;
-        owned_comp.elasticity = 0.5;
-        owned_comp.smoothness = 0.5;
+        base_mut.hard_hit_sound_id = visual.kicker.hard_hit_sound_id;
+        base_mut.threshold = 1000000000.0;
+        base_mut.elasticity = 0.5;
+        base_mut.smoothness = 0.5;
 
         let mut instance = Self {
-            base: owned_comp,
+            base: base_mut,
             pullback_timer_: 0,
             ballfeed_timer_: 0,
             max_pull_back: 0.0,
@@ -236,7 +236,7 @@ impl IPinballComponent for TPlunger {
                         timer::kill_id(self.pullback_timer_);
                     }
                     self.pullback_timer_ = 0;
-                    //loader::play_sound(soundindexp2, this, tplugner3);
+                    //TODO: loader::play_sound(soundindexp2, this, tplugner3);
                     self.sprite_set(0);
                     timer::set(
                         self.pullback_delay,
