@@ -57,12 +57,14 @@ impl TBlocker {
         timer_id: i32,
         caller: *mut c_void,
         _ctx: &mut DrawContext,
-    ) {
+    ) -> Result<()> {
+        println!("TBlocker timer");
         unsafe {
             let blocker = &mut *(caller as *mut TBlocker);
             (*blocker).timer = 0;
             control::handler(MessageCode::CONTROL_TIMER_EXPIRED, blocker);
         }
+        Ok(())
     }
 }
 
@@ -111,7 +113,7 @@ impl IPinballComponent for TBlocker {
             | MessageCode::RESET
             | MessageCode::T_BLOCKER_DISABLE => {
                 if self.timer > 0 {
-                    timer::kill_id(self.timer);
+                    draw_context.timer_manager.kill_id(self.timer)?;
                     self.timer = 0;
                 }
                 self.base.message_field = MessageCode(0);
@@ -126,28 +128,34 @@ impl IPinballComponent for TBlocker {
                 // TODO: loader::play_sound(self.sound_index_4, self, "TBlocker2");
                 self.base.sprite_set(0);
                 if self.timer > 0 {
-                    timer::kill_id(self.timer);
+                    draw_context.timer_manager.kill_id(self.timer)?;
                 }
                 self.timer = 0;
                 if value >= 0.0f32 {
-                    self.timer = timer::set(
-                        value,
-                        &raw const *self as *mut c_void,
-                        Self::timer_expired,
-                        draw_context,
-                    );
+                    unsafe {
+                        let tm_ptr: *mut _ = &mut draw_context.timer_manager;
+                        self.timer = (*tm_ptr).set(
+                            value,
+                            self as *mut _ as *mut c_void,
+                            Self::timer_expired,
+                            draw_context,
+                        )?;
+                    }
                 }
             }
             MessageCode::T_BLOCKER_RESTART_TIMEOUT => {
                 if self.timer > 0 {
-                    timer::kill_id(self.timer);
+                    draw_context.timer_manager.kill_id(self.timer)?;
                 }
-                self.timer = timer::set(
-                    f32::max(value, 0.0f32),
-                    &raw const *self as *mut c_void,
-                    Self::timer_expired,
-                    draw_context,
-                );
+                unsafe {
+                    let tm_ptr: *mut _ = &mut draw_context.timer_manager;
+                    self.timer = (*tm_ptr).set(
+                        f32::max(value, 0.0f32),
+                        self as *mut _ as *mut c_void,
+                        Self::timer_expired,
+                        draw_context,
+                    )?;
+                }
             }
             _ => {}
         }
@@ -173,7 +181,7 @@ impl ICollisionComponent for TBlocker {
         distance: f32,
         edge: &TEdgeSegment,
         time_ticks: &mut DrawContext,
-    ) {
+    ) -> Result<()> {
         todo!()
     }
 

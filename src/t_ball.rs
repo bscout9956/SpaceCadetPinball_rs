@@ -226,7 +226,7 @@ impl ICollisionComponent for TBall {
         distance: f32,
         edge: &TEdgeSegment,
         draw_context: &mut DrawContext,
-    ) {
+    ) -> Result<()> {
         todo!()
     }
 

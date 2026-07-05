@@ -9,6 +9,7 @@ use crate::state::pb_game_state::PbGameState;
 use crate::state::render_state::RenderState;
 use crate::state::score_state::ScoreState;
 use crate::state::sound_state::SoundState;
+use crate::timer::TimerManager;
 
 pub struct PinballState {
     pub main_state: MainState,
@@ -22,6 +23,7 @@ pub struct PinballState {
     pub score_state: ScoreState,
     pub control_state: ControlState,
     pub debug_state: DebugState,
+    pub timer_manager: TimerManager,
 }
 
 impl PinballState {
@@ -38,6 +40,7 @@ impl PinballState {
             score_state: ScoreState::new(),
             control_state: ControlState::new(),
             debug_state: DebugState::new(),
+            timer_manager: TimerManager::default(),
         }
     }
 }

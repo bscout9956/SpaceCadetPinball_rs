@@ -32,7 +32,7 @@ pub trait ICollisionComponent {
         distance: f32,
         edge: &TEdgeSegment,
         draw_context: &mut DrawContext,
-    );
+    ) -> Result<()>;
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>>;
 
@@ -212,7 +212,7 @@ impl ICollisionComponent for TCollisionComponent {
         distance: f32,
         edge: &TEdgeSegment,
         time_ticks: &mut DrawContext,
-    ) {
+    ) -> Result<()> {
         //TODO: Undo borrow?
         if let Some(pinball_table) = &self.base.pinball_table
             && let Some(upgraded_table) = pinball_table.upgrade()
@@ -229,7 +229,7 @@ impl ICollisionComponent for TCollisionComponent {
                     1000000000.0,
                     0.0,
                 );
-                return;
+                return Ok(());
             }
         }
 
@@ -242,6 +242,8 @@ impl ICollisionComponent for TCollisionComponent {
             self.threshold,
             self.boost,
         );
+
+        Ok(())
         // TODO: Implement loader::play_sound
         // if proj_speed > self.threshold {
         //     loader::play_sound(self.hard_hit_sound_id, ball, "TCollisionComponent1");

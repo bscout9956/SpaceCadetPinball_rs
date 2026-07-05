@@ -17,6 +17,7 @@ use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_plunger::TPlunger;
+use crate::timer::TimerManager;
 use crate::translations::Msg;
 use crate::utils::DrawContext;
 use crate::{
@@ -595,7 +596,9 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
 
     let dt_sec = dt_milli_sec * 0.001f32;
     state.pb_game_state.time_next = state.pb_game_state.time_now + dt_sec;
+
     timed_frame(dt_sec, &mut state.pb_game_state)?;
+
     state.pb_game_state.time_now = state.pb_game_state.time_next;
 
     dt_milli_sec += state.pb_game_state.time_ticks_remainder;
@@ -605,7 +608,17 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
 
     // TODO: NUDGE CODE
 
-    timer::check(state.pb_game_state.time_ticks, state);
+    let mut draw_ctx = DrawContext {
+        v_screen: &mut state.render_state.v_screen,
+        current_palette: &state.pb_game_state.current_palette,
+        time_ticks: state.pb_game_state.time_ticks,
+        full_tilt_mode: state.pb_game_state.full_tilt_mode,
+        background_bitmap: &state.render_state.background_bitmap,
+    };
+
+    state
+        .timer_manager
+        .check(state.pb_game_state.time_ticks, &mut draw_ctx)?;
     render::update(&mut state.render_state, &mut state.pb_game_state)
         .context("Failed to render frame in pb::frame")?;
     //TODO: Score update score::update()
@@ -910,7 +923,11 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()> {
+pub(crate) fn input_up(
+    input: GameInput,
+    state: &mut PinballState,
+    timer: &mut TimerManager,
+) -> Result<()> {
     if state.pb_game_state.game_mode != GameModes::InGame
         || state.main_state.single_step
         || state.pb_game_state.demo_mode

@@ -40,9 +40,9 @@ pub trait IPinballComponent {
     fn port_draw(&self);
     fn message(
         &mut self,
-        code: MessageCode,
-        value: f32,
-        draw_context: &mut DrawContext,
+        _code: MessageCode,
+        _value: f32,
+        _draw_context: &mut DrawContext,
     ) -> Result<i32> {
         Ok(0)
     }
