@@ -6,6 +6,7 @@ use crate::state::pinball_state::PinballState;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use anyhow::Result;
+
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};

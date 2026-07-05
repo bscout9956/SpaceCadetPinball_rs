@@ -5,10 +5,11 @@ use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
 use crate::{maths::*, proj};
 use anyhow::{Context, Result};
 use std::any::Any;
+use std::cell::RefCell;
 use std::ops::Index;
 use std::sync::Arc;
 use std::{
-    cell::{Cell, RefCell},
+    cell::Cell,
     rc::{Rc, Weak},
 };
 

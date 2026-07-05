@@ -618,10 +618,10 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
     Ok(())
 }
 
-fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), PbError> {
+fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
     let mut table = match pb_game_state.main_table.as_ref() {
         Some(table) => table.borrow_mut(),
-        None => return Err(PbError::NoTable),
+        None => bail!(PbError::NoTable),
     };
     for ball_rc in &mut table.ball_list {
         let mut ball = ball_rc.borrow_mut();
@@ -752,7 +752,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
 
                     let mut distance = 0.0f32;
                     if let Some(edge_man) = pb_game_state.edge_manager.as_mut() {
-                        distance = edge_man.find_collision_distance(&mut ray, ball, &mut edge);
+                        distance = edge_man.find_collision_distance(&mut ray, ball, &mut edge)?;
                     }
                     if distance > 0.0f32 {
                         distance = ball_to_ball_collision(

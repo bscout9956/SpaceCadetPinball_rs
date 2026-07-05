@@ -5,6 +5,7 @@ use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_box::TEdgeBox;
 use crate::t_edge_segment::IEdgeSegment;
 use crate::t_line::EdgeSegmentError;
+use anyhow::Result;
 use std::cell::{Cell, RefCell, RefMut};
 use std::rc::{Rc, Weak};
 
@@ -125,7 +126,7 @@ impl TEdgeManager {
         ray: &mut RayType,
         ball: &Rc<RefCell<TBall>>,
         edge: &mut Rc<RefCell<dyn IEdgeSegment>>,
-    ) -> f32 {
+    ) -> Result<f32> {
         let mut distance = 1000000000.0f32;
         let mut edge_index = 0;
 
@@ -153,7 +154,7 @@ impl TEdgeManager {
                         ray,
                         ball,
                         edge_index,
-                    );
+                    )?;
                 }
             } else {
                 let mut index_x = x_box_0;
@@ -166,7 +167,7 @@ impl TEdgeManager {
                         ray,
                         ball,
                         edge_index,
-                    );
+                    )?;
                     index_x -= 1;
                 }
             }
@@ -181,7 +182,7 @@ impl TEdgeManager {
                         ray,
                         ball,
                         edge_index,
-                    );
+                    )?;
                 }
             } else {
                 let mut index_y = y_box_0;
@@ -194,7 +195,7 @@ impl TEdgeManager {
                         ray,
                         ball,
                         edge_index,
-                    );
+                    )?;
 
                     index_y -= 1;
                 }
@@ -242,12 +243,12 @@ impl TEdgeManager {
                     edge,
                     ray,
                     ball,
-                    edge_index,
+                    edge_index?,
                 );
             }
         }
 
-        distance
+        Ok(distance)
     }
 
     fn test_grid_box(
@@ -259,7 +260,7 @@ impl TEdgeManager {
         ray: &RayType,
         ball: &Rc<RefCell<TBall>>,
         mut edge_index: i32,
-    ) -> i32 {
+    ) -> Result<i32> {
         if x >= 0 && x < self.max_box_x && y >= 0 && y < self.max_box_y {
             let edge_box = &self.box_array[(x + y * self.max_box_x) as usize];
             let mut edge_segment = &self.edge_array[edge_index as usize];
@@ -283,7 +284,7 @@ impl TEdgeManager {
                 }
             }
         }
-        edge_index
+        Ok(edge_index)
     }
 
     pub(crate) fn normalize_box(&self, pt: Vector2) -> Vector2 {
