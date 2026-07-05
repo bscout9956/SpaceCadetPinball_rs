@@ -1,13 +1,14 @@
 use crate::gdrv::GdrvBitmap8;
-use crate::maths::{CircleType, LineType, Vector2};
-use crate::proj;
+use crate::maths::{CircleType, LineType, Vector2, Vector2i};
 use crate::state::options_state::OptionsState;
 use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
+use crate::t_edge_manager::TEdgeManager;
 use crate::t_edge_segment::IEdgeSegment;
 use crate::t_pinball_table::TPinballTable;
 use crate::utils::SdlRendererPtr;
+use crate::{maths, proj};
 use anyhow::{Result, bail};
 use sdl2::sys::SDL_BlendMode::SDL_BLENDMODE_BLEND;
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_TARGET;
@@ -92,7 +93,21 @@ pub(crate) unsafe fn draw_overlay(state: &mut PinballState) -> Result<()> {
             }
 
             // TODO: Rest of debugs
-            // if ....
+            if (state
+                .options_state
+                .options
+                .debug_overlay_ball_position
+                .value
+                || state.options_state.options.debug_overlay_ball_edges.value)
+                && let Some(t) = state.pb_game_state.main_table.as_ref()
+            {
+                draw_ball_info(
+                    renderer,
+                    t,
+                    &state.pb_game_state.edge_manager,
+                    &mut state.options_state,
+                )?;
+            }
 
             // Restore render target
             SDL_SetRenderTarget(renderer.0, initial_render_target);
@@ -121,6 +136,71 @@ pub(crate) unsafe fn draw_overlay(state: &mut PinballState) -> Result<()> {
             bail!("No renderer found, can't debug");
         }
     }
+}
+
+fn draw_ball_info(
+    renderer: &SdlRendererPtr,
+    t: &Rc<RefCell<TPinballTable>>,
+    edge_manager: &Option<TEdgeManager>,
+    options_state: &mut OptionsState,
+) -> Result<()> {
+    let ball_list = &t.borrow().ball_list;
+    for ball in ball_list.iter() {
+        if ball.borrow().active_flag().get() {
+            let ball_pos = Vector2::from_vec3(ball.borrow().position);
+
+            if *options_state.options.debug_overlay_ball_edges {
+                unsafe {
+                    SDL_SetRenderDrawColor(**renderer, 255, 0, 0, 255);
+                }
+                if let Some(edge_man) = edge_manager.as_ref() {
+                    let (x, y) = (edge_man.box_x(ball_pos.x), edge_man.box_y(ball_pos.y));
+                    let box_ref = &edge_man.box_array[(x + y * edge_man.max_box_x) as usize];
+                    for edge in box_ref.edge_list.iter() {
+                        let edge_borrow = edge.borrow_mut();
+                        draw_edge(options_state, edge_borrow, renderer, t)?;
+                    }
+                }
+            }
+
+            if *options_state.options.debug_overlay_ball_position {
+                unsafe {
+                    SDL_SetRenderDrawColor(**renderer, 0, 0, 255, 255);
+                }
+                let pt_1 = proj::x_form_to_2d(&ball_pos);
+                let (rad_vec_1, rad_vec_2) = (
+                    Vector2::new(0.0, ball_pos.y),
+                    Vector2::new(ball.borrow().radius, ball_pos.y),
+                );
+                let (rad_vec_1i, rad_vec_2i) = (
+                    proj::x_form_to_2d(&rad_vec_1),
+                    proj::x_form_to_2d(&rad_vec_2),
+                );
+                let rad_i = f32::sqrt(maths::magnitude_sq_i(&Vector2i::new(
+                    rad_vec_1i.x - rad_vec_2i.x,
+                    rad_vec_1i.y - rad_vec_2i.y,
+                )) as f32);
+                unsafe {
+                    SDL_RenderDrawCircle(renderer, pt_1.x, pt_1.y, f32::round(rad_i) as i32);
+                }
+
+                let mut next_pos = ball_pos;
+                maths::vector_add(
+                    &mut next_pos,
+                    &maths::vector_mul(
+                        &Vector2::from_vec3(ball.borrow().direction),
+                        ball.borrow().speed / 10.0,
+                    ),
+                );
+                let pt_2 = proj::x_form_to_2d(&next_pos);
+                unsafe {
+                    SDL_RenderDrawLine(**renderer, pt_1.x, pt_1.y, pt_2.x, pt_2.y);
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn draw_all_sprites(renderer: &SdlRendererPtr, t: &Rc<RefCell<TPinballTable>>) {
