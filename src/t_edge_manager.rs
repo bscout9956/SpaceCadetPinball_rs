@@ -1,10 +1,11 @@
+use crate::maths;
 use crate::maths::{RayType, Vector2};
 use crate::t_ball::TBall;
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_box::TEdgeBox;
 use crate::t_edge_segment::IEdgeSegment;
 use crate::t_line::EdgeSegmentError;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, RefMut};
 use std::rc::{Rc, Weak};
 
 #[derive(Clone, Default)]
@@ -295,5 +296,35 @@ impl TEdgeManager {
             x: 1.0 - x,
             y: 1.0 - y,
         };
+    }
+
+    pub(crate) fn field_effects(&mut self, ball: &mut RefMut<TBall>, dst_vec: &mut Vector2) {
+        let mut vec: Vector2 = Vector2::default();
+
+        let index = self.box_x(ball.position.x) + self.box_y(ball.position.y) * self.max_box_x;
+        let edge_box = &self.box_array[index as usize];
+
+        for field in edge_box.field_list.iter() {
+            if field.borrow().active_flag.get()
+                && ball.collision_mask > 0
+                && field.borrow().collision_group > 0
+            {
+                let col_comp_opt = &field.borrow().collision_component;
+                if let Some(col_comp) = col_comp_opt
+                    && let Some(col_upgrade) = col_comp.upgrade()
+                {
+                    let mut col_borrow = col_upgrade.borrow_mut();
+                    let f_e_result = col_borrow.field_effect(
+                        &ball.position,
+                        &ball.direction,
+                        ball.speed,
+                        &mut vec,
+                    );
+                    if f_e_result > 0 {
+                        maths::vector_add(dst_vec, &vec);
+                    }
+                }
+            }
+        }
     }
 }

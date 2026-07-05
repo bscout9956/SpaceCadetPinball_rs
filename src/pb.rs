@@ -686,8 +686,9 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<(), P
                     );
                 }
             } else {
-                // TODO: Implement this edge manager ig
-                // t_table_layer::edge_manager.field_effects(ball, &mut vec_dst);
+                if let Some(edge_man) = pb_game_state.edge_manager.as_mut() {
+                    edge_man.field_effects(ball, &mut vec_dst);
+                }
                 vec_dst.x = ball.time_delta;
                 vec_dst.y = ball.time_delta;
                 ball.direction.x *= ball.speed;

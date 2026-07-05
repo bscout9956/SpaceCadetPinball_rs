@@ -14,7 +14,6 @@ pub struct ResolutionInfo {
     pub(crate) screen_height: i16,
     pub table_width: i16,
     pub table_height: i16,
-    // TODO: Why am I not ever read?
     pub(crate) resolution_menu_id: i16,
 }
 
@@ -171,7 +170,8 @@ pub fn get_screen_rect_from_pinball_rect(
 }
 
 pub fn get_screen_to_pinball_ratio(render_state: &mut RenderState) -> f32 {
-    (render_state.destination_rect.unwrap().w / render_state.v_screen.as_ref().unwrap().width) as f32
+    (render_state.destination_rect.unwrap().w / render_state.v_screen.as_ref().unwrap().width)
+        as f32
 }
 
 unsafe fn enable_fullscreen(
