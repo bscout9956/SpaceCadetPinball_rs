@@ -6,7 +6,6 @@ use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
-use crate::timer;
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
@@ -26,17 +25,21 @@ impl ICollisionComponent for TWall {
         distance: f32,
         edge: &TEdgeSegment,
         draw_context: &mut DrawContext,
-    ) {
-        // TODO: What if this isn't enough? Is empty is an assumption
+    ) -> Result<()> {
         if !self.base.list_bitmap.is_empty() {
             self.base.sprite_set(0);
-            self.timer = timer::set(
-                0.1f32,
-                &raw mut *self as *mut c_void,
-                timer_expired,
-                draw_context,
-            );
+            let timer_manager: *mut TimerManager = draw_context.timer_manager;
+            let timer_context: *mut DrawContext = draw_context;
+            self.timer = unsafe {
+                (*timer_manager).set(
+                    0.1f32,
+                    &raw mut *self as *mut c_void,
+                    timer_expired,
+                    &mut *timer_context,
+                )?
+            };
         }
+        Ok(())
         //TODO: control::handler(MessageCode::CONTROL_COLLISION, self);
     }
 
@@ -56,6 +59,7 @@ impl ICollisionComponent for TWall {
 
 use crate::render::RenderSprite;
 use crate::t_edge_manager::TEdgeManager;
+use crate::timer::TimerManager;
 use crate::utils::DrawContext;
 use anyhow::Result;
 
@@ -116,9 +120,9 @@ impl IPinballComponent for TWall {
         draw_context: &mut DrawContext,
     ) -> Result<i32> {
         if code == MessageCode::RESET && self.timer > 0 {
-            timer::kill_id(self.timer);
+            draw_context.timer_manager.kill_id(self.timer)?;
             unsafe {
-                timer_expired(self.timer, &raw mut *self as *mut c_void, draw_context);
+                timer_expired(self.timer, &raw mut *self as *mut c_void, draw_context)?;
             }
         }
         Ok(0)
@@ -137,7 +141,11 @@ impl IPinballComponent for TWall {
     }
 }
 
-unsafe extern "C" fn timer_expired(timer_id: i32, caller: *mut c_void, _ctx: &mut DrawContext) {
+unsafe extern "C" fn timer_expired(
+    timer_id: i32,
+    caller: *mut c_void,
+    _ctx: &mut DrawContext,
+) -> Result<()> {
     let wall = caller as *mut TWall;
     if !wall.is_null() {
         unsafe {
@@ -145,4 +153,5 @@ unsafe extern "C" fn timer_expired(timer_id: i32, caller: *mut c_void, _ctx: &mu
             (*wall).timer = 0;
         }
     }
+    Ok(())
 }

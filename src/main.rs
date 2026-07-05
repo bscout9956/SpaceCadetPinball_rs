@@ -324,7 +324,7 @@ fn handle_game_binding(
     shortcut: bool,
     state: &mut PinballState,
 ) -> Result<()> {
-    println!("Bind: {:?}/{}", bind, shortcut);
+    // println!("Bind: {:?}/{}", bind, shortcut);
     match bind {
         GameBindings::NewGame => {
             new_game(state)?;
@@ -427,6 +427,7 @@ fn main_loop(
             let mut y = 0;
             let mut w = 0;
             let mut h = 0;
+
             unsafe {
                 SDL_GetMouseState(&mut x, &mut y);
 
@@ -1738,6 +1739,7 @@ unsafe fn event_handler(
                     time_ticks: state.pb_game_state.time_ticks,
                     full_tilt_mode: state.pb_game_state.full_tilt_mode,
                     background_bitmap: &state.render_state.background_bitmap,
+                    timer_manager: &mut state.timer_manager,
                 };
                 pb::lose_focus(
                     &mut state.pb_game_state.main_table,
@@ -2135,6 +2137,7 @@ fn run_game_session(
         time_ticks: state.pb_game_state.time_ticks,
         full_tilt_mode: state.pb_game_state.full_tilt_mode,
         background_bitmap: &state.render_state.background_bitmap,
+        timer_manager: &mut state.timer_manager,
     };
     pb::reset_table(&state.pb_game_state.main_table, &mut draw_ctx)
         .context("Failed to reset table")?;

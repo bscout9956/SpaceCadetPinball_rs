@@ -36,7 +36,7 @@ impl ICollisionComponent for TPlunger {
         distance: f32,
         edge: &TEdgeSegment,
         time_ticks: &mut DrawContext,
-    ) {
+    ) -> Result<()> {
         todo!()
     }
 
@@ -56,6 +56,7 @@ impl ICollisionComponent for TPlunger {
 use crate::render::RenderSprite;
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_component::IPinballComponent;
+use crate::timer::TimerManager;
 use crate::utils::DrawContext;
 use anyhow::Result;
 
@@ -113,37 +114,44 @@ unsafe extern "C" fn released_timer(
     _timer_id: i32,
     caller: *mut c_void,
     _draw_context: &mut DrawContext,
-) {
+) -> Result<()> {
+    println!("TPlunger timer released");
     unsafe {
         let plunger = &mut *(caller as *mut TPlunger);
         plunger.base.threshold = 1000000000.0;
         plunger.base.boost = 0.0;
     }
+    Ok(())
 }
 
 unsafe extern "C" fn pullback_timer(
     timer_id: i32,
     caller: *mut c_void,
     draw_context: &mut DrawContext,
-) {
+) -> Result<()> {
+    println!("Pullback timer!");
     unsafe {
-        let mut plunger = &mut *(caller as *mut TPlunger);
+        let plunger = &mut *(caller as *mut TPlunger);
         plunger.base.boost += plunger.pullback_increment;
         if plunger.base.boost <= plunger.max_pull_back {
             if plunger.some_counter > 0 {
-                plunger.pullback_timer_ = timer::set(
+                let timer_context = draw_context as *mut DrawContext;
+                let timer_manager = &mut draw_context.timer_manager;
+                plunger.pullback_timer_ = timer_manager.set(
                     plunger.pullback_delay / 4.0f32,
-                    &raw mut plunger as *mut c_void,
+                    plunger as *mut TPlunger as *mut c_void,
                     pullback_timer,
-                    draw_context,
-                );
+                    &*timer_context,
+                )?;
             } else {
-                plunger.pullback_timer_ = timer::set(
+                let timer_context = draw_context as *mut DrawContext;
+                let timer_manager = &mut draw_context.timer_manager;
+                plunger.pullback_timer_ = timer_manager.set(
                     plunger.pullback_delay,
-                    &raw mut plunger as *mut c_void,
+                    plunger as *mut TPlunger as *mut c_void,
                     pullback_timer,
-                    draw_context,
-                );
+                    &*timer_context,
+                )?;
             }
         } else {
             plunger.pullback_timer_ = 0;
@@ -156,6 +164,7 @@ unsafe extern "C" fn pullback_timer(
         ) as i32;
         plunger.sprite_set(index);
     }
+    Ok(())
 }
 
 impl IPinballComponent for TPlunger {
@@ -205,8 +214,12 @@ impl IPinballComponent for TPlunger {
                 if let Some(t) = self.base.pinball_table.as_ref() {
                     let t_up = t.upgrade();
                     if let Some(table) = t_up.as_ref() {
-                        multiball_count_check = table.borrow().multiball_count > 0;
-                        tilt_lock_flag = table.borrow().tilt_lock_flag;
+                        let table_ptr = table.as_ptr();
+                        // TODO: Refactor
+                        unsafe {
+                            multiball_count_check = (*table_ptr).multiball_count > 0;
+                            tilt_lock_flag = (*table_ptr).tilt_lock_flag;
+                        }
                     }
                 }
                 if !self.pullback_started_flag
@@ -217,7 +230,7 @@ impl IPinballComponent for TPlunger {
                     self.base.threshold = 1000000000.0;
                     // TODO: loader::play_sound(hardhitsoundid, this, tplunger1);
                     unsafe {
-                        pullback_timer(0, &raw mut *self as *mut c_void, draw_context);
+                        pullback_timer(0, &raw mut *self as *mut c_void, draw_context)?;
                     }
                 }
             }
@@ -233,17 +246,21 @@ impl IPinballComponent for TPlunger {
                     self.pullback_started_flag = false;
                     self.base.threshold = 0.0;
                     if self.pullback_timer_ > 0 {
-                        timer::kill_id(self.pullback_timer_);
+                        draw_context.timer_manager.kill_id(self.pullback_timer_)?;
                     }
                     self.pullback_timer_ = 0;
                     //TODO: loader::play_sound(soundindexp2, this, tplugner3);
                     self.sprite_set(0);
-                    timer::set(
-                        self.pullback_delay,
-                        &raw mut *self as *mut c_void,
-                        released_timer,
-                        draw_context,
-                    );
+                    let timer_manager: *mut TimerManager = draw_context.timer_manager;
+                    let timer_context: *mut DrawContext = draw_context;
+                    unsafe {
+                        (*timer_manager).set(
+                            self.pullback_delay,
+                            self as *mut TPlunger as *mut c_void,
+                            released_timer,
+                            &mut *timer_context,
+                        )?;
+                    }
                 }
             }
             MessageCode::RESET => {
@@ -252,9 +269,10 @@ impl IPinballComponent for TPlunger {
                 self.base.threshold = 1000000000.0;
                 self.some_counter = 0;
 
-                timer::kill_id(self.ballfeed_timer_);
-                timer::kill_id(self.pullback_timer_);
-                timer::kill_callback(released_timer);
+                draw_context.timer_manager.kill_id(self.ballfeed_timer_)?;
+                draw_context.timer_manager.kill_id(self.pullback_timer_)?;
+                println!("Time to kill the callback");
+                draw_context.timer_manager.kill_callback(released_timer)?;
 
                 self.sprite_set(0);
             }

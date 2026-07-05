@@ -178,6 +178,7 @@ use crate::t_edge_manager::TEdgeManager;
 use crate::t_flipper::TFlipper;
 use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
+use crate::timer::TimerManager;
 use crate::translations::Msg;
 use crate::utils::DrawContext;
 use anyhow::{Context, Result, bail};
@@ -528,16 +529,16 @@ impl IPinballComponent for TPinballTable {
             MessageCode::RESET => {
                 for component_rc in self.component_list.iter_mut() {
                     let mut component = component_rc.borrow_mut();
-                    component.message(MessageCode::RESET, 0.0, draw_context, timer)?;
+                    component.message(MessageCode::RESET, 0.0, draw_context)?;
                 }
                 if self.replay_timer > 0 {
-                    timer.kill_id(self.replay_timer)?;
+                    draw_context.timer_manager.kill_id(self.replay_timer)?;
                 }
                 self.replay_timer = 0;
                 if self.light_show_timer > 0 {
-                    timer.kill_id(self.light_show_timer)?;
+                    draw_context.timer_manager.kill_id(self.light_show_timer)?;
                     if let Some(lg) = &mut self.light_group {
-                        lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, draw_context, timer)?;
+                        lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, draw_context)?;
                     }
                 }
                 self.light_show_timer = 0;
@@ -585,12 +586,14 @@ impl IPinballComponent for TPinballTable {
             }
             MessageCode::NEW_GAME => {
                 if self.end_game_timeout_timer > 0 {
-                    timer::kill_id(self.end_game_timeout_timer);
+                    draw_context
+                        .timer_manager
+                        .kill_id(self.end_game_timeout_timer)?;
                     // TODO: self.end_game_timeout(0, self);
                     // pb::mode_change(GameModes::InGame, )
                 }
                 if self.light_show_timer > 0 {
-                    timer::kill_id(self.light_show_timer);
+                    draw_context.timer_manager.kill_id(self.light_show_timer)?;
                     self.light_show_timer = 0;
                     self.message(MessageCode::START_GAME_PLAYER1, 0.0, draw_context)?;
                 } else {
@@ -672,6 +675,11 @@ impl IPinballComponent for TPinballTable {
                     self.jackpot_score = 500000;
                 }
                 // midi::play_track(Miditracks::track1, true); TODO
+            }
+            MessageCode::PLUNGER_INPUT_PRESSED | MessageCode::PLUNGER_INPUT_RELEASED => {
+                if let Some(plunger) = self.plunger.as_mut() {
+                    plunger.message(code, value, draw_context)?;
+                }
             }
             _ => {
                 println!("Not yet implemented: {:?}", code);

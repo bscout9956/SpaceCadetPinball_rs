@@ -1,11 +1,6 @@
-use crate::state::pinball_state::PinballState;
 use crate::utils::DrawContext;
 use anyhow::Result;
 use std::ffi::c_void;
-use std::ptr::null_mut;
-use std::sync::atomic::AtomicI32;
-use std::sync::atomic::Ordering::Relaxed;
-use std::sync::{LazyLock, Mutex};
 use thiserror::Error;
 
 pub type TimerCallback = unsafe extern "C" fn(i32, *mut c_void, &mut DrawContext) -> Result<()>;

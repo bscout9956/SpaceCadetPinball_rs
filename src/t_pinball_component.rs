@@ -238,6 +238,7 @@ impl IPinballComponent for TPinballComponent {
         if index >= 0
             && let Some(sprite_data) = self.list_bitmap.get(index as usize)
         {
+            // CRash here??????
             bmp = sprite_data.bmp.clone();
             zmap = sprite_data.zmap.clone();
 

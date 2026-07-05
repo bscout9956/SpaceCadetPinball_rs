@@ -8,6 +8,7 @@ use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox_message::TTextBoxMessage;
+use crate::timer::TimerManager;
 use crate::utils::DrawContext;
 use crate::{fullscrn, gdrv, loader, timer};
 use anyhow::Context;
@@ -105,17 +106,21 @@ impl TTextBox {
 
             if self.messages.len() == 1 {
                 if self.timer > 0 && self.timer != -1 {
-                    timer::kill_id(self.timer);
+                    draw_context.timer_manager.kill_id(self.timer)?;
                 }
                 if time == -1.0f32 {
                     self.timer = -1;
                 } else {
-                    self.timer = timer::set(
-                        time,
-                        self as *const TTextBox as *mut c_void,
-                        Self::timer_expired,
-                        draw_context,
-                    );
+                    let timer_manager: *mut TimerManager = draw_context.timer_manager;
+                    let timer_context: *mut DrawContext = draw_context;
+                    self.timer = unsafe {
+                        (*timer_manager).set(
+                            time,
+                            self as *const TTextBox as *mut c_void,
+                            Self::timer_expired,
+                            &mut *timer_context,
+                        )?
+                    }
                 }
             }
         } else {
@@ -136,13 +141,14 @@ impl TTextBox {
         timer_id: i32,
         caller: *mut c_void,
         draw_ctx: &mut DrawContext,
-    ) {
+    ) -> Result<()> {
         let tb = unsafe { &mut *(caller as *mut TTextBox) };
         (*tb).timer = 0;
         if tb.messages.pop_front().is_some() {
-            let _ = tb.draw(draw_ctx).context("Failed to draw textbox");
+            let _ = tb.draw(draw_ctx).context("Failed to draw textbox")?;
             // TODO: control shit
         }
+        Ok(())
     }
 
     fn draw(&mut self, draw_ctx: &mut DrawContext) -> Result<()> {
@@ -182,12 +188,16 @@ impl TTextBox {
                     break;
                 }
             } else if front_msg.time_left(draw_ctx.time_ticks) >= -2.0f32 {
-                self.timer = timer::set(
-                    f32::max(front_msg.time_left(draw_ctx.time_ticks), 0.25f32),
-                    self as *const TTextBox as *mut c_void,
-                    Self::timer_expired,
-                    draw_ctx,
-                );
+                let timer_manager: *mut TimerManager = draw_ctx.timer_manager;
+                let timer_context: *mut DrawContext = draw_ctx;
+                self.timer = unsafe {
+                    (*timer_manager).set(
+                        f32::max(front_msg.time_left(draw_ctx.time_ticks), 0.25f32),
+                        self as *const TTextBox as *mut c_void,
+                        Self::timer_expired,
+                        &mut *timer_context,
+                    )?
+                };
                 display = true;
                 break;
             }
@@ -408,7 +418,7 @@ impl TTextBox {
         }
         if self.timer > 0 {
             if self.timer != -1 {
-                timer::kill_id(self.timer);
+                draw_context.timer_manager.kill_id(self.timer)?;
             }
             self.timer = 0;
         }

@@ -306,7 +306,7 @@ impl ICollisionComponent for TTableLayer {
         distance: f32,
         edge: &TEdgeSegment,
         time_ticks: &mut DrawContext,
-    ) {
+    ) -> Result<()> {
         todo!()
     }
 
