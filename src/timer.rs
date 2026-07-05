@@ -7,37 +7,19 @@ use std::sync::atomic::Ordering::Relaxed;
 use std::sync::{LazyLock, Mutex};
 use thiserror::Error;
 
-type CallBackFn = Box<dyn FnMut(i32, *mut c_void)>;
+pub type TimerCallback = unsafe extern "C" fn(i32, *mut c_void, &mut DrawContext);
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct TimerStruct {
     pub target_time: i32,
     pub caller: *mut c_void,
-    pub callback: Option<unsafe extern "C" fn(i32, *mut c_void, &mut DrawContext)>,
+    pub callback: Option<TimerCallback>,
     pub next_timer: i32,
     pub timer_id: i32,
 }
 
 unsafe impl Sync for TimerStruct {}
 unsafe impl Send for TimerStruct {}
-
-impl TimerStruct {
-    pub fn new() -> Self {
-        Self {
-            target_time: 0,
-            caller: null_mut(),
-            callback: None,
-            next_timer: -1,
-            timer_id: 0,
-        }
-    }
-}
-
-impl Default for TimerStruct {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 static TIMER_BUFFER: LazyLock<Mutex<Vec<TimerStruct>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 static ACTIVE_HEAD: AtomicI32 = AtomicI32::new(-1);
@@ -55,7 +37,7 @@ pub enum TimerError {
 pub fn init(count: i32) -> Result<(), TimerError> {
     let mut data_buffer: Vec<TimerStruct>;
 
-    data_buffer = (0..count).map(|_| TimerStruct::new()).collect();
+    data_buffer = (0..count).map(|_| TimerStruct::default()).collect();
 
     data_buffer.iter().for_each(|item| {
         (*TIMER_BUFFER.lock().unwrap()).push(item.clone());
