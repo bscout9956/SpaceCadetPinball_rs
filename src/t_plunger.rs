@@ -246,6 +246,18 @@ impl IPinballComponent for TPlunger {
                     );
                 }
             }
+            MessageCode::RESET => {
+                self.pullback_started_flag = false;
+                self.base.boost = 0.0;
+                self.base.threshold = 1000000000.0;
+                self.some_counter = 0;
+
+                timer::kill_id(self.ballfeed_timer_);
+                timer::kill_id(self.pullback_timer_);
+                timer::kill_callback(released_timer);
+
+                self.sprite_set(0);
+            }
             MessageCode(v) => {
                 println!("Message code not yet implemented: {}", v);
             }
