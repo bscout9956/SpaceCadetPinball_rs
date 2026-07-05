@@ -247,7 +247,7 @@ impl IPinballComponent for TPinballComponent {
             {
                 // TODO: Refactor me
                 // Unfortunate situation where a double-borrow was occurring.
-                let table_ptr = table_rc.as_ptr(); // fails to borrow here
+                let table_ptr = table_rc.as_ptr();
                 unsafe {
                     x_pos = b.x_position - (*table_ptr).x_offset;
                     y_pos = b.y_position - (*table_ptr).y_offset;
