@@ -3,6 +3,7 @@ use std::ffi::c_char;
 use anyhow::{Result, bail};
 use sdl2::sys::{SDL_DestroyTexture, SDL_Rect, SDL_Renderer, SDL_Texture, SDL_Window};
 use std::io::Read;
+use std::ops::Deref;
 use thiserror::Error;
 
 use crate::gdrv::{ColorRgba, GdrvBitmap8};
@@ -14,6 +15,15 @@ pub struct SdlWindowPtr(pub *mut SDL_Window);
 unsafe impl Sync for SdlWindowPtr {}
 unsafe impl Send for SdlWindowPtr {}
 pub struct SdlRendererPtr(pub *mut SDL_Renderer);
+
+impl Deref for SdlRendererPtr {
+    type Target = *mut SDL_Renderer;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 unsafe impl Send for SdlRendererPtr {}
 unsafe impl Sync for SdlRendererPtr {}
 
