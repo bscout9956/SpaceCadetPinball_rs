@@ -1739,7 +1739,7 @@ unsafe fn event_handler(
                     time_ticks: state.pb_game_state.time_ticks,
                     full_tilt_mode: state.pb_game_state.full_tilt_mode,
                     background_bitmap: &state.render_state.background_bitmap,
-                    timer_manager: &mut state.timer_manager,
+                    timer_manager: state.timer_manager.clone(),
                 };
                 pb::lose_focus(
                     &mut state.pb_game_state.main_table,
@@ -2137,7 +2137,7 @@ fn run_game_session(
         time_ticks: state.pb_game_state.time_ticks,
         full_tilt_mode: state.pb_game_state.full_tilt_mode,
         background_bitmap: &state.render_state.background_bitmap,
-        timer_manager: &mut state.timer_manager,
+        timer_manager: state.timer_manager.clone(),
     };
     pb::reset_table(&state.pb_game_state.main_table, &mut draw_ctx)
         .context("Failed to reset table")?;

@@ -10,6 +10,8 @@ use crate::state::render_state::RenderState;
 use crate::state::score_state::ScoreState;
 use crate::state::sound_state::SoundState;
 use crate::timer::TimerManager;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct PinballState {
     pub main_state: MainState,
@@ -23,11 +25,12 @@ pub struct PinballState {
     pub score_state: ScoreState,
     pub control_state: ControlState,
     pub debug_state: DebugState,
-    pub timer_manager: TimerManager,
+    pub timer_manager: Rc<RefCell<TimerManager>>,
 }
 
 impl PinballState {
     pub fn new() -> PinballState {
+        let timer_rc = TimerManager::default();
         Self {
             main_state: MainState::new(),
             pb_game_state: PbGameState::default(),
@@ -40,7 +43,7 @@ impl PinballState {
             score_state: ScoreState::new(),
             control_state: ControlState::new(),
             debug_state: DebugState::new(),
-            timer_manager: TimerManager::default(),
+            timer_manager: Rc::new(RefCell::new(timer_rc)),
         }
     }
 }

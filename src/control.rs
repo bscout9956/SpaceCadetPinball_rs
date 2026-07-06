@@ -158,7 +158,7 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
                     time_ticks: state.pb_game_state.time_ticks,
                     full_tilt_mode: state.pb_game_state.full_tilt_mode,
                     background_bitmap: &state.render_state.background_bitmap,
-                    timer_manager: &mut state.timer_manager,
+                    timer_manager: state.timer_manager.clone(),
                 };
 
                 mtb.borrow_mut()
@@ -183,7 +183,7 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
                     time_ticks: state.pb_game_state.time_ticks,
                     full_tilt_mode: state.pb_game_state.full_tilt_mode,
                     background_bitmap: &state.render_state.background_bitmap,
-                    timer_manager: &mut state.timer_manager,
+                    timer_manager: state.timer_manager.clone(),
                 };
                 time += 2;
                 mtb.borrow_mut()
@@ -206,7 +206,7 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
                 time_ticks: state.pb_game_state.time_ticks,
                 full_tilt_mode: state.pb_game_state.full_tilt_mode,
                 background_bitmap: &state.render_state.background_bitmap,
-                timer_manager: &mut state.timer_manager,
+                timer_manager: state.timer_manager.clone(),
             };
             drain_ball_blocker_control(
                 MessageCode::T_BLOCKER_ENABLE,

@@ -307,11 +307,11 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
         &mut state.render_state,
         &mut state.main_state,
         &mut state.pb_game_state,
-        &mut state.timer_manager,
+        state.timer_manager.clone(),
     )?;
 
     state.pb_game_state.time_ticks = 0;
-    state.timer_manager.init(150);
+    state.timer_manager.borrow_mut().init(150);
     println!("Init'ing score");
     score::init();
 
@@ -392,7 +392,7 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
             time_ticks: state.pb_game_state.time_ticks,
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: &mut state.timer_manager,
+            timer_manager: state.timer_manager.clone(),
         };
         match state.pb_game_state.main_table.as_mut() {
             Some(table) => table
@@ -406,7 +406,7 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
             &mut state.render_state,
             &mut state.main_state,
             &mut state.pb_game_state,
-            &mut state.timer_manager,
+            state.timer_manager.clone(),
         )?;
         if let Some(mtb) = state.pb_game_state.mission_text_box.as_mut() {
             let mut draw_ctx = DrawContext {
@@ -415,7 +415,7 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
                 time_ticks: state.pb_game_state.time_ticks,
                 full_tilt_mode: state.pb_game_state.full_tilt_mode,
                 background_bitmap: &state.render_state.background_bitmap,
-                timer_manager: &mut state.timer_manager,
+                timer_manager: state.timer_manager.clone(),
             };
             mtb.borrow_mut().clear(false, &mut draw_ctx)?;
         }
@@ -425,7 +425,7 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
             time_ticks: state.pb_game_state.time_ticks,
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: &mut state.timer_manager,
+            timer_manager: state.timer_manager.clone(),
         };
         if let Some(mut itb) = state.pb_game_state.info_text_box.as_mut() {
             itb.borrow_mut()
@@ -446,7 +446,7 @@ pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<()> {
         &mut state.render_state,
         &mut state.main_state,
         &mut state.pb_game_state,
-        &mut state.timer_manager,
+        state.timer_manager.clone(),
     )?;
     if *state.options_state.options.music {
         midi::music_play();
@@ -463,7 +463,7 @@ pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<()> {
                 time_ticks: state.pb_game_state.time_ticks,
                 full_tilt_mode: state.pb_game_state.full_tilt_mode,
                 background_bitmap: &state.render_state.background_bitmap,
-                timer_manager: &mut state.timer_manager,
+                timer_manager: state.timer_manager.clone(),
             };
             t.borrow_mut().message(
                 MessageCode::NEW_GAME,
@@ -481,7 +481,7 @@ fn mode_change(
     render_state: &mut RenderState,
     main_state: &mut MainState,
     pb_game_state: &mut PbGameState,
-    timer_manager: &mut TimerManager,
+    timer_manager: Rc<RefCell<TimerManager>>,
 ) -> Result<()> {
     let miss_text_box = pb_game_state.mission_text_box.as_mut();
 
@@ -494,7 +494,7 @@ fn mode_change(
             time_ticks: pb_game_state.time_ticks,
             full_tilt_mode: pb_game_state.full_tilt_mode,
             background_bitmap: &render_state.background_bitmap,
-            timer_manager,
+            timer_manager: timer_manager.clone(),
         };
 
         text_box.borrow_mut().clear(true, &mut draw_ctx)?;
@@ -624,11 +624,12 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
         time_ticks: state.pb_game_state.time_ticks,
         full_tilt_mode: state.pb_game_state.full_tilt_mode,
         background_bitmap: &state.render_state.background_bitmap,
-        timer_manager: &mut state.timer_manager,
+        timer_manager: state.timer_manager.clone(),
     };
 
     state
         .timer_manager
+        .borrow_mut()
         .check(state.pb_game_state.time_ticks, &mut draw_ctx)?;
     render::update(&mut state.render_state, &mut state.pb_game_state)
         .context("Failed to render frame in pb::frame")?;
@@ -879,7 +880,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
             time_ticks: state.pb_game_state.time_ticks,
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: &mut state.timer_manager,
+            timer_manager: state.timer_manager.clone(),
         };
         text_box.borrow_mut().clear(false, &mut draw_ctx)?;
     }
@@ -891,7 +892,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
             time_ticks: state.pb_game_state.time_ticks,
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: &mut state.timer_manager,
+            timer_manager: state.timer_manager.clone(),
         };
         miss_text_box.borrow_mut().clear(false, &mut draw_ctx)?;
     }
@@ -906,7 +907,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
             time_ticks: state.pb_game_state.time_ticks,
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: &mut state.timer_manager,
+            timer_manager: state.timer_manager.clone(),
         };
         table.message(
             MessageCode::PAUSE,
@@ -928,7 +929,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
         time_ticks: state.pb_game_state.time_ticks,
         full_tilt_mode: state.pb_game_state.full_tilt_mode,
         background_bitmap: &state.render_state.background_bitmap,
-        timer_manager: &mut state.timer_manager,
+        timer_manager: state.timer_manager.clone(),
     };
     text_box
         .borrow_mut()
@@ -960,7 +961,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                     time_ticks: state.pb_game_state.time_ticks,
                     full_tilt_mode: state.pb_game_state.full_tilt_mode,
                     background_bitmap: &state.render_state.background_bitmap,
-                    timer_manager: &mut state.timer_manager,
+                    timer_manager: state.timer_manager.clone(),
                 };
                 table.message(
                     MessageCode::LEFT_FLIPPER_INPUT_RELEASED,
@@ -975,7 +976,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                     time_ticks: state.pb_game_state.time_ticks,
                     full_tilt_mode: state.pb_game_state.full_tilt_mode,
                     background_bitmap: &state.render_state.background_bitmap,
-                    timer_manager: &mut state.timer_manager,
+                    timer_manager: state.timer_manager.clone(),
                 };
                 table.message(
                     MessageCode::RIGHT_FLIPPER_INPUT_RELEASED,
@@ -990,7 +991,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                     time_ticks: state.pb_game_state.time_ticks,
                     full_tilt_mode: state.pb_game_state.full_tilt_mode,
                     background_bitmap: &state.render_state.background_bitmap,
-                    timer_manager: &mut state.timer_manager,
+                    timer_manager: state.timer_manager.clone(),
                 };
                 table.message(
                     MessageCode::PLUNGER_INPUT_PRESSED,
@@ -1079,7 +1080,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                             time_ticks: state.pb_game_state.time_ticks,
                             full_tilt_mode: state.pb_game_state.full_tilt_mode,
                             background_bitmap: &state.render_state.background_bitmap,
-                            timer_manager: &mut state.timer_manager,
+                            timer_manager: state.timer_manager.clone(),
                         };
                         lg.message(
                             MessageCode::T_LIGHT_FT_TMP_OVERRIDE_ON,
@@ -1096,7 +1097,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                             time_ticks: state.pb_game_state.time_ticks,
                             full_tilt_mode: state.pb_game_state.full_tilt_mode,
                             background_bitmap: &state.render_state.background_bitmap,
-                            timer_manager: &mut state.timer_manager,
+                            timer_manager: state.timer_manager.clone(),
                         };
                         lg.message(
                             MessageCode::T_LIGHT_FT_TMP_OVERRIDE_OFF,
@@ -1126,7 +1127,7 @@ pub(crate) fn launch_ball(state: &mut PinballState) -> Result<()> {
             time_ticks: state.pb_game_state.time_ticks,
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: &mut state.timer_manager,
+            timer_manager: state.timer_manager.clone(),
         };
 
         plunger.message(MessageCode::PLUNGER_LAUNCH_BALL, 0.0f32, &mut draw_ctx)?;
@@ -1181,7 +1182,7 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
             time_ticks: state.pb_game_state.time_ticks,
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: &mut state.timer_manager,
+            timer_manager: state.timer_manager.clone(),
         };
         state
             .pb_game_state
@@ -1211,7 +1212,7 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
                         time_ticks: state.pb_game_state.time_ticks,
                         full_tilt_mode: state.pb_game_state.full_tilt_mode,
                         background_bitmap: &state.render_state.background_bitmap,
-                        timer_manager: &mut state.timer_manager,
+                        timer_manager: state.timer_manager.clone(),
                     };
                     t.borrow_mut().message(
                         MessageCode::PLUNGER_INPUT_PRESSED,

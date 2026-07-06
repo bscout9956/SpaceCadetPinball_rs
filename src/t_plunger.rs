@@ -137,7 +137,7 @@ unsafe extern "C" fn pullback_timer(
             if plunger.some_counter > 0 {
                 let timer_context = draw_context as *mut DrawContext;
                 let timer_manager = &mut draw_context.timer_manager;
-                plunger.pullback_timer_ = timer_manager.set(
+                plunger.pullback_timer_ = timer_manager.borrow_mut().set(
                     plunger.pullback_delay / 4.0f32,
                     plunger as *mut TPlunger as *mut c_void,
                     pullback_timer,
@@ -146,7 +146,7 @@ unsafe extern "C" fn pullback_timer(
             } else {
                 let timer_context = draw_context as *mut DrawContext;
                 let timer_manager = &mut draw_context.timer_manager;
-                plunger.pullback_timer_ = timer_manager.set(
+                plunger.pullback_timer_ = timer_manager.borrow_mut().set(
                     plunger.pullback_delay,
                     plunger as *mut TPlunger as *mut c_void,
                     pullback_timer,
@@ -246,19 +246,20 @@ impl IPinballComponent for TPlunger {
                     self.pullback_started_flag = false;
                     self.base.threshold = 0.0;
                     if self.pullback_timer_ > 0 {
-                        draw_context.timer_manager.kill_id(self.pullback_timer_)?;
+                        draw_context
+                            .timer_manager
+                            .borrow_mut()
+                            .kill_id(self.pullback_timer_)?;
                     }
                     self.pullback_timer_ = 0;
                     //TODO: loader::play_sound(soundindexp2, this, tplugner3);
                     self.sprite_set(0);
-                    let timer_manager: *mut TimerManager = draw_context.timer_manager;
-                    let timer_context: *mut DrawContext = draw_context;
                     unsafe {
-                        (*timer_manager).set(
+                        draw_context.timer_manager.borrow_mut().set(
                             self.pullback_delay,
                             self as *mut TPlunger as *mut c_void,
                             released_timer,
-                            &mut *timer_context,
+                            draw_context,
                         )?;
                     }
                 }
@@ -269,10 +270,19 @@ impl IPinballComponent for TPlunger {
                 self.base.threshold = 1000000000.0;
                 self.some_counter = 0;
 
-                draw_context.timer_manager.kill_id(self.ballfeed_timer_)?;
-                draw_context.timer_manager.kill_id(self.pullback_timer_)?;
+                draw_context
+                    .timer_manager
+                    .borrow_mut()
+                    .kill_id(self.ballfeed_timer_)?;
+                draw_context
+                    .timer_manager
+                    .borrow_mut()
+                    .kill_id(self.pullback_timer_)?;
                 println!("Time to kill the callback");
-                draw_context.timer_manager.kill_callback(released_timer)?;
+                draw_context
+                    .timer_manager
+                    .borrow_mut()
+                    .kill_callback(released_timer)?;
 
                 self.sprite_set(0);
             }

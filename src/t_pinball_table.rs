@@ -532,11 +532,17 @@ impl IPinballComponent for TPinballTable {
                     component.message(MessageCode::RESET, 0.0, draw_context)?;
                 }
                 if self.replay_timer > 0 {
-                    draw_context.timer_manager.kill_id(self.replay_timer)?;
+                    draw_context
+                        .timer_manager
+                        .borrow_mut()
+                        .kill_id(self.replay_timer)?;
                 }
                 self.replay_timer = 0;
                 if self.light_show_timer > 0 {
-                    draw_context.timer_manager.kill_id(self.light_show_timer)?;
+                    draw_context
+                        .timer_manager
+                        .borrow_mut()
+                        .kill_id(self.light_show_timer)?;
                     if let Some(lg) = &mut self.light_group {
                         lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, draw_context)?;
                     }
@@ -588,12 +594,16 @@ impl IPinballComponent for TPinballTable {
                 if self.end_game_timeout_timer > 0 {
                     draw_context
                         .timer_manager
+                        .borrow_mut()
                         .kill_id(self.end_game_timeout_timer)?;
                     // TODO: self.end_game_timeout(0, self);
                     // pb::mode_change(GameModes::InGame, )
                 }
                 if self.light_show_timer > 0 {
-                    draw_context.timer_manager.kill_id(self.light_show_timer)?;
+                    draw_context
+                        .timer_manager
+                        .borrow_mut()
+                        .kill_id(self.light_show_timer)?;
                     self.light_show_timer = 0;
                     self.message(MessageCode::START_GAME_PLAYER1, 0.0, draw_context)?;
                 } else {

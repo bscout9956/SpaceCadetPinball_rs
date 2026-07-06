@@ -1,9 +1,11 @@
+use std::cell::RefCell;
 use std::ffi::c_char;
 // Equivalent to pch.h with some additions
 use anyhow::{Result, bail};
 use sdl2::sys::{SDL_DestroyTexture, SDL_Rect, SDL_Renderer, SDL_Texture, SDL_Window};
 use std::io::Read;
 use std::ops::Deref;
+use std::rc::Rc;
 use thiserror::Error;
 
 use crate::gdrv::{ColorRgba, GdrvBitmap8};
@@ -46,7 +48,7 @@ pub struct DrawContext<'a> {
     pub time_ticks: usize,
     pub full_tilt_mode: bool,
     pub background_bitmap: &'a Option<GdrvBitmap8>,
-    pub timer_manager: &'a mut TimerManager
+    pub timer_manager: Rc<RefCell<TimerManager>>,
 }
 
 impl<'a> DrawContext<'a> {
@@ -57,22 +59,7 @@ impl<'a> DrawContext<'a> {
             time_ticks: state.pb_game_state.time_ticks,
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: &mut state.timer_manager
-        })
-    }
-
-    pub fn from_state_members(
-        render_state: &'a mut RenderState,
-        pb_game_state: &'a mut PbGameState,
-        timer_manager: &'a mut TimerManager,
-    ) -> Result<DrawContext<'a>> {
-        Ok(Self {
-            v_screen: &mut render_state.v_screen,
-            background_bitmap: &render_state.background_bitmap,
-            current_palette: &pb_game_state.current_palette,
-            time_ticks: pb_game_state.time_ticks,
-            full_tilt_mode: pb_game_state.full_tilt_mode,
-            timer_manager
+            timer_manager: state.timer_manager.clone(),
         })
     }
 }

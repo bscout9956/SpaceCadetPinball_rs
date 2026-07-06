@@ -28,16 +28,12 @@ impl ICollisionComponent for TWall {
     ) -> Result<()> {
         if !self.base.list_bitmap.is_empty() {
             self.base.sprite_set(0);
-            let timer_manager: *mut TimerManager = draw_context.timer_manager;
-            let timer_context: *mut DrawContext = draw_context;
-            self.timer = unsafe {
-                (*timer_manager).set(
-                    0.1f32,
-                    &raw mut *self as *mut c_void,
-                    timer_expired,
-                    &mut *timer_context,
-                )?
-            };
+            self.timer = draw_context.timer_manager.borrow_mut().set(
+                0.1f32,
+                &raw mut *self as *mut c_void,
+                timer_expired,
+                draw_context,
+            )?;
         }
         Ok(())
         //TODO: control::handler(MessageCode::CONTROL_COLLISION, self);
@@ -120,7 +116,7 @@ impl IPinballComponent for TWall {
         draw_context: &mut DrawContext,
     ) -> Result<i32> {
         if code == MessageCode::RESET && self.timer > 0 {
-            draw_context.timer_manager.kill_id(self.timer)?;
+            draw_context.timer_manager.borrow_mut().kill_id(self.timer)?;
             unsafe {
                 timer_expired(self.timer, &raw mut *self as *mut c_void, draw_context)?;
             }

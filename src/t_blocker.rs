@@ -113,7 +113,7 @@ impl IPinballComponent for TBlocker {
             | MessageCode::RESET
             | MessageCode::T_BLOCKER_DISABLE => {
                 if self.timer > 0 {
-                    draw_context.timer_manager.kill_id(self.timer)?;
+                    draw_context.timer_manager.borrow_mut().kill_id(self.timer)?;
                     self.timer = 0;
                 }
                 self.base.message_field = MessageCode(0);
@@ -128,13 +128,12 @@ impl IPinballComponent for TBlocker {
                 // TODO: loader::play_sound(self.sound_index_4, self, "TBlocker2");
                 self.base.sprite_set(0);
                 if self.timer > 0 {
-                    draw_context.timer_manager.kill_id(self.timer)?;
+                    draw_context.timer_manager.borrow_mut().kill_id(self.timer)?;
                 }
                 self.timer = 0;
                 if value >= 0.0f32 {
                     unsafe {
-                        let tm_ptr: *mut _ = &mut draw_context.timer_manager;
-                        self.timer = (*tm_ptr).set(
+                        self.timer = draw_context.timer_manager.borrow_mut().set(
                             value,
                             self as *mut _ as *mut c_void,
                             Self::timer_expired,
@@ -145,11 +144,10 @@ impl IPinballComponent for TBlocker {
             }
             MessageCode::T_BLOCKER_RESTART_TIMEOUT => {
                 if self.timer > 0 {
-                    draw_context.timer_manager.kill_id(self.timer)?;
+                    draw_context.timer_manager.borrow_mut().kill_id(self.timer)?;
                 }
                 unsafe {
-                    let tm_ptr: *mut _ = &mut draw_context.timer_manager;
-                    self.timer = (*tm_ptr).set(
+                    self.timer = draw_context.timer_manager.borrow_mut().set(
                         f32::max(value, 0.0f32),
                         self as *mut _ as *mut c_void,
                         Self::timer_expired,
