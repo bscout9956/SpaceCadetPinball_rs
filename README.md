@@ -2,7 +2,12 @@
 
 # SpaceCadetPinball_rs
 
-A port of the original fork into rust. Description is WIP.
+An attempt to port the original fork into rust. This project was stopped mid-way as it became clear that CPP has way too many pitfalls and the code is too messy to be ported to rust without a complete rewrite.
+I should've known better.
+
+> If you're a lunatic, feel free to continue.
+
+As follows, the original README.md is preserved below.
 
 ## Summary
 
@@ -21,16 +26,16 @@ Supports data files from Windows and Full Tilt versions of the game.
 | Emscripten         | alula           | <https://github.com/alula/SpaceCadetPinball> <br> Play online: <https://alula.github.io/SpaceCadetPinball> |
 | Nintendo Switch    | averne          | <https://github.com/averne/SpaceCadetPinball-NX>                                                           |
 | webOS TV           | mariotaku       | <https://github.com/webosbrew/SpaceCadetPinball>                                                           |
-| Android (WIP)      | Iscle           | https://github.com/Iscle/SpaceCadetPinball                                                                 |
-| Nintendo Wii       | MaikelChan      | https://github.com/MaikelChan/SpaceCadetPinball                                                            |
-| Nintendo 3DS       | MaikelChan      | https://github.com/MaikelChan/SpaceCadetPinball/tree/3ds                                                   |
-| Nintendo DS        | Headshotnoby    | https://github.com/headshot2017/3dpinball-nds                                                              |
-| Nintendo Wii U     | IntriguingTiles | https://github.com/IntriguingTiles/SpaceCadetPinball-WiiU                                                  |
-| PlayStation 2      | Headshotnoby    | https://github.com/headshot2017/3dpinball-ps2                                                              |
-| Sega Dreamcast     | Headshotnoby    | https://github.com/headshot2017/3dpinball-dc                                                               |
-| MorphOS            | BeWorld         | https://www.morphos-storage.net/?id=1688897                                                                |
-| AmigaOS 4          | rjd324          | http://aminet.net/package/game/actio/spacecadetpinball-aos4                                                |
-| Android (WIP)      | fexed           | https://github.com/fexed/Pinball-on-Android                                                                |
+| Android (WIP)      | Iscle           | <https://github.com/Iscle/SpaceCadetPinball>                                                                 |
+| Nintendo Wii       | MaikelChan      | <https://github.com/MaikelChan/SpaceCadetPinball>                                                            |
+| Nintendo 3DS       | MaikelChan      | <https://github.com/MaikelChan/SpaceCadetPinball/tree/3ds>                                                   |
+| Nintendo DS        | Headshotnoby    | <https://github.com/headshot2017/3dpinball-nds>                                                              |
+| Nintendo Wii U     | IntriguingTiles | <https://github.com/IntriguingTiles/SpaceCadetPinball-WiiU>                                                  |
+| PlayStation 2      | Headshotnoby    | <https://github.com/headshot2017/3dpinball-ps2>                                                              |
+| Sega Dreamcast     | Headshotnoby    | <https://github.com/headshot2017/3dpinball-dc>                                                               |
+| MorphOS            | BeWorld         | <https://www.morphos-storage.net/?id=1688897>                                                                |
+| AmigaOS 4          | rjd324          | <http://aminet.net/package/game/actio/spacecadetpinball-aos4>                                                |
+| Android (WIP)      | fexed           | <https://github.com/fexed/Pinball-on-Android>                                                                |
 
 Platforms covered by this project: desktop Windows, Linux and macOS.
 
@@ -71,7 +76,7 @@ Install devel packages for `SDL2` and `SDL2_mixer`.\
 Compile with CMake; tested with GCC 10, Clang 11.\
 To cross-compile for Windows, install a 64-bit version of mingw and its `SDL2` and `SDL2_mixer` distributions, then use the `mingwcc.cmake` toolchain.
 
-[![Packaging status](https://repology.org/badge/tiny-repos/spacecadetpinball.svg)](https://repology.org/project/spacecadetpinball/versions) 
+[![Packaging status](https://repology.org/badge/tiny-repos/spacecadetpinball.svg)](https://repology.org/project/spacecadetpinball/versions)
 
 Some distributions provide a package in their repository. You can use those for easier dependency management and updates.
 
