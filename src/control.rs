@@ -161,10 +161,10 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
         for quote in QUOTES {
             if let Some(mtb) = state.pb_game_state.mission_text_box.clone() {
                 time += 3;
-                let mut draw_ctx = state.get_component_context();
+                let mut component_ctx = state.get_component_context();
 
                 mtb.borrow_mut()
-                    .display(quote, time as f32, &mut draw_ctx, Some(true))?;
+                    .display(quote, time as f32, &mut component_ctx, Some(true))?;
             }
         }
         return Ok(());
@@ -179,10 +179,10 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
         for line in CREDITS {
             if let Some(mtb) = state.pb_game_state.mission_text_box.clone() {
                 // Manual inst to prevent borrow issues
-                let mut draw_ctx = state.get_component_context();
+                let mut component_ctx = state.get_component_context();
                 time += 2;
                 mtb.borrow_mut()
-                    .display(line, time as f32, &mut draw_ctx, Some(true))?;
+                    .display(line, time as f32, &mut component_ctx, Some(true))?;
             }
         }
         state.pb_game_state.credits_active = true;
@@ -198,13 +198,13 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
             let block = state.control_state.component_state.block_1.get();
             let easy_mode = state.control_state.easy_mode;
             let light = state.control_state.component_state.lite_1.get();
-            let mut draw_ctx = state.get_component_context();
+            let mut component_ctx = state.get_component_context();
             drain_ball_blocker_control(
                 MessageCode::T_BLOCKER_ENABLE,
                 block,
                 easy_mode,
                 light,
-                &mut draw_ctx,
+                &mut component_ctx,
             )?;
         }
     }
@@ -219,7 +219,7 @@ fn drain_ball_blocker_control(
     block: Option<Rc<RefCell<TBlocker>>>,
     easy_mode: bool,
     light: Option<Rc<RefCell<TLight>>>,
-    draw_context: &mut ComponentContext,
+    component_context: &mut ComponentContext,
 ) -> Result<()> {
     // The original casts caller to TBlocker and assigns it to block,
     // but it doesn't use caller as anything else
@@ -242,7 +242,7 @@ fn drain_ball_blocker_control(
                 lite1.borrow_mut().message(
                     MessageCode::T_LIGHT_TURN_ON_TIMED,
                     blocker_duration,
-                    draw_context,
+                    component_context,
                 )?;
             }
         }
@@ -256,19 +256,19 @@ fn drain_ball_blocker_control(
                     block.borrow_mut().message(
                         MessageCode::T_BLOCKER_RESTART_TIMEOUT,
                         blocker_duration,
-                        draw_context,
+                        component_context,
                     )?;
                     lite1.borrow_mut().message(
                         MessageCode::T_LIGHT_FLASHER_START_TIMED,
                         blocker_duration,
-                        draw_context,
+                        component_context,
                     )?;
                 } else {
                     block.borrow_mut().base.message_field = MessageCode(0);
                     block.borrow_mut().message(
                         MessageCode::T_BLOCKER_DISABLE,
                         0.0f32,
-                        draw_context,
+                        component_context,
                     )?;
                 }
             }
@@ -284,9 +284,9 @@ fn table_add_extra_ball(count: f32, state: &mut PinballState) -> Result<()> {
     }
     if let Some(itb) = state.control_state.component_state.info_text_box.get() {
         let rc_string = pb::get_rc_string(Msg::STRING110)?;
-        let mut draw_ctx = ComponentContext::from_state(state);
+        let mut component_ctx = ComponentContext::from_state(state);
         itb.borrow_mut()
-            .display(rc_string, count, &mut draw_ctx, None)?;
+            .display(rc_string, count, &mut component_ctx, None)?;
     }
     Ok(())
 }
@@ -312,14 +312,14 @@ fn gravity_well_kickout_control(
                 let rc_string = pb::get_rc_string(Msg::STRING182)?
                     .replace("%ld", added_score.to_string().as_str());
 
-                let mut draw_ctx = ComponentContext::from_state(state);
+                let mut component_ctx = ComponentContext::from_state(state);
                 tb.borrow_mut()
-                    .display(&rc_string, 2.0, &mut draw_ctx, None)?;
+                    .display(&rc_string, 2.0, &mut component_ctx, None)?;
 
                 lite62.borrow_mut().message(
                     MessageCode::T_LIGHT_RESET_AND_TURN_OFF,
                     0.0f32,
-                    &mut draw_ctx,
+                    &mut component_ctx,
                 )?;
                 c.borrow_mut().set_active_flag(false);
                 let duration = soundwave7
@@ -328,7 +328,7 @@ fn gravity_well_kickout_control(
                 c.borrow_mut().message(
                     MessageCode::T_KICKOUT_RESTART_TIMER,
                     duration,
-                    &mut draw_ctx,
+                    &mut component_ctx,
                 )?;
             }
         }
