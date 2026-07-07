@@ -682,10 +682,12 @@ impl IPinballComponent for TPinballTable {
                     // Was this loose anti-cheat by design?
                     self.cheats_used = 0;
                     self.message(MessageCode::RESET, 0.0, component_context)?;
-                    let mut ball = self.ball_list[0].borrow_mut();
-                    ball.position.y = 0.0;
-                    ball.position.x = 0.0;
-                    ball.position.z = -0.8;
+                    {
+                        let mut ball = self.ball_list[0].borrow_mut();
+                        ball.position.y = 0.0;
+                        ball.position.x = 0.0;
+                        ball.position.z = -0.8;
+                    }
 
                     let player_count = value.floor() as i32;
                     self.player_count = player_count;
@@ -721,11 +723,23 @@ impl IPinballComponent for TPinballTable {
                     }
 
                     self.ball_count = self.max_ball_count;
-                    // TODO: self.change_ball_count(self.ball_count);
+                    let count = self.ball_count;
+                    self.change_ball_count(
+                        count,
+                        component_context.v_screen,
+                        component_context.current_palette,
+                        component_context.background_bitmap,
+                    )?;
+
                     let mut score_player_num_1 = self.score_player_number_1.take().unwrap();
                     score::set(&mut score_player_num_1, self.current_player + 1);
                     self.score_player_number_1 = Some(score_player_num_1.clone());
-                    //TODO: score::update(self.score_player_number_1);
+                    score::update(
+                        &mut self.score_player_number_1,
+                        component_context.v_screen,
+                        component_context.current_palette,
+                        component_context.background_bitmap,
+                    )?;
 
                     for score_index in (0..4 - self.player_count as usize).rev() {
                         score::set(&mut self.player_scores[score_index].score_struct, -1);
