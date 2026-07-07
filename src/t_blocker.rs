@@ -123,12 +123,12 @@ impl IPinballComponent for TBlocker {
                 self.base.active_flag.set(false);
                 self.base.sprite_set(-1);
                 if code == MessageCode::T_BLOCKER_DISABLE {
-                    // TODO: loader::play_sound(self.sound_index_3, self, "TBlocker1");
+                    component_context.play_sound(self.sound_index_3, Some(self), "TBlocker1");
                 }
             }
             MessageCode::T_BLOCKER_ENABLE => {
                 self.base.active_flag.set(true);
-                // TODO: loader::play_sound(self.sound_index_4, self, "TBlocker2");
+                component_context.play_sound(self.sound_index_4, Some(self), "TBlocker2");
                 self.base.sprite_set(0);
                 if self.timer > 0 {
                     component_context
