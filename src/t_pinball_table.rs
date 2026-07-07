@@ -147,7 +147,7 @@ impl TPinballTable {
                     .display(rc_string, -1.0f32, component_context, None)?;
             }
 
-            //TODO: loader::play_sound(SoundIndex3,nullptr,"TPinballTable1");
+            component_context.play_sound(self.sound_index_3, None, "TPinballTable1");
             self.tilt_timeout_timer =
                 component_context.set_timer(30.0, &raw mut *self as *mut c_void, tilt_timeout)?;
         }
@@ -719,8 +719,9 @@ impl IPinballComponent for TPinballTable {
                             component_context,
                         )?;
                     }
+                    let time =
+                        component_context.play_sound(self.sound_index_1, None, "TPinballTable2");
                     //  TODO
-                    // let time = loader::play_sound(self.sound_index_1, null_mut(), "TPinballTable2");
                     // if time < 0.0 {
                     // time = 5.0;
                     //}
