@@ -199,9 +199,10 @@ impl GroupData {
         self.bitmaps[bmp_res] = Some(bmp);
 
         if let Some(zmap) = &self.z_maps[bmp_res]
-            && (bmp_width != zmap.width as usize || bmp_height != zmap.height as usize) {
-                bail!("GroupData: mismatched bitmap/zMap dimensions");
-            }
+            && (bmp_width != zmap.width as usize || bmp_height != zmap.height as usize)
+        {
+            bail!("GroupData: mismatched bitmap/zMap dimensions");
+        }
 
         Ok(())
     }

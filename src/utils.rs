@@ -39,8 +39,10 @@ pub unsafe fn get_cstring_end(ptr: *const c_char) -> *const c_char {
     }
 
     let mut end = ptr;
-    while *end != 0 {
-        end = end.add(1);
+    unsafe {
+        while *end != 0 {
+            end = end.add(1);
+        }
     }
     end
 }

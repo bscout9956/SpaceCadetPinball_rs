@@ -1,3 +1,4 @@
+use crate::loader;
 use crate::loader::VisualStruct;
 use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
@@ -6,7 +7,6 @@ use crate::t_ball::TBall;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_table::TPinballTable;
-use crate::{loader, pb};
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
@@ -268,7 +268,8 @@ impl IPinballComponent for TPlunger {
                                 )?;
                             } else {
                                 let ball = (*table_ptr).add_ball(
-                                    (*table_ptr).plunger_position, component_context.time_ticks
+                                    (*table_ptr).plunger_position,
+                                    component_context.time_ticks,
                                 )?;
                                 if ball.is_none() {
                                     bail!("Failed to create ball in plunger");

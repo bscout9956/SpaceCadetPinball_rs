@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use crate::high_score::{HighScore, HighScoreEntry};
+use std::collections::VecDeque;
 
 pub struct HighScoreState {
     pub high_score_table: [HighScore; 5],
