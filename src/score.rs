@@ -166,6 +166,76 @@ pub(crate) fn set(score: &mut ScoreStruct, value: i32) {
     score.dirty_flag = true;
 }
 
-pub(crate) fn update(p0: Option<ScoreStruct>) {
-    todo!()
+pub(crate) fn update(
+    score_opt: &mut Option<ScoreStruct>,
+    v_screen: &mut Option<GdrvBitmap8>,
+    current_palette: &[ColorRgba; 256],
+    background_bitmap: &Option<GdrvBitmap8>,
+) -> Result<()> {
+    let score_str;
+    if let Some(score) = score_opt.as_mut()
+        && score.dirty_flag
+        && score.score <= 1000000000
+    {
+        score.dirty_flag = false;
+        let mut x = score.width + score.offset_x;
+        let y = score.offset_y;
+        erase(score, 0, v_screen, current_palette)?;
+        if score.score >= 0 {
+            score_str = format!("{}", score.score);
+            for &cur_char in score_str.as_bytes().iter().rev() {
+                let digit = cur_char - b'0';
+                let bmp = score.char_bmp[(digit % 10) as usize].as_ref();
+                if let Some(b) = bmp {
+                    x -= b.width;
+                    let height = b.height;
+                    let width = b.width;
+                    if let Some(vscr) = v_screen.as_mut() {
+                        // I guess we just add transparency but discard the bg bmp???
+                        if let Some(_bg_bmp) = background_bitmap.as_ref() {
+                            gdrv::copy_bitmap_w_transparency(vscr, width, height, x, y, b, 0, 0);
+                        } else {
+                            gdrv::copy_bitmap(vscr, width, height, x, y, b, 0, 0)?;
+                        }
+                    }
+                } else {
+                    bail!("No bitmap to subtract x from");
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn erase(
+    score: &mut ScoreStruct,
+    _blit_flag: i32,
+    v_screen: &mut Option<GdrvBitmap8>,
+    current_palette: &[ColorRgba; 256],
+) -> Result<()> {
+    if let Some(vscr) = v_screen.as_mut() {
+        if let Some(bg_bmp) = score.background_bmp.as_mut() {
+            gdrv::copy_bitmap(
+                vscr,
+                score.width,
+                score.height,
+                score.offset_x,
+                score.offset_y,
+                bg_bmp,
+                score.offset_x,
+                score.offset_y,
+            )?;
+        } else {
+            gdrv::fill_bitmap(
+                vscr,
+                score.width,
+                score.height,
+                score.offset_x,
+                score.offset_y,
+                0,
+                current_palette,
+            )?;
+        }
+    }
+    Ok(())
 }
