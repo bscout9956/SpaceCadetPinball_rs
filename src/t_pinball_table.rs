@@ -17,6 +17,8 @@ use std::ffi::{CString, NulError, c_void};
 use std::rc::Rc;
 use thiserror::Error;
 
+const MAX_BALL_COUNT: usize = 20;
+
 #[derive(Default)]
 pub struct ScoreStructSuper {
     pub score_struct: ScoreStruct,
@@ -149,6 +151,19 @@ impl TPinballTable {
             self.tilt_timeout_timer =
                 component_context.set_timer(30.0, &raw mut *self as *mut c_void, tilt_timeout)?;
         }
+        Ok(())
+    }
+
+    fn create_ball_pool(&mut self, state: &mut PinballState) -> Result<()> {
+        while self.ball_list.len() < MAX_BALL_COUNT {
+            let ball_rc = TBall::new(self.base.pinball_table.clone(), -1, state)?;
+            self.collision_comp_offset = ball_rc.borrow().radius;
+            ball_rc.borrow_mut().disable();
+
+            self.add_component(ball_rc.clone());
+            self.ball_list.push(ball_rc);
+        }
+
         Ok(())
     }
 }
@@ -305,13 +320,7 @@ impl TPinballTable {
 
         table_rc.borrow_mut().base.pinball_table = table_weak.clone();
 
-        let ball = table_rc
-            .borrow_mut()
-            .add_ball(Vector2::default(), state)
-            .context("Failed to add ball to table")?;
-        if let Some(b) = ball {
-            b.borrow_mut().disable();
-        }
+        table_rc.borrow_mut().create_ball_pool(state)?;
 
         TTableLayer::new(table_weak.clone(), state)?;
 
@@ -441,39 +450,14 @@ impl TPinballTable {
     pub(crate) fn add_ball(
         &mut self,
         position: Vector2,
-        state: &mut PinballState,
+        time_ticks: usize,
     ) -> Result<Option<Rc<RefCell<TBall>>>> {
-        let mut target_ball_rc: Option<Rc<RefCell<TBall>>> = None;
-
-        for rc_ball in &self.ball_list {
-            let cur_ball = rc_ball.borrow();
-
-            if !cur_ball.base.active_flag.get() {
-                drop(cur_ball);
-
-                target_ball_rc = Some(Rc::clone(rc_ball));
-                break;
-            }
-        }
-
-        let ball_rc = if let Some(found_rc) = target_ball_rc {
-            found_rc
-        } else {
-            if self.ball_list.len() >= 20 {
-                return Ok(None);
-            }
-
-            let table_weak = self.base.pinball_table.clone();
-
-            let new_ball_rc =
-                TBall::new(table_weak, -1, state).context("Failed to create TBall")?;
-            self.collision_comp_offset = new_ball_rc.borrow().radius;
-
-            self.add_component(new_ball_rc.clone());
-            self.ball_list.push(new_ball_rc.clone());
-
-            new_ball_rc
-        };
+        let ball_rc = self
+            .ball_list
+            .iter()
+            .find(|ball| !ball.borrow().base.active_flag.get())
+            .unwrap()
+            .clone();
 
         {
             let mut ball = ball_rc.borrow_mut();
@@ -490,7 +474,10 @@ impl TPinballTable {
             ball.position.y = position.y;
             ball.prev_position = ball.position;
             ball.stuck_count = 0;
-            ball.last_active_time = state.pb_game_state.time_ticks;
+            ball.last_active_time = time_ticks;
+            ball.collision_disabled_flag = false;
+            ball.collision_comp = None;
+            ball.collisions = [const { None }; 16];
         }
 
         Ok(Some(ball_rc))
