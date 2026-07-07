@@ -1,4 +1,3 @@
-use crate::loader;
 use crate::loader::VisualStruct;
 use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
@@ -246,6 +245,46 @@ impl IPinballComponent for TPlunger {
                         pullback_timer(0, &raw mut *self as *mut c_void, component_context)?;
                     }
                 }
+            }
+            MessageCode::PLUNGER_FEED_BALL => {
+                if let Some(t) = self.base.pinball_table.as_ref() {
+                    let t_up = t.upgrade();
+                    if let Some(table) = t_up.as_ref() {
+                        let table_ptr = table.as_ptr();
+                        unsafe {
+                            if (*table_ptr).ball_count_in_rect(
+                                &(*table_ptr).plunger_position,
+                                (*table_ptr).collision_comp_offset * 1.2f32,
+                            ) > 0
+                            {
+                                component_context.set_timer(
+                                    1.0,
+                                    &raw mut *self as *mut c_void,
+                                    ball_feed_timer,
+                                )?;
+                            } else {
+                                let ball = (*table_ptr).add_ball(
+                                    (*table_ptr).plunger_position, component_context.time_ticks
+                                )?;
+                                if ball.is_none() {
+                                    bail!("Failed to create ball in plunger");
+                                }
+                                (*table_ptr).multiball_count += 1;
+                                (*table_ptr).ball_in_drain_flag = 0;
+                                // TODO: pb::tilt_no_more(table_ptr, component_context.);
+                            }
+                        }
+                    }
+                }
+            }
+            MessageCode::PLUNGER_START_FEED_TIMER => {
+                self.ballfeed_timer_ = component_context.timer_manager.borrow_mut().set(
+                    0.95999998,
+                    self as *mut TPlunger as *mut c_void,
+                    ball_feed_timer,
+                    component_context,
+                )?;
+                // TODO: loader::play_sound(soundindexp1, this, tplunger2);
             }
             MessageCode::PLUNGER_LAUNCH_BALL => {
                 self.pullback_started_flag = true;
