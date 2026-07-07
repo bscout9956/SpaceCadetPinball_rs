@@ -688,8 +688,8 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
                 if let Some(edge_man) = pb_game_state.edge_manager.as_mut() {
                     edge_man.field_effects(ball, &mut vec_dst);
                 }
-                vec_dst.x = ball.time_delta;
-                vec_dst.y = ball.time_delta;
+                vec_dst.x *= ball.time_delta;
+                vec_dst.y *= ball.time_delta;
                 ball.direction.x *= ball.speed;
                 ball.direction.y *= ball.speed;
                 maths::vector_add_vec2_to_vec3(&mut ball.direction, &vec_dst);
