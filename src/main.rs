@@ -1736,19 +1736,10 @@ unsafe fn event_handler(
                 sound::deactivate(&mut state.sound_state);
                 //TODO: midi::music_stop();
                 state.main_state.has_focus = false;
-                let mut component_ctx = ComponentContext {
-                    v_screen: &mut state.render_state.v_screen,
-                    current_palette: &state.pb_game_state.current_palette,
-                    time_ticks: state.pb_game_state.time_ticks,
-                    full_tilt_mode: state.pb_game_state.full_tilt_mode,
-                    background_bitmap: &state.render_state.background_bitmap,
-                    timer_manager: state.timer_manager.clone(),
-                };
-                pb::lose_focus(
-                    &mut state.pb_game_state.main_table,
-                    state.pb_game_state.time_now,
-                    &mut component_ctx,
-                )?;
+                let table = &mut state.pb_game_state.main_table.clone();
+                let time_now = state.pb_game_state.time_now;
+                let mut component_ctx = state.get_component_context();
+                pb::lose_focus(table, time_now, &mut component_ctx)?;
             }
 
             if (*event).window.event == SDL_WINDOWEVENT_SIZE_CHANGED as u8

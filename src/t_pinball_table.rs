@@ -9,11 +9,11 @@ use crate::t_light_group::{TLightGroup, TLightGroupError};
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_table_layer::{TTableLayer, TTableLayerError};
 use crate::t_textbox::TTextBox;
-use crate::{loader, pb, render, score};
+use crate::{control, loader, pb, render, score, timer};
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_WARNING;
 use std::any::Any;
 use std::cell::RefCell;
-use std::ffi::{CString, NulError};
+use std::ffi::{CString, NulError, c_void};
 use std::rc::Rc;
 use thiserror::Error;
 
@@ -49,8 +49,8 @@ pub struct TPinballTable {
     pub player_count: i32,
     pub current_player: i32,
     pub plunger: Option<Rc<RefCell<TPlunger>>>,
-    pub drain: TDrain,
-    pub demo: Option<TDemo>,
+    pub drain: Option<Rc<RefCell<TDrain>>>,
+    pub demo: Option<Rc<RefCell<TDemo>>>,
     pub x_offset: i32,
     pub y_offset: i32,
     pub width: i32,
@@ -225,6 +225,8 @@ pub enum PinballTableError {
 
 use crate::context::component_context::ComponentContext;
 use crate::render::RenderSprite;
+use crate::state::main_state::MainState;
+use crate::state::pb_game_state::PbGameState;
 use crate::t_drain::TDrain;
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_flipper::TFlipper;
@@ -262,7 +264,7 @@ impl TPinballTable {
             player_count: 0,
             current_player: 0,
             plunger: None,
-            drain: TDrain,
+            drain: Some(Rc::new(RefCell::new(TDrain::default()))),
             demo: None,
             x_offset: 0,
             y_offset: 0,
@@ -640,7 +642,7 @@ impl IPinballComponent for TPinballTable {
                     )?;
                 }
                 if let Some(demo) = self.demo.as_mut()
-                    && demo.active_flag
+                    && demo.borrow().active_flag
                 {
                     rc_text = pb::get_rc_string(Msg::STRING131)?.to_string();
                 } else {

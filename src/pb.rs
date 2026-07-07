@@ -6,6 +6,7 @@ use crate::high_score::{HighScore, HighScoreEntry};
 use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
 use crate::message_code::MessageCode;
 use crate::options::{GameBindings, GameInput, InputTypes};
+use crate::state::control_state::ControlState;
 use crate::state::high_score_state::HighScoreState;
 use crate::state::main_state::MainState;
 use crate::state::options_state::OptionsState;
@@ -22,7 +23,7 @@ use crate::timer::TimerManager;
 use crate::translations::Msg;
 use crate::{
     SdlWindowPtr, control, gdrv, handle_game_binding, high_score, loader, maths, midi, nudge,
-    options, partman, proj, render, score, timer, translations,
+    options, partman, proj, render, score, translations,
 };
 use anyhow::{Context, Result, bail};
 use rand::random;
@@ -453,6 +454,7 @@ pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<()> {
     Ok(())
 }
 
+// TODO: Reduce parameter count?
 fn mode_change(
     mode: GameModes,
     render_state: &mut RenderState,
@@ -481,7 +483,7 @@ fn mode_change(
                 if let Some(table) = pb_game_state.main_table.as_mut()
                     && let Some(table_demo) = table.borrow_mut().demo.as_mut()
                 {
-                    table_demo.active_flag = true;
+                    table_demo.borrow_mut().active_flag = true;
                 }
             } else {
                 main_state.launch_ball_enabled = true;
@@ -490,7 +492,7 @@ fn mode_change(
                 if let Some(table) = pb_game_state.main_table.as_mut()
                     && let Some(table_demo) = table.borrow_mut().demo.as_mut()
                 {
-                    table_demo.active_flag = true;
+                    table_demo.borrow_mut().active_flag = true;
                 }
             }
         }
