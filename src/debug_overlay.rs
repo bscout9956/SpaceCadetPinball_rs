@@ -210,7 +210,7 @@ fn draw_all_sprites(renderer: &SdlRendererPtr, t: &Rc<RefCell<TPinballTable>>) {
     let t_borrow = t.borrow();
     for cmp in t_borrow.component_list.iter() {
         if let Some(rs) = cmp.borrow().render_sprite() {
-            let bmp_r = rs.bmp_rect;
+            let bmp_r = rs.borrow().bmp_rect;
             if bmp_r.width != 0 && bmp_r.height != 0 {
                 let rect = SDL_Rect {
                     x: bmp_r.x_position,

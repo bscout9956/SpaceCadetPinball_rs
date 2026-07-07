@@ -1,14 +1,14 @@
 use crate::gdrv::GdrvBitmap8;
 use crate::maths::RectangleType;
-use crate::render::RenderSprite;
+use crate::render::RenderSpriteRef;
 use crate::zdrv::ZMapHeaderType;
 use sdl2::sys::SDL_Rect;
 use std::sync::Arc;
 
 #[derive(Default)]
 pub struct RenderState {
-    pub sprite_list: Vec<RenderSprite>,
-    pub ball_list: Vec<RenderSprite>,
+    pub sprite_list: Vec<RenderSpriteRef>,
+    pub ball_list: Vec<RenderSpriteRef>,
     pub v_screen: Option<GdrvBitmap8>,
     pub offset_x: i32,
     pub offset_y: i32,

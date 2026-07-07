@@ -9,8 +9,10 @@ use crate::zdrv::ZMapHeaderType;
 use crate::{debug_overlay, gdrv, maths, proj, utils, zdrv};
 use sdl2::sys::SDL_TextureAccess::SDL_TEXTUREACCESS_STREAMING;
 use sdl2::sys::{SDL_FRect, SDL_RenderCopy, SDL_RenderCopyF};
+use std::cell::RefCell;
 use std::cmp::PartialEq;
 use std::ptr::null;
+use std::rc::Rc;
 use std::sync::Arc;
 
 #[derive(PartialEq, Debug, PartialOrd, Ord, Eq, Default, Clone)]
@@ -38,6 +40,8 @@ pub struct RenderSprite {
     dirty_flag: bool,
 }
 
+pub type RenderSpriteRef = Rc<RefCell<RenderSprite>>;
+
 impl RenderSprite {
     pub fn new(
         visual_type: VisualTypes,
@@ -47,7 +51,7 @@ impl RenderSprite {
         y_pos: i32,
         bounding_rect: Option<RectangleType>,
         render_state: &mut RenderState,
-    ) -> Self {
+    ) -> RenderSpriteRef {
         let dirty_flag = visual_type != VisualTypes::Ball;
         let mut instance = Self {
             bmp_rect: Default::default(),
@@ -95,8 +99,9 @@ impl RenderSprite {
             instance.z_map_offset_y = y_pos - render_state.z_map_offset_y;
         }
 
-        add_sprite(instance.clone(), render_state);
-        instance
+        let sprite = Rc::new(RefCell::new(instance));
+        add_sprite(sprite.clone(), render_state);
+        sprite
     }
 
     pub(crate) fn ball_set(
@@ -141,8 +146,8 @@ impl RenderSprite {
     }
 }
 
-fn add_sprite(sprite: RenderSprite, render_state: &mut RenderState) {
-    let list = if sprite.visual_type == VisualTypes::Ball {
+fn add_sprite(sprite: RenderSpriteRef, render_state: &mut RenderState) {
+    let list = if sprite.borrow().visual_type == VisualTypes::Ball {
         &mut render_state.ball_list
     } else {
         &mut render_state.sprite_list
@@ -313,22 +318,25 @@ fn paint_balls(render_state: &mut RenderState) -> Result<()> {
     let z_screen = render_state.z_screen.as_ref().unwrap();
 
     // Sort ball sprites by ascending depth
-    render_state.ball_list.sort_by_key(|a| a.depth);
+    render_state.ball_list.sort_by_key(|a| a.borrow().depth);
 
     // For balls that clip vScreen: save original vScreen contents and paint the ball bitmap.
     for index in 0..render_state.ball_list.len() {
-        let ball_sprite = &mut render_state.ball_list[index];
+        let mut ball_sprite = render_state.ball_list[index].borrow_mut();
         let ball_bitmap = render_state.ball_bitmap.as_mut().unwrap();
 
-        let dirty = &mut ball_sprite.dirty_rect;
+        let bmp_rect = ball_sprite.bmp_rect;
+        let bmp = ball_sprite.bmp.clone();
+        let depth = ball_sprite.depth;
 
-        if let Some(src_bmp) = ball_sprite.bmp.as_ref()
+        if let Some(src_bmp) = bmp.as_ref()
             && maths::rectangle_clip(
-                &ball_sprite.bmp_rect,
+                &bmp_rect,
                 &render_state.v_screen_rect,
-                Some(dirty),
+                Some(&mut ball_sprite.dirty_rect),
             )
         {
+            let dirty = ball_sprite.dirty_rect;
             let x_pos = dirty.x_position;
             let y_pos = dirty.y_position;
             gdrv::copy_bitmap(
@@ -352,12 +360,12 @@ fn paint_balls(render_state: &mut RenderState) -> Result<()> {
                 x_pos,
                 y_pos,
                 src_bmp,
-                x_pos - ball_sprite.bmp_rect.x_position,
-                y_pos - ball_sprite.bmp_rect.y_position,
-                ball_sprite.depth,
+                x_pos - bmp_rect.x_position,
+                y_pos - bmp_rect.y_position,
+                depth,
             )
         } else {
-            dirty.width = -1;
+            ball_sprite.dirty_rect.width = -1;
         }
     }
 
@@ -369,7 +377,7 @@ fn unpaint_balls(render_state: &mut RenderState) -> Result<()> {
     let ball_list_size = render_state.ball_list.len();
 
     for index in (0..ball_list_size).rev() {
-        let cur_ball = &mut render_state.ball_list[index];
+        let mut cur_ball = render_state.ball_list[index].borrow_mut();
 
         let ball_bitmap = render_state.ball_bitmap.as_mut().unwrap();
 
@@ -396,7 +404,8 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
     unpaint_balls(render_state)?;
 
     // Clip dirty sprites with vScreen, clear clipping (dirty) rectangles
-    for sprite in render_state.sprite_list.iter_mut() {
+    for sprite_ref in render_state.sprite_list.iter() {
+        let mut sprite = sprite_ref.borrow_mut();
         if !sprite.dirty_flag {
             continue;
         }
@@ -404,8 +413,9 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
         let mut clear_sprite: bool = false;
         match sprite.visual_type {
             VisualTypes::Background => {
+                let bmp_rect = sprite.bmp_rect;
                 let rec_clip = maths::rectangle_clip(
-                    &sprite.bmp_rect,
+                    &bmp_rect,
                     &render_state.v_screen_rect,
                     Some(&mut sprite.dirty_rect),
                 );
@@ -417,11 +427,9 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
             }
             VisualTypes::Sprite => {
                 if sprite.dirty_rect_prev.width > 0 {
-                    maths::enclosing_box(
-                        &sprite.dirty_rect_prev,
-                        &sprite.bmp_rect,
-                        &mut sprite.dirty_rect,
-                    );
+                    let dirty_rect_prev = sprite.dirty_rect_prev;
+                    let bmp_rect = sprite.bmp_rect;
+                    maths::enclosing_box(&dirty_rect_prev, &bmp_rect, &mut sprite.dirty_rect);
                 }
 
                 let dirty_rect = sprite.dirty_rect;
@@ -480,12 +488,13 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
 
     let mut sprites_to_remove = Vec::new();
 
-    for (index, sprite) in render_state.sprite_list.iter_mut().enumerate() {
+    for (index, sprite_ref) in render_state.sprite_list.iter().enumerate() {
+        let mut sprite = sprite_ref.borrow_mut();
         if !sprite.dirty_flag {
             continue;
         }
         repaint(
-            sprite,
+            &sprite,
             &mut render_state.v_screen,
             &mut render_state.z_screen,
         );
@@ -499,7 +508,7 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
 
     for index in sprites_to_remove.into_iter().rev() {
         let isolated_sprite = render_state.sprite_list.remove(index);
-        remove_sprite(&isolated_sprite, render_state);
+        remove_sprite(&isolated_sprite.borrow(), render_state);
     }
 
     paint_balls(render_state)?;
@@ -513,7 +522,7 @@ pub fn remove_sprite(sprite: &RenderSprite, render_state: &mut RenderState) {
         &mut render_state.sprite_list
     };
 
-    if let Some(pos) = list.iter().position(|s| s == sprite) {
+    if let Some(pos) = list.iter().position(|s| *s.borrow() == *sprite) {
         list.remove(pos);
     }
 }
@@ -603,8 +612,8 @@ pub(crate) fn present_v_screen(state: &mut PinballState) -> Result<()> {
 }
 
 pub(crate) fn build_occlude_list(state: &mut RenderState) {
-    for sprite in &mut state.sprite_list {
-        sprite.occluded_sprites = None;
+    for sprite_ref in &state.sprite_list {
+        sprite_ref.borrow_mut().occluded_sprites = None;
     }
 
     let num_sprites = state.sprite_list.len();
@@ -614,7 +623,8 @@ pub(crate) fn build_occlude_list(state: &mut RenderState) {
     let mut current_occlusions: Vec<usize> = Vec::new();
 
     for i in 0..num_sprites {
-        let main_sprite = &state.sprite_list[i];
+        let main_sprite_ref = state.sprite_list[i].borrow();
+        let main_sprite = &*main_sprite_ref;
 
         if main_sprite.delete_flag || main_sprite.bounding_rect.width == -1 {
             continue;
@@ -623,7 +633,8 @@ pub(crate) fn build_occlude_list(state: &mut RenderState) {
         current_occlusions.clear();
 
         for j in 0..num_sprites {
-            let ref_sprite = &state.sprite_list[j];
+            let ref_sprite_ref = state.sprite_list[j].borrow();
+            let ref_sprite = &*ref_sprite_ref;
 
             if !ref_sprite.delete_flag
                 && ref_sprite.bounding_rect.width != -1
@@ -651,10 +662,10 @@ pub(crate) fn build_occlude_list(state: &mut RenderState) {
         if let Some(indices) = all_occlusions[i].take() {
             let cloned_sprites: Vec<Option<RenderSprite>> = indices
                 .into_iter()
-                .map(|idx| Some(state.sprite_list[idx].clone()))
+                .map(|idx| Some(state.sprite_list[idx].borrow().clone()))
                 .collect();
 
-            state.sprite_list[i].occluded_sprites = Some(cloned_sprites);
+            state.sprite_list[i].borrow_mut().occluded_sprites = Some(cloned_sprites);
         }
     }
 }

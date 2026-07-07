@@ -224,15 +224,13 @@ pub enum PinballTableError {
 }
 
 use crate::context::component_context::ComponentContext;
-use crate::render::RenderSprite;
-use crate::state::main_state::MainState;
+use crate::render::RenderSpriteRef;
 use crate::state::pb_game_state::PbGameState;
 use crate::t_drain::TDrain;
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_flipper::TFlipper;
 use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
-use crate::timer::TimerManager;
 use crate::translations::Msg;
 use anyhow::{Context, Result, bail};
 
@@ -483,8 +481,8 @@ impl TPinballTable {
             ball.base.active_flag.set(true);
             ball.position.z = ball.radius;
             ball.direction = Vector3::default();
-            ball.speed = 0.0f32;
-            ball.time_delta = 0.0f32;
+            ball.speed = 0.0;
+            ball.time_delta = 0.0;
             ball.edge_collision_count = 0;
             ball.collision_flag = 0;
             ball.collision_mask = 1;
@@ -538,8 +536,8 @@ impl TPinballTable {
 }
 
 impl IPinballComponent for TPinballTable {
-    fn render_sprite(&self) -> Option<&RenderSprite> {
-        self.base.render_sprite.as_ref()
+    fn render_sprite(&self) -> Option<RenderSpriteRef> {
+        self.base.render_sprite.clone()
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -760,7 +758,7 @@ impl IPinballComponent for TPinballTable {
                 println!("Not yet implemented: {:?}", code);
             }
         }
-        control::table_control_handler(code, component_context, /* TODO: pass control_state? this would mean we need to pass it to every message call */)?;
+        control::table_control_handler(code, component_context)?;
         Ok(0)
     }
 

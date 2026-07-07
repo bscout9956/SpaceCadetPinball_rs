@@ -2,7 +2,7 @@ use crate::context::component_context::ComponentContext;
 use crate::loader::VisualStruct;
 use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
-use crate::render::RenderSprite;
+use crate::render::RenderSpriteRef;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
@@ -69,7 +69,7 @@ impl TBlocker {
 }
 
 impl IPinballComponent for TBlocker {
-    fn render_sprite(&self) -> Option<&RenderSprite> {
+    fn render_sprite(&self) -> Option<RenderSpriteRef> {
         todo!()
     }
 

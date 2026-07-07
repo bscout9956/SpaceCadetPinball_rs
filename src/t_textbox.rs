@@ -1,7 +1,7 @@
 use crate::context::component_context::ComponentContext;
 use crate::gdrv::GdrvBitmap8;
 use crate::maths::Vector2;
-use crate::render::RenderSprite;
+use crate::render::RenderSpriteRef;
 use crate::score::ScoreMessageFontType;
 use crate::state::pinball_state::PinballState;
 use crate::state::render_state::RenderState;
@@ -9,8 +9,7 @@ use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox_message::TTextBoxMessage;
-use crate::timer::TimerManager;
-use crate::{fullscrn, gdrv, loader, timer};
+use crate::{fullscrn, gdrv, loader};
 use anyhow::Context;
 use anyhow::Result;
 use dear_imgui_rs::Ui;
@@ -43,8 +42,8 @@ pub struct TTextBox {
 }
 
 impl IPinballComponent for TTextBox {
-    fn render_sprite(&self) -> Option<&RenderSprite> {
-        self.base.render_sprite.as_ref()
+    fn render_sprite(&self) -> Option<RenderSpriteRef> {
+        self.base.render_sprite.clone()
     }
 
     fn as_any(&self) -> &dyn Any {

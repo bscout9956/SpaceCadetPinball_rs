@@ -70,7 +70,7 @@ impl DerefMut for TCollisionComponent {
 }
 
 use crate::context::component_context::ComponentContext;
-use crate::render::RenderSprite;
+use crate::render::RenderSpriteRef;
 use crate::t_edge_manager::TEdgeManager;
 use anyhow::Result;
 
@@ -278,8 +278,8 @@ impl ICollisionComponent for TCollisionComponent {
 }
 
 impl IPinballComponent for TCollisionComponent {
-    fn render_sprite(&self) -> Option<&RenderSprite> {
-        self.render_sprite.as_ref()
+    fn render_sprite(&self) -> Option<RenderSpriteRef> {
+        self.render_sprite.clone()
     }
 
     fn as_any(&self) -> &dyn Any {

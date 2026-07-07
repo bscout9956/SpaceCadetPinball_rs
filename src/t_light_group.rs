@@ -33,8 +33,8 @@ pub struct TLightGroup {
 }
 
 impl IPinballComponent for TLightGroup {
-    fn render_sprite(&self) -> Option<&RenderSprite> {
-        self.base.render_sprite.as_ref()
+    fn render_sprite(&self) -> Option<RenderSpriteRef> {
+        self.base.render_sprite.clone()
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -91,7 +91,7 @@ pub enum TLightGroupError {
 }
 
 use crate::context::component_context::ComponentContext;
-use crate::render::RenderSprite;
+use crate::render::RenderSpriteRef;
 use crate::t_edge_manager::TEdgeManager;
 
 impl TLightGroup {

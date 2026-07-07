@@ -7,6 +7,7 @@ use crate::t_ball::TBall;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_table::TPinballTable;
+use crate::{loader, pb};
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
@@ -54,10 +55,10 @@ impl ICollisionComponent for TPlunger {
 }
 
 use crate::context::component_context::ComponentContext;
-use crate::render::RenderSprite;
+use crate::render::RenderSpriteRef;
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_component::IPinballComponent;
-use anyhow::Result;
+use anyhow::{Result, bail};
 
 impl TPlunger {
     pub(crate) fn new(
@@ -179,8 +180,8 @@ unsafe extern "C" fn ball_feed_timer(
 }
 
 impl IPinballComponent for TPlunger {
-    fn render_sprite(&self) -> Option<&RenderSprite> {
-        self.base.render_sprite.as_ref()
+    fn render_sprite(&self) -> Option<RenderSpriteRef> {
+        self.base.render_sprite.clone()
     }
 
     fn as_any(&self) -> &dyn Any {

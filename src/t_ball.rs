@@ -1,6 +1,6 @@
 use crate::loader::VisualStruct;
 use crate::maths::*;
-use crate::render::{RenderSprite, VisualTypes};
+use crate::render::{RenderSprite, RenderSpriteRef, VisualTypes};
 use crate::state::pinball_state::PinballState;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
@@ -332,8 +332,8 @@ impl IEdgeSegment for TBall {
 }
 
 impl IPinballComponent for TBall {
-    fn render_sprite(&self) -> Option<&RenderSprite> {
-        self.base.render_sprite.as_ref()
+    fn render_sprite(&self) -> Option<RenderSpriteRef> {
+        self.base.render_sprite.clone()
     }
 
     fn as_any(&self) -> &dyn Any {

@@ -1,7 +1,7 @@
 use crate::context::component_context::ComponentContext;
 use crate::maths::Vector2;
 use crate::message_code::MessageCode;
-use crate::render::RenderSprite;
+use crate::render::RenderSpriteRef;
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use anyhow::Result;
@@ -37,8 +37,8 @@ pub struct TLight {
 }
 
 impl IPinballComponent for TLight {
-    fn render_sprite(&self) -> Option<&RenderSprite> {
-        self.base.render_sprite.as_ref()
+    fn render_sprite(&self) -> Option<RenderSpriteRef> {
+        self.base.render_sprite.clone()
     }
 
     fn as_any(&self) -> &dyn Any {

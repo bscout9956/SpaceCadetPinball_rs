@@ -1,5 +1,5 @@
 use crate::message_code::MessageCode;
-use crate::render::{RenderSprite, VisualTypes};
+use crate::render::{RenderSprite, RenderSpriteRef, VisualTypes};
 use crate::{control::ComponentControl, loader, loader::VisualStruct};
 use crate::{loader::SpriteData, t_pinball_table::TPinballTable};
 use crate::{maths::*, proj};
@@ -21,7 +21,7 @@ pub struct TPinballComponent {
     pub group_name: Option<Rc<RefCell<String>>>,
     pub control: Option<Weak<RefCell<ComponentControl>>>,
     pub group_index: i32,
-    pub render_sprite: Option<RenderSprite>,
+    pub render_sprite: Option<RenderSpriteRef>,
     pub pinball_table: Option<Weak<RefCell<TPinballTable>>>,
     pub list_bitmap: Vec<SpriteData>,
 
@@ -30,7 +30,7 @@ pub struct TPinballComponent {
 }
 
 pub trait IPinballComponent {
-    fn render_sprite(&self) -> Option<&RenderSprite>;
+    fn render_sprite(&self) -> Option<RenderSpriteRef>;
     fn as_any(&self) -> &dyn Any;
     fn group_name(&self) -> Option<Rc<RefCell<String>>>;
     fn group_index(&self) -> i32;
@@ -149,7 +149,7 @@ impl TPinballComponent {
                     ));
 
                     if let Some(rs) = instance.render_sprite.as_ref() {
-                        let rect = rs.bmp_rect;
+                        let rect = rs.borrow().bmp_rect;
                         let pos_2d = Vector2i::new(
                             rect.x_position + rect.width / 2,
                             rect.y_position + rect.height / 2,
@@ -188,7 +188,7 @@ impl TPinballComponent {
             }
 
             if let Some(sprite) = self.render_sprite.as_mut() {
-                sprite.ball_set(bmp.clone(), depth, pos.x, pos.y);
+                sprite.borrow_mut().ball_set(bmp.clone(), depth, pos.x, pos.y);
             }
         }
     }
@@ -209,8 +209,8 @@ impl Drop for TPinballComponent {
 }
 
 impl IPinballComponent for TPinballComponent {
-    fn render_sprite(&self) -> Option<&RenderSprite> {
-        self.render_sprite.as_ref()
+    fn render_sprite(&self) -> Option<RenderSpriteRef> {
+        self.render_sprite.clone()
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -258,6 +258,7 @@ impl IPinballComponent for TPinballComponent {
             bmp = Arc::new(None);
             zmap = Arc::new(None);
             if let Some(rs) = self.render_sprite.as_ref() {
+                let rs = rs.borrow();
                 x_pos = rs.bmp_rect.x_position;
                 y_pos = rs.bmp_rect.y_position;
             } else {
@@ -266,7 +267,7 @@ impl IPinballComponent for TPinballComponent {
         }
 
         if let Some(rs) = self.render_sprite.as_mut() {
-            rs.set(bmp, zmap, x_pos, y_pos);
+            rs.borrow_mut().set(bmp, zmap, x_pos, y_pos);
         }
     }
 

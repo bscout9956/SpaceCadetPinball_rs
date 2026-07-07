@@ -54,7 +54,7 @@ impl ICollisionComponent for TWall {
 }
 
 use crate::context::component_context::ComponentContext;
-use crate::render::RenderSprite;
+use crate::render::RenderSpriteRef;
 use crate::t_edge_manager::TEdgeManager;
 use crate::timer::TimerManager;
 use anyhow::Result;
@@ -77,8 +77,8 @@ impl TWall {
 }
 
 impl IPinballComponent for TWall {
-    fn render_sprite(&self) -> Option<&RenderSprite> {
-        self.base.render_sprite.as_ref()
+    fn render_sprite(&self) -> Option<RenderSpriteRef> {
+        self.base.render_sprite.clone()
     }
 
     fn as_any(&self) -> &dyn Any {
