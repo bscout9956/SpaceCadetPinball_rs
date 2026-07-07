@@ -1,6 +1,8 @@
 use crate::context::component_context::ComponentContext;
 use anyhow::Result;
+use std::cell::RefCell;
 use std::ffi::c_void;
+use std::rc::Rc;
 use thiserror::Error;
 
 pub type TimerCallback =
@@ -151,52 +153,67 @@ impl TimerManager {
         component_context: &mut ComponentContext,
     ) -> Result<i32> {
         let mut index = 0;
-        let mut current = self.active_head;
 
-        if current != NONE {
-            while current != NONE && time_ticks as i32 >= self.timers[current as usize].target_time
-            {
-                self.active_count -= 1;
-
-                self.active_head = self.timers[current as usize].next;
-
-                self.timers[current as usize].next = self.free_head;
-                self.free_head = current;
-
-                self.fire_timer(&self.timers[current as usize], component_context)?;
-
-                current = self.active_head;
-                index += 1;
-
-                if index > 1 {
-                    break;
-                }
-
-                if current == NONE {
-                    return Ok(index);
-                }
-            }
-        }
-
-        while current != NONE
-            && time_ticks as i32 >= self.timers[current as usize].target_time + 100
-        {
-            self.active_count -= 1;
-            self.active_head = self.timers[current as usize].next;
-
-            self.timers[current as usize].next = self.free_head;
-            self.free_head = current;
-
-            self.fire_timer(&self.timers[current as usize], component_context)?;
-
-            current = self.active_head;
+        while let Some(timer) = self.pop_next_expired_timer(time_ticks, index) {
+            Self::fire_timer(&timer, component_context)?;
             index += 1;
         }
 
         Ok(index)
     }
 
-    fn fire_timer(&self, timer: &Timer, component_context: &mut ComponentContext) -> Result<()> {
+    pub fn check_rc(
+        timer_manager: &Rc<RefCell<TimerManager>>,
+        time_ticks: usize,
+        component_context: &mut ComponentContext,
+    ) -> Result<i32> {
+        let mut index = 0;
+
+        loop {
+            let timer = timer_manager
+                .borrow_mut()
+                .pop_next_expired_timer(time_ticks, index);
+
+            let Some(timer) = timer else {
+                break;
+            };
+
+            Self::fire_timer(&timer, component_context)?;
+            index += 1;
+        }
+
+        Ok(index)
+    }
+
+    fn pop_next_expired_timer(&mut self, time_ticks: usize, fired_count: i32) -> Option<Timer> {
+        let current = self.active_head;
+        if current == NONE {
+            return None;
+        }
+
+        let current_u = current as usize;
+        let target_time = self.timers[current_u].target_time;
+        let time_ticks = time_ticks as i32;
+        let is_due = if fired_count <= 1 {
+            time_ticks >= target_time
+        } else {
+            time_ticks >= target_time + 100
+        };
+
+        if !is_due {
+            return None;
+        }
+
+        let timer = self.timers[current_u].clone();
+        self.active_count -= 1;
+        self.active_head = self.timers[current_u].next;
+        self.timers[current_u].next = self.free_head;
+        self.free_head = current;
+
+        Some(timer)
+    }
+
+    fn fire_timer(timer: &Timer, component_context: &mut ComponentContext) -> Result<()> {
         if let Some(callback) = timer.callback {
             unsafe {
                 callback(timer.id, timer.caller, component_context)?;
