@@ -608,10 +608,10 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
     render::update(&mut state.render_state, &mut state.pb_game_state)
         .context("Failed to render frame in pb::frame")?;
     //TODO: Score update score::update()
-    if let Some(table) = state.pb_game_state.main_table.as_mut() {
-        if table.borrow().tilt_lock_flag {
-            // TODO: NUDGE CODE
-        }
+    if let Some(table) = state.pb_game_state.main_table.as_mut()
+        && table.borrow().tilt_lock_flag
+    {
+        // TODO: NUDGE CODE
     }
 
     Ok(())
