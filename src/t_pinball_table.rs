@@ -48,7 +48,7 @@ pub struct TPinballTable {
     pub player_scores: [ScoreStructSuper; 4],
     pub player_count: i32,
     pub current_player: i32,
-    pub plunger: Option<TPlunger>,
+    pub plunger: Option<Rc<RefCell<TPlunger>>>,
     pub drain: TDrain,
     pub demo: Option<TDemo>,
     pub x_offset: i32,
@@ -325,13 +325,14 @@ impl TPinballTable {
                                 .add_component(Rc::new(RefCell::new(wall)));
                         }
                         1001 => {
-                            let plunger =
-                                TPlunger::new(table_weak.clone(), group_index as i32, state)
-                                    .context("Failed to create plunger")?;
-                            table_rc
-                                .borrow_mut()
-                                .add_component(Rc::new(RefCell::new(plunger.clone())));
-                            table_rc.borrow_mut().plunger_position = plunger.table_pos;
+                            let plunger = Rc::new(RefCell::new(TPlunger::new(
+                                table_weak.clone(),
+                                group_index as i32,
+                                state,
+                            )?));
+
+                            table_rc.borrow_mut().add_component(plunger.clone());
+                            table_rc.borrow_mut().plunger_position = plunger.borrow().table_pos;
                             table_rc.borrow_mut().plunger = Some(plunger);
                         }
                         1033 => {
@@ -577,7 +578,11 @@ impl IPinballComponent for TPinballTable {
                     lg.message(MessageCode::T_LIGHT_RESET_AND_TURN_OFF, 0.0, draw_context)?;
                 }
                 if let Some(plunger) = self.plunger.as_mut() {
-                    plunger.message(MessageCode::PLUNGER_START_FEED_TIMER, 0.0, draw_context)?;
+                    plunger.borrow_mut().message(
+                        MessageCode::PLUNGER_START_FEED_TIMER,
+                        0.0,
+                        draw_context,
+                    )?;
                 }
                 if let Some(demo) = self.demo.as_mut()
                     && demo.active_flag
@@ -689,7 +694,7 @@ impl IPinballComponent for TPinballTable {
             }
             MessageCode::PLUNGER_INPUT_PRESSED | MessageCode::PLUNGER_INPUT_RELEASED => {
                 if let Some(plunger) = self.plunger.as_mut() {
-                    plunger.message(code, value, draw_context)?;
+                    plunger.borrow_mut().message(code, value, draw_context)?;
                 }
             }
             _ => {

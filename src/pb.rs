@@ -1124,7 +1124,13 @@ pub(crate) fn launch_ball(state: &mut PinballState) -> Result<()> {
             timer_manager: state.timer_manager.clone(),
         };
 
-        plunger.message(MessageCode::PLUNGER_LAUNCH_BALL, 0.0f32, &mut draw_ctx)?;
+        if let Some(plunger) = table_rc.borrow_mut().plunger.as_mut() {
+            plunger.borrow_mut().message(
+                MessageCode::PLUNGER_LAUNCH_BALL,
+                0.0f32,
+                &mut draw_ctx,
+            )?;
+        }
     } else {
         bail!(PbError::NoTable)
     }
