@@ -1125,3 +1125,10 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
 
     Ok(())
 }
+
+// // TODO: Stop using raw pointers
+// pub(crate) fn tilt_no_more(table: *mut TPinballTable, itb: TT) {
+//     if (*table).tilt_lock_flag {
+//
+//     }
+// }
