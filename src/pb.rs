@@ -601,9 +601,7 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
         let time_ticks = state.pb_game_state.time_ticks;
         let mut component_ctx = state.get_component_context();
 
-        timer_manager
-            .borrow_mut()
-            .check(time_ticks, &mut component_ctx)?;
+        TimerManager::check_rc(&timer_manager, time_ticks, &mut component_ctx)?;
     }
     render::update(&mut state.render_state, &mut state.pb_game_state)
         .context("Failed to render frame in pb::frame")?;
