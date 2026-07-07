@@ -240,7 +240,11 @@ impl IPinballComponent for TPlunger {
                     self.pullback_started_flag = true;
                     self.base.boost = 0.0;
                     self.base.threshold = 1000000000.0;
-                    // TODO: loader::play_sound(hardhitsoundid, this, tplunger1);
+                    component_context.play_sound(
+                        self.base.hard_hit_sound_id,
+                        Some(self),
+                        "TPlunger1",
+                    );
                     unsafe {
                         pullback_timer(0, &raw mut *self as *mut c_void, component_context)?;
                     }
@@ -284,7 +288,7 @@ impl IPinballComponent for TPlunger {
                     ball_feed_timer,
                     component_context,
                 )?;
-                // TODO: loader::play_sound(soundindexp1, this, tplunger2);
+                component_context.play_sound(self.sound_index_p1, Some(self), "TPlunger2");
             }
             MessageCode::PLUNGER_LAUNCH_BALL => {
                 self.pullback_started_flag = true;
@@ -308,7 +312,7 @@ impl IPinballComponent for TPlunger {
                             .kill_id(self.pullback_timer_)?;
                     }
                     self.pullback_timer_ = 0;
-                    //TODO: loader::play_sound(soundindexp2, this, tplugner3);
+                    component_context.play_sound(self.sound_index_p2, Some(self), "TPlunger3");
                     self.sprite_set(0);
                     unsafe {
                         component_context.timer_manager.borrow_mut().set(
