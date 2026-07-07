@@ -756,13 +756,16 @@ impl IPinballComponent for TPinballTable {
                             component_context,
                         )?;
                     }
-                    let time =
+                    let mut time =
                         component_context.play_sound(self.sound_index_1, None, "TPinballTable2");
-                    //  TODO
-                    // if time < 0.0 {
-                    // time = 5.0;
-                    //}
-                    // self.light_show_timer = timer::set(time, self, lightshow_timeout);
+                    if time < 0.0 {
+                        time = 5.0;
+                    }
+                    self.light_show_timer = component_context.set_timer(
+                        time,
+                        &raw mut *self as *mut c_void,
+                        light_show_timeout,
+                    )?;
                 }
 
                 if component_context.full_tilt_mode {
@@ -794,4 +797,12 @@ impl IPinballComponent for TPinballTable {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+pub extern "C" fn light_show_timeout(
+    timer_id: i32,
+    caller: *mut c_void,
+    component_context: &mut ComponentContext,
+) -> Result<()> {
+    Ok(())
 }
