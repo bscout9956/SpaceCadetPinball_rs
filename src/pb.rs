@@ -966,7 +966,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                 if ball_count == 0 {
                     let was_added = table_rc
                         .borrow_mut()
-                        .add_ball(pos, state)
+                        .add_ball(pos, state.pb_game_state.time_ticks)
                         .context("Failed to add ball to table")?;
                     if was_added.is_some() {
                         table_rc.borrow_mut().multiball_count += 1;
