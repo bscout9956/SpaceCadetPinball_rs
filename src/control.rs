@@ -1,3 +1,4 @@
+use crate::context::component_context::ComponentContext;
 use crate::message_code::MessageCode;
 use crate::pb;
 use crate::state::control_state::CHEAT_LEN;
@@ -158,16 +159,9 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
         // Developer Easter egg type 'cheat' from Full Tilt
         let mut time = 0;
         for quote in QUOTES {
-            if let Some(mtb) = state.pb_game_state.mission_text_box.as_mut() {
+            if let Some(mtb) = state.pb_game_state.mission_text_box.clone() {
                 time += 3;
-                let mut draw_ctx = DrawContext {
-                    v_screen: &mut state.render_state.v_screen,
-                    current_palette: &state.pb_game_state.current_palette,
-                    time_ticks: state.pb_game_state.time_ticks,
-                    full_tilt_mode: state.pb_game_state.full_tilt_mode,
-                    background_bitmap: &state.render_state.background_bitmap,
-                    timer_manager: state.timer_manager.clone(),
-                };
+                let mut draw_ctx = state.get_component_context();
 
                 mtb.borrow_mut()
                     .display(quote, time as f32, &mut draw_ctx, Some(true))?;
@@ -183,16 +177,9 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
     {
         let mut time = 0;
         for line in CREDITS {
-            if let Some(mtb) = state.pb_game_state.mission_text_box.as_mut() {
+            if let Some(mtb) = state.pb_game_state.mission_text_box.clone() {
                 // Manual inst to prevent borrow issues
-                let mut draw_ctx = DrawContext {
-                    v_screen: &mut state.render_state.v_screen,
-                    current_palette: &state.pb_game_state.current_palette,
-                    time_ticks: state.pb_game_state.time_ticks,
-                    full_tilt_mode: state.pb_game_state.full_tilt_mode,
-                    background_bitmap: &state.render_state.background_bitmap,
-                    timer_manager: state.timer_manager.clone(),
-                };
+                let mut draw_ctx = state.get_component_context();
                 time += 2;
                 mtb.borrow_mut()
                     .display(line, time as f32, &mut draw_ctx, Some(true))?;
@@ -208,19 +195,15 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
     {
         state.control_state.easy_mode ^= true;
         if state.control_state.easy_mode {
-            let mut draw_ctx = DrawContext {
-                v_screen: &mut state.render_state.v_screen,
-                current_palette: &state.pb_game_state.current_palette,
-                time_ticks: state.pb_game_state.time_ticks,
-                full_tilt_mode: state.pb_game_state.full_tilt_mode,
-                background_bitmap: &state.render_state.background_bitmap,
-                timer_manager: state.timer_manager.clone(),
-            };
+            let block = state.control_state.component_state.block_1.get();
+            let easy_mode = state.control_state.easy_mode;
+            let light = state.control_state.component_state.lite_1.get();
+            let mut draw_ctx = state.get_component_context();
             drain_ball_blocker_control(
                 MessageCode::T_BLOCKER_ENABLE,
-                &state.control_state.component_state.block_1,
-                state.control_state.easy_mode,
-                &state.control_state.component_state.lite_1,
+                block,
+                easy_mode,
+                light,
                 &mut draw_ctx,
             )?;
         }
@@ -233,17 +216,17 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
 
 fn drain_ball_blocker_control(
     code: MessageCode,
-    block: &ComponentRef<TBlocker>,
+    block: Option<Rc<RefCell<TBlocker>>>,
     easy_mode: bool,
-    light: &ComponentRef<TLight>,
-    draw_context: &mut DrawContext,
+    light: Option<Rc<RefCell<TLight>>>,
+    draw_context: &mut ComponentContext,
 ) -> Result<()> {
     // The original casts caller to TBlocker and assigns it to block,
     // but it doesn't use caller as anything else
     match code {
         MessageCode::T_BLOCKER_ENABLE => {
-            if let Some(block) = block.get()
-                && let Some(lite1) = light.get()
+            if let Some(block) = block.as_ref()
+                && let Some(lite1) = light.as_ref()
             {
                 block.borrow_mut().base.message_field = MessageCode(1);
                 let blocker_duration = if !easy_mode {
@@ -264,8 +247,8 @@ fn drain_ball_blocker_control(
             }
         }
         MessageCode::CONTROL_TIMER_EXPIRED => {
-            if let Some(block) = block.get()
-                && let Some(lite1) = light.get()
+            if let Some(block) = block.as_ref()
+                && let Some(lite1) = light.as_ref()
             {
                 if block.borrow().base.message_field == MessageCode(1) {
                     block.borrow_mut().base.message_field = MessageCode(2);
@@ -301,7 +284,7 @@ fn table_add_extra_ball(count: f32, state: &mut PinballState) -> Result<()> {
     }
     if let Some(itb) = state.control_state.component_state.info_text_box.get() {
         let rc_string = pb::get_rc_string(Msg::STRING110)?;
-        let mut draw_ctx = DrawContext::from_state(state)?;
+        let mut draw_ctx = ComponentContext::from_state(state)?;
         itb.borrow_mut()
             .display(rc_string, count, &mut draw_ctx, None)?;
     }
@@ -329,7 +312,7 @@ fn gravity_well_kickout_control(
                 let rc_string = pb::get_rc_string(Msg::STRING182)?
                     .replace("%ld", added_score.to_string().as_str());
 
-                let mut draw_ctx = DrawContext::from_state(state)?;
+                let mut draw_ctx = ComponentContext::from_state(state)?;
                 tb.borrow_mut()
                     .display(&rc_string, 2.0, &mut draw_ctx, None)?;
 
