@@ -1,5 +1,7 @@
 use crate::gdrv::{ColorRgba, GdrvBitmap8};
+use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
+use crate::state::render_state::RenderState;
 use crate::timer::{TimerCallback, TimerManager};
 use anyhow::Result;
 use std::cell::RefCell;
@@ -17,7 +19,30 @@ pub struct ComponentContext<'a> {
 }
 
 impl<'a> ComponentContext<'a> {
-    pub fn from_state(state: &'a mut PinballState) -> anyhow::Result<ComponentContext> {
+    pub fn from_state(state: &'a mut PinballState) -> ComponentContext<'a> {
+        Self::from_parts(
+            &mut state.render_state,
+            &state.pb_game_state,
+            state.timer_manager.clone(),
+        )
+    }
+
+    pub fn from_parts(
+        render_state: &'a mut RenderState,
+        pb_game_state: &'a PbGameState,
+        timer_manager: Rc<RefCell<TimerManager>>,
+    ) -> ComponentContext<'a> {
+        Self {
+            v_screen: &mut render_state.v_screen,
+            current_palette: &pb_game_state.current_palette,
+            time_ticks: pb_game_state.time_ticks,
+            full_tilt_mode: pb_game_state.full_tilt_mode,
+            background_bitmap: &render_state.background_bitmap,
+            timer_manager,
+        }
+    }
+
+    pub fn from_state_result(state: &'a mut PinballState) -> Result<ComponentContext<'a>> {
         Ok(Self {
             v_screen: &mut state.render_state.v_screen,
             current_palette: &state.pb_game_state.current_palette,

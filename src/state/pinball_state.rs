@@ -49,14 +49,7 @@ impl PinballState {
     }
 
     pub fn get_component_context(&mut self) -> ComponentContext<'_> {
-        ComponentContext {
-            v_screen: &mut self.render_state.v_screen,
-            current_palette: &self.pb_game_state.current_palette,
-            time_ticks: self.pb_game_state.time_ticks,
-            full_tilt_mode: self.pb_game_state.full_tilt_mode,
-            background_bitmap: &self.render_state.background_bitmap,
-            timer_manager: self.timer_manager.clone(),
-        }
+        ComponentContext::from_state(self)
     }
 }
 

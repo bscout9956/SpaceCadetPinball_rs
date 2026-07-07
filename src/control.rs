@@ -284,7 +284,7 @@ fn table_add_extra_ball(count: f32, state: &mut PinballState) -> Result<()> {
     }
     if let Some(itb) = state.control_state.component_state.info_text_box.get() {
         let rc_string = pb::get_rc_string(Msg::STRING110)?;
-        let mut draw_ctx = ComponentContext::from_state(state)?;
+        let mut draw_ctx = ComponentContext::from_state(state);
         itb.borrow_mut()
             .display(rc_string, count, &mut draw_ctx, None)?;
     }
@@ -312,7 +312,7 @@ fn gravity_well_kickout_control(
                 let rc_string = pb::get_rc_string(Msg::STRING182)?
                     .replace("%ld", added_score.to_string().as_str());
 
-                let mut draw_ctx = ComponentContext::from_state(state)?;
+                let mut draw_ctx = ComponentContext::from_state(state);
                 tb.borrow_mut()
                     .display(&rc_string, 2.0, &mut draw_ctx, None)?;
 
