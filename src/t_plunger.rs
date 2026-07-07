@@ -166,6 +166,18 @@ unsafe extern "C" fn pullback_timer(
     Ok(())
 }
 
+unsafe extern "C" fn ball_feed_timer(
+    _timer_id: i32,
+    caller: *mut c_void,
+    component_context: &mut ComponentContext,
+) -> Result<()> {
+    unsafe {
+        let plunger = caller as *mut TPlunger;
+        (*plunger).message(MessageCode::PLUNGER_FEED_BALL, 0.0, component_context)?;
+        Ok(())
+    }
+}
+
 impl IPinballComponent for TPlunger {
     fn render_sprite(&self) -> Option<&RenderSprite> {
         self.base.render_sprite.as_ref()
