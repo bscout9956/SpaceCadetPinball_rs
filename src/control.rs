@@ -1,6 +1,5 @@
 use crate::message_code::MessageCode;
 use crate::pb;
-use crate::state::component_state::ComponentRef;
 use crate::state::control_state::CHEAT_LEN;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
@@ -8,7 +7,6 @@ use crate::t_blocker::TBlocker;
 use crate::t_light::TLight;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::translations::Msg;
-use crate::utils::DrawContext;
 use anyhow::Result;
 use std::cell::RefCell;
 use std::rc::Rc;

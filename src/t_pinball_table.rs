@@ -172,6 +172,7 @@ pub enum PinballTableError {
     TTableLayerError(#[from] TTableLayerError),
 }
 
+use crate::context::component_context::ComponentContext;
 use crate::render::RenderSprite;
 use crate::t_drain::TDrain;
 use crate::t_edge_manager::TEdgeManager;
@@ -180,7 +181,6 @@ use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
 use crate::timer::TimerManager;
 use crate::translations::Msg;
-use crate::utils::DrawContext;
 use anyhow::{Context, Result, bail};
 
 impl TPinballTable {
@@ -520,7 +520,7 @@ impl IPinballComponent for TPinballTable {
         &mut self,
         code: MessageCode,
         value: f32,
-        draw_context: &mut DrawContext,
+        draw_context: &mut ComponentContext,
     ) -> Result<i32> {
         let mut rc_text = String::new();
 
@@ -531,6 +531,7 @@ impl IPinballComponent for TPinballTable {
                     let mut component = component_rc.borrow_mut();
                     component.message(MessageCode::RESET, 0.0, draw_context)?;
                 }
+
                 if self.replay_timer > 0 {
                     draw_context
                         .timer_manager

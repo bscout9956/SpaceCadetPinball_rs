@@ -65,7 +65,12 @@ impl IPinballComponent for TLightGroup {
         todo!()
     }
 
-    fn message(&mut self, code: MessageCode, value: f32, _ctx: &mut DrawContext) -> Result<i32> {
+    fn message(
+        &mut self,
+        code: MessageCode,
+        value: f32,
+        _ctx: &mut ComponentContext,
+    ) -> Result<i32> {
         println!("BLINKY BLINKY OOO");
         Ok(0)
     }
@@ -85,9 +90,9 @@ pub enum TLightGroupError {
     LoaderError(#[from] LoaderError),
 }
 
+use crate::context::component_context::ComponentContext;
 use crate::render::RenderSprite;
 use crate::t_edge_manager::TEdgeManager;
-use crate::utils::DrawContext;
 
 impl TLightGroup {
     pub(crate) fn new(

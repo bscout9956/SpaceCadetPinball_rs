@@ -49,9 +49,9 @@ pub enum TTableLayerError {
     LockError,
 }
 
+use crate::context::component_context::ComponentContext;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_line::TLine;
-use crate::utils::DrawContext;
 
 impl TTableLayer {
     pub fn field_effect(ball: Option<&mut TBall>, vec_dst: Option<&mut Vector2>) {
@@ -305,7 +305,7 @@ impl ICollisionComponent for TTableLayer {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        time_ticks: &mut DrawContext,
+        time_ticks: &mut ComponentContext,
     ) -> Result<()> {
         todo!()
     }

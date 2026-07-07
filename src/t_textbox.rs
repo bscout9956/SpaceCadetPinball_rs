@@ -1,3 +1,4 @@
+use crate::context::component_context::ComponentContext;
 use crate::gdrv::GdrvBitmap8;
 use crate::maths::Vector2;
 use crate::render::RenderSprite;
@@ -9,7 +10,6 @@ use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox_message::TTextBoxMessage;
 use crate::timer::TimerManager;
-use crate::utils::DrawContext;
 use crate::{fullscrn, gdrv, loader, timer};
 use anyhow::Context;
 use anyhow::Result;
@@ -89,7 +89,7 @@ impl TTextBox {
         &mut self,
         text: &str,
         time: f32,
-        draw_context: &mut DrawContext,
+        draw_context: &mut ComponentContext,
         low_priority: Option<bool>,
     ) -> Result<()> {
         let prio = low_priority.unwrap_or(false);
@@ -139,7 +139,7 @@ impl TTextBox {
     pub unsafe extern "C" fn timer_expired(
         timer_id: i32,
         caller: *mut c_void,
-        draw_ctx: &mut DrawContext,
+        draw_ctx: &mut ComponentContext,
     ) -> Result<()> {
         let tb = unsafe { &mut *(caller as *mut TTextBox) };
         (*tb).timer = 0;
@@ -150,7 +150,7 @@ impl TTextBox {
         Ok(())
     }
 
-    fn draw(&mut self, draw_ctx: &mut DrawContext) -> Result<()> {
+    fn draw(&mut self, draw_ctx: &mut ComponentContext) -> Result<()> {
         println!("Drawing or attempting to draw something");
         if let Some(v_screen) = draw_ctx.v_screen.as_mut() {
             if let Some(bg) = self.bg_bmp.as_mut() {
@@ -385,7 +385,7 @@ impl TTextBox {
     pub(crate) fn clear(
         &mut self,
         low_priority_only: bool,
-        draw_context: &mut DrawContext,
+        draw_context: &mut ComponentContext,
     ) -> Result<()> {
         if let Some(b) = self.bg_bmp.as_ref() {
             if let Some(v_screen) = draw_context.v_screen.as_mut() {
@@ -415,7 +415,10 @@ impl TTextBox {
         }
         if self.timer > 0 {
             if self.timer != -1 {
-                draw_context.timer_manager.borrow_mut().kill_id(self.timer)?;
+                draw_context
+                    .timer_manager
+                    .borrow_mut()
+                    .kill_id(self.timer)?;
             }
             self.timer = 0;
         }

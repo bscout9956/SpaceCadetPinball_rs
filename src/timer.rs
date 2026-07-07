@@ -1,9 +1,10 @@
-use crate::utils::DrawContext;
+use crate::context::component_context::ComponentContext;
 use anyhow::Result;
 use std::ffi::c_void;
 use thiserror::Error;
 
-pub type TimerCallback = unsafe extern "C" fn(i32, *mut c_void, &mut DrawContext) -> Result<()>;
+pub type TimerCallback =
+    unsafe extern "C" fn(i32, *mut c_void, &mut ComponentContext) -> Result<()>;
 
 #[derive(Default)]
 pub struct TimerManager {
@@ -37,7 +38,7 @@ impl TimerManager {
         time: f32,
         caller: *mut c_void,
         callback: TimerCallback,
-        draw_context: &DrawContext,
+        draw_context: &ComponentContext,
     ) -> Result<i32> {
         if self.active_count >= self.capacity {
             return Ok(0);
@@ -144,7 +145,7 @@ impl TimerManager {
         Ok(id)
     }
 
-    pub fn check(&mut self, time_ticks: usize, draw_context: &mut DrawContext) -> Result<i32> {
+    pub fn check(&mut self, time_ticks: usize, draw_context: &mut ComponentContext) -> Result<i32> {
         let mut index = 0;
         let mut current = self.active_head;
 
@@ -191,7 +192,7 @@ impl TimerManager {
         Ok(index)
     }
 
-    fn fire_timer(&self, timer: &Timer, draw_context: &mut DrawContext) -> Result<()> {
+    fn fire_timer(&self, timer: &Timer, draw_context: &mut ComponentContext) -> Result<()> {
         if let Some(callback) = timer.callback {
             unsafe {
                 callback(timer.id, timer.caller, draw_context)?;

@@ -5,9 +5,11 @@ use crate::embedded_data::load_controller_db;
 use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPlayers};
 use crate::options::{DEF_FPS, DEF_UPS, GameBindings, GameInput, InputTypes, Menu};
 use crate::pb::get_rc_string_cstring;
+use crate::timer::TimerManager;
 use crate::translations::Msg;
-use crate::utils::{DrawContext, SdlRendererPtr, SdlWindowPtr, get_cstring_end};
+use crate::utils::{SdlRendererPtr, SdlWindowPtr, get_cstring_end};
 use anyhow::{Context, Result, bail};
+use context::component_context::ComponentContext;
 use dear_imgui_rs::sys::{
     ImGuiCol_Button, ImGuiCol_ButtonActive, ImGuiCol_ButtonHovered, ImGuiFocusRequestFlags_None,
     ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp, ImGuiStyleVar_WindowMinSize,
@@ -71,6 +73,7 @@ mod t_pinball_table;
 mod translations;
 mod zdrv;
 
+mod context;
 pub mod control;
 pub mod debug_overlay;
 mod embedded_data;
@@ -1733,7 +1736,7 @@ unsafe fn event_handler(
                 sound::deactivate(&mut state.sound_state);
                 //TODO: midi::music_stop();
                 state.main_state.has_focus = false;
-                let mut draw_ctx = DrawContext {
+                let mut draw_ctx = ComponentContext {
                     v_screen: &mut state.render_state.v_screen,
                     current_palette: &state.pb_game_state.current_palette,
                     time_ticks: state.pb_game_state.time_ticks,
@@ -2131,7 +2134,7 @@ fn run_game_session(
 
     fullscrn::init(state).context("Failed to init fullscrn")?;
 
-    let mut draw_ctx = DrawContext {
+    let mut draw_ctx = ComponentContext {
         v_screen: &mut state.render_state.v_screen,
         current_palette: &state.pb_game_state.current_palette,
         time_ticks: state.pb_game_state.time_ticks,

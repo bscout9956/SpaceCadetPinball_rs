@@ -42,7 +42,7 @@ pub trait IPinballComponent {
         &mut self,
         _code: MessageCode,
         _value: f32,
-        _draw_context: &mut DrawContext,
+        _draw_context: &mut ComponentContext,
     ) -> Result<i32> {
         Ok(0)
     }
@@ -53,10 +53,10 @@ pub trait IPinballComponent {
     }
 }
 
+use crate::context::component_context::ComponentContext;
 use crate::state::pinball_state::PinballState;
 use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_manager::TEdgeManager;
-use crate::utils::DrawContext;
 
 impl TPinballComponent {
     pub fn new(
@@ -297,7 +297,7 @@ impl IPinballComponent for TPinballComponent {
         &mut self,
         code: MessageCode,
         value: f32,
-        draw_context: &mut DrawContext,
+        draw_context: &mut ComponentContext,
     ) -> Result<i32> {
         // TODO?
         self.message_field = code;

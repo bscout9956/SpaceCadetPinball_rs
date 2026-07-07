@@ -31,7 +31,7 @@ pub trait ICollisionComponent {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        draw_context: &mut DrawContext,
+        draw_context: &mut ComponentContext,
     ) -> Result<()>;
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>>;
@@ -69,9 +69,9 @@ impl DerefMut for TCollisionComponent {
     }
 }
 
+use crate::context::component_context::ComponentContext;
 use crate::render::RenderSprite;
 use crate::t_edge_manager::TEdgeManager;
-use crate::utils::DrawContext;
 use anyhow::Result;
 
 impl TCollisionComponent {
@@ -211,7 +211,7 @@ impl ICollisionComponent for TCollisionComponent {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        time_ticks: &mut DrawContext,
+        time_ticks: &mut ComponentContext,
     ) -> Result<()> {
         //TODO: Undo borrow?
         if let Some(pinball_table) = &self.base.pinball_table

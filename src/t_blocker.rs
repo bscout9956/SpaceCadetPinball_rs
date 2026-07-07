@@ -1,3 +1,4 @@
+use crate::context::component_context::ComponentContext;
 use crate::loader::VisualStruct;
 use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
@@ -9,7 +10,6 @@ use crate::t_edge_manager::TEdgeManager;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
-use crate::utils::DrawContext;
 use crate::{control, loader, timer};
 use anyhow::Result;
 use std::any::Any;
@@ -56,7 +56,7 @@ impl TBlocker {
     pub unsafe extern "C" fn timer_expired(
         timer_id: i32,
         caller: *mut c_void,
-        _ctx: &mut DrawContext,
+        _ctx: &mut ComponentContext,
     ) -> Result<()> {
         println!("TBlocker timer");
         unsafe {
@@ -105,7 +105,7 @@ impl IPinballComponent for TBlocker {
         &mut self,
         code: MessageCode,
         value: f32,
-        draw_context: &mut DrawContext,
+        draw_context: &mut ComponentContext,
     ) -> Result<i32> {
         match code {
             MessageCode::SET_TILT_LOCK
@@ -113,7 +113,10 @@ impl IPinballComponent for TBlocker {
             | MessageCode::RESET
             | MessageCode::T_BLOCKER_DISABLE => {
                 if self.timer > 0 {
-                    draw_context.timer_manager.borrow_mut().kill_id(self.timer)?;
+                    draw_context
+                        .timer_manager
+                        .borrow_mut()
+                        .kill_id(self.timer)?;
                     self.timer = 0;
                 }
                 self.base.message_field = MessageCode(0);
@@ -128,7 +131,10 @@ impl IPinballComponent for TBlocker {
                 // TODO: loader::play_sound(self.sound_index_4, self, "TBlocker2");
                 self.base.sprite_set(0);
                 if self.timer > 0 {
-                    draw_context.timer_manager.borrow_mut().kill_id(self.timer)?;
+                    draw_context
+                        .timer_manager
+                        .borrow_mut()
+                        .kill_id(self.timer)?;
                 }
                 self.timer = 0;
                 if value >= 0.0f32 {
@@ -144,7 +150,10 @@ impl IPinballComponent for TBlocker {
             }
             MessageCode::T_BLOCKER_RESTART_TIMEOUT => {
                 if self.timer > 0 {
-                    draw_context.timer_manager.borrow_mut().kill_id(self.timer)?;
+                    draw_context
+                        .timer_manager
+                        .borrow_mut()
+                        .kill_id(self.timer)?;
                 }
                 unsafe {
                     self.timer = draw_context.timer_manager.borrow_mut().set(
@@ -178,7 +187,7 @@ impl ICollisionComponent for TBlocker {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        time_ticks: &mut DrawContext,
+        time_ticks: &mut ComponentContext,
     ) -> Result<()> {
         todo!()
     }

@@ -1,3 +1,4 @@
+use crate::loader;
 use crate::loader::VisualStruct;
 use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
@@ -6,7 +7,6 @@ use crate::t_ball::TBall;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_table::TPinballTable;
-use crate::{loader, timer};
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
@@ -35,7 +35,7 @@ impl ICollisionComponent for TPlunger {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        time_ticks: &mut DrawContext,
+        time_ticks: &mut ComponentContext,
     ) -> Result<()> {
         todo!()
     }
@@ -53,11 +53,10 @@ impl ICollisionComponent for TPlunger {
     }
 }
 
+use crate::context::component_context::ComponentContext;
 use crate::render::RenderSprite;
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_component::IPinballComponent;
-use crate::timer::TimerManager;
-use crate::utils::DrawContext;
 use anyhow::Result;
 
 impl TPlunger {
@@ -113,7 +112,7 @@ impl TPlunger {
 unsafe extern "C" fn released_timer(
     _timer_id: i32,
     caller: *mut c_void,
-    _draw_context: &mut DrawContext,
+    _draw_context: &mut ComponentContext,
 ) -> Result<()> {
     println!("TPlunger timer released");
     unsafe {
@@ -127,7 +126,7 @@ unsafe extern "C" fn released_timer(
 unsafe extern "C" fn pullback_timer(
     timer_id: i32,
     caller: *mut c_void,
-    draw_context: &mut DrawContext,
+    draw_context: &mut ComponentContext,
 ) -> Result<()> {
     println!("Pullback timer!");
     unsafe {
@@ -135,7 +134,7 @@ unsafe extern "C" fn pullback_timer(
         plunger.base.boost += plunger.pullback_increment;
         if plunger.base.boost <= plunger.max_pull_back {
             if plunger.some_counter > 0 {
-                let timer_context = draw_context as *mut DrawContext;
+                let timer_context = draw_context as *mut ComponentContext;
                 let timer_manager = &mut draw_context.timer_manager;
                 plunger.pullback_timer_ = timer_manager.borrow_mut().set(
                     plunger.pullback_delay / 4.0f32,
@@ -144,7 +143,7 @@ unsafe extern "C" fn pullback_timer(
                     &*timer_context,
                 )?;
             } else {
-                let timer_context = draw_context as *mut DrawContext;
+                let timer_context = draw_context as *mut ComponentContext;
                 let timer_manager = &mut draw_context.timer_manager;
                 plunger.pullback_timer_ = timer_manager.borrow_mut().set(
                     plunger.pullback_delay,
@@ -204,7 +203,7 @@ impl IPinballComponent for TPlunger {
         &mut self,
         code: MessageCode,
         value: f32,
-        draw_context: &mut DrawContext,
+        component_context: &mut ComponentContext,
     ) -> Result<i32> {
         // TODO: All other messages lol
         match code {
@@ -223,21 +222,26 @@ impl IPinballComponent for TPlunger {
                     }
                 }
                 if !self.pullback_started_flag
-                    && (!draw_context.full_tilt_mode || multiball_count_check && !tilt_lock_flag)
+                    && (!component_context.full_tilt_mode
+                        || multiball_count_check && !tilt_lock_flag)
                 {
                     self.pullback_started_flag = true;
                     self.base.boost = 0.0;
                     self.base.threshold = 1000000000.0;
                     // TODO: loader::play_sound(hardhitsoundid, this, tplunger1);
                     unsafe {
-                        pullback_timer(0, &raw mut *self as *mut c_void, draw_context)?;
+                        pullback_timer(0, &raw mut *self as *mut c_void, component_context)?;
                     }
                 }
             }
             MessageCode::PLUNGER_LAUNCH_BALL => {
                 self.pullback_started_flag = true;
                 self.base.boost = self.max_pull_back;
-                self.message(MessageCode::PLUNGER_INPUT_RELEASED, 0.0f32, draw_context)?;
+                self.message(
+                    MessageCode::PLUNGER_INPUT_RELEASED,
+                    0.0f32,
+                    component_context,
+                )?;
             }
             MessageCode::RESUME
             | MessageCode::LOOSE_FOCUS
@@ -246,7 +250,7 @@ impl IPinballComponent for TPlunger {
                     self.pullback_started_flag = false;
                     self.base.threshold = 0.0;
                     if self.pullback_timer_ > 0 {
-                        draw_context
+                        component_context
                             .timer_manager
                             .borrow_mut()
                             .kill_id(self.pullback_timer_)?;
@@ -255,11 +259,11 @@ impl IPinballComponent for TPlunger {
                     //TODO: loader::play_sound(soundindexp2, this, tplugner3);
                     self.sprite_set(0);
                     unsafe {
-                        draw_context.timer_manager.borrow_mut().set(
+                        component_context.timer_manager.borrow_mut().set(
                             self.pullback_delay,
                             self as *mut TPlunger as *mut c_void,
                             released_timer,
-                            draw_context,
+                            component_context,
                         )?;
                     }
                 }
@@ -270,16 +274,16 @@ impl IPinballComponent for TPlunger {
                 self.base.threshold = 1000000000.0;
                 self.some_counter = 0;
 
-                draw_context
+                component_context
                     .timer_manager
                     .borrow_mut()
                     .kill_id(self.ballfeed_timer_)?;
-                draw_context
+                component_context
                     .timer_manager
                     .borrow_mut()
                     .kill_id(self.pullback_timer_)?;
                 println!("Time to kill the callback");
-                draw_context
+                component_context
                     .timer_manager
                     .borrow_mut()
                     .kill_callback(released_timer)?;

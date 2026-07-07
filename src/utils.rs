@@ -1,18 +1,10 @@
-use std::cell::RefCell;
 use std::ffi::c_char;
 // Equivalent to pch.h with some additions
 use anyhow::{Result, bail};
 use sdl2::sys::{SDL_DestroyTexture, SDL_Rect, SDL_Renderer, SDL_Texture, SDL_Window};
 use std::io::Read;
 use std::ops::Deref;
-use std::rc::Rc;
 use thiserror::Error;
-
-use crate::gdrv::{ColorRgba, GdrvBitmap8};
-use crate::state::pb_game_state::PbGameState;
-use crate::state::pinball_state::PinballState;
-use crate::state::render_state::RenderState;
-use crate::timer::TimerManager;
 
 pub struct SdlWindowPtr(pub *mut SDL_Window);
 unsafe impl Sync for SdlWindowPtr {}
@@ -38,29 +30,6 @@ impl Drop for SdlTexturePtr {
         unsafe {
             SDL_DestroyTexture(self.0);
         }
-    }
-}
-
-// This helper struct makes it so we don't have to pass 12930124312 arguments in draw/message/timer.set and others...
-pub struct DrawContext<'a> {
-    pub v_screen: &'a mut Option<GdrvBitmap8>,
-    pub current_palette: &'a [ColorRgba; 256],
-    pub time_ticks: usize,
-    pub full_tilt_mode: bool,
-    pub background_bitmap: &'a Option<GdrvBitmap8>,
-    pub timer_manager: Rc<RefCell<TimerManager>>,
-}
-
-impl<'a> DrawContext<'a> {
-    pub fn from_state(state: &'a mut PinballState) -> Result<DrawContext> {
-        Ok(Self {
-            v_screen: &mut state.render_state.v_screen,
-            current_palette: &state.pb_game_state.current_palette,
-            time_ticks: state.pb_game_state.time_ticks,
-            full_tilt_mode: state.pb_game_state.full_tilt_mode,
-            background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: state.timer_manager.clone(),
-        })
     }
 }
 

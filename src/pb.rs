@@ -1,3 +1,4 @@
+use crate::context::component_context::ComponentContext;
 use crate::errors::{PbError, TranslationError};
 use crate::gdrv::ColorRgba;
 use crate::group_data::{EntryBuffer, FieldTypes};
@@ -19,7 +20,6 @@ use crate::t_pinball_table::TPinballTable;
 use crate::t_plunger::TPlunger;
 use crate::timer::TimerManager;
 use crate::translations::Msg;
-use crate::utils::DrawContext;
 use crate::{
     SdlWindowPtr, control, gdrv, handle_game_binding, high_score, loader, maths, midi, nudge,
     options, partman, proj, render, score, timer, translations,
@@ -365,7 +365,7 @@ pub fn get_rc_int(u_id: Msg) -> Result<i32, TranslationError> {
 
 pub fn reset_table(
     table: &Option<Rc<RefCell<TPinballTable>>>,
-    draw_context: &mut DrawContext,
+    draw_context: &mut ComponentContext,
 ) -> Result<()> {
     table
         .as_ref()
@@ -386,7 +386,7 @@ pub fn first_time_setup(
 pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
     if state.pb_game_state.demo_mode {
         state.pb_game_state.demo_mode = false;
-        let mut draw_ctx = DrawContext {
+        let mut draw_ctx = ComponentContext {
             v_screen: &mut state.render_state.v_screen,
             current_palette: &state.pb_game_state.current_palette,
             time_ticks: state.pb_game_state.time_ticks,
@@ -409,7 +409,7 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
             state.timer_manager.clone(),
         )?;
         if let Some(mtb) = state.pb_game_state.mission_text_box.as_mut() {
-            let mut draw_ctx = DrawContext {
+            let mut draw_ctx = ComponentContext {
                 v_screen: &mut state.render_state.v_screen,
                 current_palette: &state.pb_game_state.current_palette,
                 time_ticks: state.pb_game_state.time_ticks,
@@ -419,7 +419,7 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
             };
             mtb.borrow_mut().clear(false, &mut draw_ctx)?;
         }
-        let mut draw_ctx = DrawContext {
+        let mut draw_ctx = ComponentContext {
             v_screen: &mut state.render_state.v_screen,
             current_palette: &state.pb_game_state.current_palette,
             time_ticks: state.pb_game_state.time_ticks,
@@ -457,7 +457,7 @@ pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<()> {
             bail!(PbError::NoTable);
         }
         Some(t) => {
-            let mut draw_ctx = DrawContext {
+            let mut draw_ctx = ComponentContext {
                 v_screen: &mut state.render_state.v_screen,
                 current_palette: &state.pb_game_state.current_palette,
                 time_ticks: state.pb_game_state.time_ticks,
@@ -488,7 +488,7 @@ fn mode_change(
     if pb_game_state.credits_active
         && let Some(text_box) = miss_text_box
     {
-        let mut draw_ctx = DrawContext {
+        let mut draw_ctx = ComponentContext {
             v_screen: &mut render_state.v_screen,
             current_palette: &pb_game_state.current_palette,
             time_ticks: pb_game_state.time_ticks,
@@ -533,7 +533,7 @@ fn mode_change(
             if let Some(table) = pb_game_state.main_table.as_mut()
                 && let Some(light_group) = table.borrow_mut().light_group.as_mut()
             {
-                let mut draw_ctx = DrawContext {
+                let mut draw_ctx = ComponentContext {
                     v_screen: &mut render_state.v_screen,
                     background_bitmap: &render_state.background_bitmap,
                     current_palette: &pb_game_state.current_palette,
@@ -618,7 +618,7 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
 
     // TODO: NUDGE CODE
 
-    let mut draw_ctx = DrawContext {
+    let mut draw_ctx = ComponentContext {
         v_screen: &mut state.render_state.v_screen,
         current_palette: &state.pb_game_state.current_palette,
         time_ticks: state.pb_game_state.time_ticks,
@@ -874,7 +874,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
     state.main_state.single_step ^= true;
 
     if let Some(text_box) = state.pb_game_state.info_text_box.as_mut() {
-        let mut draw_ctx = DrawContext {
+        let mut draw_ctx = ComponentContext {
             v_screen: &mut state.render_state.v_screen,
             current_palette: &state.pb_game_state.current_palette,
             time_ticks: state.pb_game_state.time_ticks,
@@ -886,7 +886,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
     }
 
     if let Some(miss_text_box) = state.pb_game_state.mission_text_box.as_mut() {
-        let mut draw_ctx = DrawContext {
+        let mut draw_ctx = ComponentContext {
             v_screen: &mut state.render_state.v_screen,
             current_palette: &state.pb_game_state.current_palette,
             time_ticks: state.pb_game_state.time_ticks,
@@ -901,7 +901,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
             Some(table) => table.borrow_mut(),
             None => bail!(PbError::NoTable),
         };
-        let mut draw_ctx = DrawContext {
+        let mut draw_ctx = ComponentContext {
             v_screen: &mut state.render_state.v_screen,
             current_palette: &state.pb_game_state.current_palette,
             time_ticks: state.pb_game_state.time_ticks,
@@ -923,7 +923,7 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
         .as_mut()
         .ok_or(PbError::NoTextBox)?;
 
-    let mut draw_ctx = DrawContext {
+    let mut draw_ctx = ComponentContext {
         v_screen: &mut state.render_state.v_screen,
         current_palette: &state.pb_game_state.current_palette,
         time_ticks: state.pb_game_state.time_ticks,
@@ -955,7 +955,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
         };
         match binding {
             GameBindings::LeftFlipper => {
-                let mut draw_ctx = DrawContext {
+                let mut draw_ctx = ComponentContext {
                     v_screen: &mut state.render_state.v_screen,
                     current_palette: &state.pb_game_state.current_palette,
                     time_ticks: state.pb_game_state.time_ticks,
@@ -970,7 +970,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                 )?;
             }
             GameBindings::RightFlipper => {
-                let mut draw_ctx = DrawContext {
+                let mut draw_ctx = ComponentContext {
                     v_screen: &mut state.render_state.v_screen,
                     current_palette: &state.pb_game_state.current_palette,
                     time_ticks: state.pb_game_state.time_ticks,
@@ -985,7 +985,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                 )?;
             }
             GameBindings::Plunger => {
-                let mut draw_ctx = DrawContext {
+                let mut draw_ctx = ComponentContext {
                     v_screen: &mut state.render_state.v_screen,
                     current_palette: &state.pb_game_state.current_palette,
                     time_ticks: state.pb_game_state.time_ticks,
@@ -1074,7 +1074,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                 }
                 0x69 => {
                     if let Some(lg) = table.light_group.as_mut() {
-                        let mut draw_ctx = DrawContext {
+                        let mut draw_ctx = ComponentContext {
                             v_screen: &mut state.render_state.v_screen,
                             current_palette: &state.pb_game_state.current_palette,
                             time_ticks: state.pb_game_state.time_ticks,
@@ -1091,7 +1091,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                 }
                 0x70 => {
                     if let Some(lg) = table.light_group.as_mut() {
-                        let mut draw_ctx = DrawContext {
+                        let mut draw_ctx = ComponentContext {
                             v_screen: &mut state.render_state.v_screen,
                             current_palette: &state.pb_game_state.current_palette,
                             time_ticks: state.pb_game_state.time_ticks,
@@ -1115,13 +1115,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
 
 pub(crate) fn launch_ball(state: &mut PinballState) -> Result<()> {
     if let Some(table_rc) = state.pb_game_state.main_table.as_mut() {
-        let plunger_ptr = {
-            let mut table = table_rc.borrow_mut();
-            table.plunger.as_mut().unwrap() as *mut TPlunger
-        };
-        let plunger = unsafe { &mut *plunger_ptr };
-
-        let mut draw_ctx = DrawContext {
+        let mut draw_ctx = ComponentContext {
             v_screen: &mut state.render_state.v_screen,
             current_palette: &state.pb_game_state.current_palette,
             time_ticks: state.pb_game_state.time_ticks,
@@ -1145,7 +1139,7 @@ pub(crate) fn high_scores(high_score_state: &mut HighScoreState) {
 pub(crate) fn lose_focus(
     table_option: &mut Option<Rc<RefCell<TPinballTable>>>,
     time_now: f32,
-    draw_context: &mut DrawContext,
+    draw_context: &mut ComponentContext,
 ) -> Result<()> {
     if let Some(table) = table_option {
         table
@@ -1176,7 +1170,7 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
     }
 
     if state.pb_game_state.credits_active {
-        let mut draw_ctx = DrawContext {
+        let mut draw_ctx = ComponentContext {
             v_screen: &mut state.render_state.v_screen,
             current_palette: &state.pb_game_state.current_palette,
             time_ticks: state.pb_game_state.time_ticks,
@@ -1206,7 +1200,7 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
             GameBindings::RightFlipper => {}
             GameBindings::Plunger => {
                 if let Some(t) = state.pb_game_state.main_table.as_ref() {
-                    let mut draw_ctx = DrawContext {
+                    let mut draw_ctx = ComponentContext {
                         v_screen: &mut state.render_state.v_screen,
                         current_palette: &state.pb_game_state.current_palette,
                         time_ticks: state.pb_game_state.time_ticks,
