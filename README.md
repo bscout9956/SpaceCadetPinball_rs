@@ -2,10 +2,7 @@
 
 # SpaceCadetPinball_rs
 
-An attempt to port the original fork into rust. This project was stopped mid-way as it became clear that CPP has way too many pitfalls and the code is too messy to be ported to rust without a complete rewrite.
-I should've known better.
-
-> If you're a lunatic, feel free to continue.
+An attempt to port the original fork into rust.
 
 As follows, the original README.md is preserved below.
 
