@@ -153,20 +153,18 @@ impl TEdgeSegment {
                     center.x = (*float_arr_slice)[1];
                     center.y = (*float_arr_slice)[2];
                     let radius = offset + (*float_arr_slice)[3];
-                    let circle = TCircle::new(
+                    let mut circle = TCircle::new(
                         Some(coll_comp.clone()),
                         active_flag.clone(),
                         collision_group,
                         &center,
                         radius,
                     );
-                    if let Some(circle_base) = circle.base.upgrade() {
-                        circle_base.borrow_mut().wall_value = if wall_value == 0 {
-                            WallValue::Raw(wall_value as u8)
-                        } else {
-                            WallValue::Empty
-                        };
-                    }
+                    circle.base.wall_value = if wall_value == 0 {
+                        WallValue::Raw(wall_value as u8)
+                    } else {
+                        WallValue::Empty
+                    };
                     if let Some(comp) = &coll_comp.upgrade() {
                         let mut comp_borrow = comp.borrow_mut();
                         if let Some(mut aabb) = comp_borrow.get_AABB() {
@@ -247,20 +245,18 @@ impl TEdgeSegment {
                                 || (dest_vec.z < 0.0 && offset < 0.0)
                             {
                                 let radius = offset * 1.001f32;
-                                let circle = TCircle::new(
+                                let mut circle = TCircle::new(
                                     Some(coll_comp.clone()),
                                     active_flag.clone(),
                                     collision_group,
                                     &center,
                                     radius,
                                 );
-                                if let Some(circle_base) = circle.base.upgrade().as_ref() {
-                                    circle_base.borrow_mut().wall_value = if wall_value == 0 {
-                                        WallValue::Raw(wall_value as u8)
-                                    } else {
-                                        WallValue::Empty
-                                    };
-                                }
+                                circle.base.wall_value = if wall_value == 0 {
+                                    WallValue::Raw(wall_value as u8)
+                                } else {
+                                    WallValue::Empty
+                                };
                                 if let Some(comp) = &coll_comp.upgrade() {
                                     let mut comp_borrow = comp.borrow_mut();
                                     if let Some(mut aabb) = comp_borrow.get_AABB() {

@@ -8,7 +8,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 pub struct TCircle {
-    pub(crate) base: Weak<RefCell<TEdgeSegment>>,
+    pub(crate) base: TEdgeSegment,
     pub circle: CircleType,
 }
 
@@ -18,7 +18,7 @@ use anyhow::{Context, Result};
 
 impl IEdgeSegment for TCircle {
     fn active_flag(&self) -> Rc<Cell<bool>> {
-        self.base.upgrade().unwrap().borrow().active_flag()
+        self.base.active_flag.clone()
     }
 
     fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {
@@ -54,7 +54,7 @@ impl IEdgeSegment for TCircle {
     }
 
     fn collision_group(&self) -> u32 {
-        self.base.upgrade().unwrap().borrow().collision_group()
+        self.base.collision_group
     }
 
     fn processed_flag(&self) -> Rc<Cell<bool>> {
@@ -83,17 +83,15 @@ impl TCircle {
         radius: f32,
     ) -> TCircle {
         let base = TEdgeSegment::new(coll_comp, active_flag, collision_group);
-        let base_rc = Rc::new(RefCell::new(base));
-        let downgraded_base = Rc::downgrade(&base_rc);
 
-        let mut def_circle = CircleType::default();
+        let mut circle = CircleType::default();
         // TODO Field assignment outside of initializer with default
-        def_circle.radius_sq = radius * radius;
-        def_circle.center = *center;
+        circle.radius_sq = radius * radius;
+        circle.center = *center;
 
         Self {
-            base: downgraded_base,
-            circle: def_circle,
+            base,
+            circle,
         }
     }
 }
