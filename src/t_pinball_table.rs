@@ -760,8 +760,7 @@ impl IPinballComponent for TPinballTable {
                 println!("Not yet implemented: {:?}", code);
             }
         }
-        // TODO: Implement me
-        //control::table_control_handler(code);
+        control::table_control_handler(code, component_context, /* TODO: pass control_state? this would mean we need to pass it to every message call */)?;
         Ok(0)
     }
 

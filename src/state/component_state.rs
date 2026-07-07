@@ -12,6 +12,7 @@ pub struct ComponentState {
     pub soundwave_28: ComponentRef<TSound>,
     pub block_1: ComponentRef<TBlocker>,
     pub lite_1: ComponentRef<TLight>,
+    pub lite_77: ComponentRef<TLight>,
 }
 
 impl Default for ComponentState {
@@ -22,6 +23,7 @@ impl Default for ComponentState {
             block_1: ComponentRef::new("block_1"),
             info_text_box: ComponentRef::new("info_text_box"),
             lite_1: ComponentRef::new("lite_1"),
+            lite_77: ComponentRef::new("lite_77"),
             lite_62: ComponentRef::new("lite_62"),
             soundwave_7: ComponentRef::new("soundwave_7"),
             soundwave_28: ComponentRef::new("soundwave_28"),

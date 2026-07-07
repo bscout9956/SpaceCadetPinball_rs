@@ -309,6 +309,7 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
         &mut state.main_state,
         &mut state.pb_game_state,
         state.timer_manager.clone(),
+        &mut state.control_state,
     )?;
 
     state.pb_game_state.time_ticks = 0;
@@ -353,7 +354,7 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
     Ok(true)
 }
 
-// Note: This used to be code that took a string like "1 Blablabla" and would get only the first part of the string
+// Note: This used to be code that took a string like "1 String" and would get only the first part of the string
 // It's an old CPP programming practice apparently,
 // I guess valued enums weren't a thing? I am not quite sure
 pub fn get_rc_int(u_id: Msg) -> Result<i32, TranslationError> {
@@ -403,6 +404,7 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
             &mut state.main_state,
             &mut state.pb_game_state,
             state.timer_manager.clone(),
+            &mut state.control_state,
         )?;
         if let Some(mtb) = state.pb_game_state.mission_text_box.clone() {
             let mut component_ctx = state.get_component_context();
@@ -434,6 +436,7 @@ pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<()> {
         &mut state.main_state,
         &mut state.pb_game_state,
         state.timer_manager.clone(),
+        &mut state.control_state,
     )?;
     if *state.options_state.options.music {
         midi::music_play();
@@ -461,14 +464,19 @@ fn mode_change(
     main_state: &mut MainState,
     pb_game_state: &mut PbGameState,
     timer_manager: Rc<RefCell<TimerManager>>,
+    control_state: &mut ControlState,
 ) -> Result<()> {
     let miss_text_box = pb_game_state.mission_text_box.clone();
 
     if pb_game_state.credits_active
         && let Some(text_box) = miss_text_box
     {
-        let mut component_ctx =
-            ComponentContext::from_parts(render_state, pb_game_state, timer_manager.clone());
+        let mut component_ctx = ComponentContext::from_parts(
+            render_state,
+            pb_game_state,
+            control_state,
+            timer_manager.clone(),
+        );
         text_box.borrow_mut().clear(true, &mut component_ctx)?;
     }
     pb_game_state.credits_active = false;
@@ -503,8 +511,12 @@ fn mode_change(
                 main_state.demo_active = false;
             }
             if let Some(table) = pb_game_state.main_table.clone() {
-                let mut component_ctx =
-                    ComponentContext::from_parts(render_state, pb_game_state, timer_manager);
+                let mut component_ctx = ComponentContext::from_parts(
+                    render_state,
+                    pb_game_state,
+                    control_state,
+                    timer_manager,
+                );
 
                 if let Some(light_group) = table.borrow_mut().light_group.as_mut() {
                     light_group.message(

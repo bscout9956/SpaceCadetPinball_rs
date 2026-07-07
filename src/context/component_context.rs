@@ -1,4 +1,5 @@
 use crate::gdrv::{ColorRgba, GdrvBitmap8};
+use crate::state::control_state::ControlState;
 use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::state::render_state::RenderState;
@@ -16,6 +17,7 @@ pub struct ComponentContext<'a> {
     pub full_tilt_mode: bool,
     pub background_bitmap: &'a Option<GdrvBitmap8>,
     pub timer_manager: Rc<RefCell<TimerManager>>,
+    pub control_state: &'a mut ControlState,
 }
 
 impl<'a> ComponentContext<'a> {
@@ -23,6 +25,7 @@ impl<'a> ComponentContext<'a> {
         Self::from_parts(
             &mut state.render_state,
             &state.pb_game_state,
+            &mut state.control_state,
             state.timer_manager.clone(),
         )
     }
@@ -30,6 +33,7 @@ impl<'a> ComponentContext<'a> {
     pub fn from_parts(
         render_state: &'a mut RenderState,
         pb_game_state: &'a PbGameState,
+        control_state: &'a mut ControlState,
         timer_manager: Rc<RefCell<TimerManager>>,
     ) -> ComponentContext<'a> {
         Self {
@@ -39,6 +43,7 @@ impl<'a> ComponentContext<'a> {
             full_tilt_mode: pb_game_state.full_tilt_mode,
             background_bitmap: &render_state.background_bitmap,
             timer_manager,
+            control_state,
         }
     }
 
@@ -50,6 +55,7 @@ impl<'a> ComponentContext<'a> {
             full_tilt_mode: state.pb_game_state.full_tilt_mode,
             background_bitmap: &state.render_state.background_bitmap,
             timer_manager: state.timer_manager.clone(),
+            control_state: &mut state.control_state,
         })
     }
 }
