@@ -12,19 +12,19 @@ use anyhow::Result;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub fn table_control_handler(code: MessageCode, draw_context: &mut DrawContext) -> Result<()> {
-    if code == MessageCode::SET_TILT_LOCK {
-        draw_context.control_state.table_unlimited_balls = false;
-        if let Some(component) = draw_context.control_state.component_state.lite_77.get() {
-            component.borrow_mut().message(
-                MessageCode::T_LIGHT_FLASHER_START_TIMED,
-                0.0f32,
-                draw_context,
-            )?;
-        }
-    }
-    Ok(())
-}
+// pub fn table_control_handler(code: MessageCode, draw_context: &mut DrawContext) -> Result<()> {
+//     if code == MessageCode::SET_TILT_LOCK {
+//         draw_context.control_state.table_unlimited_balls = false;
+//         if let Some(component) = draw_context.control_state.component_state.lite_77.get() {
+//             component.borrow_mut().message(
+//                 MessageCode::T_LIGHT_FLASHER_START_TIMED,
+//                 0.0f32,
+//                 draw_context,
+//             )?;
+//         }
+//     }
+//     Ok(())
+// }
 
 struct ComponentTagBase {
     name: &'static str,
