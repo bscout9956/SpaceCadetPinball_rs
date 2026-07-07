@@ -68,25 +68,22 @@ pub fn close(state: &mut SoundState) {
 }
 
 pub fn play_sound(
-    state: &mut PinballState,
+    sound_state: &mut SoundState,
     wave: Option<Mix_Chunk>,
-    time: i32,
-    sound_source: Option<Box<dyn IPinballComponent>>,
-    _info: &[u8], // Unused in the decomp
+    time_ticks: usize,
+    stereo: bool,
+    edge_manager: Option<&TEdgeManager>,
+    sound_source: Option<&dyn IPinballComponent>,
+    _info: &str,
 ) {
-    if state.sound_state.mix_open
-        && state.sound_state.enabled_flag
+    if sound_state.mix_open
+        && sound_state.enabled_flag
         && let Some(mut wv) = wave
     {
         unsafe {
-            if Mix_Playing(-1) == state.sound_state.num_channels
-                && let Some(min) = state
-                    .sound_state
-                    .channels
-                    .iter()
-                    .min_by_key(|ch| ch.timestamp)
-                && let Some(oldest_channel) = state
-                    .sound_state
+            if Mix_Playing(-1) == sound_state.num_channels
+                && let Some(min) = sound_state.channels.iter().min_by_key(|ch| ch.timestamp)
+                && let Some(oldest_channel) = sound_state
                     .channels
                     .iter()
                     .position(|ch| std::ptr::eq(ch, min))
@@ -96,8 +93,8 @@ pub fn play_sound(
 
             let channel = Mix_PlayChannelTimed(-1, &raw mut wv, 0, -1);
             if channel != -1 {
-                state.sound_state.channels[channel as usize].timestamp = time;
-                if *state.options_state.options.sound_stereo {
+                sound_state.channels[channel as usize].timestamp = time_ticks as i32;
+                if stereo {
                     // Positional audio uses collision grid 2D coordinates normalized to [0, 1]
                     // Point (0, 0) is bottom left table corner; point (1, 1) is top right table corner.
                     // Z is defined as: 0 at table level, positive axis goes up from table surface.
@@ -106,9 +103,10 @@ pub fn play_sound(
                     // Sound without position are assumed to be at the center top of the table.
                     let sound_pos;
 
-                    if let Some(source) = sound_source {
-                        let sound_pos_2d = source
-                            .get_coordinates(state.pb_game_state.edge_manager.as_ref().unwrap());
+                    if let Some(source) = sound_source
+                        && let Some(edge_manager) = edge_manager
+                    {
+                        let sound_pos_2d = source.get_coordinates(edge_manager);
                         sound_pos = Vector2 {
                             x: sound_pos_2d.x,
                             y: sound_pos_2d.y,
@@ -117,9 +115,9 @@ pub fn play_sound(
                         sound_pos = Vector2 {
                             x: 0.5f32,
                             y: 1.0f32,
-                        }
+                        };
                     }
-                    state.sound_state.channels[channel as usize].position = sound_pos;
+                    sound_state.channels[channel as usize].position = sound_pos;
 
                     // Listener is positioned at the bottom center of the table,
                     // at 0.5 height, so roughly a table half minus length.
