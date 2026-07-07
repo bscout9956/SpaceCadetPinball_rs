@@ -2134,16 +2134,10 @@ fn run_game_session(
 
     fullscrn::init(state).context("Failed to init fullscrn")?;
 
-    let mut draw_ctx = ComponentContext {
-        v_screen: &mut state.render_state.v_screen,
-        current_palette: &state.pb_game_state.current_palette,
-        time_ticks: state.pb_game_state.time_ticks,
-        full_tilt_mode: state.pb_game_state.full_tilt_mode,
-        background_bitmap: &state.render_state.background_bitmap,
-        timer_manager: state.timer_manager.clone(),
-    };
-    pb::reset_table(&state.pb_game_state.main_table, &mut draw_ctx)
-        .context("Failed to reset table")?;
+    let main_table = state.pb_game_state.main_table.clone();
+    let mut draw_ctx = state.get_component_context();
+
+    pb::reset_table(&main_table, &mut draw_ctx).context("Failed to reset table")?;
     pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state)
         .context("Failed to perform first time setup")?;
 
