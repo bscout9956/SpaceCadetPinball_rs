@@ -386,20 +386,15 @@ pub fn first_time_setup(
 pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
     if state.pb_game_state.demo_mode {
         state.pb_game_state.demo_mode = false;
-        let mut draw_ctx = ComponentContext {
-            v_screen: &mut state.render_state.v_screen,
-            current_palette: &state.pb_game_state.current_palette,
-            time_ticks: state.pb_game_state.time_ticks,
-            full_tilt_mode: state.pb_game_state.full_tilt_mode,
-            background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: state.timer_manager.clone(),
-        };
-        match state.pb_game_state.main_table.as_mut() {
-            Some(table) => table
-                .borrow_mut()
-                .message(MessageCode::RESET, 0.0f32, &mut draw_ctx),
+        match state.pb_game_state.main_table.clone() {
+            Some(table) => {
+                let mut draw_ctx = state.get_component_context();
+                table
+                    .borrow_mut()
+                    .message(MessageCode::RESET, 0.0f32, &mut draw_ctx)?;
+            }
             None => bail!(PbError::NoTable),
-        }?;
+        };
 
         mode_change(
             GameModes::GameOver,
@@ -408,26 +403,12 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
             &mut state.pb_game_state,
             state.timer_manager.clone(),
         )?;
-        if let Some(mtb) = state.pb_game_state.mission_text_box.as_mut() {
-            let mut draw_ctx = ComponentContext {
-                v_screen: &mut state.render_state.v_screen,
-                current_palette: &state.pb_game_state.current_palette,
-                time_ticks: state.pb_game_state.time_ticks,
-                full_tilt_mode: state.pb_game_state.full_tilt_mode,
-                background_bitmap: &state.render_state.background_bitmap,
-                timer_manager: state.timer_manager.clone(),
-            };
+        if let Some(mtb) = state.pb_game_state.mission_text_box.clone() {
+            let mut draw_ctx = state.get_component_context();
             mtb.borrow_mut().clear(false, &mut draw_ctx)?;
         }
-        let mut draw_ctx = ComponentContext {
-            v_screen: &mut state.render_state.v_screen,
-            current_palette: &state.pb_game_state.current_palette,
-            time_ticks: state.pb_game_state.time_ticks,
-            full_tilt_mode: state.pb_game_state.full_tilt_mode,
-            background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: state.timer_manager.clone(),
-        };
-        if let Some(mut itb) = state.pb_game_state.info_text_box.as_mut() {
+        if let Some(itb) = state.pb_game_state.info_text_box.clone() {
+            let mut draw_ctx = state.get_component_context();
             itb.borrow_mut()
                 .display(get_rc_string(Msg::STRING125)?, -1.0f32, &mut draw_ctx, None)
                 .context("Failed to obtain RC String when toggling demo")?;
@@ -452,24 +433,15 @@ pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<()> {
         midi::music_play();
     }
 
-    match state.pb_game_state.main_table.as_ref() {
+    match state.pb_game_state.main_table.clone() {
         None => {
             bail!(PbError::NoTable);
         }
         Some(t) => {
-            let mut draw_ctx = ComponentContext {
-                v_screen: &mut state.render_state.v_screen,
-                current_palette: &state.pb_game_state.current_palette,
-                time_ticks: state.pb_game_state.time_ticks,
-                full_tilt_mode: state.pb_game_state.full_tilt_mode,
-                background_bitmap: &state.render_state.background_bitmap,
-                timer_manager: state.timer_manager.clone(),
-            };
-            t.borrow_mut().message(
-                MessageCode::NEW_GAME,
-                *state.options_state.options.players as f32,
-                &mut draw_ctx,
-            )?;
+            let players = *state.options_state.options.players as f32;
+            let mut draw_ctx = state.get_component_context();
+            t.borrow_mut()
+                .message(MessageCode::NEW_GAME, players, &mut draw_ctx)?;
         }
     }
 
@@ -483,20 +455,13 @@ fn mode_change(
     pb_game_state: &mut PbGameState,
     timer_manager: Rc<RefCell<TimerManager>>,
 ) -> Result<()> {
-    let miss_text_box = pb_game_state.mission_text_box.as_mut();
+    let miss_text_box = pb_game_state.mission_text_box.clone();
 
     if pb_game_state.credits_active
         && let Some(text_box) = miss_text_box
     {
-        let mut draw_ctx = ComponentContext {
-            v_screen: &mut render_state.v_screen,
-            current_palette: &pb_game_state.current_palette,
-            time_ticks: pb_game_state.time_ticks,
-            full_tilt_mode: pb_game_state.full_tilt_mode,
-            background_bitmap: &render_state.background_bitmap,
-            timer_manager: timer_manager.clone(),
-        };
-
+        let mut draw_ctx =
+            ComponentContext::from_parts(render_state, pb_game_state, timer_manager.clone());
         text_box.borrow_mut().clear(true, &mut draw_ctx)?;
     }
     pb_game_state.credits_active = false;
@@ -530,22 +495,17 @@ fn mode_change(
                 main_state.high_scores_enabled = true;
                 main_state.demo_active = false;
             }
-            if let Some(table) = pb_game_state.main_table.as_mut()
-                && let Some(light_group) = table.borrow_mut().light_group.as_mut()
-            {
-                let mut draw_ctx = ComponentContext {
-                    v_screen: &mut render_state.v_screen,
-                    background_bitmap: &render_state.background_bitmap,
-                    current_palette: &pb_game_state.current_palette,
-                    time_ticks: pb_game_state.time_ticks,
-                    full_tilt_mode: pb_game_state.full_tilt_mode,
-                    timer_manager,
-                };
-                light_group.message(
-                    MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION,
-                    1.4f32,
-                    &mut draw_ctx,
-                )?;
+            if let Some(table) = pb_game_state.main_table.clone() {
+                let mut draw_ctx =
+                    ComponentContext::from_parts(render_state, pb_game_state, timer_manager);
+
+                if let Some(light_group) = table.borrow_mut().light_group.as_mut() {
+                    light_group.message(
+                        MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION,
+                        1.4f32,
+                        &mut draw_ctx,
+                    )?;
+                }
             }
         }
     }
@@ -618,19 +578,15 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
 
     // TODO: NUDGE CODE
 
-    let mut draw_ctx = ComponentContext {
-        v_screen: &mut state.render_state.v_screen,
-        current_palette: &state.pb_game_state.current_palette,
-        time_ticks: state.pb_game_state.time_ticks,
-        full_tilt_mode: state.pb_game_state.full_tilt_mode,
-        background_bitmap: &state.render_state.background_bitmap,
-        timer_manager: state.timer_manager.clone(),
-    };
+    {
+        let timer_manager = state.timer_manager.clone();
+        let time_ticks = state.pb_game_state.time_ticks;
+        let mut draw_ctx = state.get_component_context();
 
-    state
-        .timer_manager
-        .borrow_mut()
-        .check(state.pb_game_state.time_ticks, &mut draw_ctx)?;
+        timer_manager
+            .borrow_mut()
+            .check(time_ticks, &mut draw_ctx)?;
+    }
     render::update(&mut state.render_state, &mut state.pb_game_state)
         .context("Failed to render frame in pb::frame")?;
     //TODO: Score update score::update()
@@ -873,64 +829,36 @@ pub(crate) fn push_cheat(name: &str, state: &mut PinballState) -> Result<()> {
 pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
     state.main_state.single_step ^= true;
 
-    if let Some(text_box) = state.pb_game_state.info_text_box.as_mut() {
-        let mut draw_ctx = ComponentContext {
-            v_screen: &mut state.render_state.v_screen,
-            current_palette: &state.pb_game_state.current_palette,
-            time_ticks: state.pb_game_state.time_ticks,
-            full_tilt_mode: state.pb_game_state.full_tilt_mode,
-            background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: state.timer_manager.clone(),
-        };
+    if let Some(text_box) = state.pb_game_state.info_text_box.clone() {
+        let mut draw_ctx = state.get_component_context();
         text_box.borrow_mut().clear(false, &mut draw_ctx)?;
     }
 
-    if let Some(miss_text_box) = state.pb_game_state.mission_text_box.as_mut() {
-        let mut draw_ctx = ComponentContext {
-            v_screen: &mut state.render_state.v_screen,
-            current_palette: &state.pb_game_state.current_palette,
-            time_ticks: state.pb_game_state.time_ticks,
-            full_tilt_mode: state.pb_game_state.full_tilt_mode,
-            background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: state.timer_manager.clone(),
-        };
+    if let Some(miss_text_box) = state.pb_game_state.mission_text_box.clone() {
+        let mut draw_ctx = state.get_component_context();
         miss_text_box.borrow_mut().clear(false, &mut draw_ctx)?;
     }
     if state.main_state.single_step {
-        let mut table = match state.pb_game_state.main_table.as_ref() {
-            Some(table) => table.borrow_mut(),
+        let table_rc = match state.pb_game_state.main_table.clone() {
+            Some(table) => table,
             None => bail!(PbError::NoTable),
         };
-        let mut draw_ctx = ComponentContext {
-            v_screen: &mut state.render_state.v_screen,
-            current_palette: &state.pb_game_state.current_palette,
-            time_ticks: state.pb_game_state.time_ticks,
-            full_tilt_mode: state.pb_game_state.full_tilt_mode,
-            background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: state.timer_manager.clone(),
-        };
-        table.message(
-            MessageCode::PAUSE,
-            state.pb_game_state.time_now,
-            &mut draw_ctx,
-        )?;
+        let time_now = state.pb_game_state.time_now;
+        let mut draw_ctx = state.get_component_context();
+
+        table_rc
+            .borrow_mut()
+            .message(MessageCode::PAUSE, time_now, &mut draw_ctx)?;
     }
     let rc_string = get_rc_string(Msg::STRING123)?;
 
     let text_box = state
         .pb_game_state
         .info_text_box
-        .as_mut()
+        .clone()
         .ok_or(PbError::NoTextBox)?;
 
-    let mut draw_ctx = ComponentContext {
-        v_screen: &mut state.render_state.v_screen,
-        current_palette: &state.pb_game_state.current_palette,
-        time_ticks: state.pb_game_state.time_ticks,
-        full_tilt_mode: state.pb_game_state.full_tilt_mode,
-        background_bitmap: &state.render_state.background_bitmap,
-        timer_manager: state.timer_manager.clone(),
-    };
+    let mut draw_ctx = state.get_component_context();
     text_box
         .borrow_mut()
         .display(rc_string, -1.0f32, &mut draw_ctx, None)
@@ -948,68 +876,51 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
     }
 
     let bindings = options::map_game_input(input, &mut state.options_state);
+    let time_now = state.pb_game_state.time_now;
+
     for binding in bindings {
-        let mut table = match state.pb_game_state.main_table.as_ref() {
+        let table_rc = match state.pb_game_state.main_table.clone() {
             None => bail!(PbError::NoTable),
-            Some(t) => t.borrow_mut(),
+            Some(t) => t,
         };
         match binding {
             GameBindings::LeftFlipper => {
-                let mut draw_ctx = ComponentContext {
-                    v_screen: &mut state.render_state.v_screen,
-                    current_palette: &state.pb_game_state.current_palette,
-                    time_ticks: state.pb_game_state.time_ticks,
-                    full_tilt_mode: state.pb_game_state.full_tilt_mode,
-                    background_bitmap: &state.render_state.background_bitmap,
-                    timer_manager: state.timer_manager.clone(),
-                };
-                table.message(
+                let mut draw_ctx = state.get_component_context();
+
+                table_rc.borrow_mut().message(
                     MessageCode::LEFT_FLIPPER_INPUT_RELEASED,
-                    state.pb_game_state.time_now,
+                    time_now,
                     &mut draw_ctx,
                 )?;
             }
             GameBindings::RightFlipper => {
-                let mut draw_ctx = ComponentContext {
-                    v_screen: &mut state.render_state.v_screen,
-                    current_palette: &state.pb_game_state.current_palette,
-                    time_ticks: state.pb_game_state.time_ticks,
-                    full_tilt_mode: state.pb_game_state.full_tilt_mode,
-                    background_bitmap: &state.render_state.background_bitmap,
-                    timer_manager: state.timer_manager.clone(),
-                };
-                table.message(
+                let mut draw_ctx = state.get_component_context();
+
+                table_rc.borrow_mut().message(
                     MessageCode::RIGHT_FLIPPER_INPUT_RELEASED,
-                    state.pb_game_state.time_now,
+                    time_now,
                     &mut draw_ctx,
                 )?;
             }
             GameBindings::Plunger => {
-                let mut draw_ctx = ComponentContext {
-                    v_screen: &mut state.render_state.v_screen,
-                    current_palette: &state.pb_game_state.current_palette,
-                    time_ticks: state.pb_game_state.time_ticks,
-                    full_tilt_mode: state.pb_game_state.full_tilt_mode,
-                    background_bitmap: &state.render_state.background_bitmap,
-                    timer_manager: state.timer_manager.clone(),
-                };
-                table.message(
+                let mut draw_ctx = state.get_component_context();
+                table_rc.borrow_mut().message(
                     MessageCode::PLUNGER_INPUT_PRESSED,
-                    state.pb_game_state.time_now,
+                    time_now,
                     &mut draw_ctx,
                 )?;
             }
             GameBindings::LeftTableBump => {
-                if !table.tilt_lock_flag {
+                if !table_rc.borrow().tilt_lock_flag {
                     nudge::nudge_right();
                 }
             }
             GameBindings::RightTableBump => {
-                if !table.tilt_lock_flag {
+                if !table_rc.borrow().tilt_lock_flag {
                     nudge::nudge_left();
                 }
             }
-            GameBindings::BottomTableBump if !table.tilt_lock_flag => {
+            GameBindings::BottomTableBump if !table_rc.borrow().tilt_lock_flag => {
                 nudge::nudge_up();
             }
 
@@ -1043,11 +954,11 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                 }
             }
         } else {
-            let table_rc = match state.pb_game_state.main_table.as_ref() {
+            let table_rc = match state.pb_game_state.main_table.clone() {
                 None => bail!(PbError::NoTable),
                 Some(t) => t,
             };
-            let mut table = table_rc.borrow_mut();
+            let full_tilt_mode = state.pb_game_state.full_tilt_mode;
             match input.value {
                 0x68 => {
                     let entry = HighScore {
@@ -1063,25 +974,18 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                     control::cheat_bump_rank();
                 }
                 0x73 => {
-                    table.add_score(
+                    table_rc.borrow_mut().add_score(
                         (random::<f32>() * 1000000.0f32) as i32,
-                        state.pb_game_state.full_tilt_mode,
+                        full_tilt_mode,
                     )?;
                     return Ok(());
                 }
                 F12 => {
-                    table.port_draw();
+                    table_rc.borrow().port_draw();
                 }
                 0x69 => {
-                    if let Some(lg) = table.light_group.as_mut() {
-                        let mut draw_ctx = ComponentContext {
-                            v_screen: &mut state.render_state.v_screen,
-                            current_palette: &state.pb_game_state.current_palette,
-                            time_ticks: state.pb_game_state.time_ticks,
-                            full_tilt_mode: state.pb_game_state.full_tilt_mode,
-                            background_bitmap: &state.render_state.background_bitmap,
-                            timer_manager: state.timer_manager.clone(),
-                        };
+                    let mut draw_ctx = state.get_component_context();
+                    if let Some(lg) = table_rc.borrow_mut().light_group.as_mut() {
                         lg.message(
                             MessageCode::T_LIGHT_FT_TMP_OVERRIDE_ON,
                             1.0f32,
@@ -1090,15 +994,8 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                     }
                 }
                 0x70 => {
-                    if let Some(lg) = table.light_group.as_mut() {
-                        let mut draw_ctx = ComponentContext {
-                            v_screen: &mut state.render_state.v_screen,
-                            current_palette: &state.pb_game_state.current_palette,
-                            time_ticks: state.pb_game_state.time_ticks,
-                            full_tilt_mode: state.pb_game_state.full_tilt_mode,
-                            background_bitmap: &state.render_state.background_bitmap,
-                            timer_manager: state.timer_manager.clone(),
-                        };
+                    let mut draw_ctx = state.get_component_context();
+                    if let Some(lg) = table_rc.borrow_mut().light_group.as_mut() {
                         lg.message(
                             MessageCode::T_LIGHT_FT_TMP_OVERRIDE_OFF,
                             1.0f32,
@@ -1114,15 +1011,8 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
 }
 
 pub(crate) fn launch_ball(state: &mut PinballState) -> Result<()> {
-    if let Some(table_rc) = state.pb_game_state.main_table.as_mut() {
-        let mut draw_ctx = ComponentContext {
-            v_screen: &mut state.render_state.v_screen,
-            current_palette: &state.pb_game_state.current_palette,
-            time_ticks: state.pb_game_state.time_ticks,
-            full_tilt_mode: state.pb_game_state.full_tilt_mode,
-            background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: state.timer_manager.clone(),
-        };
+    if let Some(table_rc) = state.pb_game_state.main_table.clone() {
+        let mut draw_ctx = state.get_component_context();
 
         if let Some(plunger) = table_rc.borrow_mut().plunger.as_mut() {
             plunger.borrow_mut().message(
@@ -1176,21 +1066,10 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
     }
 
     if state.pb_game_state.credits_active {
-        let mut draw_ctx = ComponentContext {
-            v_screen: &mut state.render_state.v_screen,
-            current_palette: &state.pb_game_state.current_palette,
-            time_ticks: state.pb_game_state.time_ticks,
-            full_tilt_mode: state.pb_game_state.full_tilt_mode,
-            background_bitmap: &state.render_state.background_bitmap,
-            timer_manager: state.timer_manager.clone(),
-        };
-        state
-            .pb_game_state
-            .mission_text_box
-            .as_mut()
-            .unwrap()
-            .borrow_mut()
-            .clear(true, &mut draw_ctx)?;
+        let mission_text_box = state.pb_game_state.mission_text_box.clone().unwrap();
+        let mut draw_ctx = state.get_component_context();
+
+        mission_text_box.borrow_mut().clear(true, &mut draw_ctx)?;
     }
     state.pb_game_state.credits_active = false;
     state.pb_game_state.idle_timer_ms = 0.0f32;
@@ -1205,18 +1084,13 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
             GameBindings::LeftFlipper => {}
             GameBindings::RightFlipper => {}
             GameBindings::Plunger => {
-                if let Some(t) = state.pb_game_state.main_table.as_ref() {
-                    let mut draw_ctx = ComponentContext {
-                        v_screen: &mut state.render_state.v_screen,
-                        current_palette: &state.pb_game_state.current_palette,
-                        time_ticks: state.pb_game_state.time_ticks,
-                        full_tilt_mode: state.pb_game_state.full_tilt_mode,
-                        background_bitmap: &state.render_state.background_bitmap,
-                        timer_manager: state.timer_manager.clone(),
-                    };
+                if let Some(t) = state.pb_game_state.main_table.clone() {
+                    let time_now = state.pb_game_state.time_now;
+                    let mut draw_ctx = state.get_component_context();
+
                     t.borrow_mut().message(
                         MessageCode::PLUNGER_INPUT_PRESSED,
-                        state.pb_game_state.time_now,
+                        time_now,
                         &mut draw_ctx,
                     )?;
                 }
