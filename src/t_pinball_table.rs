@@ -90,6 +90,29 @@ pub struct TPinballTable {
 }
 
 impl TPinballTable {
+    pub(crate) fn change_ball_count(
+        &mut self,
+        count: i32,
+        v_screen: &mut Option<GdrvBitmap8>,
+        cur_pal: &[ColorRgba; 256],
+        bg_bmp: &Option<GdrvBitmap8>,
+    ) -> Result<()> {
+        self.ball_count = count;
+        if count <= 0 {
+            if let Some(sbc) = self.score_ball_count.as_mut() {
+                score::erase(sbc, 1, v_screen, cur_pal)?;
+            }
+        } else {
+            if let Some(sbc) = self.score_ball_count.as_mut() {
+                score::set(sbc, self.max_ball_count - count + 1);
+            }
+            score::update(&mut self.score_ball_count, v_screen, cur_pal, bg_bmp)?;
+        }
+        Ok(())
+    }
+}
+
+impl TPinballTable {
     pub(crate) fn find_component(
         &self,
         group_index: i32,
