@@ -804,5 +804,11 @@ pub extern "C" fn light_show_timeout(
     caller: *mut c_void,
     component_context: &mut ComponentContext,
 ) -> Result<()> {
+    let table = caller as *mut TPinballTable;
+    unsafe {
+        (*table).light_show_timer = 0;
+        (*table).message(MessageCode::START_GAME_PLAYER1, 0.0f32, component_context)?;
+    }
+
     Ok(())
 }
