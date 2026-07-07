@@ -31,7 +31,7 @@ pub trait ICollisionComponent {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        draw_context: &mut ComponentContext,
+        component_context: &mut ComponentContext,
     ) -> Result<()>;
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>>;

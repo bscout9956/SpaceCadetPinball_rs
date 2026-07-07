@@ -24,15 +24,15 @@ impl ICollisionComponent for TWall {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        draw_context: &mut ComponentContext,
+        component_context: &mut ComponentContext,
     ) -> Result<()> {
         if !self.base.list_bitmap.is_empty() {
             self.base.sprite_set(0);
-            self.timer = draw_context.timer_manager.borrow_mut().set(
+            self.timer = component_context.timer_manager.borrow_mut().set(
                 0.1f32,
                 &raw mut *self as *mut c_void,
                 timer_expired,
-                draw_context,
+                component_context,
             )?;
         }
         Ok(())
@@ -113,15 +113,15 @@ impl IPinballComponent for TWall {
         &mut self,
         code: MessageCode,
         value: f32,
-        draw_context: &mut ComponentContext,
+        component_context: &mut ComponentContext,
     ) -> Result<i32> {
         if code == MessageCode::RESET && self.timer > 0 {
-            draw_context
+            component_context
                 .timer_manager
                 .borrow_mut()
                 .kill_id(self.timer)?;
             unsafe {
-                timer_expired(self.timer, &raw mut *self as *mut c_void, draw_context)?;
+                timer_expired(self.timer, &raw mut *self as *mut c_void, component_context)?;
             }
         }
         Ok(0)

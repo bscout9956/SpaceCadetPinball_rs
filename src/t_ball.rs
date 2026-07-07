@@ -225,7 +225,7 @@ impl ICollisionComponent for TBall {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        draw_context: &mut ComponentContext,
+        component_context: &mut ComponentContext,
     ) -> Result<()> {
         todo!()
     }
@@ -368,7 +368,7 @@ impl IPinballComponent for TBall {
         &mut self,
         code: MessageCode,
         _value: f32,
-        _draw_context: &mut ComponentContext,
+        _component_context: &mut ComponentContext,
     ) -> Result<i32> {
         if code == MessageCode::RESET {
             self.base

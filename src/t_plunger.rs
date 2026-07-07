@@ -112,7 +112,7 @@ impl TPlunger {
 unsafe extern "C" fn released_timer(
     _timer_id: i32,
     caller: *mut c_void,
-    _draw_context: &mut ComponentContext,
+    _component_context: &mut ComponentContext,
 ) -> Result<()> {
     println!("TPlunger timer released");
     unsafe {
@@ -126,7 +126,7 @@ unsafe extern "C" fn released_timer(
 unsafe extern "C" fn pullback_timer(
     timer_id: i32,
     caller: *mut c_void,
-    draw_context: &mut ComponentContext,
+    component_context: &mut ComponentContext,
 ) -> Result<()> {
     println!("Pullback timer!");
     unsafe {
@@ -134,8 +134,8 @@ unsafe extern "C" fn pullback_timer(
         plunger.base.boost += plunger.pullback_increment;
         if plunger.base.boost <= plunger.max_pull_back {
             if plunger.some_counter > 0 {
-                let timer_context = draw_context as *mut ComponentContext;
-                let timer_manager = &mut draw_context.timer_manager;
+                let timer_context = component_context as *mut ComponentContext;
+                let timer_manager = &mut component_context.timer_manager;
                 plunger.pullback_timer_ = timer_manager.borrow_mut().set(
                     plunger.pullback_delay / 4.0f32,
                     plunger as *mut TPlunger as *mut c_void,
@@ -143,8 +143,8 @@ unsafe extern "C" fn pullback_timer(
                     &*timer_context,
                 )?;
             } else {
-                let timer_context = draw_context as *mut ComponentContext;
-                let timer_manager = &mut draw_context.timer_manager;
+                let timer_context = component_context as *mut ComponentContext;
+                let timer_manager = &mut component_context.timer_manager;
                 plunger.pullback_timer_ = timer_manager.borrow_mut().set(
                     plunger.pullback_delay,
                     plunger as *mut TPlunger as *mut c_void,

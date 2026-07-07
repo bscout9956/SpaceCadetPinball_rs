@@ -89,7 +89,7 @@ impl TTextBox {
         &mut self,
         text: &str,
         time: f32,
-        draw_context: &mut ComponentContext,
+        component_context: &mut ComponentContext,
         low_priority: Option<bool>,
     ) -> Result<()> {
         let prio = low_priority.unwrap_or(false);
@@ -101,12 +101,12 @@ impl TTextBox {
 
         if is_dupe {
             if let Some(prev_msg) = self.messages.back_mut() {
-                prev_msg.refresh(time, draw_context.time_ticks);
+                prev_msg.refresh(time, component_context.time_ticks);
             }
 
             if self.messages.len() == 1 {
                 if self.timer > 0 && self.timer != -1 {
-                    draw_context
+                    component_context
                         .timer_manager
                         .borrow_mut()
                         .kill_id(self.timer)?;
@@ -114,23 +114,24 @@ impl TTextBox {
                 if time == -1.0f32 {
                     self.timer = -1;
                 } else {
-                    self.timer = draw_context.timer_manager.borrow_mut().set(
+                    self.timer = component_context.timer_manager.borrow_mut().set(
                         time,
                         self as *const TTextBox as *mut c_void,
                         Self::timer_expired,
-                        draw_context,
+                        component_context,
                     )?
                 }
             }
         } else {
             if self.timer == -1 {
-                self.clear(false, draw_context)?;
+                self.clear(false, component_context)?;
             }
-            let new_message = TTextBoxMessage::new(text, time, prio, draw_context.time_ticks);
+            let new_message = TTextBoxMessage::new(text, time, prio, component_context.time_ticks);
             self.messages.push_back(new_message);
 
             if self.timer == 0 {
-                self.draw(draw_context).context("Failed to draw TTextBox")?;
+                self.draw(component_context)
+                    .context("Failed to draw TTextBox")?;
             }
         }
         Ok(())
@@ -139,20 +140,20 @@ impl TTextBox {
     pub unsafe extern "C" fn timer_expired(
         timer_id: i32,
         caller: *mut c_void,
-        draw_ctx: &mut ComponentContext,
+        component_ctx: &mut ComponentContext,
     ) -> Result<()> {
         let tb = unsafe { &mut *(caller as *mut TTextBox) };
         (*tb).timer = 0;
         if tb.messages.pop_front().is_some() {
-            let _ = tb.draw(draw_ctx).context("Failed to draw textbox")?;
+            let _ = tb.draw(component_ctx).context("Failed to draw textbox")?;
             // TODO: control shit
         }
         Ok(())
     }
 
-    fn draw(&mut self, draw_ctx: &mut ComponentContext) -> Result<()> {
+    fn draw(&mut self, component_ctx: &mut ComponentContext) -> Result<()> {
         println!("Drawing or attempting to draw something");
-        if let Some(v_screen) = draw_ctx.v_screen.as_mut() {
+        if let Some(v_screen) = component_ctx.v_screen.as_mut() {
             if let Some(bg) = self.bg_bmp.as_mut() {
                 gdrv::copy_bitmap(
                     v_screen,
@@ -172,7 +173,7 @@ impl TTextBox {
                     self.offset_x,
                     self.offset_y,
                     0,
-                    draw_ctx.current_palette,
+                    component_ctx.current_palette,
                 )
                 .context("Failed to fill bitmap for TTextBox")?;
             }
@@ -186,13 +187,13 @@ impl TTextBox {
                     display = true;
                     break;
                 }
-            } else if front_msg.time_left(draw_ctx.time_ticks) >= -2.0f32 {
+            } else if front_msg.time_left(component_ctx.time_ticks) >= -2.0f32 {
                 self.timer = unsafe {
-                    draw_ctx.timer_manager.borrow_mut().set(
-                        f32::max(front_msg.time_left(draw_ctx.time_ticks), 0.25f32),
+                    component_ctx.timer_manager.borrow_mut().set(
+                        f32::max(front_msg.time_left(component_ctx.time_ticks), 0.25f32),
                         self as *const TTextBox as *mut c_void,
                         Self::timer_expired,
-                        draw_ctx,
+                        component_ctx,
                     )?
                 };
                 display = true;
@@ -231,12 +232,12 @@ impl TTextBox {
                 }
 
                 let mut off_y = self.offset_y;
-                if draw_ctx.full_tilt_mode {
+                if component_ctx.full_tilt_mode {
                     off_y += (self.height - text_height) / 2;
                 }
                 for line in lines {
                     let mut off_x = self.offset_x;
-                    if draw_ctx.full_tilt_mode {
+                    if component_ctx.full_tilt_mode {
                         off_x += (self.width - line.width) / 2;
                     }
                     for &char_byte in line.start.as_bytes() {
@@ -246,8 +247,8 @@ impl TTextBox {
                         if char_bmp.height > 0 {
                             let height = char_bmp.height;
                             let width = char_bmp.width;
-                            if let Some(v_screen) = draw_ctx.v_screen.as_mut() {
-                                let has_bg = draw_ctx.background_bitmap.is_some();
+                            if let Some(v_screen) = component_ctx.v_screen.as_mut() {
+                                let has_bg = component_ctx.background_bitmap.is_some();
                                 if has_bg {
                                     gdrv::copy_bitmap_w_transparency(
                                         v_screen, width, height, off_x, off_y, char_bmp, 0, 0,
@@ -385,10 +386,10 @@ impl TTextBox {
     pub(crate) fn clear(
         &mut self,
         low_priority_only: bool,
-        draw_context: &mut ComponentContext,
+        component_context: &mut ComponentContext,
     ) -> Result<()> {
         if let Some(b) = self.bg_bmp.as_ref() {
-            if let Some(v_screen) = draw_context.v_screen.as_mut() {
+            if let Some(v_screen) = component_context.v_screen.as_mut() {
                 gdrv::copy_bitmap(
                     v_screen,
                     self.width,
@@ -401,7 +402,7 @@ impl TTextBox {
                 )?;
             }
         } else {
-            if let Some(v_screen) = draw_context.v_screen.as_mut() {
+            if let Some(v_screen) = component_context.v_screen.as_mut() {
                 gdrv::fill_bitmap(
                     v_screen,
                     self.width,
@@ -409,13 +410,13 @@ impl TTextBox {
                     self.offset_x,
                     self.offset_y,
                     0,
-                    draw_context.current_palette,
+                    component_context.current_palette,
                 )?;
             }
         }
         if self.timer > 0 {
             if self.timer != -1 {
-                draw_context
+                component_context
                     .timer_manager
                     .borrow_mut()
                     .kill_id(self.timer)?;
@@ -430,7 +431,7 @@ impl TTextBox {
         }
 
         if let Some(msg) = cur_message {
-            self.draw(draw_context)?;
+            self.draw(component_context)?;
         } else {
             eprintln!("No message to display, are you sure this is intended behavior?");
         }

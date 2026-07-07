@@ -38,7 +38,7 @@ impl TimerManager {
         time: f32,
         caller: *mut c_void,
         callback: TimerCallback,
-        draw_context: &ComponentContext,
+        component_context: &ComponentContext,
     ) -> Result<i32> {
         if self.active_count >= self.capacity {
             return Ok(0);
@@ -52,7 +52,7 @@ impl TimerManager {
         self.free_head = self.timers[timer as usize].next;
         self.timers[timer as usize].next = NONE;
 
-        let target_time = (draw_context.time_ticks + (time * 1000.0) as usize) as i32;
+        let target_time = (component_context.time_ticks + (time * 1000.0) as usize) as i32;
 
         let mut prev = NONE;
         let mut current = self.active_head;
@@ -145,7 +145,11 @@ impl TimerManager {
         Ok(id)
     }
 
-    pub fn check(&mut self, time_ticks: usize, draw_context: &mut ComponentContext) -> Result<i32> {
+    pub fn check(
+        &mut self,
+        time_ticks: usize,
+        component_context: &mut ComponentContext,
+    ) -> Result<i32> {
         let mut index = 0;
         let mut current = self.active_head;
 
@@ -159,7 +163,7 @@ impl TimerManager {
                 self.timers[current as usize].next = self.free_head;
                 self.free_head = current;
 
-                self.fire_timer(&self.timers[current as usize], draw_context)?;
+                self.fire_timer(&self.timers[current as usize], component_context)?;
 
                 current = self.active_head;
                 index += 1;
@@ -183,7 +187,7 @@ impl TimerManager {
             self.timers[current as usize].next = self.free_head;
             self.free_head = current;
 
-            self.fire_timer(&self.timers[current as usize], draw_context)?;
+            self.fire_timer(&self.timers[current as usize], component_context)?;
 
             current = self.active_head;
             index += 1;
@@ -192,10 +196,10 @@ impl TimerManager {
         Ok(index)
     }
 
-    fn fire_timer(&self, timer: &Timer, draw_context: &mut ComponentContext) -> Result<()> {
+    fn fire_timer(&self, timer: &Timer, component_context: &mut ComponentContext) -> Result<()> {
         if let Some(callback) = timer.callback {
             unsafe {
-                callback(timer.id, timer.caller, draw_context)?;
+                callback(timer.id, timer.caller, component_context)?;
             }
         }
         Ok(())

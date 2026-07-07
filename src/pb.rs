@@ -365,13 +365,13 @@ pub fn get_rc_int(u_id: Msg) -> Result<i32, TranslationError> {
 
 pub fn reset_table(
     table: &Option<Rc<RefCell<TPinballTable>>>,
-    draw_context: &mut ComponentContext,
+    component_context: &mut ComponentContext,
 ) -> Result<()> {
     table
         .as_ref()
         .unwrap()
         .borrow_mut()
-        .message(MessageCode::RESET, 0.0, draw_context)?;
+        .message(MessageCode::RESET, 0.0, component_context)?;
     Ok(())
 }
 
@@ -388,10 +388,10 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
         state.pb_game_state.demo_mode = false;
         match state.pb_game_state.main_table.clone() {
             Some(table) => {
-                let mut draw_ctx = state.get_component_context();
+                let mut component_ctx = state.get_component_context();
                 table
                     .borrow_mut()
-                    .message(MessageCode::RESET, 0.0f32, &mut draw_ctx)?;
+                    .message(MessageCode::RESET, 0.0f32, &mut component_ctx)?;
             }
             None => bail!(PbError::NoTable),
         };
@@ -404,13 +404,18 @@ pub(crate) fn toggle_demo(state: &mut PinballState) -> Result<()> {
             state.timer_manager.clone(),
         )?;
         if let Some(mtb) = state.pb_game_state.mission_text_box.clone() {
-            let mut draw_ctx = state.get_component_context();
-            mtb.borrow_mut().clear(false, &mut draw_ctx)?;
+            let mut component_ctx = state.get_component_context();
+            mtb.borrow_mut().clear(false, &mut component_ctx)?;
         }
         if let Some(itb) = state.pb_game_state.info_text_box.clone() {
-            let mut draw_ctx = state.get_component_context();
+            let mut component_ctx = state.get_component_context();
             itb.borrow_mut()
-                .display(get_rc_string(Msg::STRING125)?, -1.0f32, &mut draw_ctx, None)
+                .display(
+                    get_rc_string(Msg::STRING125)?,
+                    -1.0f32,
+                    &mut component_ctx,
+                    None,
+                )
                 .context("Failed to obtain RC String when toggling demo")?;
         }
     } else {
@@ -439,9 +444,9 @@ pub fn replay_level(demo_mode: bool, state: &mut PinballState) -> Result<()> {
         }
         Some(t) => {
             let players = *state.options_state.options.players as f32;
-            let mut draw_ctx = state.get_component_context();
+            let mut component_ctx = state.get_component_context();
             t.borrow_mut()
-                .message(MessageCode::NEW_GAME, players, &mut draw_ctx)?;
+                .message(MessageCode::NEW_GAME, players, &mut component_ctx)?;
         }
     }
 
@@ -460,9 +465,9 @@ fn mode_change(
     if pb_game_state.credits_active
         && let Some(text_box) = miss_text_box
     {
-        let mut draw_ctx =
+        let mut component_ctx =
             ComponentContext::from_parts(render_state, pb_game_state, timer_manager.clone());
-        text_box.borrow_mut().clear(true, &mut draw_ctx)?;
+        text_box.borrow_mut().clear(true, &mut component_ctx)?;
     }
     pb_game_state.credits_active = false;
     pb_game_state.idle_timer_ms = 0.0;
@@ -496,14 +501,14 @@ fn mode_change(
                 main_state.demo_active = false;
             }
             if let Some(table) = pb_game_state.main_table.clone() {
-                let mut draw_ctx =
+                let mut component_ctx =
                     ComponentContext::from_parts(render_state, pb_game_state, timer_manager);
 
                 if let Some(light_group) = table.borrow_mut().light_group.as_mut() {
                     light_group.message(
                         MessageCode::T_LIGHT_GROUP_GAME_OVER_ANIMATION,
                         1.4f32,
-                        &mut draw_ctx,
+                        &mut component_ctx,
                     )?;
                 }
             }
@@ -581,11 +586,11 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
     {
         let timer_manager = state.timer_manager.clone();
         let time_ticks = state.pb_game_state.time_ticks;
-        let mut draw_ctx = state.get_component_context();
+        let mut component_ctx = state.get_component_context();
 
         timer_manager
             .borrow_mut()
-            .check(time_ticks, &mut draw_ctx)?;
+            .check(time_ticks, &mut component_ctx)?;
     }
     render::update(&mut state.render_state, &mut state.pb_game_state)
         .context("Failed to render frame in pb::frame")?;
@@ -830,13 +835,15 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
     state.main_state.single_step ^= true;
 
     if let Some(text_box) = state.pb_game_state.info_text_box.clone() {
-        let mut draw_ctx = state.get_component_context();
-        text_box.borrow_mut().clear(false, &mut draw_ctx)?;
+        let mut component_ctx = state.get_component_context();
+        text_box.borrow_mut().clear(false, &mut component_ctx)?;
     }
 
     if let Some(miss_text_box) = state.pb_game_state.mission_text_box.clone() {
-        let mut draw_ctx = state.get_component_context();
-        miss_text_box.borrow_mut().clear(false, &mut draw_ctx)?;
+        let mut component_ctx = state.get_component_context();
+        miss_text_box
+            .borrow_mut()
+            .clear(false, &mut component_ctx)?;
     }
     if state.main_state.single_step {
         let table_rc = match state.pb_game_state.main_table.clone() {
@@ -844,11 +851,11 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
             None => bail!(PbError::NoTable),
         };
         let time_now = state.pb_game_state.time_now;
-        let mut draw_ctx = state.get_component_context();
+        let mut component_ctx = state.get_component_context();
 
         table_rc
             .borrow_mut()
-            .message(MessageCode::PAUSE, time_now, &mut draw_ctx)?;
+            .message(MessageCode::PAUSE, time_now, &mut component_ctx)?;
     }
     let rc_string = get_rc_string(Msg::STRING123)?;
 
@@ -858,10 +865,10 @@ pub(crate) fn pause_continue(state: &mut PinballState) -> Result<()> {
         .clone()
         .ok_or(PbError::NoTextBox)?;
 
-    let mut draw_ctx = state.get_component_context();
+    let mut component_ctx = state.get_component_context();
     text_box
         .borrow_mut()
-        .display(rc_string, -1.0f32, &mut draw_ctx, None)
+        .display(rc_string, -1.0f32, &mut component_ctx, None)
         .context("Failed to display textbox in pause_continue")?;
 
     Ok(())
@@ -885,29 +892,29 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
         };
         match binding {
             GameBindings::LeftFlipper => {
-                let mut draw_ctx = state.get_component_context();
+                let mut component_ctx = state.get_component_context();
 
                 table_rc.borrow_mut().message(
                     MessageCode::LEFT_FLIPPER_INPUT_RELEASED,
                     time_now,
-                    &mut draw_ctx,
+                    &mut component_ctx,
                 )?;
             }
             GameBindings::RightFlipper => {
-                let mut draw_ctx = state.get_component_context();
+                let mut component_ctx = state.get_component_context();
 
                 table_rc.borrow_mut().message(
                     MessageCode::RIGHT_FLIPPER_INPUT_RELEASED,
                     time_now,
-                    &mut draw_ctx,
+                    &mut component_ctx,
                 )?;
             }
             GameBindings::Plunger => {
-                let mut draw_ctx = state.get_component_context();
+                let mut component_ctx = state.get_component_context();
                 table_rc.borrow_mut().message(
                     MessageCode::PLUNGER_INPUT_PRESSED,
                     time_now,
-                    &mut draw_ctx,
+                    &mut component_ctx,
                 )?;
             }
             GameBindings::LeftTableBump => {
@@ -974,32 +981,31 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                     control::cheat_bump_rank();
                 }
                 0x73 => {
-                    table_rc.borrow_mut().add_score(
-                        (random::<f32>() * 1000000.0f32) as i32,
-                        full_tilt_mode,
-                    )?;
+                    table_rc
+                        .borrow_mut()
+                        .add_score((random::<f32>() * 1000000.0f32) as i32, full_tilt_mode)?;
                     return Ok(());
                 }
                 F12 => {
                     table_rc.borrow().port_draw();
                 }
                 0x69 => {
-                    let mut draw_ctx = state.get_component_context();
+                    let mut component_ctx = state.get_component_context();
                     if let Some(lg) = table_rc.borrow_mut().light_group.as_mut() {
                         lg.message(
                             MessageCode::T_LIGHT_FT_TMP_OVERRIDE_ON,
                             1.0f32,
-                            &mut draw_ctx,
+                            &mut component_ctx,
                         )?;
                     }
                 }
                 0x70 => {
-                    let mut draw_ctx = state.get_component_context();
+                    let mut component_ctx = state.get_component_context();
                     if let Some(lg) = table_rc.borrow_mut().light_group.as_mut() {
                         lg.message(
                             MessageCode::T_LIGHT_FT_TMP_OVERRIDE_OFF,
                             1.0f32,
-                            &mut draw_ctx,
+                            &mut component_ctx,
                         )?;
                     }
                 }
@@ -1012,13 +1018,13 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
 
 pub(crate) fn launch_ball(state: &mut PinballState) -> Result<()> {
     if let Some(table_rc) = state.pb_game_state.main_table.clone() {
-        let mut draw_ctx = state.get_component_context();
+        let mut component_ctx = state.get_component_context();
 
         if let Some(plunger) = table_rc.borrow_mut().plunger.as_mut() {
             plunger.borrow_mut().message(
                 MessageCode::PLUNGER_LAUNCH_BALL,
                 0.0f32,
-                &mut draw_ctx,
+                &mut component_ctx,
             )?;
         }
     } else {
@@ -1035,12 +1041,12 @@ pub(crate) fn high_scores(high_score_state: &mut HighScoreState) {
 pub(crate) fn lose_focus(
     table_option: &mut Option<Rc<RefCell<TPinballTable>>>,
     time_now: f32,
-    draw_context: &mut ComponentContext,
+    component_context: &mut ComponentContext,
 ) -> Result<()> {
     if let Some(table) = table_option {
         table
             .borrow_mut()
-            .message(MessageCode::LOOSE_FOCUS, time_now, draw_context)?;
+            .message(MessageCode::LOOSE_FOCUS, time_now, component_context)?;
         Ok(())
     } else {
         bail!(PbError::NoTable);
@@ -1067,9 +1073,11 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
 
     if state.pb_game_state.credits_active {
         let mission_text_box = state.pb_game_state.mission_text_box.clone().unwrap();
-        let mut draw_ctx = state.get_component_context();
+        let mut component_ctx = state.get_component_context();
 
-        mission_text_box.borrow_mut().clear(true, &mut draw_ctx)?;
+        mission_text_box
+            .borrow_mut()
+            .clear(true, &mut component_ctx)?;
     }
     state.pb_game_state.credits_active = false;
     state.pb_game_state.idle_timer_ms = 0.0f32;
@@ -1086,12 +1094,12 @@ pub(crate) fn input_down(input: GameInput, state: &mut PinballState) -> Result<(
             GameBindings::Plunger => {
                 if let Some(t) = state.pb_game_state.main_table.clone() {
                     let time_now = state.pb_game_state.time_now;
-                    let mut draw_ctx = state.get_component_context();
+                    let mut component_ctx = state.get_component_context();
 
                     t.borrow_mut().message(
                         MessageCode::PLUNGER_INPUT_PRESSED,
                         time_now,
-                        &mut draw_ctx,
+                        &mut component_ctx,
                     )?;
                 }
             }

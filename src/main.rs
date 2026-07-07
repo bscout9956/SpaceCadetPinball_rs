@@ -1736,7 +1736,7 @@ unsafe fn event_handler(
                 sound::deactivate(&mut state.sound_state);
                 //TODO: midi::music_stop();
                 state.main_state.has_focus = false;
-                let mut draw_ctx = ComponentContext {
+                let mut component_ctx = ComponentContext {
                     v_screen: &mut state.render_state.v_screen,
                     current_palette: &state.pb_game_state.current_palette,
                     time_ticks: state.pb_game_state.time_ticks,
@@ -1747,7 +1747,7 @@ unsafe fn event_handler(
                 pb::lose_focus(
                     &mut state.pb_game_state.main_table,
                     state.pb_game_state.time_now,
-                    &mut draw_ctx,
+                    &mut component_ctx,
                 )?;
             }
 
@@ -2135,9 +2135,9 @@ fn run_game_session(
     fullscrn::init(state).context("Failed to init fullscrn")?;
 
     let main_table = state.pb_game_state.main_table.clone();
-    let mut draw_ctx = state.get_component_context();
+    let mut component_ctx = state.get_component_context();
 
-    pb::reset_table(&main_table, &mut draw_ctx).context("Failed to reset table")?;
+    pb::reset_table(&main_table, &mut component_ctx).context("Failed to reset table")?;
     pb::first_time_setup(&mut state.render_state, &mut state.pb_game_state)
         .context("Failed to perform first time setup")?;
 

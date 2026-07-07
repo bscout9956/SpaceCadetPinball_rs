@@ -105,7 +105,7 @@ impl IPinballComponent for TBlocker {
         &mut self,
         code: MessageCode,
         value: f32,
-        draw_context: &mut ComponentContext,
+        component_context: &mut ComponentContext,
     ) -> Result<i32> {
         match code {
             MessageCode::SET_TILT_LOCK
@@ -113,7 +113,7 @@ impl IPinballComponent for TBlocker {
             | MessageCode::RESET
             | MessageCode::T_BLOCKER_DISABLE => {
                 if self.timer > 0 {
-                    draw_context
+                    component_context
                         .timer_manager
                         .borrow_mut()
                         .kill_id(self.timer)?;
@@ -131,7 +131,7 @@ impl IPinballComponent for TBlocker {
                 // TODO: loader::play_sound(self.sound_index_4, self, "TBlocker2");
                 self.base.sprite_set(0);
                 if self.timer > 0 {
-                    draw_context
+                    component_context
                         .timer_manager
                         .borrow_mut()
                         .kill_id(self.timer)?;
@@ -139,28 +139,28 @@ impl IPinballComponent for TBlocker {
                 self.timer = 0;
                 if value >= 0.0f32 {
                     unsafe {
-                        self.timer = draw_context.timer_manager.borrow_mut().set(
+                        self.timer = component_context.timer_manager.borrow_mut().set(
                             value,
                             self as *mut _ as *mut c_void,
                             Self::timer_expired,
-                            draw_context,
+                            component_context,
                         )?;
                     }
                 }
             }
             MessageCode::T_BLOCKER_RESTART_TIMEOUT => {
                 if self.timer > 0 {
-                    draw_context
+                    component_context
                         .timer_manager
                         .borrow_mut()
                         .kill_id(self.timer)?;
                 }
                 unsafe {
-                    self.timer = draw_context.timer_manager.borrow_mut().set(
+                    self.timer = component_context.timer_manager.borrow_mut().set(
                         f32::max(value, 0.0f32),
                         self as *mut _ as *mut c_void,
                         Self::timer_expired,
-                        draw_context,
+                        component_context,
                     )?;
                 }
             }

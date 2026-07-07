@@ -42,7 +42,7 @@ pub trait IPinballComponent {
         &mut self,
         _code: MessageCode,
         _value: f32,
-        _draw_context: &mut ComponentContext,
+        _component_context: &mut ComponentContext,
     ) -> Result<i32> {
         Ok(0)
     }
@@ -297,7 +297,7 @@ impl IPinballComponent for TPinballComponent {
         &mut self,
         code: MessageCode,
         value: f32,
-        draw_context: &mut ComponentContext,
+        component_context: &mut ComponentContext,
     ) -> Result<i32> {
         // TODO?
         self.message_field = code;
