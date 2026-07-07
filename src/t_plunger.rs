@@ -283,11 +283,10 @@ impl IPinballComponent for TPlunger {
                 }
             }
             MessageCode::PLUNGER_START_FEED_TIMER => {
-                self.ballfeed_timer_ = component_context.timer_manager.borrow_mut().set(
+                self.ballfeed_timer_ = component_context.set_timer(
                     0.95999998,
                     self as *mut TPlunger as *mut c_void,
                     ball_feed_timer,
-                    component_context,
                 )?;
                 component_context.play_sound(self.sound_index_p1, Some(self), "TPlunger2");
             }
