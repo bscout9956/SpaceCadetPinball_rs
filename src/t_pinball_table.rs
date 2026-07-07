@@ -123,6 +123,57 @@ impl TPinballTable {
         }
         None
     }
+
+    fn tilt(
+        &mut self,
+        time: f32,
+        pb_game_state: &mut PbGameState,
+        component_context: &mut ComponentContext,
+    ) -> Result<()> {
+        if !self.tilt_lock_flag && self.ball_in_drain_flag == 0 {
+            if let Some(itb) = pb_game_state.info_text_box.as_mut() {
+                itb.borrow_mut().clear(false, component_context)?;
+            }
+
+            if let Some(mtb) = pb_game_state.mission_text_box.as_mut() {
+                mtb.borrow_mut().clear(false, component_context)?;
+            }
+
+            if let Some(itb) = pb_game_state.info_text_box.as_mut() {
+                let rc_string = pb::get_rc_string(Msg::STRING136)?;
+                itb.borrow_mut()
+                    .display(rc_string, -1.0f32, component_context, None)?;
+            }
+
+            //TODO: loader::play_sound(SoundIndex3,nullptr,"TPinballTable1");
+            self.tilt_timeout_timer =
+                component_context.set_timer(30.0, &raw mut *self as *mut c_void, tilt_timeout)?;
+        }
+        Ok(())
+    }
+}
+
+pub(crate) unsafe extern "C" fn tilt_timeout(
+    timer_id: i32,
+    caller: *mut c_void,
+    component_context: &mut ComponentContext,
+) -> Result<()> {
+    let table = caller as *mut TPinballTable;
+    let vec = Vector2::default();
+
+    unsafe {
+        (*table).tilt_timeout_timer = 0;
+        if (*table).tilt_lock_flag {
+            for ball in (*table).ball_list.iter() {
+                if let Some(drain) = (*table).drain.as_ref() {
+                    println!("TODO: Simulating collision check for TDrain.")
+                    //TODO: Implemente collision for TDrain drain.borrow_mut().collision(ball, &vec, &vec, 0.0f32, None);
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 impl TPinballTable {
