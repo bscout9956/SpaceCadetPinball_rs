@@ -60,6 +60,7 @@ impl<'a> ComponentContext<'a> {
     }
 }
 
+// Helpers!
 impl ComponentContext<'_> {
     pub fn set_timer(
         &self,
@@ -70,5 +71,14 @@ impl ComponentContext<'_> {
         self.timer_manager
             .borrow_mut()
             .set(delay, caller, callback, self)
+    }
+
+    pub fn play_sound(
+        &mut self,
+        sound_index: i32,
+        sound_source: Option<&dyn IPinballComponent>,
+        info: &str,
+    ) -> f32 {
+        loader::play_sound(sound_index, sound_source, info, self)
     }
 }
