@@ -161,6 +161,7 @@ impl TCollisionComponent {
         ball: &mut TBall,
         next_position: &Vector2,
         direction: &mut Vector2,
+        component_context: &mut ComponentContext,
     ) -> bool {
         // TODO: Undo borrow
         if let Some(pinball_table) = &self.base.pinball_table
@@ -191,13 +192,18 @@ impl TCollisionComponent {
             self.boost,
         );
         if proj_speed > self.threshold {
-            // TODO: implement me
-            // loader::play_sound(self.hard_hit_sound_id, ball, "TCollisionComponent1");
+            component_context.play_sound(
+                self.hard_hit_sound_id,
+                Some(ball),
+                "TCollisionComponent1",
+            );
             collision = true;
         } else if proj_speed > 0.2 {
-            // TODO: implement me
-
-            // loader::play_sound(self.soft_hit_sound_id, ball, "TCollisionComponent2");
+            component_context.play_sound(
+                self.soft_hit_sound_id,
+                Some(ball),
+                "TCollisionComponent2",
+            );
         }
         collision
     }
@@ -211,7 +217,7 @@ impl ICollisionComponent for TCollisionComponent {
         direction: &mut Vector2,
         distance: f32,
         edge: &TEdgeSegment,
-        time_ticks: &mut ComponentContext,
+        component_context: &mut ComponentContext,
     ) -> Result<()> {
         //TODO: Undo borrow?
         if let Some(pinball_table) = &self.base.pinball_table
@@ -243,13 +249,21 @@ impl ICollisionComponent for TCollisionComponent {
             self.boost,
         );
 
+        if proj_speed > self.threshold {
+            component_context.play_sound(
+                self.hard_hit_sound_id,
+                Some(ball),
+                "TCollisionComponent3",
+            );
+        } else if proj_speed > 0.2 {
+            component_context.play_sound(
+                self.soft_hit_sound_id,
+                Some(ball),
+                "TCollisionComponent4",
+            );
+        }
+
         Ok(())
-        // TODO: Implement loader::play_sound
-        // if proj_speed > self.threshold {
-        //     loader::play_sound(self.hard_hit_sound_id, ball, "TCollisionComponent1");
-        // } else if proj_speed > 0.2 {
-        //     loader::play_sound(self.soft_hit_sound_id, ball, "TCollisionComponent2");
-        // }
     }
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
