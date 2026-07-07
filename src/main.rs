@@ -5,11 +5,9 @@ use crate::embedded_data::load_controller_db;
 use crate::options::Menu::{FourPlayers, OnePlayer, ShowMenu, ThreePlayers, TwoPlayers};
 use crate::options::{DEF_FPS, DEF_UPS, GameBindings, GameInput, InputTypes, Menu};
 use crate::pb::get_rc_string_cstring;
-use crate::timer::TimerManager;
 use crate::translations::Msg;
 use crate::utils::{SdlRendererPtr, SdlWindowPtr, get_cstring_end};
 use anyhow::{Context, Result, bail};
-use context::component_context::ComponentContext;
 use dear_imgui_rs::sys::{
     ImGuiCol_Button, ImGuiCol_ButtonActive, ImGuiCol_ButtonHovered, ImGuiFocusRequestFlags_None,
     ImGuiMouseCursor_None, ImGuiSliderFlags_AlwaysClamp, ImGuiStyleVar_WindowMinSize,

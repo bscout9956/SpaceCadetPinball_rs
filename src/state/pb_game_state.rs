@@ -4,7 +4,6 @@ use crate::pb::GameModes;
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_table::TPinballTable;
 use crate::t_textbox::TTextBox;
-use crate::timer::TimerManager;
 use dear_imgui_rs::sys::ImU32;
 use std::cell::RefCell;
 use std::rc::Rc;

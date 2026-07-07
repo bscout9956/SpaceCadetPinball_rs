@@ -1,9 +1,11 @@
 use crate::errors::ScoreError;
-use crate::gdrv::GdrvBitmap8;
+use crate::gdrv;
+use crate::gdrv::{ColorRgba, GdrvBitmap8};
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
 use crate::state::fullscrn_state::FullscrnState;
 use crate::state::pinball_state::PinballState;
 use crate::state::score_state::ScoreState;
+use anyhow::{Result, bail};
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone, Debug)]

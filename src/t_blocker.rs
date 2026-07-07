@@ -10,7 +10,7 @@ use crate::t_edge_manager::TEdgeManager;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
-use crate::{control, loader, timer};
+use crate::{control, loader};
 use anyhow::Result;
 use std::any::Any;
 use std::cell::RefCell;
