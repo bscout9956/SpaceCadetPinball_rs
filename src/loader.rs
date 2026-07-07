@@ -1,3 +1,4 @@
+use crate::context::component_context::ComponentContext;
 use crate::errors::LoaderError;
 use crate::gdrv::GdrvBitmap8;
 use crate::group_data::{DatFile, EntryBuffer, FieldTypes};
@@ -6,6 +7,7 @@ use crate::state::loader_state::LoaderState;
 use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::state::sound_state::SoundState;
+use crate::t_pinball_component::IPinballComponent;
 use crate::utils::{PATH_SEPARATOR, SdlWindowPtr};
 use crate::zdrv::ZMapHeaderType;
 use crate::{pb, sound};
@@ -143,10 +145,10 @@ pub static LOADER_ERRORS: [ErrorMessage; 28] = [
 
 #[derive(Copy, Clone)]
 pub struct SoundListStruct {
-    wave: Option<Mix_Chunk>,
-    group_index: i32,
-    loaded: bool,
-    duration: f32,
+    pub wave: Option<Mix_Chunk>,
+    pub group_index: i32,
+    pub loaded: bool,
+    pub duration: f32,
 }
 
 unsafe impl Sync for SoundListStruct {}
@@ -314,11 +316,8 @@ pub fn get_sound_id(
     }
 
     if !loader_state.sound_list[sound_index as usize].loaded
-        && loader_state.sound_list[sound_index as usize].wave.is_some()
+        && loader_state.sound_list[sound_index as usize].wave.is_none()
     {
-        // TODO: Why am I unused?
-        let wave_header = WaveHeader::default();
-
         let sound_group_id = loader_state.sound_list[sound_index as usize].group_index;
         loader_state.sound_list[sound_index as usize].duration = 0.0;
 
@@ -357,11 +356,11 @@ pub fn get_sound_id(
                             if file.read_exact(&mut header_bytes).is_ok() {
                                 let wave_ptr =
                                     unsafe { &*(header_bytes.as_ptr() as *const WaveHeader) };
-                                let sample_count = (wave_ptr.data_size / wave_ptr.channels as u32
-                                    * wave_ptr.bits_per_sample as u32)
-                                    as f64
-                                    / 8.0;
+                                let sample_count = wave_ptr.data_size as f32
+                                    / (wave_ptr.channels as f32
+                                        * (wave_ptr.bits_per_sample as f32 / 8.0));
                                 duration = sample_count as f32 / wave_ptr.sample_rate as f32;
+                                break;
                             }
                         }
                     }
@@ -659,20 +658,35 @@ pub fn material(
     Ok(0)
 }
 
-// pub fn play_sound(sound_index: i32, sound_source: TPinballComponent, info: &[u8]) -> f32 {
-//     if sound_index < 0 {
-//         return 0.0;
-//     }
-//
-//     let sound_list = SOUND_LIST.lock().unwrap();
-//     sound::play_sound(
-//         sound_list[sound_index as usize].wave_ptr,
-//         pb::TIME_TICKS.load(SeqCst),
-//         sound_source,
-//         info,
-//     );
-//     sound_list[sound_index as usize].duration
-// }
+pub fn play_sound(
+    sound_index: i32,
+    sound_source: Option<&dyn IPinballComponent>,
+    info: &str,
+    component_context: &mut ComponentContext,
+) -> f32 {
+    if sound_index <= 0 {
+        return 0.0;
+    }
+
+    let Some(loader_state) = component_context.loader_state.as_ref() else {
+        return 0.0;
+    };
+    let Some(sound_state) = component_context.sound_state.as_mut() else {
+        return 0.0;
+    };
+
+    let sound = loader_state.sound_list[sound_index as usize];
+    sound::play_sound(
+        sound_state,
+        sound.wave,
+        component_context.time_ticks,
+        component_context.sound_stereo,
+        component_context.edge_manager,
+        sound_source,
+        info,
+    );
+    sound.duration
+}
 
 fn state_id(
     mut group_index: i32,
