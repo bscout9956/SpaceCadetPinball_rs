@@ -262,6 +262,7 @@ pub enum PinballTableError {
 }
 
 use crate::context::component_context::ComponentContext;
+use crate::gdrv::{ColorRgba, GdrvBitmap8};
 use crate::render::RenderSpriteRef;
 use crate::state::pb_game_state::PbGameState;
 use crate::t_drain::TDrain;
@@ -270,7 +271,7 @@ use crate::t_flipper::TFlipper;
 use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
 use crate::translations::Msg;
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 
 impl TPinballTable {
     pub fn new(state: &mut PinballState) -> Result<Rc<RefCell<Self>>> {
@@ -749,6 +750,7 @@ impl IPinballComponent for TPinballTable {
                     self.bonus_score_flag = false;
                     self.unknown_p71 = 0;
                     // TODO: clear pb info text box and miss text box
+
                     if let Some(lg) = self.light_group.as_mut() {
                         lg.message(
                             MessageCode::T_LIGHT_GROUP_LIGHT_SHOW_ANIMATION,

@@ -188,7 +188,9 @@ impl TPinballComponent {
             }
 
             if let Some(sprite) = self.render_sprite.as_mut() {
-                sprite.borrow_mut().ball_set(bmp.clone(), depth, pos.x, pos.y);
+                sprite
+                    .borrow_mut()
+                    .ball_set(bmp.clone(), depth, pos.x, pos.y);
             }
         }
     }
