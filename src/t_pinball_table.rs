@@ -134,7 +134,7 @@ impl TPinballTable {
         None
     }
 
-    fn find_component_by_name(
+    pub fn find_component_by_name(
         &self,
         component_name: &str,
     ) -> Option<Rc<RefCell<dyn IPinballComponent>>> {
