@@ -5,9 +5,13 @@ use crate::message_code::MessageCode;
 use crate::score::ScoreStruct;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
+use crate::t_blocker::TBlocker;
+use crate::t_bumper::TBumper;
 use crate::t_demo::TDemo;
+use crate::t_light::TLight;
 use crate::t_light_group::{TLightGroup, TLightGroupError};
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
+use crate::t_sound::TSound;
 use crate::t_table_layer::{TTableLayer, TTableLayerError};
 use crate::t_textbox::TTextBox;
 use crate::{control, loader, pb, render, score};
@@ -420,6 +424,52 @@ impl TPinballTable {
                             table_rc.borrow_mut().plunger_position = plunger.borrow().table_pos;
                             table_rc.borrow_mut().plunger = Some(plunger);
                         }
+                        1002 => {
+                            let light = TLight::new(table_weak.clone(), group_index as i32, state)?;
+                            table_rc
+                                .borrow_mut()
+                                .add_component(Rc::new(RefCell::new(light)));
+                        }
+                        1003 => {
+                            let flipper = TFlipper::new(
+                                table_weak.clone(),
+                                group_index as i32,
+                                state,
+                            )?;
+                            table_rc
+                                .borrow_mut()
+                                .add_component(Rc::new(RefCell::new(flipper)));
+                        }
+                        1004 => {
+                            let flipper = TFlipper::new(
+                                table_weak.clone(),
+                                group_index as i32,
+                                state,
+                            )?;
+                            table_rc
+                                .borrow_mut()
+                                .add_component(Rc::new(RefCell::new(flipper)));
+                        }
+                        1005 => {
+                            let bumper =
+                                TBumper::new(table_weak.clone(), group_index as i32, state)?;
+                            table_rc
+                                .borrow_mut()
+                                .add_component(Rc::new(RefCell::new(bumper)));
+                        }
+                        1011 => {
+                            let blocker =
+                                TBlocker::new(table_weak.clone(), group_index as i32, state)?;
+                            table_rc
+                                .borrow_mut()
+                                .add_component(Rc::new(RefCell::new(blocker)));
+                        }
+                        1031 => {
+                            let sound = TSound::new(table_weak.clone(), group_index as i32, state)?;
+                            table_rc
+                                .borrow_mut()
+                                .add_component(Rc::new(RefCell::new(sound)));
+                        }
                         1033 => {
                             let bg_bmp = state.render_state.background_bitmap.clone();
                             let textbox = TTextBox::new(
@@ -448,9 +498,7 @@ impl TPinballTable {
                                 state.pb_game_state.mission_text_box = Some(textbox_rc.clone());
                             }
 
-                            // table_rc
-                            //     .borrow_mut()
-                            //     .add_component(Rc::new(RefCell::new(textbox.clone())));
+                            table_rc.borrow_mut().add_component(textbox_rc);
                         }
                         _ => {
                             // TODO: Implement the rest of the objects
