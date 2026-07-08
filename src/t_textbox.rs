@@ -1,4 +1,5 @@
 use crate::context::component_context::ComponentContext;
+use crate::control::ComponentControl;
 use crate::gdrv::GdrvBitmap8;
 use crate::maths::Vector2;
 use crate::render::RenderSpriteRef;

@@ -1,4 +1,5 @@
 use crate::loader;
+use crate::control::ComponentControl;
 use crate::loader::VisualStruct;
 use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
@@ -359,6 +360,10 @@ impl IPinballComponent for TPlunger {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>) {
+        self.base.set_control(control);
     }
 
     fn as_collision_component(&self) -> Option<&TCollisionComponent> {

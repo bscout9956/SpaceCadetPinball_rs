@@ -416,6 +416,10 @@ impl IPinballComponent for TBall {
         self
     }
 
+    fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>) {
+        self.base.set_control(control);
+    }
+
     fn as_collision_component(&self) -> Option<&TCollisionComponent> {
         Some(&self.base)
     }

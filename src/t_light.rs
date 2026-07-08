@@ -1,4 +1,5 @@
 use crate::context::component_context::ComponentContext;
+use crate::control::ComponentControl;
 use crate::maths::Vector2;
 use crate::message_code::MessageCode;
 use crate::render::RenderSpriteRef;
@@ -7,7 +8,7 @@ use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use anyhow::Result;
 use std::any::Any;
 use std::cell::RefCell;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 pub struct TlightPlayerBackup {
     message_field: i32,
@@ -85,5 +86,9 @@ impl IPinballComponent for TLight {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>) {
+        self.base.set_control(control);
     }
 }

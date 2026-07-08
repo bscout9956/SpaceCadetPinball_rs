@@ -1,4 +1,5 @@
 use crate::errors::LoaderError;
+use crate::control::ComponentControl;
 use crate::loader;
 use crate::maths::Vector2;
 use crate::message_code::MessageCode;
@@ -81,6 +82,10 @@ impl IPinballComponent for TLightGroup {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>) {
+        self.base.set_control(control);
     }
 }
 

@@ -177,6 +177,10 @@ impl IPinballComponent for TBlocker {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+
+    fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>) {
+        self.base.set_control(control);
+    }
 }
 
 impl ICollisionComponent for TBlocker {
