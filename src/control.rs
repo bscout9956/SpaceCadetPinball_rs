@@ -366,7 +366,6 @@ pub(crate) fn unstuck_ball(
     mut table_opt: Option<Rc<RefCell<TPinballTable>>>,
     comp_ctx: &mut ComponentContext,
 ) -> Result<()> {
-    // TODO: Missing conditions and impl
     if let Some(flip1) = comp_ctx.control_state.component_state.flip_1.get()
         && let Some(flip2) = comp_ctx.control_state.component_state.flip_2.get()
         && let Some(plunger) = comp_ctx.control_state.component_state.plunger.get()
