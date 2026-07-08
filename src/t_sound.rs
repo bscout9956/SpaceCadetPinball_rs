@@ -1,11 +1,37 @@
-use crate::t_pinball_component::IPinballComponent;
+use crate::context::component_context::ComponentContext;
+use crate::control::ComponentControl;
+use crate::loader;
+use crate::maths::Vector2;
+use crate::message_code::MessageCode;
+use crate::render::RenderSpriteRef;
+use crate::state::pinball_state::PinballState;
+use crate::t_edge_manager::TEdgeManager;
+use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
+use crate::t_pinball_table::TPinballTable;
+use anyhow::Result;
+use std::any::Any;
 use std::cell::RefCell;
 
-use std::rc::Rc;
-
-pub struct TSound;
+pub struct TSound {
+    base: TPinballComponent,
+    sound_index: i32,
+}
 
 impl TSound {
+    pub fn new(
+        table: Option<Weak<RefCell<TPinballTable>>>,
+        group_index: i32,
+        state: &mut PinballState,
+    ) -> Result<Self> {
+        let base = TPinballComponent::new(table, group_index, true, state)?;
+        let mut visual = loader::VisualStruct::default();
+        loader::query_visual(group_index, 0, &mut visual, state)?;
+        Ok(Self {
+            base,
+            sound_index: visual.sound_index_4,
+        })
+    }
+
     pub(crate) fn play(
         &self,
         sound_source: Option<Rc<RefCell<dyn IPinballComponent>>>,
