@@ -28,6 +28,24 @@ impl Default for TFlipper {
 }
 
 impl TFlipper {
+    pub fn new(
+        table: Option<Weak<RefCell<TPinballTable>>>,
+        group_index: i32,
+        state: &mut PinballState,
+    ) -> Result<Self> {
+        let base = TCollisionComponent::new(table, group_index, false, state)?.take();
+        Ok(Self {
+            base,
+            edge_list: Vec::new(),
+            aabb: RectF {
+                x_max: -10000.0,
+                y_max: -10000.0,
+                x_min: 10000.0,
+                y_min: 10000.0,
+            },
+        })
+    }
+
     pub(crate) fn flipper_collision(&self, p0: f32) {
         todo!()
     }
