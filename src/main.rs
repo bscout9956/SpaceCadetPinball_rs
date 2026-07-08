@@ -71,8 +71,10 @@ mod t_pinball_table;
 mod translations;
 mod zdrv;
 
+pub mod component_info;
 mod context;
 pub mod control;
+pub mod control_function;
 pub mod debug_overlay;
 mod embedded_data;
 mod errors;
