@@ -53,8 +53,9 @@ impl IPinballComponent for TLight {
     fn group_index(&self) -> i32 {
         self.base.group_index
     }
+
     fn sprite_set(&mut self, index: i32) {
-        todo!()
+        self.base.sprite_set(index);
     }
 
     fn get_coordinates(&self, tedge_manager: &TEdgeManager) -> Vector2 {
@@ -62,11 +63,11 @@ impl IPinballComponent for TLight {
     }
 
     fn get_scoring(&self, index: u32) -> i32 {
-        todo!()
+        self.base.get_scoring(index)
     }
 
     fn port_draw(&self) {
-        todo!()
+        self.base.port_draw()
     }
 
     fn message(
