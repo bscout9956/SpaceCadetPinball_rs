@@ -38,7 +38,7 @@ pub fn table_control_handler(
     Ok(())
 }
 
-struct ComponentTagBase {
+pub(crate) struct ComponentTagBase {
     name: &'static str,
 }
 
