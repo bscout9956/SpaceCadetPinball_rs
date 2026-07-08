@@ -16,6 +16,22 @@ pub struct ControlState {
     pub component_state: ComponentState,
 }
 
+fn info(
+    name: &'static str,
+    control_func: ComponentControlCallback,
+    score_count: u32,
+    scores: &[i32],
+) -> ComponentInfo {
+    ComponentInfo {
+        name,
+        control: Rc::new(RefCell::new(ComponentControl {
+            control_func,
+            score_count,
+            scores: scores.to_vec(),
+        })),
+    }
+}
+
 impl ControlState {
     pub fn new() -> ControlState {
         Self {
