@@ -282,8 +282,8 @@ impl TPinballTable {
 
         let instance = Self {
             base,
-            flipper_l: TFlipper,
-            flipper_r: TFlipper,
+            flipper_l: TFlipper::default(),
+            flipper_r: TFlipper::default(),
             cur_score_struct: None,
             score_ball_count: None,
             score_player_number_1: None,
