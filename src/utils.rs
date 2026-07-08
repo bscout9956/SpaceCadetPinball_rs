@@ -1,4 +1,4 @@
-use std::ffi::c_char;
+use std::ffi::{c_char, c_int};
 // Equivalent to pch.h with some additions
 use anyhow::{Result, bail};
 use sdl2::sys::{SDL_DestroyTexture, SDL_Rect, SDL_Renderer, SDL_Texture, SDL_Window};

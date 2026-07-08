@@ -6,7 +6,8 @@ use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
-use crate::{loader, proj};
+use crate::utils::rand_float_pb;
+use crate::{loader, maths, proj};
 use std::any::Any;
 use std::cell::{Cell, RefCell};
 use std::ffi::CString;
@@ -214,6 +215,25 @@ impl TBall {
         }
 
         false
+    }
+
+    pub(crate) fn throw_ball(
+        &mut self,
+        direction: &Vector3,
+        angle_mult: f32,
+        speed_mult_1: f32,
+        speed_mult_2: f32,
+    ) {
+        self.collision_comp = None;
+        self.direction = *direction;
+        let mut rnd = rand_float_pb();
+        let angle = (1.0 - (rnd + rnd)) * angle_mult;
+        let z_bkp = self.direction.z;
+        let mut direction_to_rot = Vector2::from_vec3(self.direction);
+        maths::rotate_vector(&mut direction_to_rot, angle);
+        self.direction = Vector3::from_vec2(direction_to_rot, z_bkp);
+        rnd = rand_float_pb();
+        self.speed = (1.0 - (rnd + rnd)) * (speed_mult_1 * speed_mult_2) + speed_mult_1;
     }
 }
 
