@@ -59,6 +59,7 @@ pub trait IPinballComponent {
 
 use crate::context::component_context::ComponentContext;
 use crate::state::pinball_state::PinballState;
+use crate::t_bumper::TBumper;
 use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_manager::TEdgeManager;
 
