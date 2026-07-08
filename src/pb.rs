@@ -994,7 +994,7 @@ pub(crate) fn input_up(input: GameInput, state: &mut PinballState) -> Result<()>
                 0x73 => {
                     table_rc
                         .borrow_mut()
-                        .add_score((random::<f32>() * 1000000.0f32) as i32, full_tilt_mode)?;
+                        .add_score((rand_float_pb() * 1000000.0f32) as i32, full_tilt_mode)?;
                     return Ok(());
                 }
                 F12 => {
