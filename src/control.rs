@@ -2,7 +2,7 @@ use crate::context::component_context::ComponentContext;
 use crate::maths::Vector3;
 use crate::message_code::MessageCode;
 use crate::pb;
-use crate::state::component_state::ComponentRef;
+use crate::state::component_state::{ComponentRef, ComponentState};
 use crate::state::control_state::{CHEAT_LEN, ControlState};
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
