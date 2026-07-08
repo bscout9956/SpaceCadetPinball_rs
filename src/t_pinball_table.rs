@@ -467,8 +467,7 @@ impl TPinballTable {
         // state.pb_game_state.mission_text_box =
         //     table_rc.borrow().find_component_by_name("mission_text_box");
 
-        // TODO continue from here to make the component list work.
-        // control::make_links(table_weak.clone(), &mut state.control_state);
+        control::make_links(table_weak.clone(), &mut state.control_state);
         Ok(table_rc)
     }
 
