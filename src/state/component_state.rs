@@ -1,5 +1,7 @@
 use crate::t_blocker::TBlocker;
+use crate::t_flipper::TFlipper;
 use crate::t_light::TLight;
+use crate::t_plunger::TPlunger;
 use crate::t_sound::TSound;
 use crate::t_textbox::TTextBox;
 use std::cell::RefCell;
@@ -13,6 +15,9 @@ pub struct ComponentState {
     pub block_1: ComponentRef<TBlocker>,
     pub lite_1: ComponentRef<TLight>,
     pub lite_77: ComponentRef<TLight>,
+    pub flip_1: ComponentRef<TFlipper>,
+    pub flip_2: ComponentRef<TFlipper>,
+    pub plunger: ComponentRef<TPlunger>,
 }
 
 impl Default for ComponentState {
@@ -27,6 +32,9 @@ impl Default for ComponentState {
             lite_62: ComponentRef::new("lite_62"),
             soundwave_7: ComponentRef::new("soundwave_7"),
             soundwave_28: ComponentRef::new("soundwave_28"),
+            flip_1: ComponentRef::new("flip_1"),
+            flip_2: ComponentRef::new("flip_2"),
+            plunger: ComponentRef::new("plunger"),
         }
     }
 }
