@@ -51,6 +51,10 @@ pub trait IPinballComponent {
     fn as_collision_component(&self) -> Option<&TCollisionComponent> {
         None
     }
+    fn as_tbumper(&self) -> Option<&TBumper> {
+        None
+    }
+    fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>);
 }
 
 use crate::context::component_context::ComponentContext;
@@ -309,6 +313,10 @@ impl IPinballComponent for TPinballComponent {
         }
 
         Ok(0)
+    }
+
+    fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>) {
+        self.control = control;
     }
 
     fn set_active_flag(&mut self, active: bool) {
