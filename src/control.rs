@@ -1,8 +1,7 @@
 use crate::context::component_context::ComponentContext;
-use crate::maths::{Vector2, Vector3};
+use crate::maths::Vector3;
 use crate::message_code::MessageCode;
 use crate::pb;
-use crate::state::component_state::ComponentState;
 use crate::state::control_state::CHEAT_LEN;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
@@ -389,36 +388,42 @@ pub(crate) fn unstuck_ball(
     if let Some(flip1) = comp_ctx.control_state.component_state.flip_1.get()
         && let Some(flip2) = comp_ctx.control_state.component_state.flip_2.get()
         && let Some(plunger) = comp_ctx.control_state.component_state.plunger.get()
+        && let Some(table) = table_opt.as_ref()
     {
-        if ball.stuck_count <= 20 {
-            let throw_dir = Vector3::new(0.0, -1.0, 0.0);
-            ball.throw_ball(&throw_dir, 90.0, 1.0, 0.0);
-        } else {
-            ball.disable();
-            if let Some(table) = table_opt.as_mut() {
-                table.borrow_mut().multiball_count -= 1;
-                plunger
-                    .borrow_mut()
-                    .message(MessageCode::PLUNGER_RELAUNCH_BALL, 0.0, comp_ctx)?;
+        let col_offset = table.borrow().collision_comp_offset;
+
+        if !check_ball_in_control_bounds(ball, &flip1, col_offset)
+            && !check_ball_in_control_bounds(ball, &flip2, col_offset)
+            && !check_ball_in_control_bounds(ball, &plunger, col_offset)
+        {
+            if ball.stuck_count <= 20 {
+                let throw_dir = Vector3::new(0.0, -1.0, 0.0);
+                ball.throw_ball(&throw_dir, 90.0, 1.0, 0.0);
+            } else {
+                ball.disable();
+                if let Some(table) = table_opt.as_mut() {
+                    table.borrow_mut().multiball_count -= 1;
+                    plunger.borrow_mut().message(
+                        MessageCode::PLUNGER_RELAUNCH_BALL,
+                        0.0,
+                        comp_ctx,
+                    )?;
+                }
             }
         }
     }
     Ok(())
 }
 
-pub fn check_ball_in_control_bounds(
+pub fn check_ball_in_control_bounds<T: ICollisionComponent + ?Sized>(
     ball: &mut RefMut<TBall>,
-    cmp: &Rc<RefCell<dyn ICollisionComponent>>,
-    table_opt: Option<Rc<RefCell<TPinballTable>>>,
+    cmp: &Rc<RefCell<T>>,
+    collision_comp_offset: f32,
 ) -> bool {
-    if let Some(table) = table_opt.as_ref() {
-        let offset = table.borrow().collision_comp_offset / 2.0f32;
-        ball.active_flag().get()
-            && ball.position.x >= cmp.borrow().get_AABB().unwrap().x_min - offset
-            && ball.position.x <= cmp.borrow().get_AABB().unwrap().x_max + offset
-            && ball.position.y >= cmp.borrow().get_AABB().unwrap().y_min - offset
-            && ball.position.y <= cmp.borrow().get_AABB().unwrap().y_max + offset
-    } else {
-        false
-    }
+    let offset = collision_comp_offset / 2.0f32;
+    ball.active_flag().get()
+        && ball.position.x >= cmp.borrow().get_AABB().unwrap().x_min - offset
+        && ball.position.x <= cmp.borrow().get_AABB().unwrap().x_max + offset
+        && ball.position.y >= cmp.borrow().get_AABB().unwrap().y_min - offset
+        && ball.position.y <= cmp.borrow().get_AABB().unwrap().y_max + offset
 }
