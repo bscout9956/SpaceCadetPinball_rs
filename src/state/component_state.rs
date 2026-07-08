@@ -25,15 +25,16 @@ impl Default for ComponentState {
     fn default() -> ComponentState {
         Self {
             // TODO: I'll be damned if the names have to be exactly the same, don't think so tho
-            block_1: ComponentRef::new("block_1"),
+            block_1: ComponentRef::new("v_bloc1"),
             info_text_box: ComponentRef::new("info_text_box"),
-            lite_1: ComponentRef::new("lite_1"),
-            lite_77: ComponentRef::new("lite_77"),
-            lite_62: ComponentRef::new("lite_62"),
-            soundwave_7: ComponentRef::new("soundwave_7"),
-            soundwave_28: ComponentRef::new("soundwave_28"),
-            flip_1: ComponentRef::new("flip_1"),
-            flip_2: ComponentRef::new("flip_2"),
+            mission_text_box: ComponentRef::new("mission_text_box"),
+            lite_1: ComponentRef::new("lite1"),
+            lite_77: ComponentRef::new("lite77"),
+            lite_62: ComponentRef::new("lite62"),
+            soundwave_7: ComponentRef::new("soundwave7"),
+            soundwave_28: ComponentRef::new("soundwave28"),
+            flip_1: ComponentRef::new("a_flip1"),
+            flip_2: ComponentRef::new("a_flip2"),
             plunger: ComponentRef::new("plunger"),
         }
     }
