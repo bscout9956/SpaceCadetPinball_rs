@@ -9,6 +9,7 @@ use std::rc::{Rc, Weak};
 
 pub struct ComponentState {
     pub info_text_box: ComponentRef<TTextBox>,
+    pub mission_text_box: ComponentRef<TTextBox>,
     pub lite_62: ComponentRef<TLight>,
     pub soundwave_7: ComponentRef<TSound>,
     pub soundwave_28: ComponentRef<TSound>,
