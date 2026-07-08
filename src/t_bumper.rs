@@ -117,7 +117,8 @@ impl IPinballComponent for TBumper {
         _value: f32,
         _component_context: &mut ComponentContext,
     ) -> Result<i32> {
-        todo!()
+        //todo!()
+        Ok(0)
     }
 }
 
