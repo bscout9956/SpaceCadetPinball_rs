@@ -10,6 +10,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
+#[derive(Default)]
 pub struct TlightPlayerBackup {
     message_field: i32,
     light_on_flag: bool,
@@ -35,6 +36,42 @@ pub struct TLight {
     pub temporary_override_flag: bool,
     pub previous_bitmap: i32, // init to -1,
     pub player_data: [TlightPlayerBackup; 4],
+}
+
+impl TLight {
+    pub fn new(
+        table: Option<Weak<RefCell<TPinballTable>>>,
+        group_index: i32,
+        state: &mut PinballState,
+    ) -> Result<Self> {
+        let base = TPinballComponent::new(table, group_index, true, state)?;
+        let flash_delay_0 = unsafe {
+            *loader::query_float_attribute_ptr(group_index, 0, 900, &mut state.loader_state)?
+        };
+        let flash_delay_1 = unsafe {
+            *loader::query_float_attribute_ptr(group_index, 0, 901, &mut state.loader_state)?
+        };
+
+        Ok(Self {
+            base,
+            bmp_arr: [-1, 0],
+            flash_delay: [flash_delay_0, flash_delay_1],
+            flash_timer: 0,
+            flash_light_on_flag: false,
+            light_on_flag: false,
+            flasher_on_flag: false,
+            toggled_off_flag: false,
+            toggled_on_flag: false,
+            turn_off_after_flashing_fg: false,
+            light_on_bmp_index: 0,
+            source_delay: [flash_delay_0, flash_delay_1],
+            timeout_timer: 0,
+            undo_override_timer: 0,
+            temporary_override_flag: false,
+            previous_bitmap: -1,
+            player_data: std::array::from_fn(|_| TlightPlayerBackup::default()),
+        })
+    }
 }
 
 impl IPinballComponent for TLight {
