@@ -20,15 +20,15 @@ use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::timer::TimerManager;
 use crate::translations::Msg;
+use crate::utils::rand_float_pb;
 use crate::{
     SdlWindowPtr, control, gdrv, handle_game_binding, high_score, loader, maths, midi, nudge,
     options, partman, proj, render, score, translations,
 };
 use anyhow::{Context, Result, bail};
-use rand::random;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
 use sdl2::sys::{SDL_KeyCode, SDL_MessageBoxFlags, SDL_ShowSimpleMessageBox};
-use std::cell::{Cell, RefCell, RefMut};
+use std::cell::{Cell, RefCell};
 use std::ffi::{CStr, CString, c_char};
 use std::fs::File;
 use std::rc::Rc;
@@ -585,7 +585,7 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
     let dt_sec = dt_milli_sec * 0.001f32;
     state.pb_game_state.time_next = state.pb_game_state.time_now + dt_sec;
 
-    timed_frame(dt_sec, &mut state.pb_game_state)?;
+    timed_frame(dt_sec, state)?;
 
     state.pb_game_state.time_now = state.pb_game_state.time_next;
 
@@ -615,13 +615,16 @@ pub(crate) fn frame(mut dt_milli_sec: f32, state: &mut PinballState) -> Result<(
     Ok(())
 }
 
-fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
-    let mut table = match pb_game_state.main_table.as_ref() {
-        Some(table) => table.borrow_mut(),
+fn timed_frame(time_delta: f32, state: &mut PinballState) -> Result<()> {
+    let table_rc = match state.pb_game_state.main_table.clone() {
+        Some(table) => table,
         None => bail!(PbError::NoTable),
     };
-    for ball_rc in &mut table.ball_list {
+
+    let ball_list = table_rc.borrow().ball_list.clone();
+    for ball_rc in &ball_list {
         let mut ball = ball_rc.borrow_mut();
+        let time_ticks = state.pb_game_state.time_ticks;
         if !ball.base.active_flag.get()
             || ball.has_group_flag
             || ball.collision_comp.is_some()
@@ -637,8 +640,8 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
                     ball.stuck_count = 0;
                 }
             }
-            ball.last_active_time = pb_game_state.time_ticks;
-        } else if pb_game_state.time_ticks - ball.last_active_time > 500 {
+            ball.last_active_time = time_ticks;
+        } else if time_ticks - ball.last_active_time > 500 {
             let dist: Vector2 = Vector2 {
                 x: ball.position.x - ball.prev_position.x,
                 y: ball.position.y - ball.prev_position.y,
@@ -652,7 +655,14 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
             }
 
             let ball_time = ball.last_active_time;
-            control::unstuck_ball(&mut ball, pb_game_state.time_ticks - ball_time);
+            let main_table = state.pb_game_state.main_table.clone();
+            let mut component_context = state.get_component_context();
+            control::unstuck_ball(
+                &mut ball,
+                time_ticks - ball_time,
+                main_table,
+                &mut component_context,
+            )?;
         }
     }
 
@@ -660,8 +670,8 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
     let mut ball_steps_distance: [f32; 20] = [0.0f32; 20];
     let mut max_step = -1;
 
-    for index in 0..table.ball_list.len() {
-        let ball = &mut table.ball_list[index].borrow_mut();
+    for index in 0..ball_list.len() {
+        let ball = &mut ball_list[index].borrow_mut();
         ball_steps[index] = -1;
         if ball.base.active_flag.get() {
             let mut vec_dst: Vector2 = Vector2 { x: 0.0, y: 0.0 };
@@ -683,7 +693,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
                     );
                 }
             } else {
-                if let Some(edge_man) = pb_game_state.edge_manager.as_mut() {
+                if let Some(edge_man) = state.pb_game_state.edge_manager.as_mut() {
                     edge_man.field_effects(ball, &mut vec_dst);
                 }
                 vec_dst.x *= ball.time_delta;
@@ -692,14 +702,14 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
                 ball.direction.y *= ball.speed;
                 maths::vector_add_vec2_to_vec3(&mut ball.direction, &vec_dst);
                 ball.speed = maths::normalize_3d(&mut ball.direction);
-                if ball.speed > pb_game_state.ball_max_speed {
-                    ball.speed = pb_game_state.ball_max_speed;
+                if ball.speed > state.pb_game_state.ball_max_speed {
+                    ball.speed = state.pb_game_state.ball_max_speed;
                 }
 
                 ball_steps_distance[index] = ball.speed * ball.time_delta;
                 let ball_step =
-                    (f32::ceil(ball_steps_distance[index] / pb_game_state.ball_half_radius) - 1.0)
-                        as i32;
+                    (f32::ceil(ball_steps_distance[index] / state.pb_game_state.ball_half_radius)
+                        - 1.0) as i32;
                 ball_steps[index] = ball_step;
                 if ball_step > max_step {
                     max_step = ball_step;
@@ -711,13 +721,16 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
     let mut delta_angle: [f32; 4] = [0.0f32; 4];
     let mut flipper_steps: [i32; 4] = [0; 4];
 
-    for index in 0..table.flipper_list.len() {
-        let flip_step = (table.flipper_list[index]
-            .get_flipper_step_angle(time_delta, &mut delta_angle[index])
-            - 1.0) as i32;
-        flipper_steps[index] = flip_step;
-        if flip_step > max_step {
-            max_step = flip_step;
+    {
+        let table = table_rc.borrow();
+        for index in 0..table.flipper_list.len() {
+            let flip_step = (table.flipper_list[index]
+                .get_flipper_step_angle(time_delta, &mut delta_angle[index])
+                - 1.0) as i32;
+            flipper_steps[index] = flip_step;
+            if flip_step > max_step {
+                max_step = flip_step;
+            }
         }
     }
 
@@ -727,20 +740,20 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
     };
 
     for step in 0..=max_step {
-        for ball_index in 0..table.ball_list.len() {
-            let ball = &table.ball_list[ball_index];
+        for ball_index in 0..ball_list.len() {
+            let ball = &ball_list[ball_index];
             if !ball.borrow().collision_disabled_flag && ball_steps[ball_index] >= step {
                 ray.collision_mask = ball.borrow().collision_mask;
 
                 let mut distance_sum = 0.0f32;
-                while distance_sum < pb_game_state.ball_half_radius {
+                while distance_sum < state.pb_game_state.ball_half_radius {
                     ray.origin = Vector2::from_vec3(ball.borrow().position);
                     ray.direction = Vector2::from_vec3(ball.borrow().direction);
                     if ball_steps[ball_index] <= step {
                         ray.max_distance = ball_steps_distance[ball_index]
-                            - ball_steps[ball_index] as f32 * pb_game_state.ball_half_radius;
+                            - ball_steps[ball_index] as f32 * state.pb_game_state.ball_half_radius;
                     } else {
-                        ray.max_distance = pb_game_state.ball_half_radius;
+                        ray.max_distance = state.pb_game_state.ball_half_radius;
                     }
 
                     let mut edge: Rc<RefCell<dyn IEdgeSegment>> = Rc::new(RefCell::new(
@@ -748,7 +761,7 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
                     ));
 
                     let mut distance = 0.0f32;
-                    if let Some(edge_man) = pb_game_state.edge_manager.as_mut() {
+                    if let Some(edge_man) = state.pb_game_state.edge_manager.as_mut() {
                         distance = edge_man.find_collision_distance(&mut ray, ball, &mut edge)?;
                     }
                     if distance > 0.0f32 {
@@ -757,8 +770,8 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
                             ball,
                             &mut edge,
                             &mut distance,
-                            &table,
-                            pb_game_state.ball_to_ball_collision_distance,
+                            &ball_list,
+                            state.pb_game_state.ball_to_ball_collision_distance,
                         );
                     }
                     if ball.borrow().edge_collision_reset_flag {
@@ -783,18 +796,24 @@ fn timed_frame(time_delta: f32, pb_game_state: &mut PbGameState) -> Result<()> {
             }
         }
 
-        for flip_index in 0..table.flipper_list.len() {
-            if flipper_steps[flip_index] >= step {
-                table.flipper_list[flip_index].flipper_collision(delta_angle[flip_index]);
+        {
+            let table = table_rc.borrow();
+            for flip_index in 0..table.flipper_list.len() {
+                if flipper_steps[flip_index] >= step {
+                    table.flipper_list[flip_index].flipper_collision(delta_angle[flip_index]);
+                }
             }
         }
     }
 
-    for flipper in &table.flipper_list {
-        flipper.update_sprite();
+    {
+        let table = table_rc.borrow();
+        for flipper in &table.flipper_list {
+            flipper.update_sprite();
+        }
     }
 
-    for ball_rc in table.ball_list.iter() {
+    for ball_rc in ball_list.iter() {
         let mut ball = ball_rc.borrow_mut();
         if ball.base.active_flag.get() {
             ball.repaint();
@@ -809,10 +828,10 @@ fn ball_to_ball_collision(
     ball: &Rc<RefCell<TBall>>,
     edge: &mut Rc<RefCell<dyn IEdgeSegment>>,
     collision_distance: &mut f32,
-    table: &RefMut<TPinballTable>,
+    ball_list: &[Rc<RefCell<TBall>>],
     ball_to_ball_collision_dist: f32,
 ) -> f32 {
-    for cur_ball in table.ball_list.iter() {
+    for cur_ball in ball_list.iter() {
         if cur_ball.borrow().active_flag().get()
             && !std::ptr::eq(cur_ball, ball)
             && (cur_ball.borrow().collision_mask & ball.borrow().collision_mask) != 0
