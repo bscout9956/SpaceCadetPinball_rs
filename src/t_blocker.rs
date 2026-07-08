@@ -29,7 +29,7 @@ pub struct TBlocker {
 }
 
 impl TBlocker {
-    fn new(
+    pub fn new(
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         state: &mut PinballState,
