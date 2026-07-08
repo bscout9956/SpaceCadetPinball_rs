@@ -11,6 +11,20 @@ unsafe impl Sync for SdlWindowPtr {}
 unsafe impl Send for SdlWindowPtr {}
 pub struct SdlRendererPtr(pub *mut SDL_Renderer);
 
+#[cfg(windows)]
+const RAND_MAX: c_int = 32767;
+#[cfg(not(windows))]
+const RAND_MAX: c_int = 2147483647;
+
+unsafe extern "C" {
+    #[link_name = "rand"]
+    fn c_rand() -> c_int;
+}
+
+pub fn rand_float_pb() -> f32 {
+    unsafe { (c_rand() as f64 / RAND_MAX as f64) as f32 }
+}
+
 impl Deref for SdlRendererPtr {
     type Target = *mut SDL_Renderer;
 
