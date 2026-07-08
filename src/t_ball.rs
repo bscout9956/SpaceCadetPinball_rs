@@ -1,4 +1,5 @@
 use crate::loader::VisualStruct;
+use crate::control::ComponentControl;
 use crate::maths::*;
 use crate::render::{RenderSprite, RenderSpriteRef, VisualTypes};
 use crate::state::pinball_state::PinballState;

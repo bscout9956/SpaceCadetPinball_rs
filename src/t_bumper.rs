@@ -85,4 +85,16 @@ impl ICollisionComponent for TBumper {
     ) -> Result<()> {
         todo!()
     }
+
+    fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
+        self.base.edge_list()
+    }
+
+    fn set_AABB(&mut self, aabb: RectF) {
+        self.base.set_AABB(aabb);
+    }
+
+    fn get_AABB(&self) -> Option<RectF> {
+        self.base.get_AABB()
+    }
 }

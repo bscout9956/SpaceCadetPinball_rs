@@ -1,3 +1,4 @@
+use crate::control::ComponentControl;
 use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
 use crate::state::pinball_state::PinballState;
@@ -132,6 +133,10 @@ impl IPinballComponent for TWall {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>) {
+        self.base.set_control(control);
     }
 
     fn as_collision_component(&self) -> Option<&TCollisionComponent> {
