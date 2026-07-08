@@ -1,4 +1,5 @@
 use crate::errors::LoaderError;
+use crate::control::ComponentControl;
 use crate::maths::{RectF, Vector2, Vector3};
 use crate::message_code::MessageCode;
 use crate::score::ScoreStruct;
@@ -14,7 +15,7 @@ use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_WARNING;
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::{CString, NulError, c_void};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use thiserror::Error;
 
 const MAX_BALL_COUNT: usize = 20;

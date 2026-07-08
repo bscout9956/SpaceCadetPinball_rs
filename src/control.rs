@@ -2,7 +2,8 @@ use crate::context::component_context::ComponentContext;
 use crate::maths::Vector3;
 use crate::message_code::MessageCode;
 use crate::pb;
-use crate::state::control_state::CHEAT_LEN;
+use crate::state::component_state::ComponentRef;
+use crate::state::control_state::{CHEAT_LEN, ControlState};
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
 use crate::t_blocker::TBlocker;
@@ -13,8 +14,8 @@ use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
 use crate::translations::Msg;
 use anyhow::Result;
-use std::cell::{RefCell, RefMut};
-use std::rc::Rc;
+use std::cell::{Ref, RefCell, RefMut};
+use std::rc::{Rc, Weak};
 
 pub fn table_control_handler(
     code: MessageCode,
@@ -56,11 +57,28 @@ pub trait ComponentTagBaseBehavior {
 pub struct ComponentControl {
     pub score_count: u32,
     pub scores: Vec<i32>,
+    pub control_func: ComponentControlCallback,
 }
 
-pub struct ComponentInfo {
-    tag: ComponentTagBase,
-    control: ComponentControl,
+pub type ComponentControlCallback = fn(
+    MessageCode,
+    Rc<RefCell<dyn IPinballComponent>>,
+    Option<Rc<RefCell<TPinballTable>>>,
+    bool,
+) -> Result<()>;
+
+impl ComponentControl {
+    pub(crate) fn new(
+        control_func: ComponentControlCallback,
+        score_count: u32,
+        scores: Vec<i32>,
+    ) -> Result<Self> {
+        Ok(Self {
+            score_count,
+            scores,
+            control_func,
+        })
+    }
 }
 
 pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Result<()> {
@@ -407,4 +425,67 @@ pub fn check_ball_in_control_bounds<T: ICollisionComponent + ?Sized>(
         && ball.position.x <= cmp.borrow().get_AABB().unwrap().x_max + offset
         && ball.position.y >= cmp.borrow().get_AABB().unwrap().y_min - offset
         && ball.position.y <= cmp.borrow().get_AABB().unwrap().y_max + offset
+}
+
+pub(crate) fn make_links(
+    table_weak: Option<Weak<RefCell<TPinballTable>>>,
+    control_state: &mut ControlState,
+) {
+    control_state.table_g = table_weak.clone();
+
+    let Some(table_rc) = table_weak.and_then(|weak| weak.upgrade()) else {
+        return;
+    };
+
+    let table = table_rc.borrow();
+
+    for score_comp in control_state.score_components.iter() {
+        let linked_comp = make_component_link(&table, score_comp.name);
+        if let Some(comp) = linked_comp {
+            comp.borrow_mut()
+                .set_control(Some(Rc::downgrade(&score_comp.control)));
+        }
+    }
+
+    for simp_comp in control_state.simple_components.iter() {
+        let _ = make_component_link(&table, simp_comp.name);
+    }
+}
+
+fn make_component_link(
+    table: &Ref<TPinballTable>,
+    component_name: &str,
+) -> Option<Rc<RefCell<dyn IPinballComponent>>> {
+    table
+        .component_list
+        .iter()
+        .find(|comp| {
+            comp.borrow()
+                .group_name()
+                .is_some_and(|name| *name.borrow() == component_name)
+        })
+        .cloned()
+}
+
+fn link_component<T: IPinballComponent + 'static>(
+    table: &TPinballTable,
+    slot: &mut ComponentRef<T>,
+) {
+    if let Some(comp) = table.find_component_by_name(slot.name) {
+        if let Ok(typed) = downcast_component::<T>(comp) {
+            slot.set(&typed);
+        }
+    }
+}
+
+fn downcast_component<T: IPinballComponent + 'static>(
+    comp: Rc<RefCell<dyn IPinballComponent>>,
+) -> Result<Rc<RefCell<T>>, Rc<RefCell<dyn IPinballComponent>>> {
+    if comp.borrow().as_any().is::<T>() {
+        let raw = Rc::into_raw(comp);
+        let typed = unsafe { Rc::from_raw(raw as *const RefCell<T>) };
+        Ok(typed)
+    } else {
+        Err(comp)
+    }
 }
