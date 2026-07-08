@@ -1,14 +1,23 @@
 use crate::context::component_context::ComponentContext;
+use crate::control::ComponentControl;
 use crate::maths::{RectF, Vector2, Vector3};
+use crate::message_code::MessageCode;
+use crate::render::RenderSpriteRef;
+use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
-use crate::t_collision_component::ICollisionComponent;
+use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
+use crate::t_edge_manager::TEdgeManager;
+use crate::t_pinball_component::IPinballComponent;
+use crate::t_pinball_table::TPinballTable;
 use anyhow::Result;
+use std::any::Any;
 use std::cell::RefCell;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 // TODO: Temporary struct until the real flipper port lands.
 pub struct TFlipper {
+    base: TCollisionComponent,
     edge_list: Vec<Rc<RefCell<dyn IEdgeSegment>>>,
     aabb: RectF,
 }
@@ -16,6 +25,8 @@ pub struct TFlipper {
 impl Default for TFlipper {
     fn default() -> Self {
         Self {
+            // TODO: Use new
+            base: TCollisionComponent::default(),
             edge_list: Vec::new(),
             aabb: RectF {
                 x_max: -10000.0,
