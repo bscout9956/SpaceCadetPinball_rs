@@ -88,6 +88,7 @@ pub mod proj;
 mod render;
 pub mod state;
 mod t_blocker;
+pub mod t_bumper;
 mod t_circle;
 pub mod t_demo;
 mod t_drain;
