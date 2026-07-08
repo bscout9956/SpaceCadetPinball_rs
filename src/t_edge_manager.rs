@@ -248,6 +248,11 @@ impl TEdgeManager {
             }
         }
 
+        for processed_edge in self.edge_array.iter() {
+            processed_edge.borrow_mut().processed_flag().set(false);
+        }
+        self.edge_array.clear();
+
         Ok(distance)
     }
 
