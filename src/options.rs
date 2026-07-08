@@ -32,7 +32,7 @@ use std::ops::{Deref, DerefMut, Sub};
 use std::ptr::null;
 use thiserror::Error;
 
-pub const MIX_MAX_VOLUME: i32 = 100; // TODO: Is it 100?
+pub const MIX_MAX_VOLUME: i32 = 67; // TODO: What Is it?
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, PartialEq, Clone, Copy)]
