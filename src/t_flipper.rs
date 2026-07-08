@@ -46,6 +46,65 @@ impl TFlipper {
     }
 }
 
+impl IPinballComponent for TFlipper {
+    fn render_sprite(&self) -> Option<RenderSpriteRef> {
+        self.base.render_sprite.clone()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn group_name(&self) -> Option<Rc<RefCell<String>>> {
+        self.base.group_name.clone()
+    }
+
+    fn group_index(&self) -> i32 {
+        self.base.group_index
+    }
+
+    fn sprite_set(&mut self, index: i32) {
+        self.base.sprite_set(index);
+    }
+
+    fn get_coordinates(&self, edge_manager: &TEdgeManager) -> Vector2 {
+        self.base.get_coordinates(edge_manager)
+    }
+
+    fn get_scoring(&self, index: u32) -> i32 {
+        self.base.get_scoring(index)
+    }
+
+    fn port_draw(&self) {
+        self.base.port_draw()
+    }
+
+    fn message(
+        &mut self,
+        code: MessageCode,
+        value: f32,
+        component_context: &mut ComponentContext,
+    ) -> Result<i32> {
+        self.base.message(code, value, component_context)
+    }
+
+    fn set_active_flag(&mut self, active: bool) {
+        self.base.set_active_flag(active);
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+
+    fn as_collision_component(&self) -> Option<&TCollisionComponent> {
+        Some(&self.base)
+    }
+
+    fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>) {
+        self.base.set_control(control);
+    }
+}
+
 impl ICollisionComponent for TFlipper {
     fn collision(
         &mut self,
