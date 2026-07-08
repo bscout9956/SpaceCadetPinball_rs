@@ -71,11 +71,11 @@ impl TBlocker {
 
 impl IPinballComponent for TBlocker {
     fn render_sprite(&self) -> Option<RenderSpriteRef> {
-        todo!()
+        self.base.render_sprite.clone()
     }
 
     fn as_any(&self) -> &dyn Any {
-        todo!()
+        self
     }
 
     fn group_name(&self) -> Option<Rc<RefCell<String>>> {
