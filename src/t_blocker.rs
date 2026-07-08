@@ -1,4 +1,5 @@
 use crate::context::component_context::ComponentContext;
+use crate::control::ComponentControl;
 use crate::loader::VisualStruct;
 use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
@@ -11,7 +12,6 @@ use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
 use crate::{control, loader};
-use crate::control::ComponentControl;
 use anyhow::Result;
 use std::any::Any;
 use std::cell::RefCell;
