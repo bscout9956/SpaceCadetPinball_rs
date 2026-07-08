@@ -257,7 +257,7 @@ impl TEdgeManager {
     }
 
     fn test_grid_box(
-        &self,
+        &mut self,
         x: i32,
         y: i32,
         dist_val: &mut f32,
@@ -267,19 +267,20 @@ impl TEdgeManager {
         mut edge_index: i32,
     ) -> Result<i32> {
         if x >= 0 && x < self.max_box_x && y >= 0 && y < self.max_box_y {
-            let edge_box = &self.box_array[(x + y * self.max_box_x) as usize];
-            let mut edge_segment = &self.edge_array[edge_index as usize];
-            for edge_entry in edge_box.edge_list.iter() {
+            let edge_list = self.box_array[(x + y * self.max_box_x) as usize]
+                .edge_list
+                .clone();
+            for edge_entry in edge_list.iter().rev() {
                 // TODO: As usize? sure this isn't going to break something?
                 if !edge_entry.borrow().processed_flag().get()
                     && edge_entry.borrow().active_flag().get()
                     && (edge_entry.borrow().collision_group() as usize
                         & ray.collision_mask as usize)
                         != 0
-                    && ball.borrow().already_hit(edge_entry)
+                    && !ball.borrow().already_hit(edge_entry)
                 {
                     edge_index += 1;
-                    edge_segment = edge_entry;
+                    self.edge_array.push(edge_entry.clone());
                     edge_entry.borrow_mut().processed_flag().set(true);
                     let dist = edge_entry.borrow().find_collision_distance(ray);
                     if dist < *dist_val {
