@@ -1,6 +1,7 @@
 use crate::loader;
 use crate::loader::VisualStruct;
 use crate::maths::*;
+use crate::control::ComponentControl;
 use crate::t_ball::TBall;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
@@ -333,5 +334,9 @@ impl IPinballComponent for TCollisionComponent {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>) {
+        self.base.set_control(control);
     }
 }
