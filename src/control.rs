@@ -439,6 +439,11 @@ pub(crate) fn make_links(
 
     let table = table_rc.borrow();
 
+    {
+        let components = &mut control_state.component_state;
+        link_components(&table, components);
+    }
+
     for score_comp in control_state.score_components.iter() {
         let linked_comp = make_component_link(&table, score_comp.name);
         if let Some(comp) = linked_comp {
