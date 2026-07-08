@@ -1,15 +1,20 @@
 use crate::context::component_context::ComponentContext;
+use crate::maths::{Vector2, Vector3};
 use crate::message_code::MessageCode;
 use crate::pb;
+use crate::state::component_state::ComponentState;
 use crate::state::control_state::CHEAT_LEN;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
 use crate::t_blocker::TBlocker;
+use crate::t_collision_component::ICollisionComponent;
+use crate::t_edge_segment::IEdgeSegment;
 use crate::t_light::TLight;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
+use crate::t_pinball_table::TPinballTable;
 use crate::translations::Msg;
 use anyhow::Result;
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
 
 pub fn table_control_handler(
@@ -348,10 +353,6 @@ fn gravity_well_kickout_control(
     Ok(())
 }
 
-pub(crate) fn unstuck_ball(p0: &mut TBall, p1: usize) {
-    todo!()
-}
-
 pub(crate) fn cheat_bump_rank() {
     todo!()
 }
@@ -376,4 +377,48 @@ pub(crate) fn cheat_bump_rank() {
 
 pub(crate) fn handler(p0: MessageCode, p1: &mut TBlocker) {
     todo!()
+}
+
+pub(crate) fn unstuck_ball(
+    ball: &mut RefMut<TBall>,
+    _dt: usize,
+    mut table_opt: Option<Rc<RefCell<TPinballTable>>>,
+    comp_ctx: &mut ComponentContext,
+) -> Result<()> {
+    // TODO: Missing conditions and impl
+    if let Some(flip1) = comp_ctx.control_state.component_state.flip_1.get()
+        && let Some(flip2) = comp_ctx.control_state.component_state.flip_2.get()
+        && let Some(plunger) = comp_ctx.control_state.component_state.plunger.get()
+    {
+        if ball.stuck_count <= 20 {
+            let throw_dir = Vector3::new(0.0, -1.0, 0.0);
+            ball.throw_ball(&throw_dir, 90.0, 1.0, 0.0);
+        } else {
+            ball.disable();
+            if let Some(table) = table_opt.as_mut() {
+                table.borrow_mut().multiball_count -= 1;
+                plunger
+                    .borrow_mut()
+                    .message(MessageCode::PLUNGER_RELAUNCH_BALL, 0.0, comp_ctx)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn check_ball_in_control_bounds(
+    ball: &mut RefMut<TBall>,
+    cmp: &Rc<RefCell<dyn ICollisionComponent>>,
+    table_opt: Option<Rc<RefCell<TPinballTable>>>,
+) -> bool {
+    if let Some(table) = table_opt.as_ref() {
+        let offset = table.borrow().collision_comp_offset / 2.0f32;
+        ball.active_flag().get()
+            && ball.position.x >= cmp.borrow().get_AABB().unwrap().x_min - offset
+            && ball.position.x <= cmp.borrow().get_AABB().unwrap().x_max + offset
+            && ball.position.y >= cmp.borrow().get_AABB().unwrap().y_min - offset
+            && ball.position.y <= cmp.borrow().get_AABB().unwrap().y_max + offset
+    } else {
+        false
+    }
 }
