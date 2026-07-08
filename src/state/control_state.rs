@@ -9,6 +9,7 @@ pub const CHEAT_LEN: usize = 11;
 pub struct ControlState {
     pub table_g: Option<Weak<RefCell<TPinballTable>>>,
     pub score_components: Vec<ComponentInfo>,
+    pub simple_components: Vec<ComponentInfo>,
     pub easy_mode: bool,
     pub table_unlimited_balls: bool,
     pub cheat_buffer: RefCell<[u8; CHEAT_LEN]>,
