@@ -1,5 +1,5 @@
-use crate::loader;
 use crate::control::ComponentControl;
+use crate::loader;
 use crate::loader::VisualStruct;
 use crate::maths::{RectF, Vector2};
 use crate::message_code::MessageCode;
@@ -339,7 +339,6 @@ impl IPinballComponent for TPlunger {
                     .timer_manager
                     .borrow_mut()
                     .kill_id(self.pullback_timer_)?;
-                println!("Time to kill the callback");
                 component_context
                     .timer_manager
                     .borrow_mut()
