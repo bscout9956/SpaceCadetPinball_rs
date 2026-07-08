@@ -356,24 +356,6 @@ pub(crate) fn cheat_bump_rank() {
     todo!()
 }
 
-// pub(crate) fn make_links(
-//     table_weak: Option<Weak<RefCell<TPinballTable>>>,
-//     control_state: &mut ControlState,
-// ) {
-//     control_state.table_g = table_weak;
-//
-//     for score_component in control_state.score_components {
-//         let linked_comp = make_component_link(&score_component.tag);
-//         if let Some(lc) = linked_comp.as_mut() {
-//             lc.control = &score_component.control;
-//         }
-//     }
-// }
-//
-// fn make_component_link(base_tag: &ComponentTagBase) -> Option<TPinballComponent> {
-//     todo!()
-// }
-
 pub(crate) fn handler(p0: MessageCode, p1: &mut TBlocker) {
     todo!()
 }
