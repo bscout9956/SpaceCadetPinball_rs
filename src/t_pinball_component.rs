@@ -184,28 +184,25 @@ impl TPinballComponent {
     }
 
     pub(crate) fn sprite_set_ball(&mut self, index: i32, pos: &mut Vector2i, depth: f32) {
-        let bmp_ref = if index >= 0 {
+        let (bmp, x_pos, y_pos) = if index >= 0 {
             let idx = index as usize;
-            if idx < self.list_bitmap.len() {
-                Some(&self.list_bitmap[idx].bmp)
+            if let Some(sprite_data) = self.list_bitmap.get(idx) {
+                let bmp = sprite_data.bmp.clone();
+                let (x_pos, y_pos) = if let Some(b) = bmp.as_ref() {
+                    (pos.x - b.width / 2, pos.y - b.height / 2)
+                } else {
+                    (pos.x, pos.y)
+                };
+                (bmp, x_pos, y_pos)
             } else {
-                None
+                (Arc::new(None), pos.x, pos.y)
             }
         } else {
-            None
+            (Arc::new(None), pos.x, pos.y)
         };
 
-        if let Some(bmp) = bmp_ref {
-            if let Some(b) = bmp.as_ref() {
-                pos.x -= b.width / 2;
-                pos.y -= b.height / 2;
-            }
-
-            if let Some(sprite) = self.render_sprite.as_mut() {
-                sprite
-                    .borrow_mut()
-                    .ball_set(bmp.clone(), depth, pos.x, pos.y);
-            }
+        if let Some(sprite) = self.render_sprite.as_mut() {
+            sprite.borrow_mut().ball_set(bmp, depth, x_pos, y_pos);
         }
     }
 }
