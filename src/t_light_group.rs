@@ -26,6 +26,7 @@ pub struct TLightGroup {
     id_list: Vec<i32>, // Equivalent to list
     timer1time: f32,
     timer1time_default: f32,
+    message_field: i32,
     message_field_2: MessageCode,
     animation_flag: bool,
     notify_timer: i32,
