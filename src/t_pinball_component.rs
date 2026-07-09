@@ -151,7 +151,7 @@ impl TPinballComponent {
                         root_bmp.y_position - table.borrow().y_offset,
                         Some(bmp_1_rect),
                         &mut state.render_state,
-                    ));
+                    )?);
 
                     if let Some(rs) = instance.render_sprite.as_ref() {
                         let rect = rs.borrow().bmp_rect;

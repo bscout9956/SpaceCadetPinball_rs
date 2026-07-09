@@ -99,7 +99,7 @@ impl TTableLayer {
                 0,
                 Some(rect),
                 &mut state.render_state,
-            );
+            )?;
         }
 
         // TODO: Missing sound index1,2,3 from L38 in CPP

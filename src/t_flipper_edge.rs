@@ -86,7 +86,7 @@ impl IEdgeSegment for TFlipperEdge {
         todo!(); // MISSING BASE COMP
     }
 
-    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {
+    fn edge_collision(&mut self, _ball: &Rc<RefCell<TBall>>, _distance: f32) {
         todo!()
     }
 
@@ -96,9 +96,9 @@ impl IEdgeSegment for TFlipperEdge {
 
     fn place_in_grid(
         &self,
-        aabb: &mut RectF,
-        this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
-        state: &mut PbGameState,
+        _aabb: &mut RectF,
+        _this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
+        _state: &mut PbGameState,
     ) -> Result<()> {
         todo!()
     }

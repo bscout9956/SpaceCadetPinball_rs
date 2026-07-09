@@ -3,6 +3,9 @@ use crate::maths::RectangleType;
 use crate::state::main_state::MainState;
 use crate::state::options_state::OptionsState;
 use crate::state::pb_game_state::PbGameState;
+use crate::errors::RenderError;
+use anyhow::{Context, bail};
+use utils::new_sdl_rect;
 use crate::state::pinball_state::PinballState;
 use crate::state::render_state::RenderState;
 use crate::zdrv::ZMapHeaderType;
@@ -14,6 +17,7 @@ use std::cmp::PartialEq;
 use std::ptr::null;
 use std::rc::Rc;
 use std::sync::Arc;
+use anyhow::Result;
 
 #[derive(PartialEq, Debug, PartialOrd, Ord, Eq, Default, Clone)]
 pub enum VisualTypes {
@@ -51,7 +55,7 @@ impl RenderSprite {
         y_pos: i32,
         bounding_rect: Option<RectangleType>,
         render_state: &mut RenderState,
-    ) -> RenderSpriteRef {
+    ) -> Result<RenderSpriteRef> {
         let dirty_flag = visual_type != VisualTypes::Ball;
         let mut instance = Self {
             bmp_rect: Default::default(),
@@ -91,17 +95,17 @@ impl RenderSprite {
         instance.dirty_rect_prev = instance.bmp_rect;
 
         if instance.zmap.is_none() && instance.visual_type != VisualTypes::Ball {
-            unreachable!("Background zmap should not be used");
+            bail!("Background zmap should not be used");
 
-            instance.zmap = render_state.background_zmap.clone();
+            // instance.zmap = render_state.background_zmap.clone();
 
-            instance.z_map_offset_x = x_pos - render_state.z_map_offset_x;
-            instance.z_map_offset_y = y_pos - render_state.z_map_offset_y;
+            // instance.z_map_offset_x = x_pos - render_state.z_map_offset_x;
+            // instance.z_map_offset_y = y_pos - render_state.z_map_offset_y;
         }
 
         let sprite = Rc::new(RefCell::new(instance));
         add_sprite(sprite.clone(), render_state);
-        sprite
+        Ok(sprite)
     }
 
     pub(crate) fn ball_set(
@@ -174,9 +178,7 @@ impl PartialEq for RenderSprite {
     }
 }
 
-use crate::errors::RenderError;
-use anyhow::{Context, Result, bail};
-use utils::new_sdl_rect;
+
 
 pub fn init(
     bmp: Option<GdrvBitmap8>,
@@ -670,6 +672,6 @@ pub(crate) fn build_occlude_list(state: &mut RenderState) {
     }
 }
 
-pub(crate) fn sprite_viewer(p0: &bool) {
+pub(crate) fn sprite_viewer(_p0: &bool) {
     eprintln!("TODO! Implement me pls");
 }

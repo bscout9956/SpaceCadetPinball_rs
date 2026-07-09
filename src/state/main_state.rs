@@ -37,6 +37,7 @@ pub struct MainState {
     pub main_window: Option<SdlWindowPtr>,
     pub gfr_window: f32,
     pub full_tilt_tab_open: bool,
+    pub idle_wait: i64
 }
 
 impl MainState {
@@ -77,6 +78,7 @@ impl MainState {
             main_window: None,
             gfr_window: 5.0,
             full_tilt_tab_open: true,
+            idle_wait: 0
         }
     }
 

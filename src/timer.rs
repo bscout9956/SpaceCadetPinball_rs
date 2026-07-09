@@ -103,6 +103,7 @@ impl TimerManager {
         while current != NONE {
             let current_u = current as usize;
 
+            // TODO: Unpredictable ptr comparison
             if self.timers[current_u].callback == Some(callback) {
                 killed += 1;
                 let next = self.timers[current_u].next;

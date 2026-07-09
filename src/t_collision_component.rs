@@ -37,12 +37,13 @@ pub trait ICollisionComponent {
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>>;
 
+    // TODO?
     fn field_effect(
         &mut self,
-        ball_position: &Vector3,
-        ball_direction: &Vector3,
-        ball_speed: f32,
-        vec_destination: &mut Vector2,
+        _ball_position: &Vector3,
+        _ball_direction: &Vector3,
+        _ball_speed: f32,
+        _vec_destination: &mut Vector2,
     ) -> i32 {
         0
     }
@@ -216,8 +217,8 @@ impl ICollisionComponent for TCollisionComponent {
         ball: &mut TBall,
         next_position: &Vector2,
         direction: &mut Vector2,
-        distance: f32,
-        edge: &TEdgeSegment,
+        _distance: f32,
+        _edge: &TEdgeSegment,
         component_context: &mut ComponentContext,
     ) -> Result<()> {
         //TODO: Undo borrow?
@@ -273,10 +274,10 @@ impl ICollisionComponent for TCollisionComponent {
 
     fn field_effect(
         &mut self,
-        ball_position: &Vector3,
-        ball_direction: &Vector3,
-        ball_speed: f32,
-        vec_destination: &mut Vector2,
+        _ball_position: &Vector3,
+        _ball_direction: &Vector3,
+        _ball_speed: f32,
+        _vec_destination: &mut Vector2,
     ) -> i32 {
         0 // wow
     }

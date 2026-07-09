@@ -1,4 +1,4 @@
-use crate::component_info::{CONTROL_BUMP_SCORES1, CONTROL_BUMP_SCORES2, ComponentInfo};
+use crate::component_info::{CONTROL_BUMP_SCORES1, ComponentInfo};
 use crate::control::{ComponentControl, ComponentControlCallback};
 use crate::control_function::bumper_control;
 use crate::state::component_state::ComponentState;
@@ -288,5 +288,11 @@ impl ControlState {
         // &control_lite38_tag,
         // &control_lite39_tag,
         // &control_lite40_tag,
+    }
+}
+
+impl Default for ControlState {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -1593,11 +1593,10 @@ fn process_window_messages(
     imgui_context: &mut dear_imgui_rs::Context,
     state: &mut PinballState,
 ) -> Result<bool> {
-    let mut idle_wait = 0i64;
     let mut event = MaybeUninit::<SDL_Event>::uninit();
 
     if state.main_state.has_focus {
-        idle_wait = state.main_state.target_frametime.count();
+        state.main_state.idle_wait = state.main_state.target_frametime.count();
         unsafe {
             while SDL_PollEvent(event.as_mut_ptr()) > 0 {
                 if !event_handler(event.as_mut_ptr(), imgui_context, state)? {
@@ -1610,10 +1609,10 @@ fn process_window_messages(
     }
 
     // Progressively wait longer when transitioning to idle
-    idle_wait = i64::min(idle_wait + state.main_state.target_frametime.0, 500);
+    state.main_state.idle_wait = i64::min(state.main_state.idle_wait + state.main_state.target_frametime.0, 500);
     unsafe {
-        if SDL_WaitEventTimeout(event.as_mut_ptr(), idle_wait as c_int) > 0 {
-            idle_wait = state.main_state.target_frametime.count();
+        if SDL_WaitEventTimeout(event.as_mut_ptr(), state.main_state.idle_wait as c_int) > 0 {
+            state.main_state.idle_wait = state.main_state.target_frametime.count();
             return event_handler(event.as_mut_ptr(), imgui_context, state);
         }
     }

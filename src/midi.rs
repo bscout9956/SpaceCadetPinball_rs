@@ -11,6 +11,6 @@ pub(crate) fn music_shutdown() {
     todo!()
 }
 
-pub(crate) fn set_volume(p0: i32) {
+pub(crate) fn set_volume(_p0: i32) {
     todo!()
 }

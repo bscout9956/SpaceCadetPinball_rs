@@ -112,9 +112,9 @@ impl IPinballComponent for TLight {
 
     fn message(
         &mut self,
-        code: MessageCode,
-        value: f32,
-        component_context: &mut ComponentContext,
+        _code: MessageCode,
+        _value: f32,
+        _component_context: &mut ComponentContext,
     ) -> Result<i32> {
         println!("Beep boop, flash");
         //TODO finish me

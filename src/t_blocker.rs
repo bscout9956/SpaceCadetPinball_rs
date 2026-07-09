@@ -55,7 +55,7 @@ impl TBlocker {
     }
 
     pub unsafe extern "C" fn timer_expired(
-        timer_id: i32,
+        _timer_id: i32,
         caller: *mut c_void,
         _ctx: &mut ComponentContext,
     ) -> Result<()> {
@@ -86,7 +86,7 @@ impl IPinballComponent for TBlocker {
         todo!()
     }
 
-    fn sprite_set(&mut self, index: i32) {
+    fn sprite_set(&mut self, _index: i32) {
         todo!()
     }
 
@@ -94,7 +94,7 @@ impl IPinballComponent for TBlocker {
         self.base.get_coordinates(tedge_manager)
     }
 
-    fn get_scoring(&self, index: u32) -> i32 {
+    fn get_scoring(&self, _index: u32) -> i32 {
         todo!()
     }
 
@@ -139,14 +139,12 @@ impl IPinballComponent for TBlocker {
                 }
                 self.timer = 0;
                 if value >= 0.0f32 {
-                    unsafe {
-                        self.timer = component_context.timer_manager.borrow_mut().set(
-                            value,
-                            self as *mut _ as *mut c_void,
-                            Self::timer_expired,
-                            component_context,
-                        )?;
-                    }
+                    self.timer = component_context.timer_manager.borrow_mut().set(
+                        value,
+                        self as *mut _ as *mut c_void,
+                        Self::timer_expired,
+                        component_context,
+                    )?;
                 }
             }
             MessageCode::T_BLOCKER_RESTART_TIMEOUT => {
@@ -156,14 +154,12 @@ impl IPinballComponent for TBlocker {
                         .borrow_mut()
                         .kill_id(self.timer)?;
                 }
-                unsafe {
-                    self.timer = component_context.timer_manager.borrow_mut().set(
-                        f32::max(value, 0.0f32),
-                        self as *mut _ as *mut c_void,
-                        Self::timer_expired,
-                        component_context,
-                    )?;
-                }
+                self.timer = component_context.timer_manager.borrow_mut().set(
+                    f32::max(value, 0.0f32),
+                    self as *mut _ as *mut c_void,
+                    Self::timer_expired,
+                    component_context,
+                )?;
             }
             _ => {}
         }
@@ -171,7 +167,7 @@ impl IPinballComponent for TBlocker {
         Ok(0)
     }
 
-    fn set_active_flag(&mut self, active: bool) {
+    fn set_active_flag(&mut self, _active: bool) {
         todo!()
     }
 
@@ -187,12 +183,12 @@ impl IPinballComponent for TBlocker {
 impl ICollisionComponent for TBlocker {
     fn collision(
         &mut self,
-        ball: &mut TBall,
-        next_position: &Vector2,
-        direction: &mut Vector2,
-        distance: f32,
-        edge: &TEdgeSegment,
-        time_ticks: &mut ComponentContext,
+        _ball: &mut TBall,
+        _next_position: &Vector2,
+        _direction: &mut Vector2,
+        _distance: f32,
+        _edge: &TEdgeSegment,
+        _time_ticks: &mut ComponentContext,
     ) -> Result<()> {
         todo!()
     }
@@ -201,7 +197,7 @@ impl ICollisionComponent for TBlocker {
         todo!()
     }
 
-    fn set_AABB(&mut self, aabb: RectF) {
+    fn set_AABB(&mut self, _aabb: RectF) {
         todo!()
     }
 

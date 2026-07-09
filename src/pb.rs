@@ -217,7 +217,7 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
                         data[offset + 2],
                         data[offset + 3],
                     ]);
-                    palette_colors.push(ColorRgba::color_rgba_u32(color));
+                    palette_colors.push(ColorRgba::from_u32(color));
                 } else {
                     palette_colors.push(ColorRgba::black());
                 }

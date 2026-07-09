@@ -37,17 +37,17 @@ use anyhow::{Context, Result};
 
 pub trait IEdgeSegment {
     fn active_flag(&self) -> Rc<Cell<bool>>;
-    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {}
+    fn edge_collision(&mut self, _ball: &Rc<RefCell<TBall>>, _distance: f32) {}
     fn port_draw(&self) {}
     fn place_in_grid(
         &self,
-        aabb: &mut RectF,
-        this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
-        pb_game_state: &mut PbGameState,
+        _aabb: &mut RectF,
+        _this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
+        _pb_game_state: &mut PbGameState,
     ) -> Result<()> {
         Ok(())
     }
-    fn find_collision_distance(&self, ray: &RayType) -> f32 {
+    fn find_collision_distance(&self, _ray: &RayType) -> f32 {
         0.0f32
     }
 

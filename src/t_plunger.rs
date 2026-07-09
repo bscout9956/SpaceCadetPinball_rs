@@ -285,7 +285,7 @@ impl IPinballComponent for TPlunger {
             }
             MessageCode::PLUNGER_START_FEED_TIMER => {
                 self.ballfeed_timer_ = component_context.set_timer(
-                    0.95999998,
+                    0.96,
                     self as *mut TPlunger as *mut c_void,
                     ball_feed_timer,
                 )?;
@@ -315,14 +315,12 @@ impl IPinballComponent for TPlunger {
                     self.pullback_timer_ = 0;
                     component_context.play_sound(self.sound_index_p2, Some(self), "TPlunger3");
                     self.sprite_set(0);
-                    unsafe {
-                        component_context.timer_manager.borrow_mut().set(
-                            self.pullback_delay,
-                            self as *mut TPlunger as *mut c_void,
-                            released_timer,
-                            component_context,
-                        )?;
-                    }
+                    component_context.timer_manager.borrow_mut().set(
+                        self.pullback_delay,
+                        self as *mut TPlunger as *mut c_void,
+                        released_timer,
+                        component_context,
+                    )?;
                 }
             }
             MessageCode::RESET => {

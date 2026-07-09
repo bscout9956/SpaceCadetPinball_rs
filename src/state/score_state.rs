@@ -10,3 +10,9 @@ impl ScoreState {
         Self { MSG_FONTP: None }
     }
 }
+
+impl Default for ScoreState {
+    fn default() -> Self {
+        Self::new()
+    }
+}

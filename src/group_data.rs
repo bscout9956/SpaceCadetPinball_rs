@@ -256,8 +256,6 @@ pub fn split_sliced_bitmap(
 
     let table_width = fullscrn_state.resolution_array[src_bmp.resolution as usize].table_width;
     let src = &src_bmp.indexed_bmp_data;
-    // TODO: Should src_char be used?
-    let src_char = &src;
 
     let mut src_idx = 0;
     let mut dst_idx = 0;

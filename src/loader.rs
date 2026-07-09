@@ -359,7 +359,7 @@ pub fn get_sound_id(
                                 let sample_count = wave_ptr.data_size as f32
                                     / (wave_ptr.channels as f32
                                         * (wave_ptr.bits_per_sample as f32 / 8.0));
-                                duration = sample_count as f32 / wave_ptr.sample_rate as f32;
+                                duration = sample_count / wave_ptr.sample_rate as f32;
                                 break;
                             }
                         }
@@ -389,11 +389,7 @@ pub fn query_handle(
 // TODO: Might be able to define new types in the EntryBuffer enum
 
 pub fn query_visual_states(group_index: i32, loader_state: &mut LoaderState) -> Result<i16> {
-    // TODO: Why is this unused?
-    let result: i16 = 0;
-
     if group_index < 0 {
-        // TODO REFACTOR, use actual errors and deal with them
         let err = error(0, 17)?;
         return Ok(err as i16);
     }

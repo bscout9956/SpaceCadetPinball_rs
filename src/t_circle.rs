@@ -21,7 +21,7 @@ impl IEdgeSegment for TCircle {
         self.base.active_flag.clone()
     }
 
-    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {
+    fn edge_collision(&mut self, _ball: &Rc<RefCell<TBall>>, _distance: f32) {
         todo!()
     }
 
@@ -49,7 +49,7 @@ impl IEdgeSegment for TCircle {
         Ok(())
     }
 
-    fn find_collision_distance(&self, ray: &RayType) -> f32 {
+    fn find_collision_distance(&self, _ray: &RayType) -> f32 {
         todo!()
     }
 

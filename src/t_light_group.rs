@@ -68,7 +68,7 @@ impl IPinballComponent for TLightGroup {
 
     fn message(
         &mut self,
-        code: MessageCode,
+        _code: MessageCode,
         value: f32,
         _ctx: &mut ComponentContext,
     ) -> Result<i32> {

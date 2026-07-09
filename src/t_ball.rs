@@ -159,7 +159,7 @@ impl TBall {
             0,
             None,
             &mut state.render_state,
-        ));
+        )?);
 
         instance_data.position.z = instance_data.radius;
         instance_data.base.group_index = group_index;
@@ -241,12 +241,12 @@ impl TBall {
 impl ICollisionComponent for TBall {
     fn collision(
         &mut self,
-        ball: &mut TBall,
-        next_position: &Vector2,
-        direction: &mut Vector2,
-        distance: f32,
-        edge: &TEdgeSegment,
-        component_context: &mut ComponentContext,
+        _ball: &mut TBall,
+        _next_position: &Vector2,
+        _direction: &mut Vector2,
+        _distance: f32,
+        _edge: &TEdgeSegment,
+        _component_context: &mut ComponentContext,
     ) -> Result<()> {
         todo!()
     }
@@ -377,7 +377,7 @@ impl IPinballComponent for TBall {
         edge_manager.normalize_box(Vector2::from_vec3(self.position))
     }
 
-    fn get_scoring(&self, index: u32) -> i32 {
+    fn get_scoring(&self, _index: u32) -> i32 {
         todo!()
     }
 

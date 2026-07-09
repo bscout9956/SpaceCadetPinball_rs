@@ -158,7 +158,7 @@ pub(crate) fn create(
     Some(score)
 }
 
-pub(crate) fn dup(score_struct: Option<ScoreStruct>, p1: usize) -> ScoreStruct {
+pub(crate) fn dup(score_struct: Option<ScoreStruct>, _p1: usize) -> ScoreStruct {
     // TODO: p1? Should it be used?
     score_struct.unwrap()
 }

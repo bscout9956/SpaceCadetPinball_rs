@@ -1,7 +1,6 @@
 use crate::errors::TranslationError;
 use crate::text_array::TEXT_ARRAY;
 use num_derive::FromPrimitive;
-use num_traits::FromPrimitive;
 use std::cmp::PartialEq;
 use std::sync::{LazyLock, Mutex};
 

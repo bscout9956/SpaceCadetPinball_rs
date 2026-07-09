@@ -780,13 +780,14 @@ pub fn render_control_dialog(state: &mut PinballState) -> Result<()> {
                     for input in &mut option.inputs {
                         igTableNextColumn();
 
-                        if let Some(mut cwfi) =
+                        if let Some(cwfi) =
                             state.options_state.control_waiting_for_input.as_mut()
                         {
                             if cwfi == input
                                 && igMenuItem_Bool(c"Press the key".as_ptr(), null(), false, true)
                             {
-                                cwfi = input;
+                                cwfi.value = input.value;
+                                cwfi.input_type = input.input_type;
                             }
                         } else {
                             let input_desc = input.get_full_input_description();

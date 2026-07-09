@@ -38,22 +38,22 @@ const BLUE_OFFSET: u32 = 0;
 
 impl ColorRgba {
     pub const fn black() -> Self {
-        Self::color_rgba(0, 0, 0, 255)
+        Self::from_rgba(0, 0, 0, 255)
     }
     pub const fn white() -> Self {
-        Self::color_rgba(255, 255, 255, 255)
+        Self::from_rgba(255, 255, 255, 255)
     }
     pub const fn red() -> Self {
-        Self::color_rgba(255, 0, 0, 255)
+        Self::from_rgba(255, 0, 0, 255)
     }
     pub const fn green() -> Self {
-        Self::color_rgba(0, 255, 0, 255)
+        Self::from_rgba(0, 255, 0, 255)
     }
     pub const fn blue() -> Self {
-        Self::color_rgba(0, 0, 255, 255)
+        Self::from_rgba(0, 0, 255, 255)
     }
 
-    pub const fn color_rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
+    pub const fn from_rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
         Self {
             color: (alpha as u32) << ALPHA_OFFSET
                 | (red as u32) << RED_OFFSET
@@ -62,7 +62,7 @@ impl ColorRgba {
         }
     }
 
-    pub const fn color_rgba_u32(color: u32) -> Self {
+    pub const fn from_u32(color: u32) -> Self {
         Self { color }
     }
 
@@ -287,16 +287,16 @@ impl GdrvBitmap8 {
 
 pub fn display_palette(plt: Option<&[ColorRgba]>, pb_game_state: &mut PbGameState) {
     const SYS_PALETTE_COLORS: [ColorRgba; 10] = [
-        ColorRgba::color_rgba(0, 0, 0, 0),
-        ColorRgba::color_rgba(0x80, 0, 0, 0xff),
-        ColorRgba::color_rgba(0, 0x80, 0, 0xff),
-        ColorRgba::color_rgba(0x80, 0x80, 0, 0xff),
-        ColorRgba::color_rgba(0x0, 0, 0x80, 0xff),
-        ColorRgba::color_rgba(0x80, 0, 0x80, 0xff),
-        ColorRgba::color_rgba(0x0, 0x80, 0x80, 0xff),
-        ColorRgba::color_rgba(0xC0, 0xC0, 0xC0, 0xff),
-        ColorRgba::color_rgba(0xC0, 0xDC, 0xC0, 0xff),
-        ColorRgba::color_rgba(0xA6, 0xCA, 0xF0, 0xff),
+        ColorRgba::from_rgba(0, 0, 0, 0),
+        ColorRgba::from_rgba(0x80, 0, 0, 0xff),
+        ColorRgba::from_rgba(0, 0x80, 0, 0xff),
+        ColorRgba::from_rgba(0x80, 0x80, 0, 0xff),
+        ColorRgba::from_rgba(0x0, 0, 0x80, 0xff),
+        ColorRgba::from_rgba(0x80, 0, 0x80, 0xff),
+        ColorRgba::from_rgba(0x0, 0x80, 0x80, 0xff),
+        ColorRgba::from_rgba(0xC0, 0xC0, 0xC0, 0xff),
+        ColorRgba::from_rgba(0xC0, 0xDC, 0xC0, 0xff),
+        ColorRgba::from_rgba(0xA6, 0xCA, 0xF0, 0xff),
     ];
 
     pb_game_state.current_palette[..10].copy_from_slice(&SYS_PALETTE_COLORS);

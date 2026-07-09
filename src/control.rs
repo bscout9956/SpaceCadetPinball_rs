@@ -374,7 +374,7 @@ pub(crate) fn cheat_bump_rank() {
     todo!()
 }
 
-pub(crate) fn handler(p0: MessageCode, p1: &mut TBlocker) {
+pub(crate) fn handler(_p0: MessageCode, _p1: &mut TBlocker) {
     todo!()
 }
 
@@ -476,11 +476,10 @@ fn link_component<T: IPinballComponent + 'static>(
     table: &TPinballTable,
     slot: &mut ComponentRef<T>,
 ) {
-    if let Some(comp) = table.find_component_by_name(slot.name) {
-        if let Ok(typed) = downcast_component::<T>(comp) {
+    if let Some(comp) = table.find_component_by_name(slot.name)
+        && let Ok(typed) = downcast_component::<T>(comp) {
             slot.set(&typed);
         }
-    }
 }
 
 // TODO: Do the rest

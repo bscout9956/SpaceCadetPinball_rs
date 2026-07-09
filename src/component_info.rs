@@ -1,4 +1,4 @@
-use crate::control::{ComponentControl, ComponentTagBase};
+use crate::control::ComponentControl;
 use std::cell::RefCell;
 use std::rc::Rc;
 

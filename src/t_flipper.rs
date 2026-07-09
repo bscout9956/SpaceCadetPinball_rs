@@ -57,7 +57,7 @@ impl TFlipper {
         })
     }
 
-    pub(crate) fn flipper_collision(&self, p0: f32) {
+    pub(crate) fn flipper_collision(&self, _p0: f32) {
         todo!()
     }
 }
@@ -70,7 +70,7 @@ impl TFlipper {
 
 // TODO: Implement me asap
 impl TFlipper {
-    pub(crate) fn get_flipper_step_angle(&self, p0: f32, p1: &mut f32) -> f32 {
+    pub(crate) fn get_flipper_step_angle(&self, _p0: f32, _p1: &mut f32) -> f32 {
         todo!()
     }
 }

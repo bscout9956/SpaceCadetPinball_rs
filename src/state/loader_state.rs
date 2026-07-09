@@ -21,3 +21,9 @@ impl LoaderState {
         }
     }
 }
+
+impl Default for LoaderState {
+    fn default() -> Self {
+        Self::new()
+    }
+}

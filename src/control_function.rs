@@ -21,8 +21,8 @@ pub(crate) fn bumper_control(
 ) -> Result<()> {
     let caller_borrow = caller.borrow();
     let t_bumper_opt = caller_borrow.as_tbumper();
-    if code == MessageCode::CONTROL_COLLISION {
-        if let Some(table) = table_opt.as_mut() && let Some(t_bumper) = t_bumper_opt {
+    if code == MessageCode::CONTROL_COLLISION
+        && let Some(table) = table_opt.as_mut() && let Some(t_bumper) = t_bumper_opt {
             table.borrow_mut().add_score(
                 caller
                     .borrow()
@@ -30,6 +30,5 @@ pub(crate) fn bumper_control(
                 full_tilt_mode,
             )?;
         }
-    }
     Ok(())
 }
