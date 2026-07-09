@@ -59,7 +59,7 @@ impl TTableLayer {
     }
 
     pub fn new(
-        table: Option<Weak<RefCell<TPinballTable>>>,
+        mut table: Option<Weak<RefCell<TPinballTable>>>,
         state: &mut PinballState,
     ) -> Result<Rc<RefCell<Self>>> {
         let mut visual = VisualStruct::default();
@@ -102,7 +102,11 @@ impl TTableLayer {
             )?;
         }
 
-        // TODO: Missing sound index1,2,3 from L38 in CPP
+        if let Some(t) = table.as_mut().unwrap().upgrade() {
+            t.borrow_mut().sound_index_1 = visual.sound_index_4;
+            t.borrow_mut().sound_index_2 = visual.sound_index_3;
+            t.borrow_mut().sound_index_3 = visual.kicker.hard_hit_sound_id;
+        }
 
         let table_angle_array =
             query_float_attribute_ptr(group_index, 0, 305, &mut state.loader_state)?;
