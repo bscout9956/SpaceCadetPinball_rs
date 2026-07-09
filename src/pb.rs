@@ -504,7 +504,7 @@ fn mode_change(
                 if let Some(table) = pb_game_state.main_table.as_mut()
                     && let Some(table_demo) = table.borrow_mut().demo.as_mut()
                 {
-                    table_demo.borrow_mut().active_flag = true;
+                    table_demo.borrow_mut().active_flag = false;
                 }
             }
         }
