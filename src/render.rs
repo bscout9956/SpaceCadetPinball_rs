@@ -39,7 +39,7 @@ pub struct RenderSprite {
     z_map_offset_y: i32,
     z_map_offset_x: i32,
     dirty_rect: RectangleType,
-    occluded_sprites: Option<Vec<Option<RenderSprite>>>,
+    occluded_sprites: Option<Vec<RenderSpriteRef>>,
     bounding_rect: RectangleType,
     dirty_flag: bool,
 }
@@ -174,7 +174,6 @@ impl PartialEq for RenderSprite {
             && self.bounding_rect == other.bounding_rect
             && self.bmp.is_some() == other.bmp.is_some()
             && self.zmap.is_some() == other.zmap.is_some()
-            && self.occluded_sprites == other.occluded_sprites
     }
 }
 
@@ -662,12 +661,12 @@ pub(crate) fn build_occlude_list(state: &mut RenderState) {
 
     for i in 0..state.sprite_list.len() {
         if let Some(indices) = all_occlusions[i].take() {
-            let cloned_sprites: Vec<Option<RenderSprite>> = indices
+            let sprites: Vec<RenderSpriteRef> = indices
                 .into_iter()
-                .map(|idx| Some(state.sprite_list[idx].borrow().clone()))
+                .map(|idx| state.sprite_list[idx].clone())
                 .collect();
 
-            state.sprite_list[i].borrow_mut().occluded_sprites = Some(cloned_sprites);
+            state.sprite_list[i].borrow_mut().occluded_sprites = Some(sprites);
         }
     }
 }
