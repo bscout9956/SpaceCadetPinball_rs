@@ -259,12 +259,150 @@ impl IPinballComponent for TLight {
 
     fn message(
         &mut self,
-        _code: MessageCode,
-        _value: f32,
-        _component_context: &mut ComponentContext,
+        code: MessageCode,
+        value: f32,
+        ctx: &mut ComponentContext,
     ) -> Result<i32> {
-        println!("Beep boop, flash");
-        //TODO finish me
+        let mut bmp_index = 0;
+
+        match code {
+            MessageCode::RESET => {
+                self.reset(ctx)?;
+                let player_attrs = self.player_attrs();
+                for player in &mut self.player_data {
+                    *player = player_attrs;
+                }
+            }
+            MessageCode::PLAYER_CHANGED => {
+                let current_player = {
+                    let Some(t) = ctx.main_table.as_ref() else {
+                        return Ok(0);
+                    };
+
+                    t.borrow().current_player as usize
+                };
+                self.player_data[current_player] = self.player_attrs();
+
+                self.reset(ctx)?;
+
+                let player = &self.player_data[value.floor() as usize];
+                self.flasher_on_flag = player.flasher_on_flag;
+                self.light_on_bmp_index = player.light_on_bmp_index;
+                self.light_on_flag = player.light_on_flag;
+                let message_field = player.message_field;
+                self.set_message_field(MessageCode(message_field));
+                if self.light_on_bmp_index > 0 {
+                    self.message(
+                        MessageCode::T_LIGHT_SET_ON_STATE_BMP_INDEX,
+                        self.light_on_bmp_index as f32,
+                        ctx,
+                    )?;
+                }
+                if self.light_on_flag {
+                    self.message(MessageCode::T_LIGHT_TURN_ON, 0.0, ctx)?;
+                }
+                if self.flasher_on_flag {
+                    self.message(MessageCode::T_LIGHT_FLASHER_START, 0.0, ctx)?;
+                }
+            }
+            MessageCode::T_LIGHT_TURN_OFF => {
+                self.light_on_flag = false;
+                if !self.flasher_on_flag && !self.toggled_off_flag && !self.toggled_on_flag {
+                    self.set_sprite_bmp(self.bmp_arr[0])?;
+                }
+            }
+            MessageCode::T_LIGHT_TURN_ON => {
+                self.light_on_flag = true;
+                if !self.flasher_on_flag && !self.toggled_off_flag && !self.toggled_on_flag {
+                    self.set_sprite_bmp(self.bmp_arr[1])?;
+                }
+            }
+            MessageCode::T_LIGHT_GET_LIGHT_ON_FLAG => {
+                return Ok(self.light_on_flag as i32);
+            }
+            MessageCode::T_LIGHT_GET_FLASHER_ON_FLAG => {
+                return Ok(self.light_on_flag as i32);
+            }
+            MessageCode::T_LIGHT_FLASHER_START => {
+                self.schedule_timeout(0.0f32, ctx)?;
+                if !self.flasher_on_flag || self.flash_timer == 0 {
+                    self.flasher_on_flag = true;
+                    self.toggled_off_flag = false;
+                    self.toggled_on_flag = false;
+                    self.turn_off_after_flashing_fg = false;
+                    self.flasher_start(self.light_on_flag, ctx)?;
+                }
+            }
+            MessageCode::T_LIGHT_APPLY_MULT_DELAY => {
+                self.flash_delay[0] = value * self.source_delay[0];
+                self.flash_delay[1] = value * self.source_delay[1];
+            }
+            MessageCode::T_LIGHT_APPLY_DELAY => {
+                self.flash_delay = self.source_delay;
+            }
+            MessageCode::T_LIGHT_FLASHER_START_TIMED => {
+                if !self.flasher_on_flag {
+                    self.flasher_start(self.light_on_flag, ctx)?;
+                }
+                self.flasher_on_flag = true;
+                self.toggled_off_flag = false;
+                self.turn_off_after_flashing_fg = false;
+                self.toggled_on_flag = false;
+                self.schedule_timeout(value, ctx)?;
+            }
+            MessageCode::T_LIGHT_TURN_OFF_TIMED => {
+                if !self.toggled_off_flag {
+                    if self.flasher_on_flag {
+                        self.flasher_stop(0, ctx)?;
+                        self.flasher_on_flag = false;
+                    } else {
+                        self.set_sprite_bmp(self.bmp_arr[0])?;
+                    }
+                    self.toggled_off_flag = true;
+                    self.toggled_on_flag = false;
+                }
+                self.schedule_timeout(value, ctx)?;
+            }
+            MessageCode::T_LIGHT_TURN_ON_TIMED => {
+                if !self.toggled_on_flag {
+                    if self.flasher_on_flag {
+                        self.flasher_stop(1, ctx)?;
+                        self.flasher_on_flag = false;
+                    } else {
+                        self.set_sprite_bmp(self.bmp_arr[1])?;
+                    }
+                    self.toggled_on_flag = true;
+                    self.toggled_off_flag = false;
+                }
+                self.schedule_timeout(value, ctx)?;
+            }
+            MessageCode::T_LIGHT_SET_ON_STATE_BMP_INDEX => {
+                self.light_on_bmp_index = utils::clamp(
+                    &(value.floor() as i32),
+                    &0,
+                    &((self.base.list_bitmap.len() - 1) as i32),
+                );
+                self.bmp_arr[0] = -1;
+                self.bmp_arr[1] = self.light_on_bmp_index;
+                if !self.flasher_on_flag {
+                    if self.toggled_off_flag {
+                        bmp_index = 0;
+                    } else if self.toggled_on_flag {
+                        bmp_index = 1;
+                    } else {
+                        bmp_index = self.light_on_flag as i32;
+                    }
+                } else {
+                    bmp_index = self.flash_light_on_flag as i32;
+                }
+                self.set_sprite_bmp(self.bmp_arr[bmp_index as usize])?;
+            }
+            // TODO: Keep going
+            _ => {
+                println!("Unknown message received: {:?}", code);
+            }
+        }
+
         Ok(0)
     }
 
