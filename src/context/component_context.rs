@@ -8,6 +8,7 @@ use crate::state::render_state::RenderState;
 use crate::state::sound_state::SoundState;
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_component::IPinballComponent;
+use crate::t_pinball_table::TPinballTable;
 use crate::timer::{TimerCallback, TimerManager};
 use anyhow::Result;
 use std::cell::RefCell;
@@ -27,6 +28,7 @@ pub struct ComponentContext<'a> {
     pub sound_state: Option<&'a mut SoundState>,
     pub sound_stereo: bool,
     pub edge_manager: Option<&'a TEdgeManager>,
+    pub main_table: Option<Rc<RefCell<TPinballTable>>>,
 }
 
 impl<'a> ComponentContext<'a> {
@@ -61,6 +63,7 @@ impl<'a> ComponentContext<'a> {
             sound_state: None,
             sound_stereo: false,
             edge_manager: pb_game_state.edge_manager.as_ref(),
+            main_table: pb_game_state.main_table.clone(),
         }
     }
 
@@ -86,6 +89,7 @@ impl<'a> ComponentContext<'a> {
             sound_state: Some(sound_state),
             sound_stereo,
             edge_manager,
+            main_table: pb_game_state.main_table.clone(),
         }
     }
 
@@ -102,6 +106,7 @@ impl<'a> ComponentContext<'a> {
             sound_state: Some(&mut state.sound_state),
             sound_stereo: *state.options_state.options.sound_stereo,
             edge_manager: state.pb_game_state.edge_manager.as_ref(),
+            main_table: state.pb_game_state.main_table.clone(),
         })
     }
 }
