@@ -1,5 +1,6 @@
 use crate::errors::LoaderError;
 use crate::control::ComponentControl;
+use crate::errors::LoaderError;
 use crate::maths::{RectF, Vector2, Vector3};
 use crate::message_code::MessageCode;
 use crate::score::ScoreStruct;
@@ -426,26 +427,22 @@ impl TPinballTable {
                         }
                         1002 => {
                             let light = TLight::new(table_weak.clone(), group_index as i32, state)?;
-                            table_rc
-                                .borrow_mut()
-                                .add_component(Rc::new(RefCell::new(light)));
+                            let light_rc = Rc::new(RefCell::new(light));
+                            table_rc.borrow_mut().add_component(light_rc.clone());
+                            if let Some(group) = table_rc.borrow_mut().light_group.as_mut() {
+                                group.list.push(light_rc);
+                            }
                         }
                         1003 => {
-                            let flipper = TFlipper::new(
-                                table_weak.clone(),
-                                group_index as i32,
-                                state,
-                            )?;
+                            let flipper =
+                                TFlipper::new(table_weak.clone(), group_index as i32, state)?;
                             table_rc
                                 .borrow_mut()
                                 .add_component(Rc::new(RefCell::new(flipper)));
                         }
                         1004 => {
-                            let flipper = TFlipper::new(
-                                table_weak.clone(),
-                                group_index as i32,
-                                state,
-                            )?;
+                            let flipper =
+                                TFlipper::new(table_weak.clone(), group_index as i32, state)?;
                             table_rc
                                 .borrow_mut()
                                 .add_component(Rc::new(RefCell::new(flipper)));

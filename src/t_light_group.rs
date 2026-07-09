@@ -24,7 +24,7 @@ struct TLightGroupPlayerBackup {
 
 pub struct TLightGroup {
     base: TPinballComponent,
-    id_list: Vec<i32>, // Equivalent to list
+    pub list: Vec<Rc<RefCell<dyn IPinballComponent>>>,
     timer1time: f32,
     timer1time_default: f32,
     message_field: i32,
@@ -79,16 +79,7 @@ impl TLightGroup {
     }
 
     fn get_light_components(&self) -> Vec<Rc<RefCell<dyn IPinballComponent>>> {
-        if let Some(table_rc) = self.base.pinball_table.as_ref().and_then(|t| t.upgrade()) {
-            let table = table_rc.borrow();
-            self.id_list
-                .iter()
-                .filter_map(|&id| table.find_component(id))
-                .filter(|component| component.borrow().as_tlight().is_some())
-                .collect()
-        } else {
-            vec![]
-        }
+        self.list.clone()
     }
 
     fn get_light_component_by_position(
@@ -109,7 +100,12 @@ impl TLightGroup {
     }
 
     fn dispatch_control(&self, code: MessageCode, ctx: &mut ComponentContext) -> Result<()> {
-        let Some(control) = self.base.control.as_ref().and_then(|control| control.upgrade()) else {
+        let Some(control) = self
+            .base
+            .control
+            .as_ref()
+            .and_then(|control| control.upgrade())
+        else {
             return Ok(());
         };
         let Some(caller) = self.get_self_component() else {
@@ -775,11 +771,8 @@ impl IPinballComponent for TLightGroup {
                 self.notify_timer = 0;
 
                 if value > 0.0 {
-                    self.notify_timer = ctx.set_timer(
-                        value,
-                        &raw mut *self as *mut c_void,
-                        notify_timer_expired,
-                    )?;
+                    self.notify_timer =
+                        ctx.set_timer(value, &raw mut *self as *mut c_void, notify_timer_expired)?;
                 }
             }
             MessageCode::T_LIGHT_GROUP_FLASH_WHEN_ON => {
@@ -916,7 +909,7 @@ impl TLightGroup {
 
         let mut instance = Self {
             base,
-            id_list: vec![],
+            list: vec![],
             timer1time: 0.0,
             timer1time_default: 0.0,
             message_field: 0,
@@ -940,7 +933,12 @@ impl TLightGroup {
             )?;
             for _ in 0..count {
                 let light_idx = unsafe { (*group_idx_ptr) as i32 };
-                instance.id_list.push(light_idx);
+                if let Some(table_rc) = instance.base.pinball_table.as_ref().and_then(|t| t.upgrade())
+                    && let Some(component) = table_rc.borrow().find_component(light_idx)
+                        && component.borrow().as_tlight().is_some()
+                    {
+                        instance.list.push(component);
+                    }
                 unsafe { group_idx_ptr = group_idx_ptr.add(1) }
             }
         }
