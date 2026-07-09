@@ -33,6 +33,132 @@ pub struct TLightGroup {
     player_data: [TLightGroupPlayerBackup; 4],
 }
 
+impl TLightGroup {
+    fn reset(&mut self, cmp_ctx: &mut ComponentContext) -> Result<()> {
+        if self.timer > 0 {
+            cmp_ctx.timer_manager.borrow_mut().kill_id(self.timer)?;
+        }
+        self.timer = 0;
+        if self.notify_timer > 0 {
+            cmp_ctx
+                .timer_manager
+                .borrow_mut()
+                .kill_id(self.notify_timer)?;
+        }
+        self.notify_timer = 0;
+        self.message_field_2 = MessageCode::T_LIGHT_GROUP_NULL;
+        self.animation_flag = false;
+        self.timer1time = self.timer1time_default;
+        Ok(())
+    }
+
+    pub(crate) fn next_light_up(&self) -> i32 {
+        let components = self.get_light_components();
+        for (index, comp) in components.iter().enumerate() {
+            if let Some(light) = comp.borrow().as_tlight() {
+                if !light.light_on_flag {
+                    return index as i32;
+                }
+            }
+        }
+        -1
+    }
+
+    pub(crate) fn next_light_down(&self) -> i32 {
+        let components = self.get_light_components();
+        for (index, comp) in components.iter().enumerate().rev() {
+            if let Some(light) = comp.borrow().as_tlight() {
+                if light.light_on_flag {
+                    return index as i32;
+                }
+            }
+        }
+        -1
+    }
+
+    fn get_light_components(&self) -> Vec<Rc<RefCell<dyn IPinballComponent>>> {
+        if let Some(table_rc) = self.base.pinball_table.as_ref().and_then(|t| t.upgrade()) {
+            let table = table_rc.borrow();
+            self.id_list
+                .iter()
+                .filter_map(|&id| table.find_component(id))
+                .filter(|component| component.borrow().as_tlight().is_some())
+                .collect()
+        } else {
+            vec![]
+        }
+    }
+
+    fn get_light_component_by_position(
+        &self,
+        position: usize,
+    ) -> Option<Rc<RefCell<dyn IPinballComponent>>> {
+        self.get_light_components().get(position).cloned()
+    }
+
+    fn get_self_component(&self) -> Option<Rc<RefCell<dyn IPinballComponent>>> {
+        let table_rc = self.base.pinball_table.as_ref().and_then(|t| t.upgrade())?;
+        let table = table_rc.borrow();
+        table
+            .component_list
+            .iter()
+            .find(|component| component.borrow().group_index() == self.base.group_index)
+            .cloned()
+    }
+
+    fn dispatch_control(&self, code: MessageCode, ctx: &mut ComponentContext) -> Result<()> {
+        let Some(control) = self.base.control.as_ref().and_then(|control| control.upgrade()) else {
+            return Ok(());
+        };
+        let Some(caller) = self.get_self_component() else {
+            return Ok(());
+        };
+
+        let control_func = control.borrow().control_func;
+        control_func(code, caller, ctx.main_table.clone(), ctx.full_tilt_mode)
+    }
+
+    fn reschedule_animation(&mut self, time: f32, ctx: &mut ComponentContext) -> Result<()> {
+        if self.timer > 0 {
+            ctx.timer_manager.borrow_mut().kill_id(self.timer)?;
+        }
+        self.timer = 0;
+
+        if time == 0.0 {
+            self.message_field_2 = MessageCode::T_LIGHT_GROUP_NULL;
+            self.animation_flag = false;
+            return Ok(());
+        }
+
+        self.timer1time = if time > 0.0 {
+            time
+        } else {
+            self.timer1time_default
+        };
+        self.timer = ctx.set_timer(
+            self.timer1time,
+            &raw mut *self as *mut c_void,
+            timer_expired,
+        )?;
+        Ok(())
+    }
+
+    pub fn start_animation(&mut self, ctx: &mut ComponentContext) -> Result<()> {
+        let lights = self.get_light_components();
+        for light in lights.iter().rev() {
+            let mut light_borrow = light.borrow_mut();
+            if let Some(l) = light_borrow.as_tlight_mut() {
+                if l.light_on_flag {
+                    l.message(MessageCode::T_LIGHT_TURN_ON_TIMED, 0.0, ctx)?;
+                } else {
+                    l.message(MessageCode::T_LIGHT_TURN_OFF_TIMED, 0.0, ctx)?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 impl IPinballComponent for TLightGroup {
     fn render_sprite(&self) -> Option<RenderSpriteRef> {
         self.base.render_sprite.clone()
