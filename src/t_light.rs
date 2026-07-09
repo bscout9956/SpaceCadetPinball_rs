@@ -132,4 +132,12 @@ impl IPinballComponent for TLight {
     fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>) {
         self.base.set_control(control);
     }
+
+    fn as_tlight(&self) -> Option<&TLight> {
+        Some(self)
+    }
+
+    fn as_tlight_mut(&mut self) -> Option<&mut TLight> {
+        Some(self)
+    }
 }
