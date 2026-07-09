@@ -13,7 +13,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-#[derive(Default)]
+#[derive(Clone, Copy, Default)]
 pub struct TlightPlayerBackup {
     message_field: i32,
     light_on_flag: bool,
