@@ -89,6 +89,32 @@ impl IPinballComponent for TLightGroup {
     }
 }
 
+unsafe extern "C" fn timer_expired(
+    _timer_id: i32,
+    caller: *mut c_void,
+    ctx: &mut ComponentContext,
+) -> Result<()> {
+    unsafe {
+        let group = caller as *mut TLightGroup;
+        (*group).timer = 0;
+        (*group).message((*group).message_field_2, (*group).timer1time, ctx)?;
+    }
+    Ok(())
+}
+
+unsafe extern "C" fn notify_timer_expired(
+    _timer_id: i32,
+    caller: *mut c_void,
+    ctx: &mut ComponentContext,
+) -> Result<()> {
+    unsafe {
+        let group = caller as *mut TLightGroup;
+        (*group).notify_timer = 0;
+        (*group).dispatch_control(MessageCode::CONTROL_NOTIFY_TIMER_EXPIRED, ctx)?;
+    }
+    Ok(())
+}
+
 #[derive(Error, Debug)]
 pub enum TLightGroupError {
     #[error("Error loading data `{0}`")]
