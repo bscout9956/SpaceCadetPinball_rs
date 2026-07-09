@@ -118,6 +118,22 @@ unsafe impl Sync for GdrvBitmap8 {}
 unsafe impl Send for GdrvBitmap8 {}
 
 impl GdrvBitmap8 {
+    pub fn clone_pixels(&self) -> Self {
+        Self {
+            bmp_buffer_data: self.bmp_buffer_data.clone(),
+            indexed_bmp_data: self.indexed_bmp_data.clone(),
+            width: self.width,
+            height: self.height,
+            stride: self.stride,
+            indexed_stride: self.indexed_stride,
+            bitmap_type: self.bitmap_type,
+            x_position: self.x_position,
+            y_position: self.y_position,
+            resolution: self.resolution,
+            texture: None,
+        }
+    }
+
     pub unsafe fn blit_to_texture(&mut self) {
         let mut pitch = 0 as c_int;
         let mut locked_pixels_ptr: *mut c_void = null_mut();
