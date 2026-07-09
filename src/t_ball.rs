@@ -1,5 +1,5 @@
-use crate::loader::VisualStruct;
 use crate::control::ComponentControl;
+use crate::loader::VisualStruct;
 use crate::maths::*;
 use crate::render::{RenderSprite, RenderSpriteRef, VisualTypes};
 use crate::state::pinball_state::PinballState;
@@ -187,17 +187,13 @@ impl TBall {
                 + self.collision_offset.z;
         }
 
-        let pos = Vector2 {
-            x: self.position.x,
-            y: self.position.y,
-        };
-        let mut pos_2d = proj::x_form_to_2d(&pos);
+        let mut pos_2d = proj::x_form_to_2d_vec3(self.position);
         let z_depth = proj::z_distance(&self.position);
 
-        let mut index_set = 0;
+        let mut index_set = self.base.list_bitmap.len().saturating_sub(1) as i32;
         for index in 0..self.base.list_bitmap.len() - 1 {
             if self.visual_z_array[index] <= z_depth {
-                index_set += 1;
+                index_set = index as i32;
                 break;
             }
         }
