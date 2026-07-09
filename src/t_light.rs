@@ -75,6 +75,14 @@ impl TLight {
             player_data: std::array::from_fn(|_| TlightPlayerBackup::default()),
         })
     }
+
+    pub fn message_field(&self) -> MessageCode {
+        self.base.message_field
+    }
+
+    pub fn set_message_field(&mut self, value: MessageCode) {
+        self.base.message_field = value;
+    }
 }
 
 impl IPinballComponent for TLight {

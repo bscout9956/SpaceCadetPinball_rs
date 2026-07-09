@@ -10,6 +10,7 @@ use crate::state::pb_game_state::PbGameState;
 use crate::state::render_state::RenderState;
 use crate::state::score_state::ScoreState;
 use crate::state::sound_state::SoundState;
+use crate::t_pinball_table::TPinballTable;
 use crate::timer::TimerManager;
 use std::cell::RefCell;
 use std::rc::Rc;
