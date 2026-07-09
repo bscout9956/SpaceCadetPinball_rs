@@ -490,15 +490,15 @@ pub fn update(render_state: &mut RenderState, pb_game_state: &mut PbGameState) -
     let mut sprites_to_remove = Vec::new();
 
     for (index, sprite_ref) in render_state.sprite_list.iter().enumerate() {
-        let mut sprite = sprite_ref.borrow_mut();
-        if !sprite.dirty_flag {
+        if !sprite_ref.borrow().dirty_flag {
             continue;
         }
         repaint(
-            &sprite,
+            sprite_ref,
             &mut render_state.v_screen,
             &mut render_state.z_screen,
         );
+        let mut sprite = sprite_ref.borrow_mut();
         sprite.dirty_flag = false;
         sprite.dirty_rect_prev = sprite.dirty_rect;
 
