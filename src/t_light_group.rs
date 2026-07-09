@@ -1,4 +1,3 @@
-use crate::errors::LoaderError;
 use crate::control::ComponentControl;
 use crate::errors::LoaderError;
 use crate::maths::Vector2;
