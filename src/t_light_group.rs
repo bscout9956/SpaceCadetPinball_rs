@@ -1,15 +1,17 @@
 use crate::errors::LoaderError;
 use crate::control::ComponentControl;
-use crate::loader;
+use crate::errors::LoaderError;
 use crate::maths::Vector2;
 use crate::message_code::MessageCode;
 use crate::state::pinball_state::PinballState;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
+use crate::{loader, utils};
 use anyhow::Result;
 
 use std::any::Any;
 use std::cell::RefCell;
+use std::ffi::c_void;
 use std::rc::{Rc, Weak};
 use thiserror::Error;
 
