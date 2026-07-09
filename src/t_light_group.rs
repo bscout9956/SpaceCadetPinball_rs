@@ -112,6 +112,7 @@ impl TLightGroup {
             id_list: vec![],
             timer1time: 0.0,
             timer1time_default: 0.0,
+            message_field: 0,
             message_field_2: Default::default(),
             animation_flag: false,
             notify_timer: 0,
