@@ -42,6 +42,144 @@ pub struct TLight {
 }
 
 impl TLight {
+    fn flasher_start(&mut self, bmp_index: bool, ctx: &mut ComponentContext) -> Result<()> {
+        self.flash_light_on_flag = bmp_index;
+        unsafe { flasher_callback(0, &raw mut *self as *mut c_void, ctx)? };
+        Ok(())
+    }
+}
+
+unsafe extern "C" fn flasher_callback(
+    _timer_id: i32,
+    caller: *mut c_void,
+    ctx: &mut ComponentContext,
+) -> Result<()> {
+    let light = caller as *mut TLight;
+    unsafe {
+        (*light).flash_light_on_flag ^= true;
+        (*light).set_sprite_bmp((*light).bmp_arr[(*light).flash_light_on_flag as usize])?;
+        (*light).flash_timer = ctx.set_timer(
+            (*light).flash_delay[(*light).flash_light_on_flag as usize],
+            caller,
+            flasher_callback,
+        )?;
+    }
+    Ok(())
+}
+
+impl TLight {
+    pub(crate) fn schedule_timeout(&mut self, time: f32, ctx: &mut ComponentContext) -> Result<()> {
+        self.flash_delay = self.source_delay;
+        if self.timeout_timer > 0 {
+            ctx.timer_manager.borrow_mut().kill_id(self.timeout_timer)?;
+        }
+        self.timeout_timer = 0;
+        if time > 0.0 {
+            self.timeout_timer = ctx.timer_manager.borrow_mut().set(
+                time,
+                &raw mut *self as *mut c_void,
+                timer_expired,
+                ctx,
+            )?;
+        }
+        Ok(())
+    }
+}
+
+unsafe extern "C" fn timer_expired(
+    _timer_id: i32,
+    caller: *mut c_void,
+    ctx: &mut ComponentContext,
+) -> Result<()> {
+    let light = caller as *mut TLight;
+    unsafe {
+        if (*light).flasher_on_flag {
+            (*light).flasher_stop(-1, ctx)?;
+        }
+        (*light).set_sprite_bmp((*light).bmp_arr[(*light).light_on_flag as usize])?;
+        (*light).toggled_off_flag = false;
+        (*light).toggled_on_flag = false;
+        (*light).flasher_on_flag = false;
+        (*light).timeout_timer = 0;
+
+        if (*light).turn_off_after_flashing_fg {
+            (*light).turn_off_after_flashing_fg = false;
+            (*light).message(MessageCode::T_LIGHT_RESET_AND_TURN_OFF, 0.0, ctx)?;
+        }
+
+        if let Some(c) = (*light).base.control.as_mut() {
+            let control = c.upgrade().unwrap();
+            // TODO: Complex logic, implement me though, otherwise the game will not respond
+            // control
+            //     .borrow()
+            //     .handler(MessageCode::CONTROL_TIMER_EXPIRED, (*light));
+        }
+    }
+
+    Ok(())
+}
+
+impl TLight {
+    pub(crate) fn reset(&mut self, ctx: &mut ComponentContext) -> Result<()> {
+        if self.timeout_timer > 0 {
+            ctx.timer_manager.borrow_mut().kill_id(self.timeout_timer)?;
+        }
+        if self.undo_override_timer > 0 {
+            ctx.timer_manager
+                .borrow_mut()
+                .kill_id(self.undo_override_timer)?;
+        }
+        if self.flasher_on_flag {
+            self.flasher_stop(-1, ctx)?;
+        }
+        self.timeout_timer = 0;
+        self.undo_override_timer = 0;
+        self.light_on_flag = false;
+        self.light_on_bmp_index = 0;
+        self.toggled_off_flag = false;
+        self.toggled_on_flag = false;
+        self.flasher_on_flag = false;
+        self.temporary_override_flag = false;
+        self.turn_off_after_flashing_fg = false;
+        self.previous_bitmap = -1;
+        self.bmp_arr[0] = -1;
+        self.bmp_arr[1] = 0;
+        self.set_sprite_bmp(self.bmp_arr[0])?;
+        self.set_message_field(MessageCode(0));
+        Ok(())
+    }
+
+    fn flasher_stop(&mut self, bmp_index: i32, ctx: &mut ComponentContext) -> Result<()> {
+        if self.flash_timer > 0 {
+            ctx.timer_manager.borrow_mut().kill_id(self.flash_timer)?;
+        }
+        self.flash_timer = 0;
+        if bmp_index >= 0 {
+            self.flash_light_on_flag = bool::try_from(bmp_index)?;
+            self.set_sprite_bmp(self.bmp_arr[self.flash_light_on_flag as usize])?;
+        }
+        Ok(())
+    }
+
+    fn set_sprite_bmp(&mut self, index: i32) -> Result<()> {
+        self.previous_bitmap = index;
+        if !self.temporary_override_flag {
+            self.sprite_set(index);
+        }
+        Ok(())
+    }
+
+    fn player_attrs(&self) -> TlightPlayerBackup {
+        TlightPlayerBackup {
+            flasher_on_flag: self.flasher_on_flag,
+            light_on_bmp_index: self.light_on_bmp_index,
+            light_on_flag: self.light_on_flag,
+            message_field: self.message_field().0,
+        }
+    }
+}
+
+impl TLight {
     pub fn new(
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
