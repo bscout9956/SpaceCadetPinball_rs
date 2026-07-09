@@ -1,6 +1,5 @@
 use crate::context::component_context::ComponentContext;
 use crate::control::ComponentControl;
-use crate::loader;
 use crate::maths::Vector2;
 use crate::message_code::MessageCode;
 use crate::render::RenderSpriteRef;
@@ -8,9 +7,11 @@ use crate::state::pinball_state::PinballState;
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
+use crate::{loader, utils};
 use anyhow::Result;
 use std::any::Any;
 use std::cell::RefCell;
+use std::ffi::c_void;
 use std::rc::{Rc, Weak};
 
 #[derive(Clone, Copy, Default)]
