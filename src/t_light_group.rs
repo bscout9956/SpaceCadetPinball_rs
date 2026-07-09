@@ -226,15 +226,10 @@ impl IPinballComponent for TLightGroup {
             }
             MessageCode::RESET => {
                 self.reset(ctx)?;
-                if let Some(table) = ctx.main_table.as_ref() {
-                    for index in 0..table.borrow().player_count {
-                        let player_opt = self.player_data.get_mut(index as usize);
-                        if let Some(player) = player_opt {
-                            player.message_field = self.message_field;
-                            player.message_field_2 = self.message_field_2;
-                            player.timer1time = self.timer1time;
-                        }
-                    }
+                for player in &mut self.player_data {
+                    player.message_field = self.message_field;
+                    player.message_field_2 = self.message_field_2;
+                    player.timer1time = self.timer1time;
                 }
             }
             MessageCode::T_LIGHT_GROUP_STEP_BACKWARD => {
