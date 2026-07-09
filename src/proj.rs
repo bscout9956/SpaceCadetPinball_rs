@@ -97,7 +97,7 @@ pub(crate) fn x_form_to_2d(vec: &Vector2) -> Vector2i {
     x_form_to_2d_vec3(vec3)
 }
 
-fn x_form_to_2d_vec3(vec: Vector3) -> Vector2i {
+pub(crate) fn x_form_to_2d_vec3(vec: Vector3) -> Vector2i {
     let matrix = MATRIX.lock().unwrap();
     let proj_vec = matrix_vector_multiply(&matrix, &vec);
     let proj_coef = if proj_vec.z == 0.0f32 {
