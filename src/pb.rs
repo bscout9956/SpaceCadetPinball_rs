@@ -1,6 +1,6 @@
 use crate::context::component_context::ComponentContext;
 use crate::errors::{PbError, TranslationError};
-use crate::gdrv::ColorRgba;
+use crate::gdrv::{ColorRgba, GdrvBitmap8};
 use crate::group_data::{EntryBuffer, FieldTypes};
 use crate::high_score::{HighScore, HighScoreEntry};
 use crate::maths::{RayType, Vector2, Vector3, normalize_2d};
@@ -298,6 +298,11 @@ pub fn init(state: &mut PinballState) -> Result<bool> {
             0,
         )?;
     }
+    state.render_state.background_bitmap = state
+        .render_state
+        .v_screen
+        .as_ref()
+        .map(GdrvBitmap8::clone_pixels);
 
     loader::load_from(shared_dat, &mut state.loader_state)?;
 
