@@ -263,11 +263,12 @@ pub fn recreate_screen_texture(
 }
 
 fn repaint(
-    sprite: &RenderSprite,
+    sprite_ref: &RenderSpriteRef,
     v_screen: &mut Option<GdrvBitmap8>,
     z_screen: &mut Option<ZMapHeaderType>,
 ) {
     let mut clip_rectangle: RectangleType = RectangleType::default();
+    let sprite = sprite_ref.borrow();
     if sprite.occluded_sprites.is_none()
         || sprite.visual_type == VisualTypes::Ball
         || sprite.dirty_rect.width <= 0
@@ -276,12 +277,11 @@ fn repaint(
     }
 
     if let Some(sprites) = sprite.occluded_sprites.as_ref() {
-        for ref_sprite_opt in sprites {
-            if let Some(ref_sprite) = ref_sprite_opt.as_ref()
-                && let Some(v_screen) = v_screen.as_mut()
+        for ref_sprite_ref in sprites {
+            let ref_sprite = ref_sprite_ref.borrow();
+            if let Some(v_screen) = v_screen.as_mut()
                 && let Some(z_screen) = z_screen.as_mut()
                 && !sprite.delete_flag
-                && sprite.bmp.is_some()
                 && maths::rectangle_clip(
                     &ref_sprite.bmp_rect,
                     &sprite.dirty_rect,
