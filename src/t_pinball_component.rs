@@ -55,6 +55,14 @@ pub trait IPinballComponent {
         None
     }
     fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>);
+
+    fn as_tlight(&self) -> Option<&TLight> {
+        None
+    }
+
+    fn as_tlight_mut(&mut self) -> Option<&mut TLight> {
+        None
+    }
 }
 
 use crate::context::component_context::ComponentContext;
@@ -62,6 +70,7 @@ use crate::state::pinball_state::PinballState;
 use crate::t_bumper::TBumper;
 use crate::t_collision_component::TCollisionComponent;
 use crate::t_edge_manager::TEdgeManager;
+use crate::t_light::TLight;
 
 impl TPinballComponent {
     pub fn new(
