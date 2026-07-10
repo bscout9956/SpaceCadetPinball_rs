@@ -64,7 +64,7 @@ pub struct TPinballTable {
     pub height: i32,
     pub component_list: Vec<Rc<RefCell<dyn IPinballComponent>>>,
     pub ball_list: Vec<Rc<RefCell<TBall>>>,
-    pub flipper_list: Vec<TFlipper>,
+    pub flipper_list: Vec<Rc<RefCell<TFlipper>>>,
     pub light_group: Option<TLightGroup>,
     pub gravity_dir_vect_mult: f32,
     pub gravity_angle_x: f32,
@@ -273,11 +273,11 @@ use crate::state::pb_game_state::PbGameState;
 use crate::t_drain::TDrain;
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_flipper::TFlipper;
+use crate::t_gate::TGate;
 use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
 use crate::translations::Msg;
 use anyhow::{Result, bail};
-use crate::t_gate::TGate;
 
 impl TPinballTable {
     pub fn new(state: &mut PinballState) -> Result<Rc<RefCell<Self>>> {
@@ -436,16 +436,12 @@ impl TPinballTable {
                         1003 => {
                             let flipper =
                                 TFlipper::new(table_weak.clone(), group_index as i32, state)?;
-                            table_rc
-                                .borrow_mut()
-                                .add_component(Rc::new(RefCell::new(flipper)));
+                            table_rc.borrow_mut().add_component(flipper);
                         }
                         1004 => {
                             let flipper =
                                 TFlipper::new(table_weak.clone(), group_index as i32, state)?;
-                            table_rc
-                                .borrow_mut()
-                                .add_component(Rc::new(RefCell::new(flipper)));
+                            table_rc.borrow_mut().add_component(flipper);
                         }
                         1005 => {
                             let bumper =
@@ -464,7 +460,7 @@ impl TPinballTable {
                         1013 => {
                             let tgate = TGate::new(table_weak.clone(), group_index as i32, state)?;
                             table_rc
-                            .borrow_mut()
+                                .borrow_mut()
                                 .add_component(Rc::new(RefCell::new(tgate)));
                         }
                         1031 => {
