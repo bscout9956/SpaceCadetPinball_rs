@@ -134,7 +134,7 @@ impl IPinballComponent for TGate {
             _ => {}
         }
 
-        control::handler(code, Some(self));
+        self.dispatch_control(code, ctx)?;
         Ok(0)
     }
 
