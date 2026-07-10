@@ -111,6 +111,8 @@ pub mod timer;
 mod utils;
 
 mod stb_ffi {
+    #![allow(nonstandard_style)]
+
     include!(concat!(env!("OUT_DIR"), "/stb_bindings.rs"));
 }
 
