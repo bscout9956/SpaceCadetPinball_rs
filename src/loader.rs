@@ -15,11 +15,10 @@ use anyhow::bail;
 use anyhow::{Context, Result};
 use num_traits::Float;
 use sdl2::sys::SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR;
-use sdl2::sys::mixer::Mix_Chunk;
 use std::ffi::{CStr, c_char};
 use std::fs::File;
 use std::io::Read;
-use std::ptr::{null, null_mut};
+use std::ptr::null;
 use std::sync::{Arc, RwLock};
 
 #[derive(Copy, Clone)]

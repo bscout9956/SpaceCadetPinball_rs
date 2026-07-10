@@ -22,10 +22,8 @@ pub struct ComponentState {
 }
 
 impl Default for ComponentState {
-    // TODO: Do we really need the name?
     fn default() -> ComponentState {
         Self {
-            // TODO: I'll be damned if the names have to be exactly the same, don't think so tho
             block_1: ComponentRef::new("v_bloc1"),
             info_text_box: ComponentRef::new("info_text_box"),
             mission_text_box: ComponentRef::new("mission_text_box"),
@@ -50,7 +48,6 @@ pub struct ComponentRef<T> {
 impl<T> ComponentRef<T> {
     pub fn new(name: &'static str) -> ComponentRef<T> {
         ComponentRef {
-            // TODO: Do we really need the name?
             name,
             component: None,
         }
