@@ -485,7 +485,7 @@ fn make_component_link(
         .cloned()
 }
 
-fn link_component<T: IPinballComponent + 'static>(
+pub(crate) fn link_component<T: IPinballComponent + 'static>(
     table: &TPinballTable,
     slot: &mut ComponentRef<T>,
 ) {
@@ -496,19 +496,8 @@ fn link_component<T: IPinballComponent + 'static>(
     }
 }
 
-// TODO: Do the rest
 fn link_components(table: &TPinballTable, components: &mut ComponentState) {
-    link_component(table, &mut components.info_text_box);
-    link_component(table, &mut components.mission_text_box);
-    link_component(table, &mut components.lite_1);
-    link_component(table, &mut components.lite_62);
-    link_component(table, &mut components.lite_77);
-    link_component(table, &mut components.block_1);
-    link_component(table, &mut components.flip_1);
-    link_component(table, &mut components.flip_2);
-    link_component(table, &mut components.plunger);
-    link_component(table, &mut components.soundwave_7);
-    link_component(table, &mut components.soundwave_28);
+    components.link_all(table);
 }
 
 fn downcast_component<T: IPinballComponent + 'static>(

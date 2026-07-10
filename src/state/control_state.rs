@@ -1,4 +1,4 @@
-use crate::component_info::{CONTROL_BUMP_SCORES1, ComponentInfo};
+use crate::component_info::{CONTROL_BUMP_SCORES1, CONTROL_BUMP_SCORES2, ComponentInfo};
 use crate::control::{ComponentControl, ComponentControlCallback};
 use crate::control_function::{
     bumper_control, left_kicker_gate_control, right_kicker_gate_control,
@@ -50,12 +50,16 @@ impl ControlState {
     }
 
     fn init_score_components() -> Vec<ComponentInfo> {
-        //TODO, the rest
+        // TODO: Add score components as their concrete component types and
+        // control callbacks are ported.
         vec![
-            info("bump_1", bumper_control, 4, &CONTROL_BUMP_SCORES1),
-            info("bump_2", bumper_control, 4, &CONTROL_BUMP_SCORES1),
-            info("bump_3", bumper_control, 4, &CONTROL_BUMP_SCORES1),
-            info("bump_4", bumper_control, 4, &CONTROL_BUMP_SCORES1),
+            info("a_bump1", bumper_control, 4, &CONTROL_BUMP_SCORES1),
+            info("a_bump2", bumper_control, 4, &CONTROL_BUMP_SCORES1),
+            info("a_bump3", bumper_control, 4, &CONTROL_BUMP_SCORES1),
+            info("a_bump4", bumper_control, 4, &CONTROL_BUMP_SCORES1),
+            info("a_bump5", bumper_control, 4, &CONTROL_BUMP_SCORES2),
+            info("a_bump6", bumper_control, 4, &CONTROL_BUMP_SCORES2),
+            info("a_bump7", bumper_control, 4, &CONTROL_BUMP_SCORES2),
             info("v_gate1", left_kicker_gate_control, 0, &[]),
             info("v_gate2", right_kicker_gate_control, 0, &[]),
         ]
