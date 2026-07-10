@@ -1,6 +1,7 @@
 use crate::context::component_context::ComponentContext;
 use crate::control::ComponentControl;
-use crate::maths::{RectF, Vector2, Vector3};
+use crate::loader::{VisualStruct, query_float_attribute_ptr};
+use crate::maths::{RectF, Vector2, Vector3, f32_ptr_to_vec3};
 use crate::message_code::MessageCode;
 use crate::render::RenderSpriteRef;
 use crate::state::pinball_state::PinballState;
@@ -8,34 +9,20 @@ use crate::t_ball::TBall;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
+use crate::t_flipper_edge::TFlipperEdge;
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
+use crate::{loader, maths};
 use anyhow::Result;
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-// TODO: Temporary struct until the real flipper port lands.
+#[derive(Default)]
 pub struct TFlipper {
     base: TCollisionComponent,
-    edge_list: Vec<Rc<RefCell<dyn IEdgeSegment>>>,
-    aabb: RectF,
-}
-
-impl Default for TFlipper {
-    fn default() -> Self {
-        Self {
-            // TODO: Use new
-            base: TCollisionComponent::default(),
-            edge_list: Vec::new(),
-            aabb: RectF {
-                x_max: -10000.0,
-                y_max: -10000.0,
-                x_min: 10000.0,
-                y_min: 10000.0,
-            },
-        }
-    }
+    pub bmp_index: i32,
+    pub t_flipper_edge: Option<Rc<RefCell<TFlipperEdge>>>,
 }
 
 impl TFlipper {
@@ -43,18 +30,94 @@ impl TFlipper {
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         state: &mut PinballState,
-    ) -> Result<Self> {
-        let base = TCollisionComponent::new(table, group_index, false, state)?.take();
-        Ok(Self {
+    ) -> Result<Rc<RefCell<Self>>> {
+        let mut base = TCollisionComponent::new(table.clone(), group_index, false, state)?.take();
+        let mut visual = VisualStruct::default();
+
+        loader::query_visual(group_index, 0, &mut visual, state)?;
+
+        base.hard_hit_sound_id = visual.sound_index_4;
+        base.soft_hit_sound_id = visual.sound_index_3;
+        base.elasticity = visual.elasticity;
+        base.smoothness = visual.smoothness;
+
+        let col_mult =
+            unsafe { *query_float_attribute_ptr(group_index, 0, 803, &mut state.loader_state)? };
+        let retract_time =
+            unsafe { *query_float_attribute_ptr(group_index, 0, 805, &mut state.loader_state)? };
+        let extend_time =
+            unsafe { *query_float_attribute_ptr(group_index, 0, 804, &mut state.loader_state)? };
+
+        let vec_t2 = unsafe {
+            f32_ptr_to_vec3(query_float_attribute_ptr(
+                group_index,
+                0,
+                802,
+                &mut state.loader_state,
+            )?)?
+        };
+        let vec_t1 = unsafe {
+            f32_ptr_to_vec3(query_float_attribute_ptr(
+                group_index,
+                0,
+                801,
+                &mut state.loader_state,
+            )?)?
+        };
+        let origin = unsafe {
+            f32_ptr_to_vec3(query_float_attribute_ptr(
+                group_index,
+                0,
+                800,
+                &mut state.loader_state,
+            )?)?
+        };
+
+        let active_flag = base.active_flag.clone();
+        let elasticity = base.elasticity;
+        let smoothness = base.smoothness;
+        let instance = Rc::new(RefCell::new(Self {
             base,
-            edge_list: Vec::new(),
-            aabb: RectF {
-                x_max: -10000.0,
-                y_max: -10000.0,
-                x_min: 10000.0,
-                y_min: 10000.0,
-            },
-        })
+            bmp_index: 0,
+            t_flipper_edge: None,
+        }));
+
+        let weak_component = Rc::downgrade(&instance) as Weak<RefCell<dyn ICollisionComponent>>;
+        let flipper_edge = Rc::new(RefCell::new(TFlipperEdge::new(
+            Some(weak_component),
+            active_flag,
+            visual.collision_group as u32,
+            table.clone(),
+            origin,
+            vec_t1,
+            vec_t2,
+            extend_time,
+            retract_time,
+            col_mult,
+            elasticity,
+            smoothness,
+            state,
+        )));
+        let edge: Rc<RefCell<dyn IEdgeSegment>> = flipper_edge.clone();
+
+        {
+            let mut flipper = instance.borrow_mut();
+            let mut aabb = flipper.base.aabb.clone();
+            flipper_edge.borrow().place_in_grid(
+                &mut aabb,
+                Some(edge.clone()),
+                &mut state.pb_game_state,
+            )?;
+            flipper.base.aabb = aabb;
+            flipper.base.edge_list.push(edge);
+            flipper.t_flipper_edge = Some(flipper_edge);
+        }
+
+        if let Some(table) = table.and_then(|table| table.upgrade()) {
+            table.borrow_mut().flipper_list.push(instance.clone());
+        }
+
+        Ok(instance)
     }
 
     pub(crate) fn flipper_collision(&self, _p0: f32) {
@@ -148,7 +211,7 @@ impl ICollisionComponent for TFlipper {
     }
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
-        &mut self.edge_list
+        &mut self.base.edge_list
     }
 
     fn field_effect(
@@ -162,10 +225,10 @@ impl ICollisionComponent for TFlipper {
     }
 
     fn set_AABB(&mut self, aabb: RectF) {
-        self.aabb = aabb;
+        self.base.aabb = aabb;
     }
 
     fn get_AABB(&self) -> Option<RectF> {
-        Some(self.aabb.clone())
+        Some(self.base.aabb.clone())
     }
 }
