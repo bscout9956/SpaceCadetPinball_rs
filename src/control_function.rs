@@ -1,17 +1,7 @@
-// void control::BumperControl(MessageCode code, TPinballComponent* caller)
-// {
-//     if (code == MessageCode::ControlCollision)
-//     {
-//         TableG->AddScore(caller->get_scoring(static_cast<TBumper*>(caller)->BmpIndex));
-//     }
-// }
-
+use crate::context::component_context::ComponentContext;
 use crate::message_code::MessageCode;
 use crate::t_pinball_component::IPinballComponent;
-use crate::t_pinball_table::TPinballTable;
 use anyhow::Result;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 pub(crate) fn bumper_control(
     code: MessageCode,
