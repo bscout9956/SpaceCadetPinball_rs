@@ -89,17 +89,7 @@ impl TLightGroup {
         self.get_light_components().get(position).cloned()
     }
 
-    fn get_self_component(&self) -> Option<Rc<RefCell<dyn IPinballComponent>>> {
-        let table_rc = self.base.pinball_table.as_ref().and_then(|t| t.upgrade())?;
-        let table = table_rc.borrow();
-        table
-            .component_list
-            .iter()
-            .find(|component| component.borrow().group_index() == self.base.group_index)
-            .cloned()
-    }
-
-    fn dispatch_control(&self, code: MessageCode, ctx: &mut ComponentContext) -> Result<()> {
+    fn dispatch_control(&mut self, code: MessageCode, ctx: &mut ComponentContext) -> Result<()> {
         let Some(control) = self
             .base
             .control
@@ -108,12 +98,8 @@ impl TLightGroup {
         else {
             return Ok(());
         };
-        let Some(caller) = self.get_self_component() else {
-            return Ok(());
-        };
-
         let control_func = control.borrow().control_func;
-        control_func(code, caller, ctx.main_table.clone(), ctx.full_tilt_mode)
+        control_func(code, self, ctx)
     }
 
     fn reschedule_animation(&mut self, time: f32, ctx: &mut ComponentContext) -> Result<()> {
