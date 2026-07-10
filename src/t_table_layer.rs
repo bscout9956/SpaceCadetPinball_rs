@@ -249,7 +249,7 @@ impl TTableLayer {
     }
 }
 
-fn edges_insert_square(
+pub(crate) fn edges_insert_square(
     y0: f32,
     x0: f32,
     y1: f32,
