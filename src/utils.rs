@@ -1,15 +1,33 @@
 use std::ffi::{c_char, c_int};
 // Equivalent to pch.h with some additions
 use anyhow::{Result, bail};
+use sdl2::sys::mixer::Mix_Chunk;
 use sdl2::sys::{SDL_DestroyTexture, SDL_Rect, SDL_Renderer, SDL_Texture, SDL_Window};
 use std::io::Read;
 use std::ops::Deref;
+use std::ptr::null_mut;
 use thiserror::Error;
 
 pub struct SdlWindowPtr(pub *mut SDL_Window);
 unsafe impl Sync for SdlWindowPtr {}
 unsafe impl Send for SdlWindowPtr {}
 pub struct SdlRendererPtr(pub *mut SDL_Renderer);
+
+#[derive(Clone, Copy)]
+pub struct MixChunkPtr(pub *mut Mix_Chunk);
+
+impl Deref for MixChunkPtr {
+    type Target = *mut Mix_Chunk;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Default for MixChunkPtr {
+    fn default() -> Self {
+        MixChunkPtr(null_mut())
+    }
+}
 
 #[cfg(windows)]
 const RAND_MAX: c_int = 32767;
