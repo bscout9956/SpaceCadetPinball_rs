@@ -851,7 +851,7 @@ impl IPinballComponent for TPinballTable {
 }
 
 pub extern "C" fn light_show_timeout(
-    timer_id: i32,
+    _timer_id: i32,
     caller: *mut c_void,
     component_context: &mut ComponentContext,
 ) -> Result<()> {

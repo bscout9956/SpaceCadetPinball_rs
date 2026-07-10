@@ -554,7 +554,6 @@ impl DatFile {
             }
             if entry.entry_type == target_entry_type {
                 if skip_count == skip_first_n {
-                    skip_count += 1;
                     return entry.field_size;
                 }
                 skip_count += 1;
