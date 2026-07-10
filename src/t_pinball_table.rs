@@ -277,6 +277,7 @@ use crate::t_plunger::TPlunger;
 use crate::t_wall::TWall;
 use crate::translations::Msg;
 use anyhow::{Result, bail};
+use crate::t_gate::TGate;
 
 impl TPinballTable {
     pub fn new(state: &mut PinballState) -> Result<Rc<RefCell<Self>>> {
@@ -459,6 +460,12 @@ impl TPinballTable {
                             table_rc
                                 .borrow_mut()
                                 .add_component(Rc::new(RefCell::new(blocker)));
+                        }
+                        1013 => {
+                            let tgate = TGate::new(table_weak.clone(), group_index as i32, state)?;
+                            table_rc
+                            .borrow_mut()
+                                .add_component(Rc::new(RefCell::new(tgate)));
                         }
                         1031 => {
                             let sound = TSound::new(table_weak.clone(), group_index as i32, state)?;
