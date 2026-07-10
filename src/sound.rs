@@ -6,7 +6,7 @@ use crate::t_pinball_component::IPinballComponent;
 use crate::utils::MixChunkPtr;
 use sdl2::sys::SDL_RWFromFile;
 use sdl2::sys::mixer::{
-    Mix_AllocateChannels, Mix_Chunk, Mix_FreeChunk, Mix_HaltChannel, Mix_LoadWAV_RW, Mix_Pause,
+    Mix_AllocateChannels, Mix_FreeChunk, Mix_HaltChannel, Mix_LoadWAV_RW, Mix_Pause,
     Mix_PlayChannelTimed, Mix_Playing, Mix_Resume, Mix_SetPosition, Mix_Volume,
 };
 use std::f32::consts::PI;

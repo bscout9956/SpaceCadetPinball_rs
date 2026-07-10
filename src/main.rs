@@ -97,6 +97,7 @@ mod t_drain;
 mod t_edge_box;
 mod t_edge_manager;
 mod t_flipper;
+pub mod t_gate;
 pub mod t_light;
 mod t_light_group;
 pub mod t_line;

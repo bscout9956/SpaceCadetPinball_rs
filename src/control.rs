@@ -390,7 +390,7 @@ pub(crate) fn cheat_bump_rank() {
     todo!()
 }
 
-pub(crate) fn handler(_p0: MessageCode, _p1: &mut TBlocker) {
+pub(crate) fn handler(_p0: MessageCode, _p1: Option<&mut dyn IPinballComponent>) {
     todo!()
 }
 

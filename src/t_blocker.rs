@@ -62,8 +62,8 @@ impl TBlocker {
         println!("TBlocker timer");
         unsafe {
             let blocker = &mut *(caller as *mut TBlocker);
-            (*blocker).timer = 0;
-            control::handler(MessageCode::CONTROL_TIMER_EXPIRED, blocker);
+            blocker.timer = 0;
+            control::handler(MessageCode::CONTROL_TIMER_EXPIRED, Some(blocker));
         }
         Ok(())
     }
