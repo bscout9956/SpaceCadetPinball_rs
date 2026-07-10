@@ -375,6 +375,8 @@ fn gravity_well_kickout_control(
                 )?;
             }
         }
+        // TODO: Port CONTROL_ENABLE_MULTIPLIER and RESET branches from the original.
+        // The gmax cheat depends on CONTROL_ENABLE_MULTIPLIER.
         _ => {
             println!("Code not yet implemented: val: {}", code.0);
         }
@@ -384,6 +386,7 @@ fn gravity_well_kickout_control(
 }
 
 pub(crate) fn cheat_bump_rank() {
+    // TODO: Port original cheat_bump_rank; the rmax cheat currently reaches this.
     todo!()
 }
 
@@ -490,9 +493,10 @@ fn link_component<T: IPinballComponent + 'static>(
     slot: &mut ComponentRef<T>,
 ) {
     if let Some(comp) = table.find_component_by_name(slot.name)
-        && let Ok(typed) = downcast_component::<T>(comp) {
-            slot.set(&typed);
-        }
+        && let Ok(typed) = downcast_component::<T>(comp)
+    {
+        slot.set(&typed);
+    }
 }
 
 // TODO: Do the rest
