@@ -277,6 +277,25 @@ pub fn normalize_3d(vec3: &mut Vector3) -> f32 {
 pub enum MathsError {
     #[error("Incorrect size of f32 vec, size must be divisible by 3. Current size is: `{0}`")]
     IncorrectF32VecSize(usize),
+    #[error("Cannot convert a null f32 pointer to Vector3")]
+    NullF32Ptr,
+}
+
+/// Copies three consecutive `f32` values from `f32_ptr` into a `Vector3`.
+///
+/// # Safety
+///
+/// `f32_ptr` must point to at least three initialized, readable `f32` values.
+pub unsafe fn f32_ptr_to_vec3(f32_ptr: *const f32) -> Result<Vector3, MathsError> {
+    if f32_ptr.is_null() {
+        return Err(MathsError::NullF32Ptr);
+    }
+
+    Ok(Vector3 {
+        x: unsafe { f32_ptr.read_unaligned() },
+        y: unsafe { f32_ptr.add(1).read_unaligned() },
+        z: unsafe { f32_ptr.add(2).read_unaligned() },
+    })
 }
 
 pub fn f32_vec_to_vec3(f32_vec: &[f32]) -> Result<Vec<Vector3>, MathsError> {
