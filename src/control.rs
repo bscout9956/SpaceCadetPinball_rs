@@ -224,24 +224,37 @@ pub(crate) fn pbctrl_bdoor_controller(key: u8, state: &mut PinballState) -> Resu
         .ends_with("easy mode".as_ref())
     {
         state.control_state.easy_mode ^= true;
-        if state.control_state.easy_mode {
-            let block = state.control_state.component_state.block_1.get();
-            let easy_mode = state.control_state.easy_mode;
-            let light = state.control_state.component_state.lite_1.get();
-            let mut component_ctx = state.get_component_context();
+        let easy_mode = state.control_state.easy_mode;
+        let block = state.control_state.component_state.block_1.get();
+        let light = state.control_state.component_state.lite_1.get();
+        let mut ctx = state.get_component_context();
+        if easy_mode {
             drain_ball_blocker_control(
                 MessageCode::T_BLOCKER_ENABLE,
                 block,
-                easy_mode,
+                true,
                 light,
-                &mut component_ctx,
+                &mut ctx,
+            )?;
+            // TODO: Original also disables gate1 and gate2 here. Port TGate and link v_gate1/v_gate2.
+        } else {
+            drain_ball_blocker_control(
+                MessageCode::CONTROL_TIMER_EXPIRED,
+                block,
+                false,
+                light,
+                &mut ctx,
             )?;
         }
+    } else {
+        return Ok(());
+    }
+
+    if let Some(t) = state.pb_game_state.main_table.as_mut() {
+        t.borrow_mut().cheats_used = 1;
     }
 
     Ok(())
-
-    // TODO: todo!()
 }
 
 fn drain_ball_blocker_control(
