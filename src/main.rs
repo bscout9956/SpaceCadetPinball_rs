@@ -19,7 +19,7 @@ use dear_imgui_rs::sys::{
     igPushStyleColor_Vec4, igPushStyleVar_Vec2, igRender, igSeparator, igSetMouseCursor,
     igSliderInt, igSmallButton, igTableNextColumn, igTableNextRow, igTextUnformatted,
 };
-use dear_imgui_rs::{ConfigFlags, FontConfig, StyleColor, StyleVar, Ui};
+use dear_imgui_rs::{ConfigFlags, FontConfig, StyleColor, StyleVar, Ui, dear_imgui_version};
 use errors::MainLoopError;
 use num_traits::FromPrimitive;
 use sdl2::sys::SDL_EventType::{
@@ -1609,7 +1609,10 @@ fn process_window_messages(
     }
 
     // Progressively wait longer when transitioning to idle
-    state.main_state.idle_wait = i64::min(state.main_state.idle_wait + state.main_state.target_frametime.0, 500);
+    state.main_state.idle_wait = i64::min(
+        state.main_state.idle_wait + state.main_state.target_frametime.0,
+        500,
+    );
     unsafe {
         if SDL_WaitEventTimeout(event.as_mut_ptr(), state.main_state.idle_wait as c_int) > 0 {
             state.main_state.idle_wait = state.main_state.target_frametime.count();
@@ -1761,10 +1764,10 @@ fn end_pause(state: &mut PinballState) -> Result<()> {
 }
 
 fn space_cadet_pinball() -> Result<(), Box<dyn Error>> {
+    let args: Vec<String> = env::args().collect();
     let mut state = PinballState::new();
 
     println!("Game version: {}", VERSION);
-    let args: Vec<String> = env::args().collect();
     println!("Command line: {:?}", args);
     print!(
         "Compiled with: SDL {}.{}.{}",
@@ -1774,7 +1777,7 @@ fn space_cadet_pinball() -> Result<(), Box<dyn Error>> {
         " SDL_mixer {}.{}.{};",
         MIX_MAJOR_VERSION, MIX_MINOR_VERSION, MIX_PATCHLEVEL
     );
-    println!(" ImGui TODO");
+    println!(" ImGui Version: {}", dear_imgui_version());
 
     let sdl_context = sdl2::init()
         .map_err(anyhow::Error::msg)
