@@ -24,7 +24,7 @@ pub struct TGate {
 }
 
 impl TGate {
-    fn new(
+    pub(crate) fn new(
         table: Option<Weak<RefCell<TPinballTable>>>,
         group_index: i32,
         state: &mut PinballState,
