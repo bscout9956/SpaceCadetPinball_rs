@@ -272,7 +272,12 @@ impl IEdgeSegment for TBall {
         self.base_segment.active_flag()
     }
 
-    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {
+    fn edge_collision(
+        &mut self,
+        ball: &Rc<RefCell<TBall>>,
+        distance: f32,
+        _ctx: &mut ComponentContext,
+    ) -> Result<()> {
         let mut ball_borrow = ball.borrow_mut();
         ball_borrow.collision_disabled_flag = true;
         ball_borrow.position.x += ball_borrow.direction.x * distance;
@@ -304,6 +309,8 @@ impl IEdgeSegment for TBall {
         self.direction.x -= delta.x;
         self.direction.y -= delta.y;
         self.speed = normalize_3d(&mut self.direction);
+
+        Ok(())
     }
 
     fn port_draw(&self) {

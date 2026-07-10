@@ -792,7 +792,8 @@ fn timed_frame(time_delta: f32, state: &mut PinballState) -> Result<()> {
                         break;
                     }
 
-                    edge.borrow_mut().edge_collision(ball, distance);
+                    let mut ctx = state.get_component_context();
+                    edge.borrow_mut().edge_collision(ball, distance, &mut ctx)?;
                     if distance <= 0.0f32 || ball.borrow().collision_disabled_flag {
                         break;
                     }

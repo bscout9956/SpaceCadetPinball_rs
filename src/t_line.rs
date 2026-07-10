@@ -32,13 +32,14 @@ pub enum EdgeSegmentError {
 
 use crate::state::pb_game_state::PbGameState;
 use anyhow::{Context, Result};
+use crate::context::component_context::ComponentContext;
 
 impl IEdgeSegment for TLine {
     fn active_flag(&self) -> Rc<Cell<bool>> {
         self.base.active_flag()
     }
 
-    fn edge_collision(&mut self, ball: &Rc<RefCell<TBall>>, distance: f32) {
+    fn edge_collision(&mut self, _ball: &Rc<RefCell<TBall>>, _distance: f32, _ctx: &mut ComponentContext) -> Result<()> {
         todo!()
     }
 

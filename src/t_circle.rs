@@ -1,4 +1,4 @@
-use crate::maths::{CircleType, RayType, RectF, Vector2};
+use crate::maths::{self, CircleType, RayType, RectF, Vector2};
 use crate::t_ball::TBall;
 use crate::t_collision_component::ICollisionComponent;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
@@ -12,6 +12,7 @@ pub struct TCircle {
     pub circle: CircleType,
 }
 
+use crate::context::component_context::ComponentContext;
 use crate::state::pb_game_state::PbGameState;
 use crate::t_table_layer;
 use anyhow::{Context, Result};
@@ -21,8 +22,33 @@ impl IEdgeSegment for TCircle {
         self.base.active_flag.clone()
     }
 
-    fn edge_collision(&mut self, _ball: &Rc<RefCell<TBall>>, _distance: f32) {
-        todo!()
+    fn edge_collision(
+        &mut self,
+        ball: &Rc<RefCell<TBall>>,
+        distance: f32,
+        ctx: &mut ComponentContext,
+    ) -> Result<()> {
+        let mut direction: Vector2 = Vector2::default();
+        let mut next_position: Vector2 = Vector2::default();
+
+        next_position.x = distance * ball.borrow().direction.x + ball.borrow().position.x;
+        next_position.y = distance * ball.borrow().direction.y + ball.borrow().position.y;
+        direction.x = next_position.x - self.circle.center.x;
+        direction.y = next_position.y - self.circle.center.y;
+        maths::normalize_2d(&mut direction);
+        if let Some(col_comp_weak) = self.base.collision_component.as_ref() {
+            if let Some(col_upgrade) = col_comp_weak.upgrade() {
+                col_upgrade.borrow_mut().collision(
+                    &mut *ball.borrow_mut(),
+                    &mut next_position,
+                    &mut direction,
+                    distance,
+                    self,
+                    ctx,
+                )?;
+            }
+        }
+        Ok(())
     }
 
     fn port_draw(&self) {
@@ -89,9 +115,6 @@ impl TCircle {
         circle.radius_sq = radius * radius;
         circle.center = *center;
 
-        Self {
-            base,
-            circle,
-        }
+        Self { base, circle }
     }
 }
