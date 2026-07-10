@@ -10,9 +10,10 @@ use crate::t_pinball_table::TPinballTable;
 use anyhow::Result;
 use std::any::Any;
 use std::cell::{Cell, RefCell};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 pub struct TFlipperEdge {
+    pub base: TEdgeSegment,
     pub flipper_flag: MessageCode,
     pub elasticity: f32,
     pub smoothness: f32,
@@ -59,6 +60,146 @@ pub struct TFlipperEdge {
     pub control_point_dirty_flag: bool,
 }
 impl TFlipperEdge {
+    pub(crate) fn new(
+        col_comp: Option<Weak<RefCell<dyn ICollisionComponent>>>,
+        active_flag: Rc<Cell<bool>>,
+        col_group: u32,
+        table: Option<Weak<RefCell<TPinballTable>>>,
+        origin: Vector3,
+        vec_t1: Vector3,
+        vec_t2: Vector3,
+        mut extend_speed: f32,
+        mut retract_speed: f32,
+        collision_mult: f32,
+        elasticity: f32,
+        smoothness: f32,
+        state: &mut PinballState,
+    ) -> Self {
+        let base = TEdgeSegment::new(col_comp, active_flag, col_group);
+
+        let mut vec_origin_t1 = Vector2 {
+            x: vec_t1.x - origin.x,
+            y: vec_t1.y - origin.y,
+        };
+        maths::normalize_2d(&mut vec_origin_t1);
+
+        let mut vec_origin_t2 = Vector2 {
+            x: vec_t2.x - origin.x,
+            y: vec_t2.y - origin.y,
+        };
+        maths::normalize_2d(&mut vec_origin_t2);
+
+        let mut col_comp_offset = 0.0;
+        if let Some(t) = table.as_ref() {
+            if let Some(table) = t.upgrade() {
+                col_comp_offset = table.borrow().collision_comp_offset;
+            }
+        }
+
+        let circle_base_radius = origin.z + col_comp_offset;
+        let circle_t1_radius = vec_t1.z + col_comp_offset;
+        let mut angle_max = f32::acos(maths::dot_product(&vec_origin_t1, &vec_origin_t2));
+        if maths::cross(&vec_origin_t1, &vec_origin_t2) < 0.0 {
+            angle_max = -angle_max;
+        }
+
+        // 3DPB and FT have different formats for flipper speed:
+        // 3DPB: Time it takes for flipper to go from source to destination, in sec.
+        // FT: Flipper movement speed, in radians per sec.
+        if !state.pb_game_state.full_tilt_mode {
+            let angle_max_abs = angle_max.abs();
+            retract_speed = angle_max_abs / retract_speed;
+            extend_speed = angle_max_abs / extend_speed;
+        }
+
+        let perp_origin_t1_cc = Vector2 {
+            x: -vec_origin_t1.y,
+            y: vec_origin_t1.x,
+        };
+        let perp_origin_t1_c = Vector2 {
+            x: vec_origin_t1.y,
+            y: -vec_origin_t1.x,
+        };
+
+        let dx = vec_t1.x - origin.x;
+        let dy = vec_t1.y - origin.y;
+        let distance_div = (dy * dy + dx * dx).sqrt() + col_comp_offset + vec_t1.z;
+
+        let mut instance = Self {
+            base,
+            flipper_flag: MessageCode::T_FLIPPER_NULL,
+            elasticity,
+            smoothness,
+            rot_origin: Vector2::from_vec3(origin),
+            circle_base_radius,
+            circle_base_radius_m_sq: circle_base_radius * 1.01 * (circle_base_radius * 1.01),
+            circle_base_radius_sq: circle_base_radius * circle_base_radius,
+            circle_t1_radius,
+            circle_t1_radius_m_sq: circle_t1_radius * 1.01 * (circle_t1_radius * 1.01),
+            circle_t1_radius_sq: circle_t1_radius * circle_t1_radius,
+            angle_max,
+            angle_remainder: 0.0,
+            angle_dst: 0.0,
+            current_angle: 0.0,
+            collision_line_perp: Default::default(),
+            a1_src: Vector2::new(
+                perp_origin_t1_cc.x * circle_t1_radius + vec_t1.x,
+                perp_origin_t1_cc.y * circle_t1_radius + vec_t1.y,
+            ),
+            a2_src: Vector2::new(
+                perp_origin_t1_cc.x * circle_base_radius + origin.x,
+                perp_origin_t1_cc.y * circle_base_radius + origin.y,
+            ),
+            b1_src: Vector2::new(
+                perp_origin_t1_c.x * circle_base_radius + origin.x,
+                perp_origin_t1_c.y * circle_base_radius + origin.y,
+            ),
+            b2_src: Vector2::new(
+                perp_origin_t1_c.x * circle_t1_radius + vec_t1.x,
+                perp_origin_t1_c.y * circle_t1_radius + vec_t1.y,
+            ),
+            collision_mult,
+            t1_src: Vector2::from_vec3(vec_t1),
+            t2_src: Vector2::from_vec3(vec_t2),
+            distance_div,
+            distance_div_sq: distance_div * distance_div,
+            collision_direction: Default::default(),
+            extend_speed,
+            retract_speed,
+            move_speed: 0.0,
+            next_ball_position: Default::default(),
+            a1: Default::default(),
+            a2: Default::default(),
+            b1: Default::default(),
+            b2: Default::default(),
+            t1: Default::default(),
+            line_a: Default::default(),
+            line_b: Default::default(),
+            circle_base: Default::default(),
+            circle_t1: Default::default(),
+            inv_t1_radius: 1.0 / circle_t1_radius * 1.5,
+            y_min: 0.0,
+            y_max: 0.0,
+            x_min: 0.0,
+            x_max: 0.0,
+            control_point_dirty_flag: false,
+        };
+
+        if instance.angle_max < 0.0 {
+            std::mem::swap(&mut instance.a1_src, &mut instance.b1_src);
+            std::mem::swap(&mut instance.a2_src, &mut instance.b2_src);
+        }
+
+        if instance.angle_max <= 0.0 {
+            instance.extend_speed = -instance.extend_speed;
+        } else {
+            instance.retract_speed = -instance.retract_speed;
+        }
+        instance.set_control_points(instance.current_angle);
+
+        instance
+    }
+
     pub(crate) fn set_control_points(&mut self, angle: f32) {
         let (sin, cos) = maths::sin_cos(angle);
         self.a1 = self.a1_src;
