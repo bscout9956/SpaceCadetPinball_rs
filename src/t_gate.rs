@@ -42,6 +42,15 @@ impl TGate {
         control::handler(MessageCode::RESET, Some(&mut inst));
         Ok(inst)
     }
+
+    fn dispatch_control(&mut self, code: MessageCode, ctx: &mut ComponentContext) -> Result<()> {
+        let Some(control) = self.base.control.as_ref().and_then(Weak::upgrade) else {
+            return Ok(());
+        };
+
+        let control_func = control.borrow().control_func;
+        control_func(code, self, ctx)
+    }
 }
 
 impl ICollisionComponent for TGate {
