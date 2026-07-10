@@ -83,23 +83,23 @@ impl IPinballComponent for TBlocker {
     }
 
     fn group_index(&self) -> i32 {
-        todo!()
+        self.base.group_index
     }
 
-    fn sprite_set(&mut self, _index: i32) {
-        todo!()
+    fn sprite_set(&mut self, index: i32) {
+        self.base.sprite_set(index);
     }
 
     fn get_coordinates(&self, tedge_manager: &TEdgeManager) -> Vector2 {
         self.base.get_coordinates(tedge_manager)
     }
 
-    fn get_scoring(&self, _index: u32) -> i32 {
-        todo!()
+    fn get_scoring(&self, index: u32) -> i32 {
+        self.base.get_scoring(index)
     }
 
     fn port_draw(&self) {
-        todo!()
+        self.base.port_draw();
     }
 
     fn message(
@@ -167,8 +167,8 @@ impl IPinballComponent for TBlocker {
         Ok(0)
     }
 
-    fn set_active_flag(&mut self, _active: bool) {
-        todo!()
+    fn set_active_flag(&mut self, active: bool) {
+        self.base.set_active_flag(active);
     }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
@@ -197,11 +197,11 @@ impl ICollisionComponent for TBlocker {
         todo!()
     }
 
-    fn set_AABB(&mut self, _aabb: RectF) {
-        todo!()
+    fn set_AABB(&mut self, aabb: RectF) {
+        self.base.set_AABB(aabb);
     }
 
     fn get_AABB(&self) -> Option<RectF> {
-        todo!()
+        self.base.get_AABB()
     }
 }
