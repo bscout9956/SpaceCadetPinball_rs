@@ -730,6 +730,7 @@ fn timed_frame(time_delta: f32, state: &mut PinballState) -> Result<()> {
         let table = table_rc.borrow();
         for index in 0..table.flipper_list.len() {
             let flip_step = (table.flipper_list[index]
+                .borrow()
                 .get_flipper_step_angle(time_delta, &mut delta_angle[index])
                 - 1.0) as i32;
             flipper_steps[index] = flip_step;
@@ -806,7 +807,9 @@ fn timed_frame(time_delta: f32, state: &mut PinballState) -> Result<()> {
             let table = table_rc.borrow();
             for flip_index in 0..table.flipper_list.len() {
                 if flipper_steps[flip_index] >= step {
-                    table.flipper_list[flip_index].flipper_collision(delta_angle[flip_index]);
+                    table.flipper_list[flip_index]
+                        .borrow()
+                        .flipper_collision(delta_angle[flip_index]);
                 }
             }
         }
@@ -815,7 +818,7 @@ fn timed_frame(time_delta: f32, state: &mut PinballState) -> Result<()> {
     {
         let table = table_rc.borrow();
         for flipper in &table.flipper_list {
-            flipper.update_sprite();
+            flipper.borrow().update_sprite();
         }
     }
 
