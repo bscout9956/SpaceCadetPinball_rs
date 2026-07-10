@@ -54,6 +54,8 @@ impl ControlState {
             info("bump_2", bumper_control, 4, &CONTROL_BUMP_SCORES1),
             info("bump_3", bumper_control, 4, &CONTROL_BUMP_SCORES1),
             info("bump_4", bumper_control, 4, &CONTROL_BUMP_SCORES1),
+            info("v_gate1", left_kicker_gate_control, 0, &[]),
+            info("v_gate2", right_kicker_gate_control, 0, &[]),
         ]
         // component_info{control_roll3_tag, {ReentryLanesRolloverControl, 1, control_roll_scores1}},
         // component_info{control_roll2_tag, {ReentryLanesRolloverControl, 1, control_roll_scores1}},
