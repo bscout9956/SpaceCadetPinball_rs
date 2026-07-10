@@ -1,6 +1,8 @@
 use crate::component_info::{CONTROL_BUMP_SCORES1, ComponentInfo};
 use crate::control::{ComponentControl, ComponentControlCallback};
-use crate::control_function::bumper_control;
+use crate::control_function::{
+    bumper_control, left_kicker_gate_control, right_kicker_gate_control,
+};
 use crate::state::component_state::ComponentState;
 use crate::t_pinball_table::TPinballTable;
 use std::cell::RefCell;
