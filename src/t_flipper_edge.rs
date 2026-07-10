@@ -246,11 +246,30 @@ impl IEdgeSegment for TFlipperEdge {
 
     fn place_in_grid(
         &self,
-        _aabb: &mut RectF,
-        _this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
-        _state: &mut PbGameState,
+        aabb: &mut RectF,
+        this_rc: Option<Rc<RefCell<dyn IEdgeSegment>>>,
+        state: &mut PbGameState,
     ) -> Result<()> {
-        todo!()
+        let x_max = (self.t2_src.x + self.circle_t1_radius)
+            .max(self.t1_src.x + self.circle_t1_radius)
+            .max(self.rot_origin.x + self.circle_base_radius);
+        let y_max = (self.t2_src.y + self.circle_t1_radius)
+            .max(self.t1_src.y + self.circle_t1_radius)
+            .max(self.rot_origin.y + self.circle_base_radius);
+        let x_min = (self.t2_src.x - self.circle_t1_radius)
+            .min(self.t1_src.x - self.circle_t1_radius)
+            .min(self.rot_origin.x - self.circle_base_radius);
+        let y_min = (self.t2_src.y - self.circle_t1_radius)
+            .min(self.t1_src.y - self.circle_t1_radius)
+            .min(self.rot_origin.y - self.circle_base_radius);
+
+        aabb.merge(&RectF {
+            x_max,
+            y_max,
+            x_min,
+            y_min,
+        });
+        crate::t_table_layer::edges_insert_square(y_min, x_min, y_max, x_max, this_rc, None, state)
     }
 
     fn find_collision_distance(&self, ray: &RayType) -> f32 {
