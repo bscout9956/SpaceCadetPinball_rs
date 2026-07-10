@@ -23,25 +23,31 @@ impl ICollisionComponent for TWall {
         ball: &mut TBall,
         next_position: &Vector2,
         direction: &mut Vector2,
-        distance: f32,
-        edge: &TEdgeSegment,
+        _distance: f32,
+        _edge: &dyn IEdgeSegment,
         component_context: &mut ComponentContext,
     ) -> Result<()> {
-        if !self.base.list_bitmap.is_empty() {
-            self.base.sprite_set(0);
-            self.timer = component_context.timer_manager.borrow_mut().set(
-                0.1f32,
-                &raw mut *self as *mut c_void,
-                timer_expired,
-                component_context,
-            )?;
+        if self
+            .base
+            .default_collision(ball, &next_position, direction, component_context)
+        {
+            if !self.base.list_bitmap.is_empty() {
+                self.base.sprite_set(0);
+                self.timer = component_context.timer_manager.borrow_mut().set(
+                    0.1f32,
+                    &raw mut *self as *mut c_void,
+                    timer_expired,
+                    component_context,
+                )?;
+            }
+            control::handler(MessageCode::CONTROL_COLLISION, Some(self));
         }
+
         Ok(())
-        //TODO: control::handler(MessageCode::CONTROL_COLLISION, self);
     }
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
-        todo!()
+        self.base.edge_list()
     }
     #[allow(non_snake_case)]
     fn set_AABB(&mut self, aabb: RectF) {
@@ -55,6 +61,7 @@ impl ICollisionComponent for TWall {
 }
 
 use crate::context::component_context::ComponentContext;
+use crate::control;
 use crate::render::RenderSpriteRef;
 use crate::t_edge_manager::TEdgeManager;
 use anyhow::Result;
@@ -102,17 +109,17 @@ impl IPinballComponent for TWall {
     }
 
     fn get_scoring(&self, index: u32) -> i32 {
-        todo!()
+        self.base.get_scoring(index)
     }
 
     fn port_draw(&self) {
-        todo!()
+        self.base.port_draw()
     }
 
     fn message(
         &mut self,
         code: MessageCode,
-        value: f32,
+        _value: f32,
         component_context: &mut ComponentContext,
     ) -> Result<i32> {
         if code == MessageCode::RESET && self.timer > 0 {
@@ -135,12 +142,12 @@ impl IPinballComponent for TWall {
         self
     }
 
-    fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>) {
-        self.base.set_control(control);
-    }
-
     fn as_collision_component(&self) -> Option<&TCollisionComponent> {
         Some(&self.base)
+    }
+
+    fn set_control(&mut self, control: Option<Weak<RefCell<ComponentControl>>>) {
+        self.base.set_control(control);
     }
 }
 
