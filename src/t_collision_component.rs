@@ -1,7 +1,7 @@
+use crate::control::ComponentControl;
 use crate::loader;
 use crate::loader::VisualStruct;
 use crate::maths::*;
-use crate::control::ComponentControl;
 use crate::t_ball::TBall;
 use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
@@ -221,7 +221,6 @@ impl ICollisionComponent for TCollisionComponent {
         _edge: &dyn IEdgeSegment,
         component_context: &mut ComponentContext,
     ) -> Result<()> {
-        //TODO: Undo borrow?
         if let Some(pinball_table) = &self.base.pinball_table
             && let Some(upgraded_table) = pinball_table.upgrade()
         {
