@@ -1,8 +1,12 @@
+use crate::context::component_context::ComponentContext;
 use crate::maths::{self, *};
 use crate::message_code::MessageCode;
 use crate::state::pb_game_state::PbGameState;
+use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
-use crate::t_edge_segment::IEdgeSegment;
+use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
+use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
+use crate::t_pinball_table::TPinballTable;
 use anyhow::Result;
 use std::any::Any;
 use std::cell::{Cell, RefCell};

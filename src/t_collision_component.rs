@@ -31,7 +31,7 @@ pub trait ICollisionComponent {
         next_position: &Vector2,
         direction: &mut Vector2,
         distance: f32,
-        edge: &TEdgeSegment,
+        edge: &dyn IEdgeSegment,
         component_context: &mut ComponentContext,
     ) -> Result<()>;
 
@@ -218,7 +218,7 @@ impl ICollisionComponent for TCollisionComponent {
         next_position: &Vector2,
         direction: &mut Vector2,
         _distance: f32,
-        _edge: &TEdgeSegment,
+        _edge: &dyn IEdgeSegment,
         component_context: &mut ComponentContext,
     ) -> Result<()> {
         //TODO: Undo borrow?

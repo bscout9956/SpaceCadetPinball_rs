@@ -6,8 +6,8 @@ use crate::render::RenderSpriteRef;
 use crate::state::pinball_state::PinballState;
 use crate::t_ball::TBall;
 use crate::t_collision_component::{ICollisionComponent, TCollisionComponent};
-use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_edge_manager::TEdgeManager;
+use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
 use anyhow::Result;
@@ -141,7 +141,7 @@ impl ICollisionComponent for TFlipper {
         _next_position: &Vector2,
         _direction: &mut Vector2,
         _distance: f32,
-        _edge: &TEdgeSegment,
+        _edge: &dyn IEdgeSegment,
         _component_context: &mut ComponentContext,
     ) -> Result<()> {
         Ok(())

@@ -35,7 +35,7 @@ impl ICollisionComponent for TPlunger {
         next_position: &Vector2,
         direction: &mut Vector2,
         distance: f32,
-        edge: &TEdgeSegment,
+        edge: &dyn IEdgeSegment,
         time_ticks: &mut ComponentContext,
     ) -> Result<()> {
         todo!()

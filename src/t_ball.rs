@@ -241,7 +241,7 @@ impl ICollisionComponent for TBall {
         _next_position: &Vector2,
         _direction: &mut Vector2,
         _distance: f32,
-        _edge: &TEdgeSegment,
+        _edge: &dyn IEdgeSegment,
         _component_context: &mut ComponentContext,
     ) -> Result<()> {
         todo!()

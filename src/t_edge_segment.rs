@@ -29,6 +29,7 @@ pub struct TEdgeSegment {
     pub collision_group: u32,
 }
 
+use crate::context::component_context::ComponentContext;
 use crate::maths;
 use crate::state::pb_game_state::PbGameState;
 use crate::t_circle::TCircle;

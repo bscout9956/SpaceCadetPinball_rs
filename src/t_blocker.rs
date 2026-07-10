@@ -187,7 +187,7 @@ impl ICollisionComponent for TBlocker {
         _next_position: &Vector2,
         _direction: &mut Vector2,
         _distance: f32,
-        _edge: &TEdgeSegment,
+        _edge: &dyn IEdgeSegment,
         _time_ticks: &mut ComponentContext,
     ) -> Result<()> {
         todo!()
