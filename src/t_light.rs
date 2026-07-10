@@ -120,6 +120,18 @@ unsafe extern "C" fn timer_expired(
     Ok(())
 }
 
+unsafe extern "C" fn undo_tmp_override(
+    _timer_id: i32,
+    caller: *mut c_void,
+    ctx: &mut ComponentContext,
+) -> Result<()> {
+    let light = caller as *mut TLight;
+    unsafe {
+        (*light).message(MessageCode::T_LIGHT_FT_RESET_OVERRIDE, 0.0, ctx)?;
+    }
+    Ok(())
+}
+
 impl TLight {
     pub(crate) fn reset(&mut self, ctx: &mut ComponentContext) -> Result<()> {
         if self.timeout_timer > 0 {

@@ -12,6 +12,7 @@ use crate::state::score_state::ScoreState;
 use crate::state::sound_state::SoundState;
 use std::cell::RefCell;
 use std::rc::Rc;
+use crate::timer::TimerManager;
 
 pub struct PinballState {
     pub main_state: MainState,
