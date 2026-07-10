@@ -60,12 +60,8 @@ pub struct ComponentControl {
     pub control_func: ComponentControlCallback,
 }
 
-pub type ComponentControlCallback = fn(
-    MessageCode,
-    Rc<RefCell<dyn IPinballComponent>>,
-    Option<Rc<RefCell<TPinballTable>>>,
-    bool,
-) -> Result<()>;
+pub type ComponentControlCallback =
+    fn(MessageCode, &mut dyn IPinballComponent, &mut ComponentContext) -> Result<()>;
 
 impl ComponentControl {
     pub(crate) fn new(
@@ -391,7 +387,8 @@ pub(crate) fn cheat_bump_rank() {
 }
 
 pub(crate) fn handler(_p0: MessageCode, _p1: Option<&mut dyn IPinballComponent>) {
-    todo!()
+    println!("Not yet implemented code: {:?}", _p0);
+    // todo!()
 }
 
 pub(crate) fn unstuck_ball(
