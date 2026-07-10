@@ -3,6 +3,7 @@ use crate::maths::{Vector2, Vector3};
 use crate::state::sound_state::SoundState;
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_component::IPinballComponent;
+use crate::utils::MixChunkPtr;
 use sdl2::sys::SDL_RWFromFile;
 use sdl2::sys::mixer::{
     Mix_AllocateChannels, Mix_Chunk, Mix_FreeChunk, Mix_HaltChannel, Mix_LoadWAV_RW, Mix_Pause,
@@ -69,17 +70,14 @@ pub fn close(state: &mut SoundState) {
 
 pub fn play_sound(
     sound_state: &mut SoundState,
-    wave: Option<Mix_Chunk>,
+    wave: MixChunkPtr,
     time_ticks: usize,
     stereo: bool,
     edge_manager: Option<&TEdgeManager>,
     sound_source: Option<&dyn IPinballComponent>,
     _info: &str,
 ) {
-    if sound_state.mix_open
-        && sound_state.enabled_flag
-        && let Some(mut wv) = wave
-    {
+    if sound_state.mix_open && sound_state.enabled_flag && !(*wave).is_null() {
         unsafe {
             if Mix_Playing(-1) == sound_state.num_channels
                 && let Some(min) = sound_state.channels.iter().min_by_key(|ch| ch.timestamp)
@@ -91,7 +89,7 @@ pub fn play_sound(
                 Mix_HaltChannel(oldest_channel as i32);
             }
 
-            let channel = Mix_PlayChannelTimed(-1, &raw mut wv, 0, -1);
+            let channel = Mix_PlayChannelTimed(-1, *wave, 0, -1);
             if channel != -1 {
                 sound_state.channels[channel as usize].timestamp = time_ticks as i32;
                 if stereo {
@@ -158,30 +156,27 @@ pub enum SoundError {
     NulError(#[from] NulError),
 }
 
-pub fn load_wave_file(
-    lp_name: &str,
-    state: &mut SoundState,
-) -> Result<Option<Mix_Chunk>, SoundError> {
+pub fn load_wave_file(lp_name: &str, state: &mut SoundState) -> Result<MixChunkPtr, SoundError> {
     if !state.mix_open {
-        return Ok(None);
+        return Ok(MixChunkPtr::default());
     }
 
     let c_string = CString::new(lp_name)?;
     let mode_c_raw = CString::new("r")?;
     if let Ok(wav_exists) = std::fs::exists(Path::new(lp_name)) {
         if !wav_exists {
-            return Ok(None);
+            return Ok(MixChunkPtr::default());
         }
         unsafe {
             let chunk = Mix_LoadWAV_RW(SDL_RWFromFile(c_string.as_ptr(), mode_c_raw.as_ptr()), 1);
             if chunk.is_null() {
-                Ok(None)
+                Ok(MixChunkPtr::default())
             } else {
-                Ok(Some(*chunk))
+                Ok(MixChunkPtr(chunk))
             }
         }
     } else {
-        Ok(None)
+        Ok(MixChunkPtr::default())
     }
 }
 
@@ -211,11 +206,9 @@ pub fn set_volume(state: &mut SoundState, volume: i32) {
     }
 }
 
-pub fn free_sound(wave: Option<Mix_Chunk>, sound_state: &mut SoundState) {
-    if sound_state.mix_open
-        && let Some(mut wv) = wave
-    {
-        unsafe { Mix_FreeChunk(&raw mut wv) };
+pub fn free_sound(wave: MixChunkPtr, sound_state: &mut SoundState) {
+    if sound_state.mix_open && !(*wave).is_null() {
+        unsafe { Mix_FreeChunk(*wave) };
     }
 }
 

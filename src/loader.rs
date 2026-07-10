@@ -8,7 +8,7 @@ use crate::state::pb_game_state::PbGameState;
 use crate::state::pinball_state::PinballState;
 use crate::state::sound_state::SoundState;
 use crate::t_pinball_component::IPinballComponent;
-use crate::utils::{PATH_SEPARATOR, SdlWindowPtr};
+use crate::utils::{MixChunkPtr, PATH_SEPARATOR, SdlWindowPtr};
 use crate::zdrv::ZMapHeaderType;
 use crate::{pb, sound};
 use anyhow::bail;
@@ -19,7 +19,7 @@ use sdl2::sys::mixer::Mix_Chunk;
 use std::ffi::{CStr, c_char};
 use std::fs::File;
 use std::io::Read;
-use std::ptr::null;
+use std::ptr::{null, null_mut};
 use std::sync::{Arc, RwLock};
 
 #[derive(Copy, Clone)]
@@ -145,7 +145,7 @@ pub static LOADER_ERRORS: [ErrorMessage; 28] = [
 
 #[derive(Copy, Clone)]
 pub struct SoundListStruct {
-    pub wave: Option<Mix_Chunk>,
+    pub wave: MixChunkPtr,
     pub group_index: i32,
     pub loaded: bool,
     pub duration: f32,
@@ -157,7 +157,7 @@ unsafe impl Send for SoundListStruct {}
 impl Default for SoundListStruct {
     fn default() -> Self {
         Self {
-            wave: None,
+            wave: MixChunkPtr::default(),
             group_index: 0,
             loaded: false,
             duration: 0.0,
@@ -270,7 +270,7 @@ pub fn load_from(
             if final_val == 202 && loader_state.sound_count < 65 {
                 let sound_count = loader_state.sound_count as usize;
                 loader_state.sound_list[sound_count] = SoundListStruct {
-                    wave: None,
+                    wave: MixChunkPtr::default(),
                     group_index,
                     loaded: false,
                     duration: 0.0,
@@ -316,7 +316,7 @@ pub fn get_sound_id(
     }
 
     if !loader_state.sound_list[sound_index as usize].loaded
-        && loader_state.sound_list[sound_index as usize].wave.is_none()
+        && (*loader_state.sound_list[sound_index as usize].wave).is_null()
     {
         let sound_group_id = loader_state.sound_list[sound_index as usize].group_index;
         loader_state.sound_list[sound_index as usize].duration = 0.0;
