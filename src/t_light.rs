@@ -275,8 +275,6 @@ impl IPinballComponent for TLight {
         value: f32,
         ctx: &mut ComponentContext,
     ) -> Result<i32> {
-        let mut bmp_index = 0;
-
         match code {
             MessageCode::RESET => {
                 self.reset(ctx)?;
@@ -333,7 +331,7 @@ impl IPinballComponent for TLight {
                 return Ok(self.light_on_flag as i32);
             }
             MessageCode::T_LIGHT_GET_FLASHER_ON_FLAG => {
-                return Ok(self.light_on_flag as i32);
+                return Ok(self.flasher_on_flag as i32);
             }
             MessageCode::T_LIGHT_FLASHER_START => {
                 self.schedule_timeout(0.0f32, ctx)?;
@@ -396,20 +394,149 @@ impl IPinballComponent for TLight {
                 );
                 self.bmp_arr[0] = -1;
                 self.bmp_arr[1] = self.light_on_bmp_index;
-                if !self.flasher_on_flag {
+                let bmp_index = if !self.flasher_on_flag {
                     if self.toggled_off_flag {
-                        bmp_index = 0;
+                        0
                     } else if self.toggled_on_flag {
-                        bmp_index = 1;
+                        1
                     } else {
-                        bmp_index = self.light_on_flag as i32;
+                        self.light_on_flag as i32
                     }
                 } else {
-                    bmp_index = self.flash_light_on_flag as i32;
-                }
+                    self.flash_light_on_flag as i32
+                };
                 self.set_sprite_bmp(self.bmp_arr[bmp_index as usize])?;
             }
-            // TODO: Keep going
+            MessageCode::T_LIGHT_INC_ON_STATE_BMP_INDEX => {
+                let mut bmp_index = self.light_on_bmp_index + 1;
+                if bmp_index >= self.base.list_bitmap.len() as i32 {
+                    bmp_index = self.base.list_bitmap.len() as i32 - 1;
+                }
+                self.message(
+                    MessageCode::T_LIGHT_SET_ON_STATE_BMP_INDEX,
+                    bmp_index as f32,
+                    ctx,
+                )?;
+            }
+            MessageCode::T_LIGHT_DEC_ON_STATE_BMP_INDEX => {
+                let mut bmp_index = self.light_on_bmp_index - 1;
+                if bmp_index < 0 {
+                    bmp_index = 0;
+                }
+                self.message(
+                    MessageCode::T_LIGHT_SET_ON_STATE_BMP_INDEX,
+                    bmp_index as f32,
+                    ctx,
+                )?;
+            }
+            MessageCode::T_LIGHT_RESET_TIMED => {
+                if self.timeout_timer > 0 {
+                    ctx.timer_manager.borrow_mut().kill_id(self.timeout_timer)?;
+                }
+                self.timeout_timer = 0;
+                if self.flasher_on_flag {
+                    self.flasher_stop(-1, ctx)?;
+                }
+                self.flasher_on_flag = false;
+                self.toggled_off_flag = false;
+                self.toggled_on_flag = false;
+                self.set_sprite_bmp(self.bmp_arr[self.light_on_flag as usize])?;
+            }
+            MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_ON => {
+                self.turn_off_after_flashing_fg = false;
+                if self.undo_override_timer > 0 {
+                    ctx.timer_manager
+                        .borrow_mut()
+                        .kill_id(self.undo_override_timer)?;
+                }
+                self.undo_override_timer = 0;
+                self.message(MessageCode::T_LIGHT_TURN_ON, 0.0, ctx)?;
+                self.message(MessageCode::T_LIGHT_FLASHER_START_TIMED, value, ctx)?;
+            }
+            MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_OFF => {
+                if self.undo_override_timer > 0 {
+                    ctx.timer_manager
+                        .borrow_mut()
+                        .kill_id(self.undo_override_timer)?;
+                }
+                self.undo_override_timer = 0;
+                self.message(MessageCode::T_LIGHT_FLASHER_START_TIMED, value, ctx)?;
+                self.turn_off_after_flashing_fg = true;
+            }
+            MessageCode::T_LIGHT_TOGGLE_VALUE => {
+                let code = if value.floor() as i32 > 0 {
+                    MessageCode::T_LIGHT_TURN_ON
+                } else {
+                    MessageCode::T_LIGHT_TURN_OFF
+                };
+                self.message(code, 0.0, ctx)?;
+                return Ok(self.light_on_flag as i32);
+            }
+            MessageCode::T_LIGHT_RESET_AND_TOGGLE_VALUE => {
+                self.message(MessageCode::T_LIGHT_TOGGLE_VALUE, value, ctx)?;
+                self.message(MessageCode::T_LIGHT_RESET_TIMED, 0.0, ctx)?;
+                return Ok(self.light_on_flag as i32);
+            }
+            MessageCode::T_LIGHT_RESET_AND_TURN_ON => {
+                self.message(MessageCode::T_LIGHT_TURN_ON, 0.0, ctx)?;
+                self.message(MessageCode::T_LIGHT_RESET_TIMED, 0.0, ctx)?;
+            }
+            MessageCode::T_LIGHT_RESET_AND_TURN_OFF => {
+                self.message(MessageCode::T_LIGHT_TURN_OFF, 0.0, ctx)?;
+                self.message(MessageCode::T_LIGHT_RESET_TIMED, 0.0, ctx)?;
+            }
+            MessageCode::T_LIGHT_TOGGLE => {
+                self.message(
+                    MessageCode::T_LIGHT_TOGGLE_VALUE,
+                    (!self.light_on_flag) as i32 as f32,
+                    ctx,
+                )?;
+                return Ok(self.light_on_flag as i32);
+            }
+            MessageCode::T_LIGHT_RESET_AND_TOGGLE => {
+                self.message(
+                    MessageCode::T_LIGHT_RESET_AND_TOGGLE_VALUE,
+                    (!self.light_on_flag) as i32 as f32,
+                    ctx,
+                )?;
+                return Ok(self.light_on_flag as i32);
+            }
+            MessageCode::T_LIGHT_SET_MESSAGE_FIELD => {
+                self.set_message_field(MessageCode(value.floor() as i32));
+            }
+            MessageCode::T_LIGHT_FT_TMP_OVERRIDE_ON | MessageCode::T_LIGHT_FT_TMP_OVERRIDE_OFF => {
+                let bmp_index = if code == MessageCode::T_LIGHT_FT_TMP_OVERRIDE_ON {
+                    1
+                } else {
+                    0
+                };
+                self.sprite_set(self.bmp_arr[bmp_index]);
+                if self.undo_override_timer > 0 {
+                    ctx.timer_manager
+                        .borrow_mut()
+                        .kill_id(self.undo_override_timer)?;
+                }
+                self.undo_override_timer = 0;
+                if value > 0.0 {
+                    self.temporary_override_flag = true;
+                    self.undo_override_timer = ctx.timer_manager.borrow_mut().set(
+                        value,
+                        &raw mut *self as *mut c_void,
+                        undo_tmp_override,
+                        ctx,
+                    )?;
+                }
+            }
+            MessageCode::T_LIGHT_FT_RESET_OVERRIDE => {
+                if self.undo_override_timer > 0 {
+                    ctx.timer_manager
+                        .borrow_mut()
+                        .kill_id(self.undo_override_timer)?;
+                }
+                self.undo_override_timer = 0;
+                self.temporary_override_flag = false;
+                self.sprite_set(self.previous_bitmap);
+            }
             _ => {
                 println!("Unknown message received: {:?}", code);
             }
