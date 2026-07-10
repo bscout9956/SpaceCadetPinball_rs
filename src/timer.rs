@@ -103,8 +103,10 @@ impl TimerManager {
         while current != NONE {
             let current_u = current as usize;
 
-            // TODO: Unpredictable ptr comparison
-            if self.timers[current_u].callback == Some(callback) {
+            if self.timers[current_u]
+                .callback
+                .is_some_and(|stored| std::ptr::fn_addr_eq(stored, callback))
+            {
                 killed += 1;
                 let next = self.timers[current_u].next;
                 self.unlink_active(current, prev);
