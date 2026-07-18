@@ -126,8 +126,22 @@ impl TFlipper {
 }
 
 impl TFlipper {
-    pub(crate) fn update_sprite(&self) {
-        todo!()
+    pub(crate) fn update_sprite(&mut self) {
+        let bmp_count_sub_1 = (self.base.list_bitmap.len() - 1) as i32;
+        if let Some(flipper_edge) = self.t_flipper_edge.as_ref() {
+            let mut new_bmp_index = f32::floor(
+                flipper_edge.borrow().current_angle / flipper_edge.borrow().angle_max
+                    * bmp_count_sub_1 as f32
+                    + 0.5,
+            ) as i32;
+            new_bmp_index = utils::clamp(&new_bmp_index, &0, &bmp_count_sub_1);
+            if self.bmp_index == new_bmp_index {
+                return;
+            }
+
+            self.bmp_index = new_bmp_index;
+            self.sprite_set(self.bmp_index);
+        }
     }
 }
 
