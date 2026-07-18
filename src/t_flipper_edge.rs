@@ -277,7 +277,86 @@ impl IEdgeSegment for TFlipperEdge {
         _distance: f32,
         _ctx: &mut ComponentContext,
     ) -> Result<()> {
-        todo!()
+        let mut ball = ball.borrow_mut();
+
+        if self.flipper_flag == MessageCode::T_FLIPPER_NULL {
+            maths::basic_collision(
+                &mut ball,
+                &self.next_ball_position,
+                &self.collision_direction,
+                self.elasticity,
+                self.smoothness,
+                1e9,
+                0.0,
+            );
+            return Ok(());
+        }
+
+        let t1_next_position = Vector2 {
+            x: self.next_ball_position.x - self.t1.x,
+            y: self.next_ball_position.y - self.t1.y,
+        };
+        let t1_rotation_origin = Vector2 {
+            x: self.rot_origin.x - self.t1.x,
+            y: self.rot_origin.y - self.t1.y,
+        };
+        let cross_product = maths::cross(&t1_rotation_origin, &t1_next_position);
+
+        let mut front_collision = if cross_product <= 0.0 {
+            self.angle_max > 0.0
+        } else {
+            self.angle_max <= 0.0
+        };
+
+        if self.flipper_flag == MessageCode::T_FLIPPER_RETRACT {
+            front_collision = !front_collision;
+            self.collision_line_perp = self.line_b.perpendicular;
+        } else {
+            self.collision_line_perp = self.line_a.perpendicular;
+        }
+
+        let dx = self.next_ball_position.x - self.rot_origin.x;
+        let dy = self.next_ball_position.y - self.rot_origin.y;
+        let distance_sq = dy * dy + dx * dx;
+
+        if front_collision {
+            let mut boost = 0.0;
+            if self.circle_base.radius_sq * 1.01 < distance_sq {
+                let velocity = self.move_speed.abs() * (distance_sq / self.distance_div_sq).sqrt();
+                let dot = maths::dot_product(&self.collision_line_perp, &self.collision_direction);
+                if dot >= 0.0 {
+                    boost = self.collision_mult * dot * velocity;
+                }
+            }
+
+            let threshold = if boost <= 0.0 { 1e9 } else { -1.0 };
+            maths::basic_collision(
+                &mut ball,
+                &self.next_ball_position,
+                &self.collision_direction,
+                self.elasticity,
+                self.smoothness,
+                threshold,
+                boost,
+            );
+        } else {
+            let elasticity = if self.circle_base.radius_sq * 1.01 < distance_sq {
+                (1.0 - (distance_sq / self.distance_div_sq).sqrt()) * self.elasticity
+            } else {
+                self.elasticity
+            };
+            maths::basic_collision(
+                &mut ball,
+                &self.next_ball_position,
+                &self.collision_direction,
+                elasticity,
+                self.smoothness,
+                1e9,
+                0.0,
+            );
+        }
+
+        Ok(())
     }
 
     fn port_draw(&self) {
