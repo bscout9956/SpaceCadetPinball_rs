@@ -400,6 +400,62 @@ pub(crate) fn handler(
     Ok(())
 }
 
+pub(crate) fn mission_control(
+    code: &mut MessageCode,
+    caller: Option<&mut dyn IPinballComponent>,
+    ctx: &mut ComponentContext,
+) -> Result<()> {
+    if let Some(lite_198) = ctx.control_state.component_state.lite_198.get() {
+        let lite_198_msg = lite_198.borrow().message_field();
+        match *code {
+            MessageCode::T_LIGHT_GROUP_COUNTDOWN_ENDED => {
+                // todo fuel bargraph shit
+            }
+            MessageCode::CONTROL_TIMER_EXPIRED => {
+                // todo fuel bargraph shit
+            }
+            MessageCode::RESUME => {
+                *code = MessageCode::CONTROL_MISSION_STARTED;
+            }
+            _ => {}
+        }
+
+        match lite_198_msg {
+            MessageCode(0) => {
+                waiting_deployment_controller(code, caller, ctx);
+            }
+            // TODO: Rest of codes
+            _ => {
+                println!(
+                    "Mission control, code {:?} not yet implemented",
+                    lite_198_msg
+                );
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn waiting_deployment_controller(
+    code: &mut MessageCode,
+    caller: Option<&mut dyn IPinballComponent>,
+    ctx: &mut ComponentContext,
+) {
+    match *code {
+        MessageCode::CONTROL_COLLISION => {
+            // TODO(TOneWay): Compare caller with oneway4 (and oneway10 once
+            // ported), then complete the waiting-deployment mission transition.
+            if let Some(oneway4) = ctx.control_state.component_state.oneway_4.get() {
+
+            }
+        }
+        _ => {
+            println!("Deploument controller, code {:?} not yet implemented", code);
+        }
+    }
+}
+
 pub(crate) fn unstuck_ball(
     ball: &mut RefMut<TBall>,
     _dt: usize,
