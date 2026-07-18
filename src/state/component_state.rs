@@ -193,6 +193,8 @@ pub struct ComponentState {
     pub soundwave_50_2: ComponentRef<TSound>,
     pub soundwave_52: ComponentRef<TSound>,
     pub soundwave_59: ComponentRef<TSound>,
+
+    pub oneway_4: ComponentRef<TOneWay>,
 }
 
 impl Default for ComponentState {
@@ -366,6 +368,7 @@ impl Default for ComponentState {
             soundwave_50_2: ComponentRef::new("soundwave50"),
             soundwave_52: ComponentRef::new("soundwave52"),
             soundwave_59: ComponentRef::new("soundwave59"),
+            oneway_4: ComponentRef::new("s_onewy4"),
         }
     }
 }
@@ -540,6 +543,7 @@ impl ComponentState {
         crate::control::link_component(table, &mut self.soundwave_50_2);
         crate::control::link_component(table, &mut self.soundwave_52);
         crate::control::link_component(table, &mut self.soundwave_59);
+        crate::control::link_component(table, &mut self.oneway_4);
     }
 }
 
