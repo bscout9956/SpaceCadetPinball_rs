@@ -82,6 +82,8 @@ impl ControlState {
         // component_info{control_kicker2_tag, {RightKickerControl, 0, nullptr}},
         // component_info{control_gate1_tag, {LeftKickerGateControl, 0, nullptr}},
         // component_info{control_gate2_tag, {RightKickerGateControl, 0, nullptr}},
+        // TODO(TOneWay): Register s_onewy4 with the ported deployment-chute
+        // callback and CONTROL_ONEWAY4_SCORE1 once collision dispatch is ready.
         // component_info{control_oneway4_tag, {DeploymentChuteToEscapeChuteOneWayControl, 6, control_oneway4_score1}},
         // component_info{control_oneway10_tag, {DeploymentChuteToTableOneWayControl, 0, nullptr}},
         // component_info{control_block1_tag, {DrainBallBlockerControl, 0, nullptr}},

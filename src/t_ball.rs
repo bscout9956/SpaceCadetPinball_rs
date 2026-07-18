@@ -201,6 +201,8 @@ impl TBall {
         self.base.sprite_set_ball(index_set, &mut pos_2d, z_depth);
     }
 
+    // TODO(TOneWay): Add the original TBall::not_again equivalent so a ball
+    // crossing the pass-through line cannot immediately hit the same edge again.
     pub(crate) fn already_hit(&self, edge: &Rc<RefCell<dyn IEdgeSegment>>) -> bool {
         for i in 0..self.edge_collision_count {
             let downgrade = Rc::downgrade(&edge);
