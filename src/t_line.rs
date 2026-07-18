@@ -39,12 +39,39 @@ impl IEdgeSegment for TLine {
         self.base.active_flag()
     }
 
-    fn edge_collision(&mut self, _ball: &Rc<RefCell<TBall>>, _distance: f32, _ctx: &mut ComponentContext) -> Result<()> {
-        todo!()
+    fn edge_collision(
+        &mut self,
+        ball: &Rc<RefCell<TBall>>,
+        distance: f32,
+        ctx: &mut ComponentContext,
+    ) -> Result<()> {
+        let Some(collision_component) = self
+            .base
+            .collision_component
+            .as_ref()
+            .and_then(Weak::upgrade)
+        else {
+            return Ok(());
+        };
+
+        let next_position = self.line.ray_intersect;
+        let mut direction = self.line.perpendicular;
+        let mut ball = Rc::clone(ball);
+
+        collision_component.borrow_mut().collision(
+            &mut ball,
+            &next_position,
+            &mut direction,
+            distance,
+            self,
+            ctx,
+        )?;
+
+        Ok(())
     }
 
     fn port_draw(&self) {
-        todo!()
+        self.base.port_draw();
     }
 
     fn place_in_grid(
