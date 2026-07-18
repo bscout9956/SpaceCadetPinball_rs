@@ -37,8 +37,8 @@ pub struct ScoreStructSuper {
 
 pub struct TPinballTable {
     base: TPinballComponent,
-    pub flipper_l: TFlipper,
-    pub flipper_r: TFlipper,
+    pub flipper_l: Option<Rc<RefCell<TFlipper>>>,
+    pub flipper_r: Option<Rc<RefCell<TFlipper>>>,
     pub cur_score_struct: Option<ScoreStruct>,
     pub score_ball_count: Option<ScoreStruct>,
     pub score_player_number_1: Option<ScoreStruct>,
@@ -288,8 +288,8 @@ impl TPinballTable {
 
         let instance = Self {
             base,
-            flipper_l: TFlipper::default(),
-            flipper_r: TFlipper::default(),
+            flipper_l: None,
+            flipper_r: None,
             cur_score_struct: None,
             score_ball_count: None,
             score_player_number_1: None,
@@ -436,12 +436,14 @@ impl TPinballTable {
                         1003 => {
                             let flipper =
                                 TFlipper::new(table_weak.clone(), group_index as i32, state)?;
-                            table_rc.borrow_mut().add_component(flipper);
+                            table_rc.borrow_mut().add_component(flipper.clone());
+                            table_rc.borrow_mut().flipper_l = Some(flipper);
                         }
                         1004 => {
                             let flipper =
                                 TFlipper::new(table_weak.clone(), group_index as i32, state)?;
-                            table_rc.borrow_mut().add_component(flipper);
+                            table_rc.borrow_mut().add_component(flipper.clone());
+                            table_rc.borrow_mut().flipper_r = Some(flipper);
                         }
                         1005 => {
                             let bumper =
