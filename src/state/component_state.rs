@@ -4,6 +4,7 @@ use crate::t_flipper::TFlipper;
 use crate::t_gate::TGate;
 use crate::t_light::TLight;
 use crate::t_light_group::TLightGroup;
+use crate::t_oneway::TOneWay;
 use crate::t_plunger::TPlunger;
 use crate::t_sound::TSound;
 use crate::t_textbox::TTextBox;

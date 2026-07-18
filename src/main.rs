@@ -101,6 +101,7 @@ pub mod t_gate;
 pub mod t_light;
 mod t_light_group;
 pub mod t_line;
+mod t_oneway;
 mod t_plunger;
 mod t_sound;
 pub mod t_table_layer;
