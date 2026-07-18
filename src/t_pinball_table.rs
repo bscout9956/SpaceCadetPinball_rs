@@ -835,7 +835,7 @@ impl IPinballComponent for TPinballTable {
                 }
             }
             _ => {
-                println!("Not yet implemented: {:?}", code);
+                println!("Not yet implemented (TPinballTable): {:?}", code);
             }
         }
         control::table_control_handler(code, component_context)?;
