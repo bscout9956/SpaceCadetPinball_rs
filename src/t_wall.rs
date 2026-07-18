@@ -20,27 +20,38 @@ pub struct TWall {
 impl ICollisionComponent for TWall {
     fn collision(
         &mut self,
-        ball: &mut TBall,
+        ball: &mut Rc<RefCell<TBall>>,
         next_position: &Vector2,
         direction: &mut Vector2,
-        _distance: f32,
-        _edge: &dyn IEdgeSegment,
-        ctx: &mut ComponentContext,
+        distance: f32,
+        edge: &dyn IEdgeSegment,
+        component_context: &mut ComponentContext,
     ) -> Result<()> {
-        if self
-            .base
-            .default_collision(ball, &next_position, direction, ctx)
-        {
+        let collided = {
+            let mut ball = ball.borrow_mut();
+            self.base.default_collision(
+                &mut ball,
+                next_position,
+                direction,
+                component_context,
+            )
+        };
+        
+        if collided {
             if !self.base.list_bitmap.is_empty() {
                 self.base.sprite_set(0);
-                self.timer = ctx.timer_manager.borrow_mut().set(
+                self.timer = component_context.timer_manager.borrow_mut().set(
                     0.1f32,
                     &raw mut *self as *mut c_void,
                     timer_expired,
-                    ctx,
+                    component_context,
                 )?;
             }
-            control::handler(MessageCode::CONTROL_COLLISION, Some(self), ctx)?;
+            control::handler(
+                MessageCode::CONTROL_COLLISION,
+                Some(self),
+                component_context,
+            )?;
         }
 
         Ok(())
