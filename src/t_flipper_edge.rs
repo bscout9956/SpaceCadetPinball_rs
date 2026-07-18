@@ -268,7 +268,7 @@ impl TFlipperEdge {
 
 impl IEdgeSegment for TFlipperEdge {
     fn active_flag(&self) -> Rc<Cell<bool>> {
-        todo!(); // MISSING BASE COMP
+        self.base.active_flag.clone()
     }
 
     fn edge_collision(
@@ -317,11 +317,11 @@ impl IEdgeSegment for TFlipperEdge {
     }
 
     fn collision_group(&self) -> u32 {
-        todo!()
+        self.base.collision_group
     }
 
     fn processed_flag(&self) -> Rc<Cell<bool>> {
-        todo!()
+        self.base.processed_flag.clone()
     }
 
     fn as_any(&self) -> &dyn Any {

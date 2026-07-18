@@ -386,9 +386,18 @@ pub(crate) fn cheat_bump_rank() {
     todo!()
 }
 
-pub(crate) fn handler(_p0: MessageCode, _p1: Option<&mut dyn IPinballComponent>) {
-    println!("Not yet implemented code: {:?}", _p0);
-    // todo!()
+pub(crate) fn handler(
+    code: MessageCode,
+    cmp: Option<&mut dyn IPinballComponent>,
+    ctx: &mut ComponentContext,
+) -> Result<()> {
+    if let Some(component) = cmp {
+        if let Some(control) = component.control() {
+            (control.control_func)(code, component, ctx)?;
+        }
+        // TODO: Mission control func
+    }
+    Ok(())
 }
 
 pub(crate) fn unstuck_ball(

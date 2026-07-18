@@ -25,22 +25,22 @@ impl ICollisionComponent for TWall {
         direction: &mut Vector2,
         _distance: f32,
         _edge: &dyn IEdgeSegment,
-        component_context: &mut ComponentContext,
+        ctx: &mut ComponentContext,
     ) -> Result<()> {
         if self
             .base
-            .default_collision(ball, &next_position, direction, component_context)
+            .default_collision(ball, &next_position, direction, ctx)
         {
             if !self.base.list_bitmap.is_empty() {
                 self.base.sprite_set(0);
-                self.timer = component_context.timer_manager.borrow_mut().set(
+                self.timer = ctx.timer_manager.borrow_mut().set(
                     0.1f32,
                     &raw mut *self as *mut c_void,
                     timer_expired,
-                    component_context,
+                    ctx,
                 )?;
             }
-            control::handler(MessageCode::CONTROL_COLLISION, Some(self));
+            control::handler(MessageCode::CONTROL_COLLISION, Some(self), ctx)?;
         }
 
         Ok(())

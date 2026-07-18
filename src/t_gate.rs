@@ -39,7 +39,8 @@ impl TGate {
             sound_index_3: visual.sound_index_3,
             sound_index_4: visual.sound_index_4,
         };
-        control::handler(MessageCode::RESET, Some(&mut inst));
+        let mut ctx = state.get_component_context();
+        control::handler(MessageCode::RESET, Some(&mut inst), &mut ctx)?;
         Ok(inst)
     }
 

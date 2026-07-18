@@ -63,6 +63,10 @@ pub trait IPinballComponent {
     fn as_tlight_mut(&mut self) -> Option<&mut TLight> {
         None
     }
+    
+    fn control(&self) -> Option<&ComponentControl> {
+        None
+    }
 }
 
 use crate::context::component_context::ComponentContext;

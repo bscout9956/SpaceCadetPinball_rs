@@ -219,7 +219,7 @@ impl IPinballComponent for TFlipper {
             | MessageCode::SET_TILT_LOCK
             | MessageCode::GAME_OVER => {
                 if *code == MessageCode::T_FLIPPER_EXTEND {
-                    control::handler(MessageCode::T_FLIPPER_EXTEND, Some(self));
+                    control::handler(MessageCode::T_FLIPPER_EXTEND, Some(self), ctx)?;
                     loader::play_sound(self.base.hard_hit_sound_id, Some(self), "TFlipper1", ctx);
                 } else if *code == MessageCode::T_FLIPPER_RETRACT {
                     loader::play_sound(self.base.soft_hit_sound_id, Some(self), "TFlipper2", ctx);
