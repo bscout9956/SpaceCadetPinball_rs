@@ -304,12 +304,12 @@ pub(crate) fn edges_insert_square(
 impl ICollisionComponent for TTableLayer {
     fn collision(
         &mut self,
-        ball: &mut TBall,
+        ball: &mut Rc<RefCell<TBall>>,
         next_position: &Vector2,
         direction: &mut Vector2,
         distance: f32,
         edge: &dyn IEdgeSegment,
-        time_ticks: &mut ComponentContext,
+        component_context: &mut ComponentContext,
     ) -> Result<()> {
         todo!()
     }

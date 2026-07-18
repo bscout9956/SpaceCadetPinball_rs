@@ -217,10 +217,12 @@ impl ICollisionComponent for TCollisionComponent {
         ball: &mut Rc<RefCell<TBall>>,
         next_position: &Vector2,
         direction: &mut Vector2,
-        _distance: f32,
-        _edge: &dyn IEdgeSegment,
+        distance: f32,
+        edge: &dyn IEdgeSegment,
         component_context: &mut ComponentContext,
     ) -> Result<()> {
+        let mut ball = ball.borrow_mut();
+
         if let Some(pinball_table) = &self.base.pinball_table
             && let Some(upgraded_table) = pinball_table.upgrade()
         {
@@ -228,7 +230,7 @@ impl ICollisionComponent for TCollisionComponent {
 
             if table.tilt_lock_flag {
                 basic_collision(
-                    ball,
+                    &mut ball,
                     next_position,
                     direction,
                     self.elasticity,
@@ -241,7 +243,7 @@ impl ICollisionComponent for TCollisionComponent {
         }
 
         let proj_speed = basic_collision(
-            ball,
+            &mut ball,
             next_position,
             direction,
             self.elasticity,
@@ -253,13 +255,13 @@ impl ICollisionComponent for TCollisionComponent {
         if proj_speed > self.threshold {
             component_context.play_sound(
                 self.hard_hit_sound_id,
-                Some(ball),
+                Some(&*ball),
                 "TCollisionComponent3",
             );
         } else if proj_speed > 0.2 {
             component_context.play_sound(
                 self.soft_hit_sound_id,
-                Some(ball),
+                Some(&*ball),
                 "TCollisionComponent4",
             );
         }

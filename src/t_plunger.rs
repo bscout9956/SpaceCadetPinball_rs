@@ -31,12 +31,12 @@ pub struct TPlunger {
 impl ICollisionComponent for TPlunger {
     fn collision(
         &mut self,
-        ball: &mut TBall,
+        ball: &mut Rc<RefCell<TBall>>,
         next_position: &Vector2,
         direction: &mut Vector2,
         distance: f32,
         edge: &dyn IEdgeSegment,
-        time_ticks: &mut ComponentContext,
+        component_context: &mut ComponentContext,
     ) -> Result<()> {
         todo!()
     }
@@ -174,7 +174,11 @@ unsafe extern "C" fn ball_feed_timer(
 ) -> Result<()> {
     unsafe {
         let plunger = caller as *mut TPlunger;
-        (*plunger).message(&mut { MessageCode::PLUNGER_FEED_BALL }, 0.0, component_context)?;
+        (*plunger).message(
+            &mut { MessageCode::PLUNGER_FEED_BALL },
+            0.0,
+            component_context,
+        )?;
         Ok(())
     }
 }

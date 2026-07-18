@@ -30,9 +30,9 @@ pub enum EdgeSegmentError {
     DuplicateInBox,
 }
 
+use crate::context::component_context::ComponentContext;
 use crate::state::pb_game_state::PbGameState;
 use anyhow::{Context, Result};
-use crate::context::component_context::ComponentContext;
 
 impl IEdgeSegment for TLine {
     fn active_flag(&self) -> Rc<Cell<bool>> {
