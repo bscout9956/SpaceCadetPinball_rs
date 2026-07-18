@@ -39,7 +39,10 @@ jobs:
                   cargo --version
 
             - name: Install SDL2 dependencies with vcpkg
-              # VCPKG_ROOT is already in the global env, no need to redefine here
+              # msvc-dev-cmd exports Visual Studio's bundled vcpkg as VCPKG_ROOT.
+              # Override it here so both vcpkg and Rust use this checkout.
+              env:
+                  VCPKG_ROOT: ${{ github.workspace }}\vcpkg
               run: |
                   git clone https://github.com/microsoft/vcpkg.git vcpkg
                   .\vcpkg\bootstrap-vcpkg.bat
@@ -65,8 +68,10 @@ jobs:
             - name: Build
               env:
                   LIBCLANG_PATH: ${{ runner.temp }}\llvm\bin
+                  # Step-level env wins over the value exported by msvc-dev-cmd.
+                  VCPKG_ROOT: ${{ github.workspace }}\vcpkg
               run: |
-                  $VcpkgPath = Join-Path "${{ github.workspace }}" "vcpkg\installed\x64-windows-static-md"
+                  $VcpkgPath = Join-Path $env:VCPKG_ROOT "installed\x64-windows-static-md"
 
                   $env:RUSTFLAGS = "-L native=$VcpkgPath\lib"
 
