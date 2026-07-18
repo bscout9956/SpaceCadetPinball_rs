@@ -4,6 +4,12 @@ use std::path::PathBuf;
 // Taken and adapted from: https://rust-lang.github.io/rust-bindgen/tutorial-3.html
 
 fn main() {
+    #[cfg(windows)]
+    winresource::WindowsResource::new()
+        .set_icon("src/assets/Icon_1.ico")
+        .compile()
+        .expect("Unable to embed the Windows executable icon");
+
     cc::Build::new().file("shared/wrapper.c").compile("stb");
 
     // The bindgen::Builder is the main entry point
