@@ -7,7 +7,7 @@ use crate::state::pinball_state::PinballState;
 use crate::t_edge_manager::TEdgeManager;
 use crate::t_pinball_component::{IPinballComponent, TPinballComponent};
 use crate::t_pinball_table::TPinballTable;
-use crate::{loader, utils};
+use crate::{control, loader, utils};
 use anyhow::Result;
 use std::any::Any;
 use std::cell::RefCell;
@@ -108,13 +108,8 @@ unsafe extern "C" fn timer_expired(
             (*light).message(&mut { MessageCode::T_LIGHT_RESET_AND_TURN_OFF }, 0.0, ctx)?;
         }
 
-        if let Some(c) = (*light).base.control.as_mut() {
-            let control = c.upgrade().unwrap();
-            // TODO: Complex logic, implement me though, otherwise the game will not respond
-            // control
-            //     .borrow()
-            //     .handler(MessageCode::CONTROL_TIMER_EXPIRED, (*light));
-        }
+        // TODO: Ugly? Idk
+        control::handler(MessageCode::CONTROL_TIMER_EXPIRED, Some(&mut *light), ctx)?;
     }
 
     Ok(())
@@ -452,7 +447,11 @@ impl IPinballComponent for TLight {
                 }
                 self.undo_override_timer = 0;
                 self.message(&mut { MessageCode::T_LIGHT_TURN_ON }, 0.0, ctx)?;
-                self.message(&mut { MessageCode::T_LIGHT_FLASHER_START_TIMED }, value, ctx)?;
+                self.message(
+                    &mut { MessageCode::T_LIGHT_FLASHER_START_TIMED },
+                    value,
+                    ctx,
+                )?;
             }
             MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_OFF => {
                 if self.undo_override_timer > 0 {
@@ -461,7 +460,11 @@ impl IPinballComponent for TLight {
                         .kill_id(self.undo_override_timer)?;
                 }
                 self.undo_override_timer = 0;
-                self.message(&mut { MessageCode::T_LIGHT_FLASHER_START_TIMED }, value, ctx)?;
+                self.message(
+                    &mut { MessageCode::T_LIGHT_FLASHER_START_TIMED },
+                    value,
+                    ctx,
+                )?;
                 self.turn_off_after_flashing_fg = true;
             }
             MessageCode::T_LIGHT_TOGGLE_VALUE => {
