@@ -28,26 +28,37 @@ impl IEdgeSegment for TCircle {
         distance: f32,
         ctx: &mut ComponentContext,
     ) -> Result<()> {
-        let mut direction: Vector2 = Vector2::default();
-        let mut next_position: Vector2 = Vector2::default();
+        let Some(collision_component) = self
+            .base
+            .collision_component
+            .as_ref()
+            .and_then(Weak::upgrade)
+        else {
+            return Ok(());
+        };
 
-        next_position.x = distance * ball.borrow().direction.x + ball.borrow().position.x;
-        next_position.y = distance * ball.borrow().direction.y + ball.borrow().position.y;
+        let next_position = {
+            let ball = ball.borrow();
+            Vector2 {
+                x: distance * ball.direction.x + ball.position.x,
+                y: distance * ball.direction.y + ball.position.y,
+            }
+        };
+        let mut direction = Vector2::default();
         direction.x = next_position.x - self.circle.center.x;
         direction.y = next_position.y - self.circle.center.y;
         maths::normalize_2d(&mut direction);
-        if let Some(col_comp_weak) = self.base.collision_component.as_ref() {
-            if let Some(col_upgrade) = col_comp_weak.upgrade() {
-                col_upgrade.borrow_mut().collision(
-                    &mut *ball.borrow_mut(),
-                    &mut next_position,
-                    &mut direction,
-                    distance,
-                    self,
-                    ctx,
-                )?;
-            }
-        }
+
+        let mut ball = Rc::clone(ball);
+        collision_component.borrow_mut().collision(
+            &mut ball,
+            &next_position,
+            &mut direction,
+            distance,
+            self,
+            ctx,
+        )?;
+
         Ok(())
     }
 
