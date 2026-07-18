@@ -200,6 +200,19 @@ impl TFlipperEdge {
         instance
     }
 
+    pub(crate) fn flipper_angle_delta(&self, time_delta: f32) -> f32 {
+        if self.flipper_flag == MessageCode::T_FLIPPER_NULL {
+            return 0.0f32;
+        }
+
+        let delta_angle = self.move_speed * time_delta;
+        if f32::abs(delta_angle) > self.angle_remainder {
+            return self.angle_dst - self.current_angle;
+        }
+        
+        return delta_angle;
+    }
+
     pub(crate) fn set_control_points(&mut self, angle: f32) {
         let (sin, cos) = maths::sin_cos(angle);
         self.a1 = self.a1_src;

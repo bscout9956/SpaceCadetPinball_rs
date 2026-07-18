@@ -133,8 +133,29 @@ impl TFlipper {
 
 // TODO: Implement me asap
 impl TFlipper {
-    pub(crate) fn get_flipper_step_angle(&self, _p0: f32, _p1: &mut f32) -> f32 {
-        todo!()
+    pub(crate) fn get_flipper_step_angle(&self, dt: f32, dst: &mut f32) -> i32 {
+        if self.base.message_field == MessageCode::T_FLIPPER_NULL {
+            return 0;
+        }
+
+        if let Some(flipper_edge) = self.t_flipper_edge.as_ref() {
+            let delta_angle = flipper_edge.borrow().flipper_angle_delta(dt);
+            let mut step = f32::abs(f32::ceil(
+                flipper_edge.borrow().distance_div
+                    * delta_angle
+                    * flipper_edge.borrow().inv_t1_radius,
+            ));
+            if step > 3.0 {
+                step = 3.0;
+            }
+            if step >= 2.0 {
+                *dst = delta_angle / step;
+                return step as i32;
+            }
+
+            *dst = delta_angle;
+        }
+        return 1;
     }
 }
 

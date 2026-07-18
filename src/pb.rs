@@ -732,7 +732,7 @@ fn timed_frame(time_delta: f32, state: &mut PinballState) -> Result<()> {
             let flip_step = (table.flipper_list[index]
                 .borrow()
                 .get_flipper_step_angle(time_delta, &mut delta_angle[index])
-                - 1.0) as i32;
+                - 1);
             flipper_steps[index] = flip_step;
             if flip_step > max_step {
                 max_step = flip_step;
