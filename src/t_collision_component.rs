@@ -27,7 +27,7 @@ pub struct TCollisionComponent {
 pub trait ICollisionComponent {
     fn collision(
         &mut self,
-        ball: &mut TBall,
+        ball: &mut Rc<RefCell<TBall>>,
         next_position: &Vector2,
         direction: &mut Vector2,
         distance: f32,
@@ -214,7 +214,7 @@ impl TCollisionComponent {
 impl ICollisionComponent for TCollisionComponent {
     fn collision(
         &mut self,
-        ball: &mut TBall,
+        ball: &mut Rc<RefCell<TBall>>,
         next_position: &Vector2,
         direction: &mut Vector2,
         _distance: f32,

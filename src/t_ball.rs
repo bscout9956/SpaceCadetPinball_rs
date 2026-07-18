@@ -237,12 +237,12 @@ impl TBall {
 impl ICollisionComponent for TBall {
     fn collision(
         &mut self,
-        _ball: &mut TBall,
-        _next_position: &Vector2,
-        _direction: &mut Vector2,
-        _distance: f32,
-        _edge: &dyn IEdgeSegment,
-        _component_context: &mut ComponentContext,
+        ball: &mut Rc<RefCell<TBall>>,
+        next_position: &Vector2,
+        direction: &mut Vector2,
+        distance: f32,
+        edge: &dyn IEdgeSegment,
+        component_context: &mut ComponentContext,
     ) -> Result<()> {
         todo!()
     }

@@ -273,7 +273,7 @@ impl IEdgeSegment for TFlipperEdge {
 
     fn edge_collision(
         &mut self,
-        _ball: &Rc<RefCell<TBall>>,
+        ball: &Rc<RefCell<TBall>>,
         _distance: f32,
         _ctx: &mut ComponentContext,
     ) -> Result<()> {

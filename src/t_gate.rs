@@ -57,7 +57,7 @@ impl TGate {
 impl ICollisionComponent for TGate {
     fn collision(
         &mut self,
-        ball: &mut TBall,
+        ball: &mut Rc<RefCell<TBall>>,
         next_position: &Vector2,
         direction: &mut Vector2,
         distance: f32,
