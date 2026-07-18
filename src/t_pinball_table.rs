@@ -465,6 +465,8 @@ impl TPinballTable {
                                 .borrow_mut()
                                 .add_component(Rc::new(RefCell::new(tgate)));
                         }
+                        // TODO: Handle original table object type 1016
+                        // by constructing TOneWay and adding it to component_list.
                         1031 => {
                             let sound = TSound::new(table_weak.clone(), group_index as i32, state)?;
                             table_rc

@@ -173,6 +173,8 @@ unsafe extern "C" fn timer_expired(
         unsafe {
             (*wall).base.sprite_set(-1);
             (*wall).timer = 0;
+            // TODO: Match the original by also resetting
+            // base.message_field to MessageCode(0).
         }
     }
     Ok(())

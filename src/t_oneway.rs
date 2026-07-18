@@ -75,7 +75,7 @@ impl TOneWay {
                         .edge_list
                         .push(line_rc.clone());
 
-                    // Is this correct ???
+                    
                     let line_2 = TLine::new_vec2(
                         Some(weak_inst),
                         instance_rc.borrow().base.active_flag.clone(),
@@ -95,6 +95,9 @@ impl TOneWay {
                         Some(line_rc.clone()),
                         &mut state.pb_game_state,
                     )?;
+
+                    // TODO: Push this second line into base.edge_list as
+                    // well.
                 }
             }
         }
@@ -103,6 +106,8 @@ impl TOneWay {
     }
 }
 
+// TODO: Delegate the component plumbing below to `base`, following
+// TWall/TGate
 impl IPinballComponent for TOneWay {
     fn render_sprite(&self) -> Option<RenderSpriteRef> {
         todo!()
@@ -159,18 +164,22 @@ impl ICollisionComponent for TOneWay {
         edge: &dyn IEdgeSegment,
         component_context: &mut ComponentContext,
     ) -> Result<()> {
+        // TODO: Port TOneway::Collision from the original:
         todo!()
     }
 
     fn edge_list(&mut self) -> &mut Vec<Rc<RefCell<dyn IEdgeSegment>>> {
+        // TODO: Delegate to self.base.edge_list().
         todo!()
     }
 
     fn set_AABB(&mut self, aabb: RectF) {
+        // TODO: Delegate to self.base.set_AABB(aabb).
         todo!()
     }
 
     fn get_AABB(&self) -> Option<RectF> {
+        // TODO: Delegate to self.base.get_AABB().
         todo!()
     }
 }

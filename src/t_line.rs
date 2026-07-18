@@ -177,6 +177,7 @@ impl IEdgeSegment for TLine {
     }
 
     fn find_collision_distance(&self, ray: &RayType) -> f32 {
+        // TODO Port maths::ray_intersect_line.
         todo!()
     }
 
@@ -185,6 +186,7 @@ impl IEdgeSegment for TLine {
     }
 
     fn processed_flag(&self) -> Rc<Cell<bool>> {
+        // TODO Return self.base.processed_flag.clone().
         todo!()
     }
 
