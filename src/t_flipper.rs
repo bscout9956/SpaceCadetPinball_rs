@@ -209,9 +209,44 @@ impl IPinballComponent for TFlipper {
         &mut self,
         code: &mut MessageCode,
         value: f32,
-        component_context: &mut ComponentContext,
+        ctx: &mut ComponentContext,
     ) -> Result<i32> {
-        self.base.message(code, value, component_context)
+        match *code {
+            MessageCode::T_FLIPPER_RETRACT
+            | MessageCode::T_FLIPPER_EXTEND
+            | MessageCode::RESUME
+            | MessageCode::LOOSE_FOCUS
+            | MessageCode::SET_TILT_LOCK
+            | MessageCode::GAME_OVER => {
+                if *code == MessageCode::T_FLIPPER_EXTEND {
+                    control::handler(MessageCode::T_FLIPPER_EXTEND, Some(self));
+                    loader::play_sound(self.base.hard_hit_sound_id, Some(self), "TFlipper1", ctx);
+                } else if *code == MessageCode::T_FLIPPER_RETRACT {
+                    loader::play_sound(self.base.soft_hit_sound_id, Some(self), "TFlipper2", ctx);
+                } else {
+                    *code = MessageCode::T_FLIPPER_RETRACT;
+                }
+
+                if let Some(flipper_edge) = self.t_flipper_edge.as_mut() {
+                    self.base.message_field = flipper_edge.borrow_mut().set_motion(code);
+                }
+            }
+            MessageCode::PLAYER_CHANGED | MessageCode::RESET => {
+                if self.base.message_field.0 > 0 {
+                    if let Some(flipper_edge) = self.t_flipper_edge.as_mut() {
+                        flipper_edge.borrow_mut().current_angle = 0.0;
+                        flipper_edge.borrow_mut().set_control_points(0.0);
+                        self.base.message_field = MessageCode(0);
+                        let mut reset_code = MessageCode::RESET;
+                        flipper_edge.borrow_mut().set_motion(&mut reset_code);
+                        self.update_sprite();
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        Ok(0)
     }
 
     fn set_active_flag(&mut self, active: bool) {
