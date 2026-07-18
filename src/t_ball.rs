@@ -283,6 +283,7 @@ impl IEdgeSegment for TBall {
         ball_borrow.position.x += ball_borrow.direction.x * distance;
         ball_borrow.position.y += ball_borrow.direction.y * distance;
         ball_borrow.direction.x *= ball_borrow.speed;
+        ball_borrow.direction.y *= ball_borrow.speed;
         self.direction.x *= self.speed;
         self.direction.y *= self.speed;
 
