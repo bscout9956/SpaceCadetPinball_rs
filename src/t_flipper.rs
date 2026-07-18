@@ -12,7 +12,7 @@ use crate::t_edge_segment::{IEdgeSegment, TEdgeSegment};
 use crate::t_flipper_edge::TFlipperEdge;
 use crate::t_pinball_component::IPinballComponent;
 use crate::t_pinball_table::TPinballTable;
-use crate::{loader, maths};
+use crate::{control, loader, maths, utils};
 use anyhow::Result;
 use std::any::Any;
 use std::cell::RefCell;
@@ -145,7 +145,6 @@ impl TFlipper {
     }
 }
 
-// TODO: Implement me asap
 impl TFlipper {
     pub(crate) fn get_flipper_step_angle(&self, dt: f32, dst: &mut f32) -> i32 {
         if self.base.message_field == MessageCode::T_FLIPPER_NULL {
