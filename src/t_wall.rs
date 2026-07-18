@@ -118,10 +118,11 @@ impl IPinballComponent for TWall {
 
     fn message(
         &mut self,
-        code: MessageCode,
+        code: &mut MessageCode,
         _value: f32,
         component_context: &mut ComponentContext,
     ) -> Result<i32> {
+        let code = *code;
         if code == MessageCode::RESET && self.timer > 0 {
             component_context
                 .timer_manager

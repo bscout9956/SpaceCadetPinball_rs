@@ -174,7 +174,7 @@ unsafe extern "C" fn ball_feed_timer(
 ) -> Result<()> {
     unsafe {
         let plunger = caller as *mut TPlunger;
-        (*plunger).message(MessageCode::PLUNGER_FEED_BALL, 0.0, component_context)?;
+        (*plunger).message(&mut { MessageCode::PLUNGER_FEED_BALL }, 0.0, component_context)?;
         Ok(())
     }
 }
@@ -214,10 +214,11 @@ impl IPinballComponent for TPlunger {
 
     fn message(
         &mut self,
-        code: MessageCode,
+        code: &mut MessageCode,
         value: f32,
         component_context: &mut ComponentContext,
     ) -> Result<i32> {
+        let code = *code;
         // TODO: All other messages lol
         match code {
             MessageCode::PLUNGER_INPUT_PRESSED => {
@@ -295,7 +296,7 @@ impl IPinballComponent for TPlunger {
                 self.pullback_started_flag = true;
                 self.base.boost = self.max_pull_back;
                 self.message(
-                    MessageCode::PLUNGER_INPUT_RELEASED,
+                    &mut { MessageCode::PLUNGER_INPUT_RELEASED },
                     0.0f32,
                     component_context,
                 )?;

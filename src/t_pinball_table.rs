@@ -691,7 +691,7 @@ impl IPinballComponent for TPinballTable {
             MessageCode::RESET => {
                 for component_rc in self.component_list.iter_mut() {
                     let mut component = component_rc.borrow_mut();
-                    component.message(MessageCode::RESET, 0.0, component_context)?;
+                    component.message(&mut { MessageCode::RESET }, 0.0, component_context)?;
                 }
 
                 if self.replay_timer > 0 {
@@ -707,7 +707,7 @@ impl IPinballComponent for TPinballTable {
                         .borrow_mut()
                         .kill_id(self.light_show_timer)?;
                     if let Some(lg) = &mut self.light_group {
-                        lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, component_context)?;
+                        lg.message(&mut { MessageCode::T_LIGHT_GROUP_RESET }, 0.0, component_context)?;
                     }
                 }
                 self.light_show_timer = 0;
@@ -730,21 +730,21 @@ impl IPinballComponent for TPinballTable {
             }
             MessageCode::PAUSE | MessageCode::RESUME | MessageCode::LOOSE_FOCUS => {
                 for cmp in self.component_list.iter_mut() {
-                    cmp.borrow_mut().message(code, value, component_context)?;
+                    cmp.borrow_mut().message(&mut code, value, component_context)?;
                 }
             }
             MessageCode::START_GAME_PLAYER1 => {
                 if let Some(lg) = self.light_group.as_mut() {
-                    lg.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, component_context)?;
+                    lg.message(&mut { MessageCode::T_LIGHT_GROUP_RESET }, 0.0, component_context)?;
                     lg.message(
-                        MessageCode::T_LIGHT_RESET_AND_TURN_OFF,
+                        &mut { MessageCode::T_LIGHT_RESET_AND_TURN_OFF },
                         0.0,
                         component_context,
                     )?;
                 }
                 if let Some(plunger) = self.plunger.as_mut() {
                     plunger.borrow_mut().message(
-                        MessageCode::PLUNGER_START_FEED_TIMER,
+                        &mut { MessageCode::PLUNGER_START_FEED_TIMER },
                         0.0,
                         component_context,
                     )?;
@@ -776,12 +776,12 @@ impl IPinballComponent for TPinballTable {
                         .borrow_mut()
                         .kill_id(self.light_show_timer)?;
                     self.light_show_timer = 0;
-                    self.message(MessageCode::START_GAME_PLAYER1, 0.0, component_context)?;
+                    self.message(&mut { MessageCode::START_GAME_PLAYER1 }, 0.0, component_context)?;
                 } else {
                     // Some of the control cheats persist across games.
                     // Was this loose anti-cheat by design?
                     self.cheats_used = 0;
-                    self.message(MessageCode::RESET, 0.0, component_context)?;
+                    self.message(&mut { MessageCode::RESET }, 0.0, component_context)?;
                     {
                         let mut ball = self.ball_list[0].borrow_mut();
                         ball.position.y = 0.0;
@@ -852,7 +852,7 @@ impl IPinballComponent for TPinballTable {
 
                     if let Some(lg) = self.light_group.as_mut() {
                         lg.message(
-                            MessageCode::T_LIGHT_GROUP_LIGHT_SHOW_ANIMATION,
+                            &mut { MessageCode::T_LIGHT_GROUP_LIGHT_SHOW_ANIMATION },
                             0.2,
                             component_context,
                         )?;
@@ -880,9 +880,10 @@ impl IPinballComponent for TPinballTable {
                 if let Some(plunger) = self.plunger.as_mut() {
                     plunger
                         .borrow_mut()
-                        .message(code, value, component_context)?;
+                        .message(&mut code, value, component_context)?;
                 }
             }
+
             _ => {
                 println!("Not yet implemented (TPinballTable): {:?}", code);
             }
@@ -912,7 +913,7 @@ pub extern "C" fn light_show_timeout(
     let table = caller as *mut TPinballTable;
     unsafe {
         (*table).light_show_timer = 0;
-        (*table).message(MessageCode::START_GAME_PLAYER1, 0.0f32, component_context)?;
+        (*table).message(&mut { MessageCode::START_GAME_PLAYER1 }, 0.0f32, component_context)?;
     }
 
     Ok(())
