@@ -237,6 +237,33 @@ impl TFlipperEdge {
         };
         self.control_point_dirty_flag = false;
     }
+
+    pub(crate) fn set_motion(&mut self, code: &mut MessageCode) -> MessageCode {
+        match *code {
+            MessageCode::T_FLIPPER_EXTEND => {
+                self.angle_remainder = f32::abs(self.angle_max - self.current_angle);
+                self.angle_dst = self.angle_max;
+                self.move_speed = self.extend_speed;
+            }
+            MessageCode::T_FLIPPER_RETRACT => {
+                self.angle_remainder = f32::abs(self.current_angle);
+                self.angle_dst = 0.0;
+                self.move_speed = self.retract_speed;
+            }
+            MessageCode::RESET => {
+                self.angle_remainder = 0.0;
+                self.angle_dst = 0.0;
+            }
+            _ => {}
+        }
+
+        if self.angle_remainder == 0.0 {
+            *code = MessageCode::T_FLIPPER_NULL
+        }
+
+        self.flipper_flag = *code;
+        *code
+    }
 }
 
 impl IEdgeSegment for TFlipperEdge {
