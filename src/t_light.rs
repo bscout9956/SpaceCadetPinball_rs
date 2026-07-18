@@ -538,9 +538,7 @@ impl IPinballComponent for TLight {
                 self.temporary_override_flag = false;
                 self.sprite_set(self.previous_bitmap);
             }
-            _ => {
-                println!("Unknown message received: {:?}", code);
-            }
+            _ => {}
         }
 
         Ok(0)
