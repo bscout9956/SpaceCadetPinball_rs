@@ -105,7 +105,7 @@ unsafe extern "C" fn timer_expired(
 
         if (*light).turn_off_after_flashing_fg {
             (*light).turn_off_after_flashing_fg = false;
-            (*light).message(MessageCode::T_LIGHT_RESET_AND_TURN_OFF, 0.0, ctx)?;
+            (*light).message(&mut { MessageCode::T_LIGHT_RESET_AND_TURN_OFF }, 0.0, ctx)?;
         }
 
         if let Some(c) = (*light).base.control.as_mut() {
@@ -127,7 +127,7 @@ unsafe extern "C" fn undo_tmp_override(
 ) -> Result<()> {
     let light = caller as *mut TLight;
     unsafe {
-        (*light).message(MessageCode::T_LIGHT_FT_RESET_OVERRIDE, 0.0, ctx)?;
+        (*light).message(&mut { MessageCode::T_LIGHT_FT_RESET_OVERRIDE }, 0.0, ctx)?;
     }
     Ok(())
 }
@@ -271,10 +271,11 @@ impl IPinballComponent for TLight {
 
     fn message(
         &mut self,
-        code: MessageCode,
+        code: &mut MessageCode,
         value: f32,
         ctx: &mut ComponentContext,
     ) -> Result<i32> {
+        let code = *code;
         match code {
             MessageCode::RESET => {
                 self.reset(ctx)?;
@@ -303,16 +304,16 @@ impl IPinballComponent for TLight {
                 self.set_message_field(MessageCode(message_field));
                 if self.light_on_bmp_index > 0 {
                     self.message(
-                        MessageCode::T_LIGHT_SET_ON_STATE_BMP_INDEX,
+                        &mut { MessageCode::T_LIGHT_SET_ON_STATE_BMP_INDEX },
                         self.light_on_bmp_index as f32,
                         ctx,
                     )?;
                 }
                 if self.light_on_flag {
-                    self.message(MessageCode::T_LIGHT_TURN_ON, 0.0, ctx)?;
+                    self.message(&mut { MessageCode::T_LIGHT_TURN_ON }, 0.0, ctx)?;
                 }
                 if self.flasher_on_flag {
-                    self.message(MessageCode::T_LIGHT_FLASHER_START, 0.0, ctx)?;
+                    self.message(&mut { MessageCode::T_LIGHT_FLASHER_START }, 0.0, ctx)?;
                 }
             }
             MessageCode::T_LIGHT_TURN_OFF => {
@@ -413,7 +414,7 @@ impl IPinballComponent for TLight {
                     bmp_index = self.base.list_bitmap.len() as i32 - 1;
                 }
                 self.message(
-                    MessageCode::T_LIGHT_SET_ON_STATE_BMP_INDEX,
+                    &mut { MessageCode::T_LIGHT_SET_ON_STATE_BMP_INDEX },
                     bmp_index as f32,
                     ctx,
                 )?;
@@ -424,7 +425,7 @@ impl IPinballComponent for TLight {
                     bmp_index = 0;
                 }
                 self.message(
-                    MessageCode::T_LIGHT_SET_ON_STATE_BMP_INDEX,
+                    &mut { MessageCode::T_LIGHT_SET_ON_STATE_BMP_INDEX },
                     bmp_index as f32,
                     ctx,
                 )?;
@@ -450,8 +451,8 @@ impl IPinballComponent for TLight {
                         .kill_id(self.undo_override_timer)?;
                 }
                 self.undo_override_timer = 0;
-                self.message(MessageCode::T_LIGHT_TURN_ON, 0.0, ctx)?;
-                self.message(MessageCode::T_LIGHT_FLASHER_START_TIMED, value, ctx)?;
+                self.message(&mut { MessageCode::T_LIGHT_TURN_ON }, 0.0, ctx)?;
+                self.message(&mut { MessageCode::T_LIGHT_FLASHER_START_TIMED }, value, ctx)?;
             }
             MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_OFF => {
                 if self.undo_override_timer > 0 {
@@ -460,34 +461,34 @@ impl IPinballComponent for TLight {
                         .kill_id(self.undo_override_timer)?;
                 }
                 self.undo_override_timer = 0;
-                self.message(MessageCode::T_LIGHT_FLASHER_START_TIMED, value, ctx)?;
+                self.message(&mut { MessageCode::T_LIGHT_FLASHER_START_TIMED }, value, ctx)?;
                 self.turn_off_after_flashing_fg = true;
             }
             MessageCode::T_LIGHT_TOGGLE_VALUE => {
-                let code = if value.floor() as i32 > 0 {
+                let mut code = if value.floor() as i32 > 0 {
                     MessageCode::T_LIGHT_TURN_ON
                 } else {
                     MessageCode::T_LIGHT_TURN_OFF
                 };
-                self.message(code, 0.0, ctx)?;
+                self.message(&mut code, 0.0, ctx)?;
                 return Ok(self.light_on_flag as i32);
             }
             MessageCode::T_LIGHT_RESET_AND_TOGGLE_VALUE => {
-                self.message(MessageCode::T_LIGHT_TOGGLE_VALUE, value, ctx)?;
-                self.message(MessageCode::T_LIGHT_RESET_TIMED, 0.0, ctx)?;
+                self.message(&mut { MessageCode::T_LIGHT_TOGGLE_VALUE }, value, ctx)?;
+                self.message(&mut { MessageCode::T_LIGHT_RESET_TIMED }, 0.0, ctx)?;
                 return Ok(self.light_on_flag as i32);
             }
             MessageCode::T_LIGHT_RESET_AND_TURN_ON => {
-                self.message(MessageCode::T_LIGHT_TURN_ON, 0.0, ctx)?;
-                self.message(MessageCode::T_LIGHT_RESET_TIMED, 0.0, ctx)?;
+                self.message(&mut { MessageCode::T_LIGHT_TURN_ON }, 0.0, ctx)?;
+                self.message(&mut { MessageCode::T_LIGHT_RESET_TIMED }, 0.0, ctx)?;
             }
             MessageCode::T_LIGHT_RESET_AND_TURN_OFF => {
-                self.message(MessageCode::T_LIGHT_TURN_OFF, 0.0, ctx)?;
-                self.message(MessageCode::T_LIGHT_RESET_TIMED, 0.0, ctx)?;
+                self.message(&mut { MessageCode::T_LIGHT_TURN_OFF }, 0.0, ctx)?;
+                self.message(&mut { MessageCode::T_LIGHT_RESET_TIMED }, 0.0, ctx)?;
             }
             MessageCode::T_LIGHT_TOGGLE => {
                 self.message(
-                    MessageCode::T_LIGHT_TOGGLE_VALUE,
+                    &mut { MessageCode::T_LIGHT_TOGGLE_VALUE },
                     (!self.light_on_flag) as i32 as f32,
                     ctx,
                 )?;
@@ -495,7 +496,7 @@ impl IPinballComponent for TLight {
             }
             MessageCode::T_LIGHT_RESET_AND_TOGGLE => {
                 self.message(
-                    MessageCode::T_LIGHT_RESET_AND_TOGGLE_VALUE,
+                    &mut { MessageCode::T_LIGHT_RESET_AND_TOGGLE_VALUE },
                     (!self.light_on_flag) as i32 as f32,
                     ctx,
                 )?;

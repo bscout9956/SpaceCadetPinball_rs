@@ -390,10 +390,11 @@ impl IPinballComponent for TBall {
 
     fn message(
         &mut self,
-        code: MessageCode,
+        code: &mut MessageCode,
         _value: f32,
         _component_context: &mut ComponentContext,
     ) -> Result<i32> {
+        let code = *code;
         if code == MessageCode::RESET {
             self.base
                 .sprite_set_ball(-1, &mut Vector2i::new(0, 0), 0.0f32);

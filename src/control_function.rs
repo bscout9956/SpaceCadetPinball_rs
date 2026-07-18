@@ -34,7 +34,7 @@ pub(crate) fn right_kicker_gate_control(
             .unwrap()
             .borrow_mut()
             .message(
-                MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_ON,
+                &mut { MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_ON },
                 5.0,
                 ctx,
             )?;
@@ -44,7 +44,7 @@ pub(crate) fn right_kicker_gate_control(
             .get()
             .unwrap()
             .borrow_mut()
-            .message(MessageCode::T_LIGHT_FLASHER_START_TIMED, 5.0, ctx)?;
+            .message(&mut { MessageCode::T_LIGHT_FLASHER_START_TIMED }, 5.0, ctx)?;
     } else if code == MessageCode::T_GATE_ENABLE {
         ctx.control_state
             .component_state
@@ -52,14 +52,14 @@ pub(crate) fn right_kicker_gate_control(
             .get()
             .unwrap()
             .borrow_mut()
-            .message(MessageCode::T_LIGHT_RESET_AND_TURN_OFF, 0.0, ctx)?;
+            .message(&mut { MessageCode::T_LIGHT_RESET_AND_TURN_OFF }, 0.0, ctx)?;
         ctx.control_state
             .component_state
             .lite_195
             .get()
             .unwrap()
             .borrow_mut()
-            .message(MessageCode::T_LIGHT_RESET_AND_TURN_OFF, 0.0, ctx)?;
+            .message(&mut { MessageCode::T_LIGHT_RESET_AND_TURN_OFF }, 0.0, ctx)?;
     }
     Ok(())
 }
@@ -77,7 +77,7 @@ pub(crate) fn left_kicker_gate_control(
             .unwrap()
             .borrow_mut()
             .message(
-                MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_ON,
+                &mut { MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_ON },
                 5.0,
                 ctx,
             )?;
@@ -87,7 +87,7 @@ pub(crate) fn left_kicker_gate_control(
             .get()
             .unwrap()
             .borrow_mut()
-            .message(MessageCode::T_LIGHT_FLASHER_START_TIMED, 5.0, ctx)?;
+            .message(&mut { MessageCode::T_LIGHT_FLASHER_START_TIMED }, 5.0, ctx)?;
     } else if code == MessageCode::T_GATE_ENABLE {
         ctx.control_state
             .component_state
@@ -95,14 +95,14 @@ pub(crate) fn left_kicker_gate_control(
             .get()
             .unwrap()
             .borrow_mut()
-            .message(MessageCode::T_LIGHT_RESET_AND_TURN_OFF, 0.0, ctx)?;
+            .message(&mut { MessageCode::T_LIGHT_RESET_AND_TURN_OFF }, 0.0, ctx)?;
         ctx.control_state
             .component_state
             .lite_196
             .get()
             .unwrap()
             .borrow_mut()
-            .message(MessageCode::T_LIGHT_RESET_AND_TURN_OFF, 0.0, ctx)?;
+            .message(&mut { MessageCode::T_LIGHT_RESET_AND_TURN_OFF }, 0.0, ctx)?;
     }
     Ok(())
 }

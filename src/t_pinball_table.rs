@@ -631,7 +631,7 @@ impl IPinballComponent for TPinballTable {
 
     fn message(
         &mut self,
-        code: MessageCode,
+        code: &mut MessageCode,
         value: f32,
         component_context: &mut ComponentContext,
     ) -> Result<i32> {

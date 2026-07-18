@@ -113,7 +113,7 @@ impl IPinballComponent for TBumper {
 
     fn message(
         &mut self,
-        _code: MessageCode,
+        _code: &mut MessageCode,
         _value: f32,
         _component_context: &mut ComponentContext,
     ) -> Result<i32> {

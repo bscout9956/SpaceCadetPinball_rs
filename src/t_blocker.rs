@@ -104,10 +104,11 @@ impl IPinballComponent for TBlocker {
 
     fn message(
         &mut self,
-        code: MessageCode,
+        code: &mut MessageCode,
         value: f32,
         component_context: &mut ComponentContext,
     ) -> Result<i32> {
+        let code = *code;
         match code {
             MessageCode::SET_TILT_LOCK
             | MessageCode::PLAYER_CHANGED

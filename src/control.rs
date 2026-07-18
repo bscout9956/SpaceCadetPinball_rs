@@ -30,7 +30,7 @@ pub fn table_control_handler(
             .get()
         {
             component.borrow_mut().message(
-                MessageCode::T_LIGHT_FLASHER_START_TIMED,
+                &mut { MessageCode::T_LIGHT_FLASHER_START_TIMED },
                 0.0f32,
                 component_context,
             )?;
@@ -274,12 +274,12 @@ fn drain_ball_blocker_control(
                     -1.0f32
                 };
                 block.borrow_mut().message(
-                    MessageCode::T_BLOCKER_ENABLE,
+                    &mut { MessageCode::T_BLOCKER_ENABLE },
                     blocker_duration,
                     component_context,
                 )?;
                 lite1.borrow_mut().message(
-                    MessageCode::T_LIGHT_TURN_ON_TIMED,
+                    &mut { MessageCode::T_LIGHT_TURN_ON_TIMED },
                     blocker_duration,
                     component_context,
                 )?;
@@ -293,19 +293,19 @@ fn drain_ball_blocker_control(
                     block.borrow_mut().base.message_field = MessageCode(2);
                     let blocker_duration = block.borrow().extended_duration as f32;
                     block.borrow_mut().message(
-                        MessageCode::T_BLOCKER_RESTART_TIMEOUT,
+                        &mut { MessageCode::T_BLOCKER_RESTART_TIMEOUT },
                         blocker_duration,
                         component_context,
                     )?;
                     lite1.borrow_mut().message(
-                        MessageCode::T_LIGHT_FLASHER_START_TIMED,
+                        &mut { MessageCode::T_LIGHT_FLASHER_START_TIMED },
                         blocker_duration,
                         component_context,
                     )?;
                 } else {
                     block.borrow_mut().base.message_field = MessageCode(0);
                     block.borrow_mut().message(
-                        MessageCode::T_BLOCKER_DISABLE,
+                        &mut { MessageCode::T_BLOCKER_DISABLE },
                         0.0f32,
                         component_context,
                     )?;
@@ -356,7 +356,7 @@ fn gravity_well_kickout_control(
                     .display(&rc_string, 2.0, &mut component_ctx, None)?;
 
                 lite62.borrow_mut().message(
-                    MessageCode::T_LIGHT_RESET_AND_TURN_OFF,
+                    &mut { MessageCode::T_LIGHT_RESET_AND_TURN_OFF },
                     0.0f32,
                     &mut component_ctx,
                 )?;
@@ -365,7 +365,7 @@ fn gravity_well_kickout_control(
                     .borrow()
                     .play(Some(lite62), "GravityWellKickoutControl");
                 c.borrow_mut().message(
-                    MessageCode::T_KICKOUT_RESTART_TIMER,
+                    &mut { MessageCode::T_KICKOUT_RESTART_TIMER },
                     duration,
                     &mut component_ctx,
                 )?;
@@ -416,7 +416,7 @@ pub(crate) fn unstuck_ball(
                 if let Some(table) = table_opt.as_mut() {
                     table.borrow_mut().multiball_count -= 1;
                     plunger.borrow_mut().message(
-                        MessageCode::PLUNGER_RELAUNCH_BALL,
+                        &mut { MessageCode::PLUNGER_RELAUNCH_BALL },
                         0.0,
                         comp_ctx,
                     )?;

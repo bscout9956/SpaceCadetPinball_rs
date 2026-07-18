@@ -40,7 +40,7 @@ pub trait IPinballComponent {
     fn port_draw(&self);
     fn message(
         &mut self,
-        _code: MessageCode,
+        _code: &mut MessageCode,
         _value: f32,
         _component_context: &mut ComponentContext,
     ) -> Result<i32> {
@@ -309,13 +309,13 @@ impl IPinballComponent for TPinballComponent {
     #[allow(unused)]
     fn message(
         &mut self,
-        code: MessageCode,
+        code: &mut MessageCode,
         value: f32,
         component_context: &mut ComponentContext,
     ) -> Result<i32> {
         // TODO?
-        self.message_field = code;
-        if code == MessageCode::RESET {
+        self.message_field = *code;
+        if *code == MessageCode::RESET {
             self.message_field = MessageCode(0);
         }
 

@@ -133,9 +133,9 @@ impl TLightGroup {
             let mut light_borrow = light.borrow_mut();
             if let Some(l) = light_borrow.as_tlight_mut() {
                 if l.light_on_flag {
-                    l.message(MessageCode::T_LIGHT_TURN_ON_TIMED, 0.0, ctx)?;
+                    l.message(&mut { MessageCode::T_LIGHT_TURN_ON_TIMED }, 0.0, ctx)?;
                 } else {
-                    l.message(MessageCode::T_LIGHT_TURN_OFF_TIMED, 0.0, ctx)?;
+                    l.message(&mut { MessageCode::T_LIGHT_TURN_OFF_TIMED }, 0.0, ctx)?;
                 }
             }
         }
@@ -178,10 +178,11 @@ impl IPinballComponent for TLightGroup {
 
     fn message(
         &mut self,
-        code: MessageCode,
+        code: &mut MessageCode,
         value: f32,
         ctx: &mut ComponentContext,
     ) -> Result<i32> {
+        let mut code = *code;
         match code {
             MessageCode::SET_TILT_LOCK | MessageCode::GAME_OVER => {}
             MessageCode::PLAYER_CHANGED => {
@@ -242,7 +243,7 @@ impl IPinballComponent for TLightGroup {
                 };
 
                 if self.message_field_2 != MessageCode::T_LIGHT_GROUP_NULL {
-                    self.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, ctx)?;
+                    self.message(&mut { MessageCode::T_LIGHT_GROUP_RESET }, 0.0, ctx)?;
                 }
                 self.animation_flag = true;
                 self.message_field_2 = code;
@@ -261,10 +262,12 @@ impl IPinballComponent for TLightGroup {
                         continue;
                     };
                     cur_light.message(
-                        if prev_status {
-                            MessageCode::T_LIGHT_TURN_ON
-                        } else {
-                            MessageCode::T_LIGHT_TURN_OFF
+                        &mut {
+                            if prev_status {
+                                MessageCode::T_LIGHT_TURN_ON
+                            } else {
+                                MessageCode::T_LIGHT_TURN_OFF
+                            }
                         },
                         0.0,
                         ctx,
@@ -276,10 +279,12 @@ impl IPinballComponent for TLightGroup {
                     let mut first_component = lights[0].borrow_mut();
                     if let Some(first_light) = first_component.as_tlight_mut() {
                         first_light.message(
-                            if last_status {
-                                MessageCode::T_LIGHT_TURN_ON
-                            } else {
-                                MessageCode::T_LIGHT_TURN_OFF
+                            &mut {
+                                if last_status {
+                                    MessageCode::T_LIGHT_TURN_ON
+                                } else {
+                                    MessageCode::T_LIGHT_TURN_OFF
+                                }
                             },
                             0.0,
                             ctx,
@@ -314,7 +319,7 @@ impl IPinballComponent for TLightGroup {
                 };
 
                 if self.message_field_2 != MessageCode::T_LIGHT_GROUP_NULL {
-                    self.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, ctx)?;
+                    self.message(&mut { MessageCode::T_LIGHT_GROUP_RESET }, 0.0, ctx)?;
                 }
                 self.animation_flag = true;
                 self.message_field_2 = code;
@@ -333,10 +338,12 @@ impl IPinballComponent for TLightGroup {
                         continue;
                     };
                     cur_light.message(
-                        if next_status {
-                            MessageCode::T_LIGHT_TURN_ON
-                        } else {
-                            MessageCode::T_LIGHT_TURN_OFF
+                        &mut {
+                            if next_status {
+                                MessageCode::T_LIGHT_TURN_ON
+                            } else {
+                                MessageCode::T_LIGHT_TURN_OFF
+                            }
                         },
                         0.0,
                         ctx,
@@ -348,10 +355,12 @@ impl IPinballComponent for TLightGroup {
                     let mut last_component = lights[count - 1].borrow_mut();
                     if let Some(last_light) = last_component.as_tlight_mut() {
                         last_light.message(
-                            if first_status {
-                                MessageCode::T_LIGHT_TURN_ON
-                            } else {
-                                MessageCode::T_LIGHT_TURN_OFF
+                            &mut {
+                                if first_status {
+                                    MessageCode::T_LIGHT_TURN_ON
+                                } else {
+                                    MessageCode::T_LIGHT_TURN_OFF
+                                }
                             },
                             0.0,
                             ctx,
@@ -401,10 +410,12 @@ impl IPinballComponent for TLightGroup {
                         continue;
                     };
                     light_curr.message(
-                        if prev_status {
-                            MessageCode::T_LIGHT_TURN_ON_TIMED
-                        } else {
-                            MessageCode::T_LIGHT_TURN_OFF_TIMED
+                        &mut {
+                            if prev_status {
+                                MessageCode::T_LIGHT_TURN_ON_TIMED
+                            } else {
+                                MessageCode::T_LIGHT_TURN_OFF_TIMED
+                            }
                         },
                         0.0,
                         ctx,
@@ -414,10 +425,12 @@ impl IPinballComponent for TLightGroup {
                     let mut first_light = components[0].borrow_mut();
                     if let Some(first_light) = first_light.as_tlight_mut() {
                         first_light.message(
-                            if last_status {
-                                MessageCode::T_LIGHT_TURN_ON_TIMED
-                            } else {
-                                MessageCode::T_LIGHT_TURN_OFF_TIMED
+                            &mut {
+                                if last_status {
+                                    MessageCode::T_LIGHT_TURN_ON_TIMED
+                                } else {
+                                    MessageCode::T_LIGHT_TURN_OFF_TIMED
+                                }
                             },
                             0.0,
                             ctx,
@@ -465,10 +478,12 @@ impl IPinballComponent for TLightGroup {
                         continue;
                     };
                     light_curr.message(
-                        if next_status {
-                            MessageCode::T_LIGHT_TURN_ON_TIMED
-                        } else {
-                            MessageCode::T_LIGHT_TURN_OFF_TIMED
+                        &mut {
+                            if next_status {
+                                MessageCode::T_LIGHT_TURN_ON_TIMED
+                            } else {
+                                MessageCode::T_LIGHT_TURN_OFF_TIMED
+                            }
                         },
                         0.0,
                         ctx,
@@ -478,10 +493,12 @@ impl IPinballComponent for TLightGroup {
                     let mut last_light = components[components.len() - 1].borrow_mut();
                     if let Some(last_light) = last_light.as_tlight_mut() {
                         last_light.message(
-                            if first_status {
-                                MessageCode::T_LIGHT_TURN_ON_TIMED
-                            } else {
-                                MessageCode::T_LIGHT_TURN_OFF_TIMED
+                            &mut {
+                                if first_status {
+                                    MessageCode::T_LIGHT_TURN_ON_TIMED
+                                } else {
+                                    MessageCode::T_LIGHT_TURN_OFF_TIMED
+                                }
                             },
                             0.0,
                             ctx,
@@ -502,7 +519,7 @@ impl IPinballComponent for TLightGroup {
                         if rand::random::<u32>() % 100 > 70 {
                             let rand_val = utils::rand_float_pb() * value * 3.0f32 + 0.1f32;
                             light_comp.message(
-                                MessageCode::T_LIGHT_TURN_ON_TIMED,
+                                &mut { MessageCode::T_LIGHT_TURN_ON_TIMED },
                                 rand_val,
                                 ctx,
                             )?;
@@ -522,7 +539,7 @@ impl IPinballComponent for TLightGroup {
                     if let Some(light_comp) = comp.borrow_mut().as_tlight_mut() {
                         let rand_val = rand::random::<u32>() % 100 > 70;
                         light_comp.message(
-                            MessageCode::T_LIGHT_RESET_AND_TOGGLE_VALUE,
+                            &mut { MessageCode::T_LIGHT_RESET_AND_TOGGLE_VALUE },
                             rand_val as i32 as f32,
                             ctx,
                         )?;
@@ -553,7 +570,7 @@ impl IPinballComponent for TLightGroup {
 
                     if !light_comp.light_on_flag {
                         if rand_mod_count == 0 {
-                            light_comp.message(MessageCode::T_LIGHT_TURN_ON, 0.0, ctx)?;
+                            light_comp.message(&mut { MessageCode::T_LIGHT_TURN_ON }, 0.0, ctx)?;
                             break;
                         }
                         rand_mod_count -= 1;
@@ -587,7 +604,7 @@ impl IPinballComponent for TLightGroup {
 
                     if light_comp.light_on_flag {
                         if rand_mod_count == 0 {
-                            light_comp.message(MessageCode::T_LIGHT_TURN_OFF, 0.0, ctx)?;
+                            light_comp.message(&mut { MessageCode::T_LIGHT_TURN_OFF }, 0.0, ctx)?;
                             break;
                         }
                         rand_mod_count -= 1;
@@ -608,7 +625,7 @@ impl IPinballComponent for TLightGroup {
                     .borrow_mut()
                     .as_tlight_mut()
                     .unwrap()
-                    .message(MessageCode::T_LIGHT_TURN_ON, 0.0, ctx)?;
+                    .message(&mut { MessageCode::T_LIGHT_TURN_ON }, 0.0, ctx)?;
                 if self.message_field_2 != MessageCode::T_LIGHT_GROUP_NULL {
                     self.start_animation(ctx)?;
                 }
@@ -624,7 +641,7 @@ impl IPinballComponent for TLightGroup {
                     .borrow_mut()
                     .as_tlight_mut()
                     .unwrap()
-                    .message(MessageCode::T_LIGHT_TURN_OFF, 0.0, ctx)?;
+                    .message(&mut { MessageCode::T_LIGHT_TURN_OFF }, 0.0, ctx)?;
                 if self.message_field_2 != MessageCode::T_LIGHT_GROUP_NULL {
                     self.start_animation(ctx)?;
                 }
@@ -639,7 +656,7 @@ impl IPinballComponent for TLightGroup {
                     || self.message_field_2 == MessageCode::T_LIGHT_GROUP_ANIMATION_FORWARD
                     || self.message_field_2 == MessageCode::T_LIGHT_GROUP_LIGHT_SHOW_ANIMATION
                 {
-                    self.message(MessageCode::T_LIGHT_RESET_TIMED, 0.0, ctx)?;
+                    self.message(&mut { MessageCode::T_LIGHT_RESET_TIMED }, 0.0, ctx)?;
                 }
                 self.message_field_2 = MessageCode::T_LIGHT_GROUP_NULL;
                 self.animation_flag = false;
@@ -655,7 +672,7 @@ impl IPinballComponent for TLightGroup {
                 let Some(light) = comp_borrow.as_tlight_mut() else {
                     return Ok(0);
                 };
-                light.message(MessageCode::T_LIGHT_TURN_ON, 0.0, ctx)?;
+                light.message(&mut { MessageCode::T_LIGHT_TURN_ON }, 0.0, ctx)?;
                 if self.message_field_2 != MessageCode::T_LIGHT_GROUP_NULL {
                     self.start_animation(ctx)?;
                 }
@@ -671,7 +688,7 @@ impl IPinballComponent for TLightGroup {
                 let Some(light) = comp_borrow.as_tlight_mut() else {
                     return Ok(0);
                 };
-                light.message(MessageCode::T_LIGHT_TURN_OFF, 0.0, ctx)?;
+                light.message(&mut { MessageCode::T_LIGHT_TURN_OFF }, 0.0, ctx)?;
                 if self.message_field_2 != MessageCode::T_LIGHT_GROUP_NULL {
                     self.start_animation(ctx)?;
                 }
@@ -704,7 +721,7 @@ impl IPinballComponent for TLightGroup {
                 }
 
                 if self.message_field_2 != MessageCode::T_LIGHT_GROUP_NULL || self.animation_flag {
-                    self.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, ctx)?;
+                    self.message(&mut { MessageCode::T_LIGHT_GROUP_RESET }, 0.0, ctx)?;
                 }
 
                 let Some(component) = self.get_light_component_by_position(index as usize) else {
@@ -715,7 +732,7 @@ impl IPinballComponent for TLightGroup {
                     return Ok(0);
                 };
                 light.message(
-                    MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_ON,
+                    &mut { MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_ON },
                     value,
                     ctx,
                 )?;
@@ -728,7 +745,7 @@ impl IPinballComponent for TLightGroup {
                 }
 
                 if self.message_field_2 != MessageCode::T_LIGHT_GROUP_NULL || self.animation_flag {
-                    self.message(MessageCode::T_LIGHT_GROUP_RESET, 0.0, ctx)?;
+                    self.message(&mut { MessageCode::T_LIGHT_GROUP_RESET }, 0.0, ctx)?;
                 }
 
                 let Some(component) = self.get_light_component_by_position(index as usize) else {
@@ -739,7 +756,7 @@ impl IPinballComponent for TLightGroup {
                     return Ok(0);
                 };
                 light.message(
-                    MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_OFF,
+                    &mut { MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_OFF },
                     value,
                     ctx,
                 )?;
@@ -765,9 +782,9 @@ impl IPinballComponent for TLightGroup {
                     };
 
                     if light.light_on_flag {
-                        light.message(MessageCode::T_LIGHT_TURN_OFF, 0.0, ctx)?;
+                        light.message(&mut { MessageCode::T_LIGHT_TURN_OFF }, 0.0, ctx)?;
                         light.message(
-                            MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_OFF,
+                            &mut { MessageCode::T_LIGHT_FLASHER_START_TIMED_THEN_STAY_OFF },
                             value,
                             ctx,
                         )?;
@@ -790,7 +807,7 @@ impl IPinballComponent for TLightGroup {
                     let Some(light) = comp_borrow.as_tlight_mut() else {
                         continue;
                     };
-                    light.message(MessageCode::T_LIGHT_RESET_AND_TURN_OFF, 0.0, ctx)?;
+                    light.message(&mut { MessageCode::T_LIGHT_RESET_AND_TURN_OFF }, 0.0, ctx)?;
                 }
 
                 for i in (0..=index).rev() {
@@ -798,7 +815,7 @@ impl IPinballComponent for TLightGroup {
                     let Some(light) = comp_borrow.as_tlight_mut() else {
                         continue;
                     };
-                    light.message(MessageCode::T_LIGHT_RESET_AND_TURN_ON, 0.0, ctx)?;
+                    light.message(&mut { MessageCode::T_LIGHT_RESET_AND_TURN_ON }, 0.0, ctx)?;
                 }
             }
             MessageCode::T_LIGHT_GROUP_START_FLASHER => {
@@ -814,7 +831,7 @@ impl IPinballComponent for TLightGroup {
                 let Some(light) = comp_borrow.as_tlight_mut() else {
                     return Ok(0);
                 };
-                light.message(MessageCode::T_LIGHT_FLASHER_START, 0.0, ctx)?;
+                light.message(&mut { MessageCode::T_LIGHT_FLASHER_START }, 0.0, ctx)?;
             }
 
             _ => {
@@ -822,7 +839,7 @@ impl IPinballComponent for TLightGroup {
                 for comp in components.iter().rev() {
                     let mut comp_borrow = comp.borrow_mut();
                     if let Some(light) = comp_borrow.as_tlight_mut() {
-                        light.message(code, value, ctx)?;
+                        light.message(&mut code, value, ctx)?;
                     }
                 }
             }
@@ -852,7 +869,7 @@ unsafe extern "C" fn timer_expired(
     unsafe {
         let group = caller as *mut TLightGroup;
         (*group).timer = 0;
-        (*group).message((*group).message_field_2, (*group).timer1time, ctx)?;
+        (*group).message(&mut (*group).message_field_2, (*group).timer1time, ctx)?;
     }
     Ok(())
 }

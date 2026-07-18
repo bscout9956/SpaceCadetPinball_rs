@@ -114,10 +114,11 @@ impl IPinballComponent for TGate {
 
     fn message(
         &mut self,
-        code: MessageCode,
+        code: &mut MessageCode,
         value: f32,
         ctx: &mut ComponentContext,
     ) -> Result<i32> {
+        let code = *code;
         match code {
             MessageCode::T_GATE_DISABLE => {
                 self.set_active_flag(false);

@@ -209,7 +209,7 @@ impl TFlipperEdge {
         if f32::abs(delta_angle) > self.angle_remainder {
             return self.angle_dst - self.current_angle;
         }
-        
+
         return delta_angle;
     }
 
