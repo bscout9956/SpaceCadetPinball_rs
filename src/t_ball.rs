@@ -296,9 +296,10 @@ impl IEdgeSegment for TBall {
         let ba = Vector2 { x: -ab.x, y: -ab.y };
 
         // Projection = difference between ball directions and collision direction
-        let dir = Vector2::from_vec3(ball_borrow.direction);
-        let proj_ab = -dot_product(&dir, &ab);
-        let proj_ba = -dot_product(&dir, &ba);
+        let ball_direction = Vector2::from_vec3(ball_borrow.direction);
+        let this_direction = Vector2::from_vec3(self.direction);
+        let proj_ab = -dot_product(&ball_direction, &ab);
+        let proj_ba = -dot_product(&this_direction, &ba);
         let delta = Vector2::new(
             ab.x * proj_ab - ba.x * proj_ba,
             ab.y * proj_ab - ba.y * proj_ba,
