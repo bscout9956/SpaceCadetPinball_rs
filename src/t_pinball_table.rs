@@ -635,10 +635,59 @@ impl IPinballComponent for TPinballTable {
         value: f32,
         component_context: &mut ComponentContext,
     ) -> Result<i32> {
+        let mut code = *code;
         let mut rc_text = String::new();
 
         // TODO: All the other codes
         match code {
+            MessageCode::LEFT_FLIPPER_INPUT_PRESSED => {
+                if !self.tilt_lock_flag {
+                    if let Some(flipper) = self.flipper_l.as_mut() {
+                        flipper.borrow_mut().message(
+                            &mut { MessageCode::T_FLIPPER_EXTEND },
+                            value,
+                            component_context,
+                        )?;
+                    }
+                }
+            }
+            MessageCode::LEFT_FLIPPER_INPUT_RELEASED => {
+                if !self.tilt_lock_flag {
+                    if !self.tilt_lock_flag {
+                        if let Some(flipper) = self.flipper_l.as_mut() {
+                            flipper.borrow_mut().message(
+                                &mut { MessageCode::T_FLIPPER_RETRACT },
+                                value,
+                                component_context,
+                            )?;
+                        }
+                    }
+                }
+            }
+            MessageCode::RIGHT_FLIPPER_INPUT_PRESSED => {
+                if !self.tilt_lock_flag {
+                    if let Some(flipper) = self.flipper_r.as_mut() {
+                        flipper.borrow_mut().message(
+                            &mut { MessageCode::T_FLIPPER_EXTEND },
+                            value,
+                            component_context,
+                        )?;
+                    }
+                }
+            }
+            MessageCode::RIGHT_FLIPPER_INPUT_RELEASED => {
+                if !self.tilt_lock_flag {
+                    if !self.tilt_lock_flag {
+                        if let Some(flipper) = self.flipper_r.as_mut() {
+                            flipper.borrow_mut().message(
+                                &mut { MessageCode::T_FLIPPER_RETRACT },
+                                value,
+                                component_context,
+                            )?;
+                        }
+                    }
+                }
+            }
             MessageCode::RESET => {
                 for component_rc in self.component_list.iter_mut() {
                     let mut component = component_rc.borrow_mut();
